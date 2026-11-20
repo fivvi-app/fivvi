@@ -5,33 +5,37 @@ import FivviStrings
 import FivviSession
 import FivviLanguage
 import FivviUI
+import FivviObservability
 
 /// The signed-in home, a placeholder until the tab bar arrives. `GET /api/v1/me` decides what it shows (F002 AC10): the
-/// workspace's name with the hello block, the text to set a workspace up on the web with a button that opens trainer
+/// workspace's name as the large title, the text to set a workspace up on the web with a button that opens trainer
 /// web in the browser, or the no-access text. Under it always sit the address of the account that is signed in and the
 /// sign-out button; above it the button *Klanten* opens TM-02 when the capability helper allows `clients.view` (F006),
 /// and the button *Profiel* opens TM-04, the person's workspaces with their roles (F003). Choosing another workspace
 /// there makes it the current one and returns here, the first tab (F012): its name shows on this screen.
 struct HomeView: View {
     /// The screens above the home; emptying the path returns to it (switching workspace resets the stack, F012).
-    private enum Route: Hashable {
+    enum Route: Hashable {
         case clients, profile
         /// A client's profile (TM-03), opened from the list, after an addition or by ID.
         case client(ClientRoute)
+        /// A private session's screen (TD-02), by ID: after planning one, and from *Komende sessies* of a profile.
+        case session(String)
     }
 
     @Environment(\.openURL) private var openURL
-    @State private var hello: HelloViewModel
-    @State private var account: AccountViewModel
+    @State var account: AccountViewModel
     @State private var profile: ProfileViewModel
     /// The clients of the workspace on screen, kept while the home lives so the list stays at hand (F006).
-    @State private var clients: ClientsViewModel?
-    @State private var path: [Route] = []
-    private let api: any APIProtocol
-    private let language: AppLanguage
+    @State var clients: ClientsViewModel?
+    @State var path: [Route] = []
+    /// PS-04, while its sheet is open (F020).
+    @State var newSession: NewSessionViewModel?
+    let api: any APIProtocol
+    let language: AppLanguage
     private let welcomeURL: URL
 
-    private var catalog: Catalog { language.catalog }
+    var catalog: Catalog { language.catalog }
 
     /// `welcomeURL` is trainer web's first-run screen, which the set-up button opens in the system browser.
     /// `onAccount` is told the account's ID once `GET /api/v1/me` has answered; the app passes it to error reporting.
@@ -42,7 +46,6 @@ struct HomeView: View {
         onAccount: @escaping (String) -> Void,
         onSignedOut: @escaping (Bool) -> Void
     ) {
-        _hello = State(initialValue: HelloViewModel(api: api, catalog: language.catalog))
         _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
         _account = State(initialValue: AccountViewModel(
             api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
@@ -61,6 +64,7 @@ struct HomeView: View {
                     case .clients: clientsScreen
                     case .profile: profileScreen
                     case let .client(route): clientProfileScreen(route)
+                    case let .session(id): sessionScreen(id)
                     }
                 }
         }
@@ -77,17 +81,12 @@ struct HomeView: View {
         return "home.title"
     }
 
-    /// One scroll for the whole screen, so the account block can't squeeze the hello block at the largest text size
+    /// One scroll for the whole screen, so the account block can't squeeze what is above it at the largest text size
     /// (#233): the large title, then the cards and the group of rows in the grouped list (E020 #629, *Vandaag* in
     /// the prototype), and the account's card last.
     private var screen: some View {
         LargeTitleScreen(title: title, titleIdentifier: titleIdentifier) {
             destination
-            // One hello block in one place, so it loads once whether /me is loading, failed or answered
-            // with a workspace; the other states have their own text instead.
-            if showsHello {
-                HelloView(model: hello)
-            }
             rows
             accountCard
         }
@@ -105,17 +104,11 @@ struct HomeView: View {
         }
         // The clients' model follows the workspace the account shows: a new workspace is a new list, none is no list.
         .onChange(of: account.workspace, initial: true) { _, workspace in useWorkspace(workspace) }
+        .toolbar { newMenu }
+        .sheet(item: $newSession) { form in newSessionSheet(form) }
         .onChange(of: language.catalog) { _, catalog in
-            hello.use(catalog)
             profile.use(catalog)
             clients?.use(catalog)
-        }
-    }
-
-    private var showsHello: Bool {
-        switch account.destination {
-        case nil, .workspace: true
-        case .setUpOnWeb, .noAccess: false
         }
     }
 
@@ -267,6 +260,8 @@ struct HomeView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("home.signedInAs")
+                    // The release check's crash, armed in TestFlight builds only (E017); no string, no control.
+                    .testFlightCrashTrigger()
             case .failed:
                 PillButtonStack {
                     Button {
@@ -301,7 +296,8 @@ extension HomeView {
                 onOpenExisting: { id in
                     guard let last = path.indices.last else { return }
                     path[last] = .client(ClientRoute(id: id))
-                }
+                },
+                onOpenSession: { path.append(.session($0)) }
             )
             .id(route.id)
         }

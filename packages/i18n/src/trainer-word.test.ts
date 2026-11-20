@@ -63,7 +63,7 @@ describe('F068 the workspace’s word for its trainers', () => {
     it('has every form of every word in both catalogs, and nothing else', () => {
       for (const locale of locales) {
         const group = messages[locale].trainerWord as Record<string, Record<string, string>>;
-        expect(Object.keys(group)).toEqual([...TRAINER_WORDS]);
+        expect(Object.keys(group).sort()).toEqual([...TRAINER_WORDS].sort());
         for (const choice of TRAINER_WORDS) {
           expect(Object.keys(group[choice] ?? {}).sort()).toEqual(
             ['word', 'words', 'wordCap', 'wordsCap', 'aWord', 'aWordCap'].sort(),

@@ -7,7 +7,7 @@ final class SignInAccessibilityUITests: SignInUITestCase {
     /// At the largest text size every text wraps: no clipped text, nothing wider than the window, on the email step,
     /// the lost-connection message with its retry button, the code step with its messages, and the signed-in home.
     func test_F001N_AC15_largestTextSizeWraps() throws {
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(
             against: server, session: .rejectedToken, textSize: AppLaunch.largestTextSize
         )
@@ -32,13 +32,13 @@ final class SignInAccessibilityUITests: SignInUITestCase {
 
         screen.type(server.signIn.code, into: screen.code)
         XCTAssertTrue(screen.signedInAs.waitUntilExists(timeout: timeout))
-        try assertReadable(screen, [screen.signedInAs, screen.signOut, screen.greeting])
+        try assertReadable(screen, [screen.signedInAs, screen.signOut, screen.profileRow])
     }
 
     /// E020 AC15: the audit with the contrast check on both steps of TM-01 (with their messages) and on the signed-in
     /// home, in light and dark. Only the secondary text token is accepted as low contrast (`auditWithContrast`).
     func test_E020_AC15_signInAndHomePassTheAccessibilityAuditInLightAndDark() throws {
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         for (mode, style) in [("light", UIUserInterfaceStyle.light), ("dark", .dark)] {
             let screen = SignInScreen.launch(against: server, session: .rejectedToken, appearance: mode)
             XCTAssertTrue(screen.notice.waitUntilExists(timeout: timeout), mode)
@@ -68,7 +68,7 @@ final class SignInAccessibilityUITests: SignInUITestCase {
     /// label of the primary pill on the accent fill is not accepted, in light and dark, although white on black (or any
     /// text token) would pass 4.5:1 against the canvas.
     func test_E020_AC15_contrastAcceptanceRejectsTextOnTheAccent() throws {
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         for (mode, style) in [("light", UIUserInterfaceStyle.light), ("dark", .dark)] {
             let screen = SignInScreen.launch(against: server, session: .rejectedToken, appearance: mode)
             XCTAssertTrue(screen.email.waitUntilExists(timeout: timeout), mode)
@@ -101,7 +101,7 @@ final class SignInAccessibilityUITests: SignInUITestCase {
 
     /// Every button keeps the 44 pt touch target, at the default text size.
     func test_F001N_AC15_touchTargets() throws {
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server)
         XCTAssertTrue(screen.email.waitUntilExists(timeout: timeout))
         try assertTouchTarget(screen.email, on: screen)
@@ -125,7 +125,7 @@ final class SignInAccessibilityUITests: SignInUITestCase {
     /// VoiceOver reads each field with its label, the spinner as "loading", and the buttons with their text.
     func test_F001N_AC15_fieldsAndLoadingAreLabelled() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server)
         XCTAssertTrue(screen.email.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.email.label, catalog["signIn.emailLabel"])

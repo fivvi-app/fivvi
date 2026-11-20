@@ -1,8 +1,14 @@
+// Module: The seller's invoice details (legal name, address, KvK 8 digits, VAT `NL` + 9 digits +
+//        `B` + 2 digits; complete when all valid) and a client's billing details (company name and
+//        address required, VAT number optional), with their own error codes
+// Spec: F059 AC2
+
 // The details on an invoice (F059, spec #474): the seller's invoice details of a workspace and a
 // client's billing details. Pure rules: the route asks, the repository stores the answer. The
 // seller's KvK and VAT number are required because the Dutch invoice requirements name them
 // (`PRODUCT.md §96`); a client's VAT number is optional.
 
+import { normalizeEmail } from '../email.ts';
 import {
   ADDRESS_ADDITION_MAX_LENGTH,
   ADDRESS_TEXT_MAX_LENGTH,
@@ -34,12 +40,19 @@ export type InvoiceDetailsField =
   | 'postcode'
   | 'city'
   | 'kvkNumber'
-  | 'vatNumber';
+  | 'vatNumber'
+  | 'questionEmail';
 
 export interface InvoiceDetailsIssue {
   readonly field: InvoiceDetailsField;
   /** `invalid_kvk_number` and `invalid_vat_number` are the formats of the two numbers. */
-  readonly code: 'required' | 'too_long' | 'invalid' | 'invalid_kvk_number' | 'invalid_vat_number';
+  readonly code:
+    | 'required'
+    | 'too_long'
+    | 'invalid'
+    | 'invalid_kvk_number'
+    | 'invalid_vat_number'
+    | 'invalid_email';
 }
 
 /** A Dutch address as typed; every field may be empty. */
@@ -157,6 +170,65 @@ export function decideInvoiceDetails(input: InvoiceDetailsInput): InvoiceDetails
  */
 export function isInvoiceDetailsComplete(input: InvoiceDetailsInput | null | undefined): boolean {
   return input ? decideInvoiceDetails(input).ok : false;
+}
+
+const EMAIL_MAX_LENGTH = 254;
+// One address: something, an `@`, something with no space or second `@` (the same loose rule as
+// the sign-in; the provider's bounce says the rest).
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type QuestionEmailDecision =
+  | { readonly ok: true; readonly email: string | null }
+  | { readonly ok: false; readonly issue: InvoiceDetailsIssue };
+
+/**
+ * The *email for invoice questions* as typed (CM-11): empty means the Owner's own address, which
+ * the workspace reads when it needs one; otherwise one address, trimmed and in lower case.
+ */
+export function decideQuestionEmail(value: string | null | undefined): QuestionEmailDecision {
+  const email = normalizeEmail(value ?? '');
+  if (!email) return { ok: true, email: null };
+  if (email.length > EMAIL_MAX_LENGTH) {
+    return { ok: false, issue: { field: 'questionEmail', code: 'too_long' } };
+  }
+  if (!EMAIL.test(email)) {
+    return { ok: false, issue: { field: 'questionEmail', code: 'invalid_email' } };
+  }
+  return { ok: true, email };
+}
+
+/** The settings of CM-11 as typed: the invoice details, the question email and the no-VAT switch. */
+export interface InvoiceSettingsInput extends InvoiceDetailsInput {
+  readonly questionEmail?: string | null | undefined;
+  /** *Ik reken geen btw* / *I don't charge VAT*. */
+  readonly noVat: boolean;
+}
+
+/** The settings of CM-11 as stored: complete, trimmed and checked. */
+export interface InvoiceSettings extends InvoiceDetails {
+  /** `null` falls back to the Owner's address. */
+  readonly questionEmail: string | null;
+  readonly noVat: boolean;
+}
+
+export type InvoiceSettingsDecision =
+  | { readonly ok: true; readonly settings: InvoiceSettings }
+  | { readonly ok: false; readonly issues: readonly InvoiceDetailsIssue[] };
+
+/**
+ * Whether what the Owner saved on CM-11 is stored, and as what: the invoice details (required,
+ * see `decideInvoiceDetails`), the question email (optional) and the switch. The issues come in
+ * field order, the email last.
+ */
+export function decideInvoiceSettings(input: InvoiceSettingsInput): InvoiceSettingsDecision {
+  const details = decideInvoiceDetails(input);
+  const email = decideQuestionEmail(input.questionEmail);
+  const issues = [...(details.ok ? [] : details.issues), ...(email.ok ? [] : [email.issue])];
+  if (!details.ok || !email.ok || issues.length > 0) return { ok: false, issues };
+  return {
+    ok: true,
+    settings: { ...details.details, questionEmail: email.email, noVat: input.noVat },
+  };
 }
 
 /** The billing details of a client as typed (CW-04). */

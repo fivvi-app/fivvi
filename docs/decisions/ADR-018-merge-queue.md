@@ -48,6 +48,8 @@ Merges into `main` go through the merge queue (squash). Agents add low-risk PRs 
 
 > **Amended (10 November 2026, #1268):** `check_response_timeout_minutes` is 150, not 60. A macOS job (the build, a test pass) that no hosted runner takes is cancelled by GitHub after 15 minutes and tried once more (`iOS build (retry)`, `iOS tests (<locale>) (retry)`), and a retry may wait for a runner as long; the retry plan waits for the whole test matrix, so the other language may run its 38 minutes first. The longest chain by timeouts is `Detect changes` 5 + (15 + 15 + 12) + (38 + 2 + 15 + 38) + 2 = 142 (`WORKFLOW.md §7`).
 
+> **Amended (14 November 2026, #1389):** `check_response_timeout_minutes` is 160, not 150. The iOS test jobs have 44 minutes, not 38, because the unit and UI tests of both languages grew from a median of 1340 s to 1650 s of `xcodebuild` in a day (the E020 screens) and the runners vary by a third, so the deadline of `scripts/test-ios.sh` is 2100 s, not 1790 s. The longest chain by timeouts is now `Detect changes` 5 + (15 + 15 + 12) + (44 + 2 + 15 + 44) + 2 = 154, and `pr.sh wait` gives a native run 165. Apply it with `scripts/github-settings.sh apply`.
+
 > **Amended by [ADR-025](ADR-025-requeue-after-a-fix.md) (31 October 2026):** "only the owner queues it again" now has one exception: when the cause was outside the PR and a bug that blocks the PR's issue was closed as completed after the removal, `pr.sh merge <pr> --after <bug>` queues the same commit once more, once per commit.
 
 5. **A removal is visible.** `scripts/pr.sh queue <pr>` reports `queued`, `removed` (with GitHub's reason) or nothing. A PR is `removed` when its last queue event on the timeline is a removal that is not older than the head commit (`committedDate`); a push after the removal makes it stale, like a refusal, and a later removal (the owner queued the new commit) counts again. `flow.sh status` shows the phases `queued` (nothing to do) and `queue-removed` (read the `merge_group` run; fix a cause in the PR and push, otherwise report it, the owner decides; nobody queues the same commit again as it is). `flow.sh next` lists a removed PR under "Waiting on the owner". `flow.sh finish` refuses while a PR is queued or was removed.
@@ -88,7 +90,7 @@ AI still never approves a PR and never turns on auto-merge.
 | GitHub auto-merge | Not allowed (`AGENTS.md`); GitHub cannot see risk, the local review or the preview smoke check. |
 | `gh pr merge --admin` or a ruleset bypass actor | Skips the queue and the checks; `bypass_actors` stays empty. |
 | `HEADGREEN` grouping | Only the head of a group is checked; with one PR per merge it makes no difference, and `ALLGREEN` is the stricter rule. |
-| Group several PRs per merge (`max_entries_to_merge` above 1) | Saves little (builds already run in parallel) and puts several PRs in one production deploy. |
+| Group several PRs per merge (`max_entries_to_merge` above 1) | Saves little (builds already run in parallel) and puts several PRs in one production deploy. *Checked 17 November 2026 ([ADR-033](ADR-033-go-live-mode.md), "Merge group size", #1425): GitHub builds every entry on its own temporary branch whatever the group size ("Merge limits do not combine `merge_group` builds"), so a group runs the checks no fewer times; still 1.* |
 | A third-party merge bot | One more dependency and token for what GitHub does itself. |
 
 ## References

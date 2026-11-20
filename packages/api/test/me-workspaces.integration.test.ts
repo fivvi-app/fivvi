@@ -72,8 +72,16 @@ describe('F003 GET /v1/me/workspaces', () => {
     const gym = await createWorkspace(admin.db, { label: 'johns-gym' });
     const own = await createWorkspace(admin.db, { label: 'sarah-training' });
     const sarah = await createAccount(admin.db, { label: 'sarah' });
-    await addTeamRole(admin.db, { workspaceId: gym.id, accountId: sarah.id, role: 'trainer' });
-    await addTeamRole(admin.db, { workspaceId: own.id, accountId: sarah.id, role: 'owner' });
+    const trainerRole = await addTeamRole(admin.db, {
+      workspaceId: gym.id,
+      accountId: sarah.id,
+      role: 'trainer',
+    });
+    const ownerRole = await addTeamRole(admin.db, {
+      workspaceId: own.id,
+      accountId: sarah.id,
+      role: 'owner',
+    });
 
     const response = await get(sarah);
 
@@ -87,6 +95,7 @@ describe('F003 GET /v1/me/workspaces', () => {
           slug: gym.marker,
           trainerWord: 'trainer',
           role: 'trainer',
+          teamMemberId: trainerRole.id,
           capabilities: capabilitiesOf('trainer'),
           trainsHere: true,
         },
@@ -96,6 +105,7 @@ describe('F003 GET /v1/me/workspaces', () => {
           slug: own.marker,
           trainerWord: 'trainer',
           role: 'owner',
+          teamMemberId: ownerRole.id,
           capabilities: capabilitiesOf('owner'),
           trainsHere: false,
         },
@@ -201,7 +211,11 @@ describe('@permission F004 capabilities on GET /v1/me/workspaces', () => {
       'class.read',
       'join_link.view',
       'join_link.renew',
+      'booking_link.manage',
+      'booking_link.copy',
       'access_log.read',
+      'invoices.manage',
+      'commerce.offers.manage',
     ]);
     expect(capabilitiesIn(gym.id)).toEqual([
       'trainers.view',
@@ -211,6 +225,7 @@ describe('@permission F004 capabilities on GET /v1/me/workspaces', () => {
       'session.private.manage.own',
       'class.read',
       'join_link.view',
+      'booking_link.copy',
     ]);
   });
 
@@ -235,6 +250,7 @@ describe('@permission F004 capabilities on GET /v1/me/workspaces', () => {
   it('AC9: the contract has no admin role and requires capabilities on both workspace shapes', () => {
     const schemas = contract.components.schemas;
     for (const name of ['MyWorkspace', 'MeWorkspace']) {
+      expect(schemas[name].required).toContain('teamMemberId');
       expect(schemas[name].properties.role.enum).toEqual(['owner', 'trainer']);
       expect(schemas[name].properties.capabilities.items.enum).toEqual(capabilitiesOf('owner'));
       expect(schemas[name].required).toContain('capabilities');

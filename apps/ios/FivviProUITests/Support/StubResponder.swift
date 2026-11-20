@@ -6,9 +6,8 @@ final class Responder: @unchecked Sendable {
     let lock = NSLock()
     let signIn: StubServer.SignIn
     let clientRoutes: StubClientRoutes
-    var currentAnswer: StubServer.Answer
+    let sessionRoutes: StubSessionRoutes
     var received: [StubServer.Request] = []
-    var held: [(connection: NWConnection, locale: String?)] = []
     var offline = false
     var lost: Set<Int> = []
     var storedLocale: String?
@@ -21,11 +20,13 @@ final class Responder: @unchecked Sendable {
     var storedTrainerStatus: Int?
     var holdsClientReads = false
     var heldClientReads: [@Sendable () -> Void] = []
+    var holdsAccountReads = false
+    var heldAccountReads: [@Sendable () -> Void] = []
 
-    init(_ answer: StubServer.Answer, signIn: StubServer.SignIn) {
-        currentAnswer = answer
+    init(signIn: StubServer.SignIn) {
         self.signIn = signIn
         clientRoutes = StubClientRoutes(empty: signIn.hasNoClients)
+        sessionRoutes = StubSessionRoutes(signIn: signIn, clients: clientRoutes)
         storedLocale = signIn.preferredLocale
         storedName = signIn.name
     }
@@ -82,6 +83,24 @@ final class Responder: @unchecked Sendable {
         waiting.forEach { $0() }
     }
 
+    /// While true, `GET /api/v1/me` gets no answer until it is set to false (which answers the reads held).
+    func holdAccountReads(_ hold: Bool) {
+        let waiting: [@Sendable () -> Void] = lock.withLock {
+            holdsAccountReads = hold
+            defer { if !hold { heldAccountReads = [] } }
+            return hold ? [] : heldAccountReads
+        }
+        waiting.forEach { $0() }
+    }
+
+    /// Keeps `answer` for later when the account reads are on hold; returns whether it did.
+    func holdAccountRead(_ answer: @escaping @Sendable () -> Void) -> Bool {
+        lock.withLock {
+            if holdsAccountReads { heldAccountReads.append(answer) }
+            return holdsAccountReads
+        }
+    }
+
     /// Keeps `answer` for later when it is the read of one client and reads are on hold; returns whether it did.
     func holdClientRead(method: String, path: String, answer: @escaping @Sendable () -> Void) -> Bool {
         let isRead = method == "GET" && path.split(separator: "/").count == 6 && path.contains("/clients/")
@@ -93,10 +112,6 @@ final class Responder: @unchecked Sendable {
     }
 
     var requests: [StubServer.Request] { lock.withLock { received } }
-
-    var requestedLocales: [String?] {
-        lock.withLock { received.filter { $0.path == "/api/v1/hello" }.map(\.locale) }
-    }
 
     func setOffline(_ value: Bool) {
         lock.withLock { offline = value }
@@ -113,16 +128,6 @@ final class Responder: @unchecked Sendable {
             return hold ? [] : heldSignIn
         }
         waiting.forEach { send($0, status: 202, json: nil) }
-    }
-
-    func answer(with answer: StubServer.Answer) {
-        let waiting: [(connection: NWConnection, locale: String?)] = lock.withLock {
-            currentAnswer = answer
-            if case .hold = answer { return [] }
-            defer { held = [] }
-            return held
-        }
-        waiting.forEach { respond($0.connection, locale: $0.locale, with: answer) }
     }
 
     func accept(_ connection: NWConnection, on queue: DispatchQueue) {
@@ -162,7 +167,7 @@ final class Responder: @unchecked Sendable {
     }
 
     func handle(_ connection: NWConnection, head: String, body: Data) {
-        // Request line: GET /api/v1/hello?locale=en HTTP/1.1
+        // Request line: GET /api/v1/me HTTP/1.1
         let line = head.split(separator: "\r\n").first?.split(separator: " ").map(String.init) ?? []
         let method = line.first ?? ""
         let request = line.dropFirst().first.flatMap { URLComponents(string: $0) }
@@ -172,14 +177,13 @@ final class Responder: @unchecked Sendable {
         let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] ?? [:]
         let authorization = Self.header("authorization", in: head)
         let stringFields = json.compactMapValues { $0 as? String }
-        let (answer, isOffline, holdsSignInRequest) = lock.withLock {
+        let (isOffline, holdsSignInRequest) = lock.withLock {
             received.append(.init(
                 method: method, path: path, locale: locale, authorization: authorization, body: stringFields
             ))
-            if path == "/api/v1/hello", case .hold = currentAnswer { held.append((connection, locale)) }
             let holdsSignInRequest = path == "/api/v1/sign-in/request" && holdsSignIn
             if holdsSignInRequest { heldSignIn.append(connection) }
-            return (currentAnswer, offline, holdsSignInRequest)
+            return (offline, holdsSignInRequest)
         }
         if isOffline {
             connection.cancel()
@@ -187,8 +191,6 @@ final class Responder: @unchecked Sendable {
         }
         if holdsSignInRequest { return }
         switch (method, path) {
-        case ("GET", "/api/v1/hello"):
-            respond(connection, locale: locale, with: answer)
         case ("POST", "/api/v1/sign-in/request"):
             send(connection, status: 202, json: nil)
         case ("POST", "/api/v1/sign-in/token"):
@@ -202,7 +204,9 @@ final class Responder: @unchecked Sendable {
                 connection, method: method, path: path, authorization: authorization, fields: stringFields
             )
         default:
-            let reply = clientReply(method: method, path: path, query: query, body: json, authorization: authorization)
+            let reply = StubSessionRoutes.isSessionRoute(path)
+                ? sessionReply(method: method, path: path, body: json, authorization: authorization)
+                : clientReply(method: method, path: path, query: query, body: json, authorization: authorization)
             answerClientRoute(connection, method: method, path: path, reply: reply)
         }
     }
@@ -217,23 +221,20 @@ final class Responder: @unchecked Sendable {
         if !holdClientRead(method: method, path: path, answer: answer) { answer() }
     }
 
+    /// The session routes (F020) for a signed-in caller; any other path is unknown.
+    func sessionReply(
+        method: String, path: String, body: [String: Any], authorization: String?
+    ) -> (status: Int, json: [String: Any]?) {
+        guard authorization == "Bearer \(signIn.token)" else { return (401, Self.notSignedIn) }
+        return sessionRoutes.respond(method: method, path: path, body: body) ?? (404, nil)
+    }
+
     /// The client routes (F006) for a signed-in caller; any other path is unknown.
     func clientReply(
         method: String, path: String, query: [String: String], body: [String: Any], authorization: String?
     ) -> (status: Int, json: [String: Any]?) {
         guard authorization == "Bearer \(signIn.token)" else { return (path.contains("/clients") ? 401 : 404, nil) }
         return clientRoutes.respond(method: method, path: path, query: query, body: body) ?? (404, nil)
-    }
-
-    func respond(_ connection: NWConnection, locale: String?, with answer: StubServer.Answer) {
-        switch answer {
-        case .hold:
-            return
-        case let .greeting(key):
-            send(connection, status: 200, json: ["greetingKey": key, "locale": locale ?? "en"])
-        case let .status(code):
-            send(connection, status: code, json: nil)
-        }
     }
 
     func send(_ connection: NWConnection, status: Int, json: [String: Any]?) {

@@ -2,9 +2,13 @@ import { randomBytes } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
+import { insertOffer, type NewOffer, type OfferTerms } from '../repositories/offers.ts';
 import {
   accessLog,
   authUsers,
+  bookingLinks,
+  classSeries,
+  clientBillingDetails,
   clients,
   groupClasses,
   locations,
@@ -15,11 +19,15 @@ import {
   paymentRefunds,
   paymentStatusChanges,
   payments,
+  payoutLines,
+  payoutStatusChanges,
+  payouts,
   sessionParticipants,
   sessions,
   teamMembers,
   trainerInvitations,
   trainerProfiles,
+  workspaceInvoiceDetails,
 } from '../schema/index.ts';
 
 // Test factories for the tenancy core (TESTING.md §5.2). Each creates a valid record with
@@ -267,6 +275,106 @@ export async function addGroupClass(
 }
 
 /**
+ * A booking link of a workspace (F037): by default the standing link of all bookings in the
+ * visitor's language, active, with a code the database makes. A `class` link points at the given
+ * class or at one made for it, a `session` link at the given class date or at a group session made
+ * for it, a week from now.
+ */
+export async function addBookingLink(
+  db: Pick<DatabaseExecutor, 'insert' | 'select'>,
+  options: {
+    workspaceId: string;
+    scope?: 'all' | 'group' | 'class' | 'session';
+    language?: 'visitor' | 'nl' | 'en';
+    groupClassId?: string;
+    sessionId?: string;
+    createdByTeamMemberId?: string | null;
+    deactivatedAt?: Date | null;
+    code?: string;
+  },
+): Promise<{ id: string; code: string }> {
+  const scope = options.scope ?? 'all';
+  const groupClassId =
+    scope === 'class'
+      ? (options.groupClassId ?? (await addGroupClass(db, { workspaceId: options.workspaceId })).id)
+      : null;
+  const sessionId =
+    scope === 'session'
+      ? (options.sessionId ??
+        (
+          await addSession(db, {
+            workspaceId: options.workspaceId,
+            type: 'group',
+            participant: false,
+          })
+        ).id)
+      : null;
+  return first(
+    await db
+      .insert(bookingLinks)
+      .values({
+        organizationId: options.workspaceId,
+        scope,
+        language: options.language ?? 'visitor',
+        groupClassId,
+        sessionId,
+        createdByTeamMemberId: options.createdByTeamMemberId ?? null,
+        deactivatedAt: options.deactivatedAt ?? null,
+        ...(options.code === undefined ? {} : { code: options.code }),
+      })
+      .returning({ id: bookingLinks.id, code: bookingLinks.code }),
+    'booking link',
+  );
+}
+
+/**
+ * A weekly series of a class (F022): every Tuesday 18:00 Amsterdam time for 60 minutes, 8 places,
+ * no usual trainer, from Tuesday 6 October 2026 with the calendar filled to 28 December, unless the
+ * test says otherwise. It makes a class for it unless `groupClassId` is given. It adds no dates.
+ */
+export async function addClassSeries(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    groupClassId?: string;
+    rrule?: string;
+    localStartTime?: string;
+    durationMinutes?: number;
+    timeZone?: string;
+    trainerProfileId?: string | null;
+    capacity?: number;
+    startsOn?: string;
+    endsOn?: string | null;
+    materializedUntil?: string;
+    version?: number;
+  },
+): Promise<{ id: string; groupClassId: string }> {
+  const groupClassId =
+    options.groupClassId ?? (await addGroupClass(db, { workspaceId: options.workspaceId })).id;
+  const row = first(
+    await db
+      .insert(classSeries)
+      .values({
+        organizationId: options.workspaceId,
+        groupClassId,
+        rrule: options.rrule ?? 'FREQ=WEEKLY;BYDAY=TU',
+        localStartTime: options.localStartTime ?? '18:00',
+        durationMinutes: options.durationMinutes ?? 60,
+        timeZone: options.timeZone ?? 'Europe/Amsterdam',
+        trainerProfileId: options.trainerProfileId ?? null,
+        capacity: options.capacity ?? 8,
+        startsOn: options.startsOn ?? '2026-10-06',
+        endsOn: options.endsOn ?? null,
+        materializedUntil: options.materializedUntil ?? '2026-12-28',
+        version: options.version ?? 1,
+      })
+      .returning({ id: classSeries.id }),
+    'class series',
+  );
+  return { id: row.id, groupClassId };
+}
+
+/**
  * A private session of a workspace (F020) with one participant, a client of it. Unless the test
  * says otherwise: at the workspace's default location, for the given trainer profile (none when
  * not given), planned by nobody, an hour long, starting at the given instant (default: a week
@@ -289,6 +397,8 @@ export async function addSession(
     locationId?: string;
     type?: 'private' | 'group' | 'open_gym';
     groupClassId?: string | null;
+    /** The weekly series this class date belongs to (F022), with the local date it stands for. */
+    series?: { id: string; occurrenceDate: string; detachedFields?: string[] };
     status?: 'scheduled' | 'cancelled';
     startsAt?: Date;
     durationMinutes?: number;
@@ -326,6 +436,9 @@ export async function addSession(
         trainerProfileId: options.trainerProfileId ?? null,
         locationId,
         groupClassId,
+        seriesId: options.series?.id ?? null,
+        occurrenceDate: options.series?.occurrenceDate ?? null,
+        detachedFields: options.series?.detachedFields ?? [],
         startsAt,
         endsAt,
         capacity:
@@ -558,4 +671,181 @@ export async function addPaymentChargeback(
     'payment chargeback',
   );
   return { id: row.id, paymentId: payment.id, clientId: payment.clientId };
+}
+
+/**
+ * An owner-made offer of a workspace (F052) with its first version: by default a membership of
+ * 2 classes a week, 6 months, € 79,00 including 21 % VAT, switched off, with a Dutch name that
+ * carries a unique marker. The offer and its version point at each other and the key is checked
+ * at commit, so the two are written in one transaction (a savepoint inside a test's).
+ */
+export async function addOffer(
+  db: Pick<DatabaseExecutor, 'transaction'>,
+  options: {
+    workspaceId: string;
+    offer?: Partial<Omit<NewOffer, 'terms'>>;
+    terms?: Partial<OfferTerms>;
+  },
+): Promise<{ id: string; versionId: string; nameNl: string }> {
+  const nameNl = options.terms?.nameNl ?? uniqueMarker('abonnement');
+  const offer: NewOffer = {
+    kind: 'membership',
+    creditKind: null,
+    defaultPlan: null,
+    ...options.offer,
+    terms: {
+      classesPerWeek: 2,
+      termMonths: 6,
+      billingCycle: 'month',
+      endOfTerm: 'stop',
+      makeupsPerMonth: 2,
+      cutoffMinutes: 720,
+      renewalWindowDays: 30,
+      priceCents: 7900,
+      vatRateBasisPoints: 2100,
+      ...options.terms,
+      nameNl,
+    },
+  };
+  const written = await db.transaction((tx) => insertOffer(tx, options.workspaceId, offer));
+  return { ...written, nameNl };
+}
+
+/**
+ * The invoice details of a workspace (F059): John's Gym B.V. by default, complete, the switch
+ * *Ik reken geen btw* off and no question email. The legal name carries a unique marker.
+ */
+export async function addWorkspaceInvoiceDetails(
+  db: DatabaseExecutor,
+  options: { workspaceId: string; noVat?: boolean; questionEmail?: string | null },
+): Promise<{ id: string; legalName: string }> {
+  const legalName = uniqueMarker('gym-bv');
+  const row = first(
+    await db
+      .insert(workspaceInvoiceDetails)
+      .values({
+        organizationId: options.workspaceId,
+        legalName,
+        street: 'Voorbeeldstraat',
+        houseNumber: '1',
+        postcode: '1234 AB',
+        city: 'Amsterdam',
+        kvkNumber: '12345678',
+        vatNumber: 'NL000000000B01',
+        questionEmail: options.questionEmail ?? null,
+        noVat: options.noVat ?? false,
+      })
+      .returning({ id: workspaceInvoiceDetails.id }),
+    'workspace invoice details',
+  );
+  return { id: row.id, legalName };
+}
+
+/**
+ * The billing details of a client (F059): Jansen Advies B.V. by default, a company invoice last
+ * changed by the client. The company name carries a unique marker.
+ */
+export async function addClientBillingDetails(
+  db: DatabaseExecutor,
+  options: { workspaceId: string; clientId: string; changedBy?: 'client' | 'team' },
+): Promise<{ id: string; companyName: string }> {
+  const companyName = uniqueMarker('jansen-advies');
+  const row = first(
+    await db
+      .insert(clientBillingDetails)
+      .values({
+        organizationId: options.workspaceId,
+        clientId: options.clientId,
+        asCompany: true,
+        companyName,
+        street: 'Testweg',
+        houseNumber: '2',
+        postcode: '5678 CD',
+        city: 'Utrecht',
+        vatNumber: 'NL000000000B02',
+        changedBy: options.changedBy ?? 'client',
+      })
+      .returning({ id: clientBillingDetails.id }),
+    'client billing details',
+  );
+  return { id: row.id, companyName };
+}
+
+/**
+ * A payout of the workspace (F061), with its first status line (`null → status`). Amounts are
+ * the AC1 settlement's unless given: `stl_test0001` of Wednesday 10 February 2027, € 392,48.
+ */
+export async function addPayout(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    providerSettlementId?: string;
+    status?: (typeof payouts.status.enumValues)[number];
+    settledAt?: Date | null;
+    amountCents?: number;
+  },
+): Promise<{ id: string; providerSettlementId: string }> {
+  const providerSettlementId = options.providerSettlementId ?? uniqueMarker('stl');
+  const status = options.status ?? 'paidout';
+  const fetchedAt = new Date();
+  const payout = first(
+    await db
+      .insert(payouts)
+      .values({
+        organizationId: options.workspaceId,
+        providerSettlementId,
+        reference: '1234567.2701.01',
+        settledAt:
+          options.settledAt === undefined ? new Date('2027-02-10T05:30:12Z') : options.settledAt,
+        amountCents: options.amountCents ?? 39248,
+        status,
+        fetchedAt,
+      })
+      .returning({ id: payouts.id }),
+    'payout',
+  );
+  await db.insert(payoutStatusChanges).values({
+    organizationId: options.workspaceId,
+    payoutId: payout.id,
+    fromStatus: null,
+    toStatus: status,
+    occurredAt: fetchedAt,
+    source: 'job',
+  });
+  return { id: payout.id, providerSettlementId };
+}
+
+/** A line of a payout of the workspace (F061), stored unmatched; the payout is made unless given. */
+export async function addPayoutLine(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    payoutId?: string;
+    providerLineId?: string;
+    type?: (typeof payoutLines.type.enumValues)[number];
+    feeKind?: (typeof payoutLines.feeKind.enumValues)[number] | null;
+    amountCents?: number;
+  },
+): Promise<{ id: string; payoutId: string; providerLineId: string }> {
+  const payoutId =
+    options.payoutId ?? (await addPayout(db, { workspaceId: options.workspaceId })).id;
+  const providerLineId = options.providerLineId ?? uniqueMarker('tr');
+  const type = options.type ?? 'payment';
+  const line = first(
+    await db
+      .insert(payoutLines)
+      .values({
+        organizationId: options.workspaceId,
+        payoutId,
+        providerLineId,
+        type,
+        feeKind: type === 'fee' ? (options.feeKind ?? 'ideal') : null,
+        amountCents: options.amountCents ?? 7900,
+        description: 'Membership, February 2027',
+        feeCount: type === 'fee' ? 1 : null,
+      })
+      .returning({ id: payoutLines.id }),
+    'payout line',
+  );
+  return { id: line.id, payoutId, providerLineId };
 }

@@ -35,6 +35,7 @@ import kotlinx.serialization.Contextual
  *
  * @param groupClass 
  * @param firstDate The first date, when the request had a `firstDate`.
+ * @param datesAdded How many dates the class got: 12 when the `firstDate` repeats weekly (“12 groepslessen toegevoegd”); left out otherwise.
  */
 @Serializable
 
@@ -45,7 +46,11 @@ data class CreatedGroupClass (
 
     /* The first date, when the request had a `firstDate`. */
     @SerialName(value = "firstDate")
-    val firstDate: Session? = null
+    val firstDate: Session? = null,
+
+    /* How many dates the class got: 12 when the `firstDate` repeats weekly (“12 groepslessen toegevoegd”); left out otherwise. */
+    @SerialName(value = "datesAdded")
+    val datesAdded: kotlin.Int? = null
 
 ) {
 

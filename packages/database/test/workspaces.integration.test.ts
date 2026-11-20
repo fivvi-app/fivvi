@@ -15,7 +15,13 @@ import {
   teamMembers,
   updateWorkspace,
 } from '../src/index.ts';
-import { addClient, addTeamRole, createAccount, createWorkspace } from '../src/testing/index.ts';
+import {
+  addClient,
+  addTeamRole,
+  createAccount,
+  createWorkspace,
+  testDefaultOffers,
+} from '../src/testing/index.ts';
 
 // The repository functions that create a workspace (F002, #277, ADR-022) as the app role: RLS
 // applies, so a create has to put the new workspace in the request's context before it inserts.
@@ -24,6 +30,7 @@ const DEFAULTS = {
   defaultLocale: 'nl-NL',
   timeZone: 'Europe/Amsterdam',
   ownerTrains: false,
+  defaultOffers: testDefaultOffers(),
 } as const;
 
 describe('F002 creating a workspace', () => {
@@ -194,7 +201,11 @@ describe('F002 creating a workspace', () => {
     const clientOf = await createWorkspace(admin.db);
     const stranger = await createWorkspace(admin.db);
     const account = await createAccount(admin.db, { label: 'lister' });
-    await addTeamRole(admin.db, { workspaceId: owned.id, accountId: account.id, role: 'owner' });
+    const member = await addTeamRole(admin.db, {
+      workspaceId: owned.id,
+      accountId: account.id,
+      role: 'owner',
+    });
     await addClient(admin.db, { workspaceId: clientOf.id, accountId: account.id });
 
     const listed = await scopes().inAccountScope(
@@ -215,6 +226,7 @@ describe('F002 creating a workspace', () => {
         slug: row?.slug,
         trainerWord: 'trainer',
         role: 'owner',
+        teamMemberId: member.id,
         trainsHere: false,
       },
     ]);
@@ -278,6 +290,7 @@ describe('F002 creating a workspace', () => {
         name: "John's Gym",
         slug: 'johns-gym-trains',
         ownerTrains: true,
+        defaultOffers: testDefaultOffers(),
       });
     });
     const listed = await scopes().inAccountScope(

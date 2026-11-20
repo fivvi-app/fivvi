@@ -1,0 +1,8 @@
+// Debug of the client app Fivvi (E017 #503): the settings of Fivvi Pro's Debug (the local dev server, no Sentry DSN, the
+// version of both apps from apps/Version.xcconfig), with the app's own Info.plist and entitlements (its own Keychain
+// access group), and the Associated Domains of its links (`applinks:fivvi.app`, E017 #505; device builds take them from
+// Config/Fivvi.entitlements, simulator builds from Config/Fivvi-Simulator.entitlements).
+#include "../../Config/Debug.xcconfig"
+INFOPLIST_FILE = Config/Fivvi-Info-Debug.plist
+CODE_SIGN_ENTITLEMENTS = Config/Fivvi.entitlements
+CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*] = Config/Fivvi-Simulator.entitlements

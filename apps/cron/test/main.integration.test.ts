@@ -193,8 +193,15 @@ describe('E012 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
       expect(result.exitCode).toBe(0);
       const rows = await db.select().from(jobRuns);
       expect(rows.map((row) => `${row.taskName}:${row.outcome}`).sort()).toEqual([
+        'extend-class-series-horizon:succeeded',
         'job-runs-retention:succeeded',
         'lettermint-usage:succeeded',
+        'retention.access-log:succeeded',
+        'retention.deletion-log:succeeded',
+        'retention.invitations:succeeded',
+        'retention.rate-limits:succeeded',
+        'retention.sessions:succeeded',
+        'retention.sign-in-tokens:succeeded',
       ]);
       // Both rows are of the run the process printed.
       const [{ runId }] = rows as [(typeof rows)[number]];

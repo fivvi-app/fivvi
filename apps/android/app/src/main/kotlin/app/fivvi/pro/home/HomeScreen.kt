@@ -1,6 +1,7 @@
 package app.fivvi.pro.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,12 +10,19 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -28,12 +36,12 @@ import app.fivvi.core.kit.ListRow
 import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStack
 import app.fivvi.core.kit.PillButtonStyle
+import app.fivvi.core.kit.RoundControl
+import app.fivvi.core.ui.testTagsAsIds
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
 import app.fivvi.designtokens.title2
-import app.fivvi.pro.hello.HelloContent
-import app.fivvi.pro.hello.HelloState
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
 object HomeTags {
@@ -49,33 +57,38 @@ object HomeTags {
     const val NO_ACCESS = "home.noAccess"
     const val OPEN_PROFILE = "home.openProfile"
     const val OPEN_CLIENTS = "home.openClients"
+
+    /** The **+** and its menu's *Privésessie* (F020). */
+    const val NEW = "home.new"
+    const val NEW_PRIVATE_SESSION = "home.newPrivateSession"
 }
 
 /**
- * The signed-in home (a placeholder, in the look of *Vandaag (TD-01)*'s large title and grouped list): the hello block,
- * the address of the signed-in account, the rows to Klanten and Profiel and the sign-out button, which a progress
- * indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients.
+ * The signed-in home (a placeholder, in the look of *Vandaag (TD-01)*'s large title and grouped list): the workspace's
+ * name, the address of the signed-in account, the rows to Klanten and Profiel and the sign-out button, which a progress
+ * indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients. The **+** at the top
+ * has *Privésessie* (PS-04, F020) while [onNewPrivateSession] is given: the person plans private sessions in the workspace.
  */
 @Composable
 fun HomeScreen(
-    hello: HelloState,
     me: MeState,
     signingOut: Boolean,
-    onRetryHello: () -> Unit,
     onRetryMe: () -> Unit,
     onSignOut: () -> Unit,
     onOpenWeb: () -> Unit,
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenClients: (() -> Unit)? = null,
+    onNewPrivateSession: (() -> Unit)? = null,
 ) {
-    // One scroll for the whole screen, so the account block can't squeeze the hello block at the largest font scale.
+    // One scroll for the whole screen, so the account block can't squeeze what is above it at the largest font scale.
     Column(
         modifier = modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState())
             .padding(Spacing.space4),
         verticalArrangement = Arrangement.spacedBy(Spacing.space4),
     ) {
-        Destination(hello, me, onRetryHello, onOpenWeb)
+        if (onNewPrivateSession != null && me is MeState.Loaded) NewMenu(onNewPrivateSession)
+        Destination(me, onOpenWeb)
         when (me) {
             MeState.Loading -> {
                 val label = stringResource(R.string.common_loading)
@@ -136,13 +149,40 @@ fun HomeScreen(
     }
 }
 
-// The part above the account block: what the API said the person gets (F002 AC10). The hello block is the placeholder of
-// the workspace's home; the other two states have nothing but their text.
+// **+** (the prototype's round control), with *Privésessie*: the one thing it makes today (classes join it with their features).
 @Composable
-private fun Destination(hello: HelloState, me: MeState, onRetryHello: () -> Unit, onOpenWeb: () -> Unit) {
+private fun NewMenu(onNewPrivateSession: () -> Unit) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+        RoundControl(
+            icon = painterResource(R.drawable.ic_add),
+            contentDescription = stringResource(R.string.workspace_nav_new),
+            onClick = { open = true },
+            modifier = Modifier.testTag(HomeTags.NEW),
+        )
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier.testTagsAsIds(),
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.workspace_nav_new_private_session)) },
+                onClick = {
+                    open = false
+                    onNewPrivateSession()
+                },
+                modifier = Modifier.testTag(HomeTags.NEW_PRIVATE_SESSION),
+            )
+        }
+    }
+}
+
+// The part above the account block: what the API said the person gets (F002 AC10): the workspace's name, the text to set
+// one up on the web, or the no-access text. Loading or failed, /me has not said, so there is nothing above it.
+@Composable
+private fun Destination(me: MeState, onOpenWeb: () -> Unit) {
     when (val destination = (me as? MeState.Loaded)?.destination) {
-        // Loading or failed: /me has not said, so the hello block stays, as before F002.
-        null -> HelloContent(hello, onRetryHello)
+        null -> Unit
 
         is HomeDestination.Workspace -> {
             Text(
@@ -151,7 +191,6 @@ private fun Destination(hello: HelloState, me: MeState, onRetryHello: () -> Unit
                     .semantics { heading() },
                 style = MaterialTheme.typography.title1,
             )
-            HelloContent(hello, onRetryHello)
         }
 
         HomeDestination.SetUpOnWeb -> FivviCard(Modifier.fillMaxWidth()) {

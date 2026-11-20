@@ -9,7 +9,7 @@ final class StartWorkspaceTests: XCTestCase {
     private func workspace(_ name: String, id: String? = nil) -> Components.Schemas.MeWorkspace {
         .init(
             id: id ?? "id-\(name)", name: name, slug: name.lowercased(), trainerWord: .trainer, role: .trainer,
-            capabilities: []
+            teamMemberId: "member-\(name)", capabilities: []
         )
     }
 

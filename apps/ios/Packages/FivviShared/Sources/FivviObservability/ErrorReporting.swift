@@ -8,6 +8,11 @@ public enum ErrorReporting {
     public static let dsnKey = "FivviSentryDSN"
     /// Info.plist key of the Sentry environment (`FIVVI_SENTRY_ENVIRONMENT`): `development` or `production`.
     public static let environmentKey = "FivviSentryEnvironment"
+    /// Info.plist key of the app's name in reports (`fivvi` for the client app, E017 AC10). Absent or empty: no `app` tag,
+    /// as in Fivvi Pro's reports before the client app.
+    public static let appKey = "FivviSentryApp"
+    /// The `platform` tag of every event that carries an `app` tag.
+    public static let platform = "ios"
 
     /// What a build configuration sets for error reporting; `nil` without a DSN, which turns reporting off.
     public struct Configuration: Equatable {
@@ -15,6 +20,8 @@ public enum ErrorReporting {
         public let environment: String
         /// `<bundle ID>@<version>+<build>`, Sentry's own format for app releases.
         public let release: String
+        /// The app's name for the `app` tag of every event, with the `platform` tag next to it; nil sets neither.
+        public let app: String?
 
         public init?(info: [String: Any]?) {
             let dsn = (info?[ErrorReporting.dsnKey] as? String)?.trimmingCharacters(in: .whitespaces) ?? ""
@@ -29,6 +36,8 @@ public enum ErrorReporting {
             self.dsn = dsn
             self.environment = environment
             release = "\(bundleID)@\(version)+\(build)"
+            let app = (info[ErrorReporting.appKey] as? String)?.trimmingCharacters(in: .whitespaces) ?? ""
+            self.app = app.isEmpty ? nil : app
         }
     }
 
@@ -80,7 +89,8 @@ public enum ErrorReporting {
         options.enableCrashHandler = true
         options.enableAutoSessionTracking = true
         options.sendDefaultPii = false
-        options.beforeSend = beforeSend
+        let app = configuration.app
+        options.beforeSend = { Scrubber.scrub($0, app: app) }
         options.beforeBreadcrumb = beforeBreadcrumb
         options.tracesSampleRate = nil
         options.enableAutoPerformanceTracing = false

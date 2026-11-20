@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function SessionPage({ params }: PageProps<'/w/[slug]/sessions/[id]'>) {
   const { slug: slugParam, id: sessionId } = await params;
-  const { id, name, slug, capabilities, trainerWord } = await workspaceOf(slugParam);
+  const { id, name, slug, capabilities, trainerWord, teamMemberId } = await workspaceOf(slugParam);
   if (!capabilities.includes('clients.view')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
   const authorization = cookie ? { cookie } : {};
@@ -59,6 +59,7 @@ export default async function SessionPage({ params }: PageProps<'/w/[slug]/sessi
         capabilities.includes('session.private.manage.own') ||
         capabilities.includes('session.private.manage.any')
       }
+      teamMemberId={teamMemberId}
       trainerWord={trainerWordForms(trainerWord, catalogLocale(await getLocale()))}
     />
   );

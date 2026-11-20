@@ -190,11 +190,12 @@ test.describe('F012 the scope switcher on the web', () => {
     context,
     messages: copy,
   }) => {
-    const { sarah, gymSlug, personalSlug } = await sarahOnTwoTeams();
+    const { sarah, personalSlug } = await sarahOnTwoTeams();
     await signInWithSession(context, sarah);
-    // Nothing remembered yet: the first by name.
+    // Nothing remembered yet: the first by name, John's Gym, where Sarah is a Trainer: her home there is Mijn dag (F013).
     await page.goto('/home');
-    await expect(page).toHaveURL(`/w/${gymSlug}`);
+    await expect(page).toHaveURL('/me/day');
+    await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
     const language = await page.locator('html').getAttribute('lang');
 
     await switcher(page, `${GYM} · ${copy.roles.trainer}`).click();
@@ -239,8 +240,11 @@ test.describe('F012 the scope switcher on the web', () => {
 
     await leaveTeam(sarah, personalSlug);
     await page.goto('/home');
-    await expect(page).toHaveURL(`/w/${gymSlug}`);
-    await expect(page.getByRole('heading', { level: 1, name: GYM })).toBeVisible();
+    // The Trainer's home of the workspace that is left (F013).
+    await expect(page).toHaveURL('/me/day');
+    await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
+    // The frame is John's Gym's, now the only workspace: a plain label, no switcher.
+    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
 
     await leaveTeam(sarah, gymSlug);
     await page.goto('/home');

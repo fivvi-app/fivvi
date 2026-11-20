@@ -99,17 +99,15 @@ const urlOf = (id: string, locale: Locale) => {
 /** The types in a page's JSON-LD, and the nodes. */
 type Node = Record<string, unknown> & { '@type': string };
 
+// One test per page and language, generated from the same page list: each has its own time budget, so
+// one slow page cannot time out a walk of the whole site, and the report names the page that failed (#1404).
 test.describe('F064 AC12, AC14 every site page, walked in both languages', () => {
-  test('has its own title and description, one h1, its language, a canonical URL, hreflang, a share image and JSON-LD', async ({
-    page,
-    request,
-  }) => {
-    const titles = new Set<string>();
-    const descriptions = new Set<string>();
-    const imageUrls = new Set<string>();
-
-    for (const id of ids) {
-      for (const locale of locales) {
+  for (const id of ids) {
+    for (const locale of locales) {
+      test(`${id} in ${locale} has its own title and description, one h1, its language, a canonical URL, hreflang, a share image and JSON-LD`, async ({
+        page,
+        request,
+      }) => {
         const spec = PAGES[id] as PageSpec;
         const where = `${id} in ${locale}`;
         const { title, description } = spec.copy(messages[locale].site);
@@ -128,8 +126,6 @@ test.describe('F064 AC12, AC14 every site page, walked in both languages', () =>
           'lang',
           formattingLocales[locale],
         );
-        titles.add(title);
-        descriptions.add(description);
 
         // Canonical and hreflang, on https://fivvi.app, Dutch as x-default.
         await expect(page.locator('link[rel="canonical"]'), where).toHaveAttribute(
@@ -159,7 +155,6 @@ test.describe('F064 AC12, AC14 every site page, walked in both languages', () =>
         expect(await og('og:image:height'), where).toBe('630');
         const image = (await og('og:image')) ?? '';
         expect(image, where).toMatch(new RegExp(`^${ORIGIN}/site-og/`));
-        imageUrls.add(image);
         const picture = await request.get(image.replace(ORIGIN, ''));
         expect(picture.status(), where).toBe(200);
         expect(picture.headers()['content-type'], where).toBe('image/png');
@@ -187,6 +182,27 @@ test.describe('F064 AC12, AC14 every site page, walked in both languages', () =>
             [spec.breadcrumb(messages[locale].site), urlOf(id, locale)],
           ]);
         }
+      });
+    }
+  }
+
+  test('titles, descriptions and share images are unique across the pages of a language', async ({
+    request,
+  }) => {
+    const titles = new Set<string>();
+    const descriptions = new Set<string>();
+    const imageUrls = new Set<string>();
+
+    for (const id of ids) {
+      for (const locale of locales) {
+        const spec = PAGES[id] as PageSpec;
+        const { title, description } = spec.copy(messages[locale].site);
+        titles.add(title);
+        descriptions.add(description);
+
+        const html = await (await request.get(spec.paths[locale])).text();
+        const tag = html.match(/<meta[^>]*property="og:image"[^>]*>/)?.[0] ?? '';
+        imageUrls.add(tag.match(/content="([^"]*)"/)?.[1] ?? '');
       }
     }
 
@@ -198,21 +214,21 @@ test.describe('F064 AC12, AC14 every site page, walked in both languages', () =>
 });
 
 test.describe('F064 AC13 outside production nothing is indexable', () => {
-  test('every site page says noindex in the header, and its markup has no robots tag of its own', async ({
-    page,
-    request,
-  }) => {
-    for (const id of ids) {
-      for (const locale of locales) {
+  for (const id of ids) {
+    for (const locale of locales) {
+      test(`${id} in ${locale} says noindex in the header, and its markup has no robots tag of its own`, async ({
+        page,
+        request,
+      }) => {
         const path = (PAGES[id] as PageSpec).paths[locale];
 
         await page.goto(path);
         await expect(page.locator('meta[name="robots"]'), path).toHaveCount(0);
         const response = await request.get(path);
         expect(response.headers()['x-robots-tag'], path).toBe('noindex, nofollow');
-      }
+      });
     }
-  });
+  }
 
   test('the app, sign-in, booking and join pages and the API send noindex', async ({ request }) => {
     for (const path of [

@@ -38,6 +38,13 @@ const CapabilitiesSchema = z.array(z.enum(CAPABILITIES)).openapi({
     'name; the API refuses the rest with `403` anyway.',
 });
 
+const TeamMemberIdSchema = z.uuid().openapi({
+  description:
+    'The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ' +
+    'ID a session’s trainer carries when it is the account’s own. The web and the apps show ' +
+    '*Jij* / *You* by comparing it with the session’s trainer, never by name or email.',
+});
+
 export const MeWorkspaceSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The workspace ID.' }),
@@ -47,6 +54,7 @@ export const MeWorkspaceSchema = z
     role: RoleSchema.openapi({
       description: 'What the account is in the workspace; shown as a label, never decided on.',
     }),
+    teamMemberId: TeamMemberIdSchema,
     capabilities: CapabilitiesSchema,
   })
   .openapi('MeWorkspace', { description: 'A workspace the account has a team role in.' });
@@ -113,6 +121,7 @@ export const MyWorkspaceSchema = z
     role: RoleSchema.openapi({
       description: 'What the account is on the team; shown as a label, never decided on.',
     }),
+    teamMemberId: TeamMemberIdSchema,
     capabilities: CapabilitiesSchema,
     trainsHere: z.boolean().openapi({
       description:
@@ -286,8 +295,9 @@ const requestEmailChangeRoute = defineRoute(
       'does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` ' +
       'for every valid address, one that already has an account, and a request over the rate ' +
       'limits (3 in 15 minutes per account and per address, 20 an hour per network, as for ' +
-      'sign-in), so it never says who has an account; only a free address under the limits gets ' +
-      'an email. A new request replaces the earlier code. It acts on the signed-in account ' +
+      'sign-in), so it never says who has an account; a free address under the limits gets the ' +
+      'code, an address that already has an account gets a notice instead of a code (EM-36), and ' +
+      'nothing is merged. A new request replaces the earlier code. It acts on the signed-in account ' +
       'alone: no route changes anyone else’s address.',
     security: SIGNED_IN,
     request: {
@@ -315,7 +325,9 @@ const confirmEmailChangeRoute = defineRoute(
     description:
       'With the right code the account’s address becomes the one the code was sent to, in every ' +
       'workspace at once, and every open sign-in session stays signed in. The sign-in codes and ' +
-      'links sent to the old address stop working. Answers with the account, as `GET /v1/me` ' +
+      'links sent to the old address stop working, and the old address gets a notice that it ' +
+      'changed (EM-35). Workspaces, invitations and the sign-up allowlist stay as they were: they ' +
+      'hang on the account and on the addresses they were written for. Answers with the account, as `GET /v1/me` ' +
       'does. A wrong, used, replaced or expired code, five wrong codes, an address that has an ' +
       'account by now and a network over its limit all answer `422` and nothing changes.',
     security: SIGNED_IN,

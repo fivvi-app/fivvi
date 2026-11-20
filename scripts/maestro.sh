@@ -21,7 +21,7 @@
 # and, while it runs, every MAESTRO_CLEAR_EVERY seconds (default 20, shorter than one flow) by a background loop that stops
 # when the run ends, also on failure or Ctrl-C. Maestro reads e2e/maestro/config.yaml to pick the flows.
 #
-# Before the first flow, the web server has answered GET /api/v1/hello, the app's first request, in both locales.
+# Before the first flow, the web server has answered GET /api/v1/me (401, with no token), a request the apps make, which warms it up.
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
 # KEEP_DEVICE=1 leaves them running for the next run. On an emulator it didn't boot, it restores the language and the
 # error dialog setting, also when it had to relaunch that emulator (#584) and stops the relaunched one.
@@ -34,6 +34,16 @@
 # it answers several probes in a row, reconnecting an offline device, and (2) re-runs once, and says so, the flows that
 # failed with that exact transport error (ADB_DROP_ERROR below), never a flow that failed an assertion.
 #
+# #1444: the drop does not always stop at one (runs 43973406576 and 42961754633: the adb server lost the device two and three
+# times within a few minutes in the first locale's run, with the emulator process running and the emulator log without an
+# error, and never in the second). The flows that dropped are re-run MAESTRO_DROP_RERUNS times (1 by default, TESTING.md §8
+# "Maestro may retry once"; the owner can raise it), each after the device answers again; one that does not come back within
+# DEVICE_READY_TIMEOUT gets the emulator relaunched once, cold. Flows whose testcase has tags (a <properties> element
+# before the failure in Maestro's report) are re-run too: the
+# parser had skipped them. When the drops go on past the last re-run, or the device is gone for good, the locale is not a
+# failed flow but an infrastructure failure: the run names the cause (the emulator process gone, or running while the host's
+# adb server lost it), prints the emulator log, the adb server log and the memory, and fails with `infrastructure failure:`.
+#
 # Once (run 42015816516, #584) the emulator did not come back at all from the framework restart of the switch to en: no
 # device for 300 s, no emulator process left. The switch therefore waits LOCALE_BOOT_TIMEOUT seconds for Android to boot
 # again, and if it doesn't relaunches the emulator once, cold, sets it up again and repeats the switch. A second failure
@@ -41,6 +51,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/_slots.sh"
 
 usage() { usage_of "$0"; }
 
@@ -68,16 +79,22 @@ SETTINGS_WRITE_WAIT="${SETTINGS_WRITE_WAIT:-5}"
 # Seconds to wait for the device to be usable again, and the number of probes (one a second) in a row it must answer.
 DEVICE_READY_TIMEOUT="${DEVICE_READY_TIMEOUT:-120}"
 DEVICE_STABLE_PROBES="${DEVICE_STABLE_PROBES:-5}"
+# How many times the flows that failed with a dropped adb connection are re-run (#1444); the drops past that are an
+# infrastructure failure. One, as TESTING.md §8 says ("Maestro may retry once"); the variable lets the owner raise it.
+MAESTRO_DROP_RERUNS="${MAESTRO_DROP_RERUNS:-1}"
+# The status run_locale returns for a locale whose run ended in an infrastructure failure, not in a failed flow. Maestro's
+# own non-zero statuses are mapped to 1 there (130, Ctrl-C, aside), so no flow failure can look like it.
+INFRA_STATUS=3
 # Seconds Android gets to boot again after the framework restart of a language switch (it takes a minute or so on CI's 2
 # cores); past that the emulator is relaunched, once (#584). The boot of that relaunch has EMULATOR_BOOT_TIMEOUT.
 LOCALE_BOOT_TIMEOUT="${LOCALE_BOOT_TIMEOUT:-150}"
 # True once the emulator was relaunched after a language switch: a second failure fails the run.
 EMULATOR_RECOVERED=false
-# Set to a function that makes the device usable again (Android: wait_for_device_ready) before a flow is re-run.
+# Set to a function that makes the device usable again (Android: recover_device) before a flow is re-run; it gets the locale.
 DEVICE_RECOVER=""
 export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
 
-# The catalog text of a dotted key, e.g. `catalog en hello.title`: what the screen should show. Fails, with the key and
+# The catalog text of a dotted key, e.g. `catalog en signOut.label`: what the screen should show. Fails, with the key and
 # the locale on stderr, when the key is missing or is not a text (a renamed leaf would otherwise print "undefined").
 catalog() {
   # shellcheck disable=SC2016 # the `${key}` is a JavaScript template literal, not shell
@@ -108,7 +125,6 @@ set_flow_env() {
   [ "$1" != "nl-NL" ] || other="en"
   FLOW_ENV=()
   add_catalog_env SIGN_IN_SEND_CODE "$1" signIn.sendCode || return 1
-  add_catalog_env HELLO_TITLE "$1" hello.title || return 1
   add_catalog_env HOME_SET_UP_ON_WEB "$1" home.setUpOnWeb || return 1
   add_catalog_env ROLE_OWNER "$1" roles.owner || return 1
   add_catalog_env ROLE_TRAINER "$1" roles.trainer || return 1
@@ -125,7 +141,7 @@ set_flow_env() {
 }
 
 start_stack() {
-  docker info >/dev/null 2>&1 || die "Docker is not running — start it (Postgres for the local stack)"
+  docker info >/dev/null 2>&1 || die "Docker is not running — start it with brew services start colima, or set it up with scripts/bootstrap.sh (Postgres for the local stack)"
   [ -f packages/database/.env ] || cp packages/database/.env.example packages/database/.env
   pnpm db:up >/dev/null
   pnpm db:migrate >/dev/null
@@ -151,7 +167,7 @@ start_stack() {
     exec node --env-file=../../packages/database/.env .next/standalone/apps/web/server.js) >"$REPORTS/web.log" 2>&1 &
   SERVER_PID=$!
   wait_for "http://127.0.0.1:$PORT/api/v1/health" "the web server on port $PORT" "web.log"
-  warm_up_hello
+  warm_up_server
 }
 
 # Waits up to 60 s for GET $1 to answer; $2 names what it is, $3 is its log in e2e/maestro/build.
@@ -179,15 +195,14 @@ clear_rate_limits() {
   pnpm db:reset-rate-limits >/dev/null || die "clearing the sign-in rate limits failed"
 }
 
-# The app's first screen asks GET /api/v1/hello?locale=<its language>. Ask it once per locale before the first flow,
-# so no flow waits on the server's first request, and stop here, not 20 s into a flow, when it doesn't answer (#89).
-warm_up_hello() {
-  local locale url
-  for locale in $LOCALES; do
-    url="http://127.0.0.1:$PORT/api/v1/hello?locale=$locale"
-    curl -fsS --max-time 60 "$url" >/dev/null 2>&1 \
-      || die "GET $url failed (log: e2e/maestro/build/web.log)"
-  done
+# The server's first request is slow (the route, the auth code). Ask GET /api/v1/me once, without a token, before the first
+# flow, so no flow's 20 s wait is spent on it, and stop here, not 20 s into a flow, when it doesn't answer (#89). It is a
+# request both apps really make (the home reads the account with it); with no token it answers 401, which is the answer
+# expected here: anything else, or none, is a server that isn't ready.
+warm_up_server() {
+  local url="http://127.0.0.1:$PORT/api/v1/me" status
+  status="$(curl -sS --max-time 60 -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)" || status=""
+  [ "$status" = 401 ] || die "GET $url answered ${status:-nothing}, not 401 (log: e2e/maestro/build/web.log)"
 }
 
 # True when the host's adb server lists the device as online, Android has booted and the package manager answers.
@@ -284,9 +299,10 @@ install_app() {
 # for 300 s, the process gone). Boots the AVD again, cold: a snapshot would only bring back the state before the switch,
 # and a framework restart that went wrong is not worth another try. The new emulator is this script's, so cleanup stops
 # it. Then the device is set up as at the start of the run. A failure to boot fails the script with the emulator log.
+# `recover_emulator <why>`: $1 says what happened, for the log.
 recover_emulator() {
   EMULATOR_RECOVERED=true
-  echo "maestro.sh: the emulator did not come back after the language switch; relaunching it once, cold"
+  echo "maestro.sh: $1; relaunching it once, cold"
   stop_stale_emulator
   mkdir -p "$(dirname "$EMULATOR_LOG")"
   launch_cold
@@ -304,7 +320,7 @@ switch_device_locale() {
   set_device_locale "$1" && return 0
   DEVICE_LOST=true
   [ "$EMULATOR_RECOVERED" = false ] || die "the emulator did not come back after the language switch to $1, even after it was relaunched"
-  recover_emulator
+  recover_emulator "the emulator did not come back after the language switch"
   set_device_locale "$1" || die "the emulator did not come back after the language switch to $1, even after it was relaunched"
   DEVICE_LOST=false
 }
@@ -382,11 +398,12 @@ stop_clearing() {
 # The one error a flow may be re-run for: the adb server's answer when the connection to the emulator has dropped
 # (#373). A flow that failed otherwise (an assertion, a missing element) is never re-run. A flow that fails right after it,
 # when Maestro's driver has lost its adb forward (DeviceServerDiedException), is the same drop.
-ADB_DROP_ERROR='Command failed \(host:transport:[^)]*\): device offline'
+ADB_DROP_ERROR="Command failed \\(host:transport:[^)]*\\): (device offline|device '[^']*' not found)"
 ADB_DROP_AFTERMATH='DeviceServerDiedException'
 
-# `adb_dropped_flows <junit report> <test output dir>`: prints the flow files of the report's failed flows, one per line,
-# when every failed flow is an adb drop, decided from the failure itself: its junit text shows ADB_DROP_ERROR, or
+# `adb_dropped_flows <junit report> <test output dir>`: prints the adb error of the first drop ("device offline" or
+# "device 'emulator-5554' not found"), then the flow files of the report's failed flows, one per line, when every failed
+# flow is an adb drop, decided from the failure itself: its junit text shows ADB_DROP_ERROR, or
 # ADB_DROP_AFTERMATH (a flow that starts after the drop only reports the dead driver; at least one flow must show the
 # error itself). Only when that text is exactly `Unknown error` (Maestro's text for a transport error that has no message)
 # is the flow's Maestro log read instead. Any other failure text (an assertion, a missing element) is not a drop,
@@ -407,57 +424,152 @@ adb_dropped_flows() {
       }
     };
     if (fs.existsSync(dir)) walk(dir);
-    const failed = [...fs.readFileSync(report, "utf8").matchAll(/<testcase\b([^>]*)>\s*<failure[^>]*>([\s\S]*?)<\/failure>/g)].map((m) => {
+    // A testcase is failed when its body has a <failure>, whatever else is in it: a flow with tags has a <properties> element
+    // first (#1444). A passed one is self-closing or has no <failure>.
+    const failed = [...fs.readFileSync(report, "utf8").matchAll(/<testcase\b([^>]*[^>\/])>([\s\S]*?)<\/testcase>/g)].flatMap((m) => {
+      const failure = m[2].match(/<failure[^>]*>([\s\S]*?)<\/failure>/);
+      if (!failure) return [];
       const attr = (name) => unescape((m[1].match(new RegExp(`\\b${name}="([^"]*)"`)) || [])[1] || "");
-      return { name: attr("name"), file: attr("file"), message: unescape(m[2]).trim() };
+      return [{ name: attr("name"), file: attr("file"), message: unescape(failure[1]).trim() }];
     });
     const drops = new RegExp(drop), aftermaths = new RegExp(aftermath);
-    let exact = 0;
+    let exact = 0, error = "";
     for (const flow of failed) {
       if (!flow.file) process.exit(1);
       const text = flow.message === "Unknown error"
         ? logs.filter((log) => path.basename(path.dirname(path.dirname(log))) === flow.name).map((log) => fs.readFileSync(log, "utf8")).join("\n")
         : flow.message;
-      if (drops.test(text)) exact++;
+      const match = drops.exec(text);
+      if (match) { exact++; error = error || match[1]; }
       else if (!aftermaths.test(text)) process.exit(1);
     }
     if (failed.length === 0 || exact === 0) process.exit(1);
-    console.log(failed.map((flow) => flow.file).join("\n"))' \
+    console.log([error, ...failed.map((flow) => flow.file)].join("\n"))' \
     "$1" "$2" "$ADB_DROP_ERROR" "$ADB_DROP_AFTERMATH"
+}
+
+# True when the emulator process is running: "alive", "gone", or "unknown" when its pid is not known (an emulator the host
+# had before this run) or the process is not an emulator (a pid left over from an earlier run).
+emulator_process_state() {
+  local pid="$EMULATOR_PID"
+  [ -n "$pid" ] || pid="$(cat "$EMULATOR_PID_FILE" 2>/dev/null || true)"
+  [ -n "$pid" ] || { echo unknown; return; }
+  if ! kill -0 "$pid" 2>/dev/null; then echo gone; return; fi
+  case "$(ps -p "$pid" -o command= 2>/dev/null || true)" in *emulator*|*qemu*) echo alive ;; *) echo unknown ;; esac
+}
+
+# What a lost emulator leaves for the next person (#1444): the emulator log and the adb server's own log are the only places
+# that can say why the host's adb server lost the device, and the memory says whether the kernel could have killed it.
+# Best effort, never fails; copies the logs next to the reports, which CI uploads.
+device_loss_diagnostics() {
+  local adb_log
+  echo "--- adb devices"
+  adb devices -l 2>&1 || true
+  echo "--- the last 40 lines of $EMULATOR_LOG"
+  tail -n 40 "$EMULATOR_LOG" 2>/dev/null || true
+  adb_log="${TMPDIR:-/tmp}/adb.$(id -u).log"
+  if [ -f "$adb_log" ]; then
+    echo "--- the last 60 lines of the adb server log ($adb_log)"
+    tail -n 60 "$adb_log" 2>/dev/null || true
+    mkdir -p "$REPORTS"
+    cp "$adb_log" "$REPORTS/adb-server.log" 2>/dev/null || true
+  fi
+  if command -v free >/dev/null 2>&1; then
+    echo "--- memory"
+    free -m 2>&1 || true
+  fi
+  echo "--- end of the diagnostics"
+}
+
+# The run ends here for a locale whose flows failed with a dropped adb connection until the last re-run, or whose device did
+# not come back: no flow failed, the emulator was lost (#1444). Says what the emulator process did, in words a person can
+# act on, with the diagnostics, and on CI as an error annotation.
+# `report_device_loss <locale> <what happened>`
+report_device_loss() {
+  local locale="$1" what="$2" state cause
+  state="$(emulator_process_state)"
+  case "$state" in
+    gone) cause="the emulator process exited (killed by the runner, for example for want of memory, or crashed; see the emulator log)" ;;
+    alive) cause="the emulator process is still running: the host's adb server lost it (see the adb server log)" ;;
+    *) cause="the emulator process is not known to this run, so whether it exited is not known (see the emulator log)" ;;
+  esac
+  echo "maestro.sh: infrastructure failure: the emulator lost its adb connection in $locale ($what); $cause" >&2
+  device_loss_diagnostics >&2
+  [ -z "${CI:-}" ] || echo "::error title=Android emulator lost its adb connection::$locale: $what; $cause"
+}
+
+# Makes the device usable again before flows are re-run: waits until it answers (wait_for_device_ready); when it does not
+# come back, relaunches the emulator once, cold, sets the language of the locale again and waits until Android has settled.
+# Fails when the device is not there even then. The one relaunch of the run is shared with the language switch (#584).
+recover_device() {
+  wait_for_device_ready && return 0
+  # The device is gone for the rest of the run, also when the one relaunch is already used: cleanup restores nothing on it,
+  # and the next locale is not started.
+  DEVICE_LOST=true
+  [ "$EMULATOR_RECOVERED" = false ] || return 1
+  recover_emulator "the device did not come back after the adb connection dropped"
+  set_device_locale "$1" || return 1
+  DEVICE_LOST=false
+  settle_device
+}
+
+# `maestro_status <status>`: what run_locale makes of the exit status of a Maestro run: 0, 130 (Ctrl-C) and 1 stay, any
+# other non-zero one becomes 1. INFRA_STATUS is run_locale's own, so a failed flow whose Maestro exits with it is never
+# reported as a lost emulator.
+maestro_status() {
+  case "$1" in 0|130) echo "$1" ;; *) echo 1 ;; esac
 }
 
 # `run_locale <locale> <report> <maestro command...>`: one `maestro test` for all flows of the locale, with the rate limits
 # cleared around it. A failing flow fails the locale (the status), and the run goes on to the next. Flows that failed only
-# because the adb connection dropped (adb_dropped_flows) are re-run once, after the device is usable again; the run says so,
-# and the second run's report is next to the first (<report>-retry). Flows that pass only on that re-run are reported as
-# flaky (TESTING.md §3): a line naming them, and on CI (CI set) a GitHub warning annotation. Ctrl-C stops the whole
-# run (Maestro, a JVM, exits 130 on it, so bash doesn't see the signal itself).
+# because the adb connection dropped (adb_dropped_flows) are re-run, after the device is usable again, and the ones that
+# drop again once more, at most MAESTRO_DROP_RERUNS times; the run says so, and each run's report is next to the first
+# (<report>-retry, <report>-retry2). Flows that pass only on a re-run are reported as flaky (TESTING.md §8): a line naming
+# them, and on CI (CI set) a GitHub warning annotation. Drops past the last re-run, or a device that does not come back, are
+# an infrastructure failure (INFRA_STATUS, report_device_loss), not a failed flow. Ctrl-C stops the whole run (Maestro, a
+# JVM, exits 130 on it, so bash doesn't see the signal itself).
 run_locale() {
-  local locale="$1" report="$2" status=0 flows file flaky
-  local -a files=()
+  local locale="$1" report="$2" status=0 flows file error flaky round=0 current="$2" suffix
+  local -a files=() first=()
   shift 2
   # Both die: this runs as `run_locale … || failed=…`, where set -e is off, and a run without its texts is worthless.
   set_flow_env "$locale" || die "the i18n catalog lacks a text the $locale flows need (packages/i18n)"
   start_clearing
   "$@" test "${FLOW_TARGETS[@]}" "${FLOW_ENV[@]}" \
     --format junit --output "$REPORTS/$report.xml" --test-output-dir "$REPORTS/$report" || status=$?
-  if [ "$status" -ne 0 ] && [ "$status" -ne 130 ] && [ -f "$REPORTS/$report.xml" ] \
-    && flows="$(adb_dropped_flows "$REPORTS/$report.xml" "$REPORTS/$report")"; then
-    while IFS= read -r file; do files+=("$ROOT/$file"); done <<<"$flows"
-    echo "maestro.sh: the adb connection dropped (device offline) in ${#files[@]} flow(s) in $locale; re-running them once:$(printf ' %s' "${files[@]#"$ROOT"/}")"
-    status=0
-    if [ -z "$DEVICE_RECOVER" ] || "$DEVICE_RECOVER"; then
-      "$@" test "${files[@]}" "${FLOW_ENV[@]}" \
-        --format junit --output "$REPORTS/$report-retry.xml" --test-output-dir "$REPORTS/$report-retry" || status=$?
-      if [ "$status" -eq 0 ]; then
-        flaky="flaky: ${#files[@]} flow(s) in $locale failed with a dropped adb connection and passed on the re-run:$(printf ' %s' "${files[@]#"$ROOT"/}")"
-        echo "maestro.sh: $flaky"
-        [ -z "${CI:-}" ] || echo "::warning title=Flaky Maestro flows::$flaky"
-      fi
-    else
-      status=1
+  status="$(maestro_status "$status")"
+  while [ "$status" -ne 0 ] && [ "$status" -ne 130 ] && [ -f "$REPORTS/$current.xml" ] \
+    && flows="$(adb_dropped_flows "$REPORTS/$current.xml" "$REPORTS/$current")"; do
+    if [ "$round" -ge "$MAESTRO_DROP_RERUNS" ]; then
+      status=$INFRA_STATUS
+      report_device_loss "$locale" "the flows failed with a dropped adb connection in the run and in $round re-run$([ "$round" -eq 1 ] || echo s)"
+      break
     fi
-  fi
+    round=$((round + 1))
+    # The first line is the adb error of the drop, the others are the flow files.
+    error="${flows%%$'\n'*}"
+    files=()
+    while IFS= read -r file; do files+=("$ROOT/$file"); done <<<"${flows#*$'\n'}"
+    [ "$round" -gt 1 ] || first=("${files[@]}")
+    echo "maestro.sh: the adb connection dropped ($error) in ${#files[@]} flow(s) in $locale; re-running them (re-run $round of $MAESTRO_DROP_RERUNS):$(printf ' %s' "${files[@]#"$ROOT"/}")"
+    status=0
+    if [ -n "$DEVICE_RECOVER" ] && ! "$DEVICE_RECOVER" "$locale"; then
+      status=$INFRA_STATUS
+      report_device_loss "$locale" "the device did not come back, even after the emulator was relaunched"
+      break
+    fi
+    suffix="-retry"
+    [ "$round" -eq 1 ] || suffix="-retry$round"
+    current="$report$suffix"
+    "$@" test "${files[@]}" "${FLOW_ENV[@]}" \
+      --format junit --output "$REPORTS/$current.xml" --test-output-dir "$REPORTS/$current" || status=$?
+    status="$(maestro_status "$status")"
+    if [ "$status" -eq 0 ]; then
+      flaky="flaky: ${#first[@]} flow(s) in $locale failed with a dropped adb connection and passed on the re-run:$(printf ' %s' "${first[@]#"$ROOT"/}")"
+      echo "maestro.sh: $flaky"
+      [ -z "${CI:-}" ] || echo "::warning title=Flaky Maestro flows::$flaky"
+    fi
+  done
   stop_clearing || [ "$status" -ne 0 ] || status=1
   [ "$status" -ne 130 ] || exit 130
   return "$status"
@@ -522,21 +634,31 @@ cmd_android() {
   DEVICE_LOCALE="$(adb shell getprop persist.sys.locale | tr -d '\r')"
   [ -n "$DEVICE_LOCALE" ] || DEVICE_LOCALE="$(adb shell getprop ro.product.locale | tr -d '\r')"
   hide_error_dialogs
-  DEVICE_RECOVER=wait_for_device_ready
+  DEVICE_RECOVER=recover_device
   if [ -n "$apk" ]; then
     [ -f "$apk" ] || die "no APK at $apk — run scripts/android.sh maestro-apk first"
     APK="$apk"
   fi
   install_app
 
-  local locale failed=""
+  local locale failed="" lost="" status
   for locale in $LOCALES; do
     echo "Maestro on Android in $locale"
     switch_device_locale "$locale"
     settle_device
-    run_locale "$locale" "android-$locale" maestro || failed="$failed $locale"
+    status=0
+    run_locale "$locale" "android-$locale" maestro || status=$?
+    case "$status" in
+      0) ;;
+      "$INFRA_STATUS") lost="$lost $locale" ;;
+      *) failed="$failed $locale" ;;
+    esac
+    # A device that did not come back stays lost: the next locale would only wait for it (it was relaunched once).
+    [ "$DEVICE_LOST" = false ] || break
   done
-  [ -z "$failed" ] || die "Maestro failed in:$failed (reports: e2e/maestro/build)"
+  [ -z "$lost" ] || echo "error: infrastructure failure: the emulator lost its adb connection in:$lost; no flow is to blame (see above, reports: e2e/maestro/build)" >&2
+  if [ -n "$failed" ]; then die "Maestro failed in:$failed (reports: e2e/maestro/build)"; fi
+  [ -z "$lost" ] || exit 1
 }
 
 # The simulator's own language list and region, set like Settings does; they apply after a restart.
@@ -604,7 +726,7 @@ cmd_ios() {
 }
 
 case "${1:-}" in
-  android) shift; cmd_android "$@" ;;
-  ios) shift; cmd_ios "$@" ;;
+  android) slots_wrap heavy,android-emu "$0" "$@"; shift; cmd_android "$@" ;;
+  ios) slots_wrap heavy,ios-sim "$0" "$@"; shift; cmd_ios "$@" ;;
   *) usage ;;
 esac

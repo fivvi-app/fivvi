@@ -24,6 +24,8 @@
 //   apps/android/client/src/main/...   the same four files for Fivvi, the client app (E017 #504): the plain day dial B2,
 //                                        the owner's choice of 8 November 2026 (docs/design/brand/README.md, "The app
 //                                        icon"), without PRO
+//   apps/ios/Fivvi/Assets.xcassets/AppIcon.appiconset/AppIcon{,-Dark,-Tinted}.png   the same for the iOS client app
+//                                        (E017 #503): the plain dial, light, dark and tinted, without PRO
 //
 // Fivvi Pro is B2 with PRO in the empty centre of the dial (owner, 8 November 2026; E020 #672): rounded monoline strokes
 // from the path data of docs/design/brand/day-dial/b2-pro/layers/4-pro.svg, copied unchanged like the five (PRO below),
@@ -676,7 +678,8 @@ const monochromeVector = ({ track, five, pro, proWidth }, withPro) =>
       (withPro ? strokePath('#FF000000', proWidth, pathData(pro.flat())) : ''),
   );
 
-const appIconSet = 'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset';
+/** The asset catalog folder of an iOS app: `FivviPro` (with PRO) or `Fivvi`, the client app (the plain dial). */
+const iosAssets = (app) => `apps/ios/${app}/Assets.xcassets`;
 
 /** Every icon file as a map from its path in the repo to its content (a string or a Buffer). */
 export function renderIcons() {
@@ -713,29 +716,38 @@ export function renderIcons() {
     platform: 'ios',
     size: '1024x1024',
   });
+  /** The files of an iOS app's asset catalog icon: the 1024 px light, dark and tinted icons and their `Contents.json`. */
+  const iosIcon = (app, withPro) => {
+    const catalog = iosAssets(app);
+    const set = `${catalog}/AppIcon.appiconset`;
+    return [
+      [
+        `${catalog}/Contents.json`,
+        '{\n  "info" : {\n    "author" : "xcode",\n    "version" : 1\n  }\n}\n',
+      ],
+      [
+        `${set}/Contents.json`,
+        `${JSON.stringify(
+          {
+            images: [
+              image('AppIcon.png'),
+              image('AppIcon-Dark.png', 'dark'),
+              image('AppIcon-Tinted.png', 'tinted'),
+            ],
+            info: { author: 'xcode', version: 1 },
+          },
+          null,
+          2,
+        )}\n`,
+      ],
+      [`${set}/AppIcon.png`, png(1024, APPEARANCES.light, withPro)],
+      [`${set}/AppIcon-Dark.png`, png(1024, APPEARANCES.dark, withPro)],
+      [`${set}/AppIcon-Tinted.png`, png(1024, APPEARANCES.tinted, withPro)],
+    ];
+  };
   return new Map([
-    [
-      'apps/ios/FivviPro/Assets.xcassets/Contents.json',
-      '{\n  "info" : {\n    "author" : "xcode",\n    "version" : 1\n  }\n}\n',
-    ],
-    [
-      `${appIconSet}/Contents.json`,
-      `${JSON.stringify(
-        {
-          images: [
-            image('AppIcon.png'),
-            image('AppIcon-Dark.png', 'dark'),
-            image('AppIcon-Tinted.png', 'tinted'),
-          ],
-          info: { author: 'xcode', version: 1 },
-        },
-        null,
-        2,
-      )}\n`,
-    ],
-    [`${appIconSet}/AppIcon.png`, png(1024, APPEARANCES.light, true)],
-    [`${appIconSet}/AppIcon-Dark.png`, png(1024, APPEARANCES.dark, true)],
-    [`${appIconSet}/AppIcon-Tinted.png`, png(1024, APPEARANCES.tinted, true)],
+    ...iosIcon('FivviPro', true),
+    ...iosIcon('Fivvi', false),
     ...androidIcon('app', true),
     ...androidIcon('client', false),
   ]);

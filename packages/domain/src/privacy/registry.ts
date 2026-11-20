@@ -1,3 +1,10 @@
+// Module: The privacy registry: one declaration per table of the schema with its subject (client,
+//        account, team member, workspace), the personal-data columns, the columns an export carries
+//        and what deletion does (`delete`, `anonymize`, `keep-for-law` with its retention
+//        constant); a test reads the Drizzle schema and fails naming a table that is not declared.
+//        **A feature that adds a table declares it here in the same PR**
+// Spec: E014 AC1
+
 import type { RetentionKey } from './retention.ts';
 
 /**
@@ -195,6 +202,72 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     retention: 'TRASH',
     note: 'A client’s place in a session. After the client is purged the row stays without the link to her, as a count such as “1 participant, attended” (R6).',
   },
+  // Invoice details (F059, spec #474).
+  {
+    table: 'workspace_invoice_details',
+    personal: true,
+    subject: 'workspace',
+    personalData: [
+      'legal_name',
+      'street',
+      'house_number',
+      'house_number_addition',
+      'postcode',
+      'city',
+      'kvk_number',
+      'vat_number',
+      'question_email',
+    ],
+    export: [
+      'id',
+      'legal_name',
+      'street',
+      'house_number',
+      'house_number_addition',
+      'postcode',
+      'city',
+      'kvk_number',
+      'vat_number',
+      'question_email',
+      'no_vat',
+      ...TIMESTAMPS,
+    ],
+    onDelete: 'delete',
+    retention: 'WORKSPACE_PURGE',
+    note: 'The seller on every invoice of the workspace: the legal name, address, KvK and VAT number, which can be a sole trader’s own, and the email for invoice questions. Deleted when a terminated workspace is purged (R11). An issued invoice keeps its own copy of these details.',
+  },
+  {
+    table: 'client_billing_details',
+    personal: true,
+    subject: 'client',
+    personalData: [
+      'client_id',
+      'company_name',
+      'street',
+      'house_number',
+      'house_number_addition',
+      'postcode',
+      'city',
+      'vat_number',
+    ],
+    export: [
+      'id',
+      'client_id',
+      'as_company',
+      'company_name',
+      'street',
+      'house_number',
+      'house_number_addition',
+      'postcode',
+      'city',
+      'vat_number',
+      'changed_by',
+      ...TIMESTAMPS,
+    ],
+    onDelete: 'delete',
+    retention: 'TRASH',
+    note: 'The company a client wants invoices made out to (CW-04): name, address and VAT number, which can be a sole trader’s own. Deleted with the client when she is purged (R6). An issued invoice keeps its own copy of the buyer for the invoice period (R21).',
+  },
   // Places, classes and sessions.
   {
     table: 'locations',
@@ -238,6 +311,62 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     retention: 'FORMER_TRAINER',
     note: 'A class. Without its usual trainer once the trainer’s profile is removed; the class itself stays with the workspace.',
   },
+  // Offers (F052, spec #468): what a workspace sells and on which terms; no person is named.
+  {
+    table: 'offers',
+    personal: false,
+    reason:
+      'An offer of a workspace: its kind, status and origin, and which version is current (F052). Prices and terms, nothing about a person. Kept as long as the workspace is; an offer is archived, never deleted.',
+  },
+  {
+    table: 'offer_versions',
+    personal: false,
+    reason:
+      'An immutable version of an offer: names, descriptions, the price in euro cents, the VAT rate and the terms of its kind (F052). Nothing about a person: the offer’s text is the owner’s, written for clients in general. Never changed or deleted: a trigger refuses it for every role, so every price a client ever agreed to stays explainable.',
+  },
+  // Payouts (F061, spec #496): what the payment provider paid out to the workspace.
+  {
+    table: 'payouts',
+    personal: false,
+    reason:
+      'A payout of the workspace: the provider’s settlement ID, the bank reference, the date, the amount and the status (F061). The gym’s own money, nothing about a person. Kept as long as the workspace is.',
+  },
+  {
+    table: 'payout_status_changes',
+    personal: false,
+    reason:
+      'The append-only status lines of a payout (F061): which status it had and when it was fetched. Nothing about a person; a trigger refuses every update and delete.',
+  },
+  {
+    table: 'payout_lines',
+    personal: false,
+    reason:
+      'A line of a payout: the provider’s ID of a payment, refund, reversal or fee, its signed amount and the description the provider reports (F061). The description is the one Fivvi sent with the payment or refund, which E019 keeps free of notes and health content; the line holds no client ID, only the link to the payment it was matched to, and the payment’s own declaration decides what deleting a client does to it. It is declared as not personal because the line is the workspace’s accounting record of a payout and cannot be found, exported or deleted per client; the provider’s payment ID and the amount it carries are also kept by `payments`, which is kept for the law (R21). Whether the payout records need a retention rule of their own is part of the legal follow-up of E019 (spec #466).',
+  },
+  {
+    table: 'class_series',
+    personal: true,
+    subject: 'team_member',
+    personalData: ['trainer_profile_id'],
+    export: [
+      'id',
+      'group_class_id',
+      'rrule',
+      'local_start_time',
+      'duration_minutes',
+      'time_zone',
+      'trainer_profile_id',
+      'capacity',
+      'starts_on',
+      'ends_on',
+      'materialized_until',
+      'version',
+      ...TIMESTAMPS,
+    ],
+    onDelete: 'anonymize',
+    retention: 'FORMER_TRAINER',
+    note: 'A weekly series of a class (F022). Without its usual trainer once the trainer’s profile is removed; the series stays with the workspace, as its dates do.',
+  },
   {
     table: 'sessions',
     personal: true,
@@ -253,6 +382,8 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
       'ends_at',
       'capacity',
       'series_id',
+      'occurrence_date',
+      'detached_fields',
       'group_class_id',
       'version',
       'created_by_team_member_id',
@@ -262,6 +393,25 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     onDelete: 'anonymize',
     retention: 'FORMER_TRAINER',
     note: 'A scheduled session. The links to the trainer and to who planned it or changed it last are cleared when the team member is removed; the session stays as the workspace’s record (R9).',
+  },
+  {
+    table: 'booking_links',
+    personal: true,
+    subject: 'team_member',
+    personalData: ['created_by_team_member_id'],
+    export: [
+      'id',
+      'scope',
+      'group_class_id',
+      'session_id',
+      'language',
+      'created_by_team_member_id',
+      'deactivated_at',
+      ...TIMESTAMPS,
+    ],
+    onDelete: 'anonymize',
+    retention: 'FORMER_TRAINER',
+    note: 'A short link to the workspace’s timetable; the code is left out of an export, as every code is. The link to the team member who made it is cleared when the team member is removed; the link itself stays with the workspace, it holds no data of a person.',
   },
   // The two logs of the privacy tooling (E014, ticket #1173): IDs and times, never content.
   {

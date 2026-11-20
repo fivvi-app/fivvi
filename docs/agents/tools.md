@@ -30,6 +30,7 @@ Pass `-p`, `-e` and `-s` on every command that takes them; `environment list` ta
 | Redeploy a **PR preview** from the PR branch (`scripts/pr.sh` runs the same command in `railway_preview`; **not yet run** against real Railway: no PR was open, only `--help` was checked) | `railway deployment redeploy -p $P -e fivvi-pr-<n> -s web --from-source -y` |
 | Preview what `.railway/railway.ts` would change, from your worktree (checked against `development` with CLI 5.62.1 on 20 October 2026) | `railway link -p $P -e development && railway config plan --detailed-exit-code` (exit 0 = up to date, 2 = changes pending), then, whatever its exit code, `jq -e --arg d "$PWD" '.projects[$d]' ~/.railway/config.json > /dev/null && railway unlink -y` |
 
+- `scripts/flow.sh next` and `idle` read, once per run, the newest non-`SKIPPED` `web` deployment of `development` and of `production` with `railway deployment list -p $P -e <env> -s web --json` (two calls, `P` is `RAILWAY_PROJECT_ID` in `scripts/_lib.sh`), and nothing else from Railway: no logs, no variables. `FAILED` and `CRASHED` count. A failing `development` deploy is work (`Deploy bug:` until a bug carries the marker `<!-- fivvi:deploy-failed development -->` in its body, then `Build #n first:`, or under "Waiting on the owner" while that bug waits on a human); a failing `production` deploy is status only. When the CLI is missing, logged out or the list fails, `flow.sh` says so under "Waiting on the owner" and goes on with GitHub. The owner fixes that with `railway login`.
 - Without a deployment id, `railway logs` takes the latest successful deployment. Always pass `-n`: without it the command streams until stopped.
 - A PR preview exists only while its PR is open, so list deployments right after CI is green. A docs-only PR has none ([ENVIRONMENTS.md §4](../engineering/ENVIRONMENTS.md)).
 - `web` sleeps when idle: status `SLEEPING` is normal, not a failure. A `SKIPPED` deployment is Railway skipping a commit: `scripts/pr.sh` reads a head commit whose deployments are all `SKIPPED` as skipped after a failed first CI run, which a later green run never deploys. A watch-path skip (nothing under the watched paths changed) is different: it deploys nothing, and Railway posts the `fivvi - web` status "No deployment needed" ([ENVIRONMENTS.md §4](../engineering/ENVIRONMENTS.md)).
@@ -101,7 +102,7 @@ Wait a few seconds after `am start` before dumping. Delete the file even when th
 
 | Needs the owner | Why |
 |---|---|
-| Logins and re-login (`railway login`, `gh auth`, Apple, Google, Sentry, PostHog, UptimeRobot, Brevo) | Accounts are the owner's |
+| Logins and re-login (`railway login`, `gh auth`, Apple, Google, Sentry, PostHog, UptimeRobot) | Accounts are the owner's |
 | Billing, plans, the spending alert | Money |
 | Account and dashboard settings: PR environments, base environment, domains, monitors, alerts | Not in `.railway/railway.ts` ([ENVIRONMENTS.md §3](../engineering/ENVIRONMENTS.md)) |
 | Variable values of `production` and `development`, and the check of the Postgres password in [ENVIRONMENTS.md §7](../engineering/ENVIRONMENTS.md) | Secrets. Agents never read them |

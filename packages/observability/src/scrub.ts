@@ -8,6 +8,7 @@ import type {
   StackFrame,
   User,
 } from '@sentry/core';
+import { redactInvitationToken } from './invitation-token.ts';
 
 /**
  * The scrubber (ADR-013, OBSERVABILITY.md §2): a pure allowlist applied to every event and
@@ -36,8 +37,8 @@ export const NO_DATA_COLLECTION: DataCollection = {
 /** Request headers worth keeping for debugging. Never cookies, auth or forwarding (IP) headers. */
 const REQUEST_HEADERS = new Set(['accept', 'accept-language', 'content-length', 'content-type']);
 
-/** Tags we set ourselves. Values are route templates, cron task names and run IDs. */
-const TAGS = new Set(['route', 'cron.task', 'cron.run_id']);
+/** Tags we set ourselves. Values are route templates, cron task names, run IDs and class series IDs (UUIDs). */
+const TAGS = new Set(['route', 'cron.task', 'cron.run_id', 'class_series.id']);
 
 /** Contexts the SDK fills with facts about the runtime, never about people. */
 const CONTEXTS = new Set(['app', 'cloud_resource', 'culture', 'device', 'os', 'runtime', 'trace']);
@@ -56,10 +57,12 @@ const SECRET_PARAMETER = /([?&;](?:token|code|returnTo)=)[^\s&#"'<>)]+/gi;
 
 /**
  * Replaces every email address in `text`, and the value of a `token`, `code` or `returnTo` query
- * parameter (a quoted URL in an error message); the rest of the message stays readable.
+ * parameter (a quoted URL in an error message), and the token of an invitation link; the rest of the message stays readable.
  */
 function maskSecrets(text: string): string {
-  return text.replace(EMAIL, '[email]').replace(SECRET_PARAMETER, '$1[redacted]');
+  return redactInvitationToken(
+    text.replace(EMAIL, '[email]').replace(SECRET_PARAMETER, '$1[redacted]'),
+  );
 }
 
 export function scrubEvent<T extends Event>(event: T): T {

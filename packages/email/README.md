@@ -28,7 +28,7 @@ await sendEmail({
 
 | Path | What |
 |---|---|
-| `src/catalog.ts` | The email catalog (F049): every email by ID (EM-01 … EM-23, EM-34), with audience, owner features, subject keys, status and template; `templates` is derived from it |
+| `src/catalog.ts` | The email catalog (F049): every email by ID (EM-01 … EM-23, EM-34 … EM-36), with audience, owner features, subject keys, status and template; `templates` is derived from it |
 | `src/catalog-docs.ts` | `parseEmailTable` and `checkEmailTable`: the comparison of the information architecture's email table with the catalog |
 | `src/templates/` | One template per email type, registered in the catalog |
 | `src/template-checks.ts` | The checks every catalog email must pass (F049 AC2, AC5, AC6): `checkRendering`, `checkLinks`, `checkContent`, `checkSyntheticData`; each returns the problems it finds |
@@ -55,7 +55,7 @@ await sendEmail({
 - Dates and times: `ctx.formatDateTime(instant, 'dateWithYear' | 'date' | 'time')`, in the time zone passed to `sendEmail` (default Europe/Amsterdam) and the locale's formatting locale (`en` → `en-GB`). Pass the result into a `{date}` / `{time}` placeholder.
 - User content (names, class names) is passed as a placeholder value and rendered as text; React escapes it.
 - A template has `subject`, `preview` (the inbox preview line: put the key fact in it), `render` (the content inside the layout) and `previewProps` (obviously fake data for the preview).
-- Plain styles for now; E007 brings the design tokens.
+- Inline styles only, and every colour is a generated design token: `@fivvi/design-tokens/email-colours` (`emailColours`: the light values of the canvas, card, text, secondary text, border, link and the accent button). Write no hex colour in a template or component; to change the accent, change the token (E020 AC16). The button is `buttonStyle` in `src/components/layout.tsx`.
 - **The workspace's word** (F068): an email that names the role (the trainer invitation, the private session emails) takes `trainerWord` with its template data, read from the workspace when the mail is built, and spreads `trainerWordForms(trainerWord, ctx.locale)` into `ctx.t` for the placeholders `{word}`, `{aWord}`, `{Word}` and so on; the recipient's language comes from the mail, as for every email. An email already sent never changes; the next one follows the workspace.
 - **Frames** (F049): an email about a workspace sets `frame: { kind: 'client' | 'team', workspaceName: (props) => props.workspaceName }` on its template. `renderEmail` then wraps the content in the client frame (workspace's name on top, one primary button to the signed-in home (`https://fivvi.app/home`), the footer "Je krijgt deze e-mail omdat je klant bent bij {workspace}.", "Vragen? Neem contact op met {workspace}.", then "Verstuurd via Fivvi") or the team frame (the same, with "… omdat je in het team van {workspace} zit."). Don't put your own footer or workspace header in the content. The button label defaults to `email.frame.button`; `buttonLabel` and `buttonPath: (props) => 'bookings'` (relative to `https://fivvi.app/`; a path to another host throws) change them. Leave `frame` out for the sign-in email (ADR-019) and the trainer invitation (its recipient is not on the team yet): they keep the plain layout. The workspace's name is user content and is shown as typed.
 
@@ -78,7 +78,7 @@ Internal emails (the demo request to Fivvi's own inbox, the developer sample) ar
 1. Write `src/templates/<type>.tsx` (see Templates) and its render test; add the keys to `nl-NL.json`, `en.json` and `comments.json`, worded as in `packages/i18n/GLOSSARY.md`.
 2. Export it from `src/templates/index.ts`.
 3. In `catalog.ts`, import it and change the entry of its ID: `status: 'active'`, `template: register(yourEmail)`, and `subjectKeys` set to the keys that now exist (they must exist in both languages).
-4. A new email that has no reserved ID takes the number after the highest allocated anywhere (EM-35 today), not just in `catalog.ts`: the prototype's `docs/design/prototype-v2/more-email.js` already allocates EM-24 to EM-34 for the M6, M9 and M11 emails (for example EM-28 in #481), most of them not yet in the catalog. Use another number only when the feature's spec already allocated one. Add it to `catalog` as `active` in the same change.
+4. A new email that has no reserved ID takes the number after the highest allocated anywhere (EM-37 today), not just in `catalog.ts`: the prototype's `docs/design/prototype-v2/more-email.js` already allocates EM-24 to EM-34 for the M6, M9 and M11 emails (for example EM-28 in #481), most of them not yet in the catalog. Use another number only when the feature's spec already allocated one. Add it to `catalog` as `active` in the same change.
 5. Declare `userContent` on the template: the props that hold text a person typed (a name, an owner's message), or `[]`. A class name written in Dutch and English is a pair, `{ nl: 'className', en: 'classNameEn' }`, shown with `ctx.pickContent(nl, en)` (F021's rule: the English name when the recipient reads English and there is one, else the Dutch one). The type fails without it.
 6. Run `pnpm --filter @fivvi/email test`: the catalog suite (below), the generic render test for both languages and the preview pick it up without another list.
 
@@ -123,7 +123,7 @@ The log transport is the one known place where a sign-in link is printed as it i
 
 - **Local:** put the variables in `packages/email/.env` (git-ignored; every worktree needs its own). The `send:test` script loads it. It needs `LETTERMINT_API_TOKEN`, `LETTERMINT_ROUTE_SIGN_IN` and `LETTERMINT_ROUTE_MAIL` plus the sender (`EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`).
 - **Preview and production:** Railway variables on `web`, declared in `.railway/railway.ts` (`preserve()` for the keys, routes and address, so the file holds no value) and listed in [`docs/engineering/ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). The owner sets the values: the production token only in `production`, a separate token in `development` (every preview copies it). Never commit a token; rotate it in Lettermint if it leaks.
-- The sender comes from config, not code, because it changes when the own domain arrives (before M5).
+- The sender comes from config, not code, because it changed when the own domain fivvi.app arrived.
 
 ## Scripts
 
@@ -180,7 +180,7 @@ pnpm --filter @fivvi/email test
 
 | File | Proves |
 |---|---|
-| `src/catalog.test.ts` | The catalog: every template file is in it, every `active` entry has a template, unique IDs, EM-01 … EM-23 and EM-34 present, subject keys exist in both languages |
+| `src/catalog.test.ts` | The catalog: every template file is in it, every `active` entry has a template, unique IDs, EM-01 … EM-23 and EM-34 … EM-36 present, subject keys exist in both languages |
 | `src/catalog.test.ts` (checks) | The checklist for every active entry, internal emails included, without a change when one is added: AC2 both languages from catalog keys with the same keys and placeholders, a subject of at most 78 characters, a plain-text part; AC5 links to `https://fivvi.app` only, no tracking pixel, tracking parameter, redirect or tracker path, no `List-Unsubscribe` on the message; AC6 `<b>` and `&` in user content shown as typed, a class name by F021's rule; the preview data is synthetic |
 | `src/catalog-docs.test.ts` | F049 AC10: the email table of `docs/design/information-architecture.md` §8 and the catalog have the same IDs, audiences, owner features and built subjects, EM-01 is marked retired, a table ID missing in the catalog or the reverse fails, and the table has no *reservering*, *afmelding* or *inschrijving* |
 | `src/template-checks.test.tsx` | Each check fails for a template that breaks its rule |

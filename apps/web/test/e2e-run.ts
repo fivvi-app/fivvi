@@ -1,4 +1,5 @@
-// How the web e2e suite runs on CI (playwright.config.ts) and what it says when it hits its limit (#1301).
+// How the web e2e suite runs on CI and locally (playwright.config.ts) and what it says when it hits its limit (#1301).
+import { availableParallelism, loadavg } from 'node:os';
 
 /**
  * Workers on CI. Playwright's default is half the cores, so 2 on the 4 vCPU runner of a public
@@ -14,21 +15,63 @@ export const CI_WORKERS = 3;
  * .github/workflows/ci.yml) is higher, since setup and build count in it; the test "stops the
  * suite before the CI job is cancelled" in e2e-run.test.ts reads that file and keeps the gap, so
  * a change to either number shows up there. This limit is a guard for a hung suite, not a budget
- * to run near. On 3 workers the suite is expected to stay well under it (run 43038711678
- * took 594 s on 2 workers); the first CI runs of #1301 give the measured number.
+ * to run near: it keeps `CI_SPARE_SHARE` of itself to spare for the slowest run measured
+ * (`MEASURED_WORST_SUITE_MINUTES`), which a test checks. #1301 set it to 12 minutes, which the
+ * suite then passed (#1408): the same ~700 tests took 7 to 12 minutes, depending on the runner
+ * the job landed on (TESTING.md §8 has the runs).
  */
-export const CI_GLOBAL_TIMEOUT_MINUTES = 12;
+export const CI_GLOBAL_TIMEOUT_MINUTES = 17;
+
+/** A passing CI run ends with at least this share of the limit left (#1408). */
+export const CI_SPARE_SHARE = 0.2;
+
+/**
+ * The slowest the suite is expected to run on CI today, in minutes: 12.0 minutes for 727 tests on
+ * the slowest runner of the 13 runs of 14 November 2026 (TESTING.md §8), scaled to the 802 tests
+ * of the next main (727 to 802 tests is 10 % more). When a measured run is slower than this, raise
+ * the number, with the run, and the limit above must follow; when the suite is too slow for the
+ * limit, shard it across runners (an owner change to ci.yml) before raising the limit again.
+ */
+export const MEASURED_WORST_SUITE_MINUTES = 13.5;
 
 export interface E2ERun {
   workers: number | undefined;
   globalTimeout: number | undefined;
 }
 
-/** The workers and the global limit of the suite: CI's own, and Playwright's defaults elsewhere. */
-export function e2eRun(ci: boolean): E2ERun {
+/** What the workers locally depend on: the cores of the machine and its load average over the last minute. */
+export interface Host {
+  cores: number;
+  load1: number;
+}
+
+/** The fewest workers a local suite takes, however busy the machine: it still finishes, slowly. */
+export const LOCAL_MIN_WORKERS = 2;
+
+/**
+ * Workers of a local run (#1336). Playwright's default is half the cores, which is right for a
+ * machine that runs only the suite. A factory run starts 4-6 builders and each runs its own
+ * check.sh; the load average goes to 20-45 on a 10-core Mac and the heaviest tests, whose time is
+ * browser CPU, take several times as long as alone (the measurements:
+ * docs/engineering/TESTING.md §8, "Locally the suite does not compete with itself"). A worker is
+ * taken to need about a core and a half (Chromium and the page's server), so the suite takes the
+ * cores the load leaves free, divided by that, between the minimum and the default.
+ */
+export function localWorkers({ cores, load1 }: Host): number {
+  const fromFreeCores = Math.floor((cores - load1) / 1.5);
+  return Math.max(LOCAL_MIN_WORKERS, Math.min(Math.floor(cores / 2), fromFreeCores));
+}
+
+/** The machine this runs on. */
+function thisHost(): Host {
+  return { cores: availableParallelism(), load1: loadavg()[0] ?? 0 };
+}
+
+/** The workers and the global limit of the suite: CI's own, and by the machine's load elsewhere. */
+export function e2eRun(ci: boolean, host: Host = thisHost()): E2ERun {
   return ci
     ? { workers: CI_WORKERS, globalTimeout: CI_GLOBAL_TIMEOUT_MINUTES * 60_000 }
-    : { workers: undefined, globalTimeout: undefined };
+    : { workers: localWorkers(host), globalTimeout: undefined };
 }
 
 /**

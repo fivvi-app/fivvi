@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   decideBillingDetails,
   decideInvoiceDetails,
+  decideInvoiceSettings,
+  decideQuestionEmail,
   isInvoiceDetailsComplete,
   isKvkNumber,
   isVatNumber,
@@ -229,5 +231,72 @@ describe('F059 billing details', () => {
         vatNumber: 'nonsense',
       }),
     ).toEqual({ ok: true, billing: null });
+  });
+});
+
+describe('F059 the email for invoice questions', () => {
+  it.each([undefined, null, '', '   '])('%j means "use the Owner’s address"', (value) => {
+    expect(decideQuestionEmail(value)).toEqual({ ok: true, email: null });
+  });
+
+  it('is trimmed and lower case', () => {
+    expect(decideQuestionEmail('  Facturen@Example.com ')).toEqual({
+      ok: true,
+      email: 'facturen@example.com',
+    });
+  });
+
+  it.each(['facturen', 'facturen@', '@example.com', 'a b@example.com', 'a@b@example.com'])(
+    'refuses %j',
+    (value) => {
+      expect(decideQuestionEmail(value)).toEqual({
+        ok: false,
+        issue: { field: 'questionEmail', code: 'invalid_email' },
+      });
+    },
+  );
+
+  it('refuses an address longer than 254 characters', () => {
+    expect(decideQuestionEmail(`${'a'.repeat(250)}@example.com`)).toEqual({
+      ok: false,
+      issue: { field: 'questionEmail', code: 'too_long' },
+    });
+  });
+});
+
+describe('F059 the invoice settings of a workspace', () => {
+  it('#852: complete details with the switch off are stored, the question email empty', () => {
+    expect(decideInvoiceSettings({ ...DETAILS, noVat: false })).toEqual({
+      ok: true,
+      settings: { ...DETAILS, questionEmail: null, noVat: false },
+    });
+  });
+
+  it('keeps the question email and the no-VAT switch', () => {
+    expect(
+      decideInvoiceSettings({ ...DETAILS, questionEmail: 'Facturen@example.com', noVat: true }),
+    ).toEqual({
+      ok: true,
+      settings: { ...DETAILS, questionEmail: 'facturen@example.com', noVat: true },
+    });
+  });
+
+  it('AC2: reports the details first and the question email last, and stores nothing', () => {
+    expect(
+      decideInvoiceSettings({ ...DETAILS, kvkNumber: '1', questionEmail: 'nope', noVat: false }),
+    ).toEqual({
+      ok: false,
+      issues: [
+        { field: 'kvkNumber', code: 'invalid_kvk_number' },
+        { field: 'questionEmail', code: 'invalid_email' },
+      ],
+    });
+  });
+
+  it('a bad question email alone refuses the settings', () => {
+    expect(decideInvoiceSettings({ ...DETAILS, questionEmail: 'nope', noVat: true })).toEqual({
+      ok: false,
+      issues: [{ field: 'questionEmail', code: 'invalid_email' }],
+    });
   });
 });

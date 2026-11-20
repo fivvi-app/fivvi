@@ -8,7 +8,7 @@ import XCTest
 final class SignInUITests: SignInUITestCase {
     func test_F001N_AC13_launchesOnSignIn() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
 
         let screen = SignInScreen.launch(against: server)
 
@@ -26,7 +26,7 @@ final class SignInUITests: SignInUITestCase {
     /// in the light dial in light mode and the dark dial in dark mode (E020 #629, DECISIONS.md §2).
     func test_E020_AC15_bothStepsShowTheFivviProDayDial() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         for (mode, style) in [("light", UIUserInterfaceStyle.light), ("dark", .dark)] {
             let screen = SignInScreen(app: AppLaunch.launch(
                 against: server, session: .signedOut, appearance: mode
@@ -63,7 +63,7 @@ final class SignInUITests: SignInUITestCase {
     /// `GET /api/v1/me` with it.
     func test_F001N_AC3_sixthDigitSubmits() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server)
         XCTAssertTrue(screen.email.waitUntilExists(timeout: timeout))
 
@@ -81,7 +81,6 @@ final class SignInUITests: SignInUITestCase {
 
         XCTAssertTrue(screen.signedInAs.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.signedInAs.label, String(format: catalog["home.signedInAs"], server.signIn.email))
-        XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout), "the home keeps the hello screen")
         XCTAssertFalse(screen.email.exists)
         XCTAssertEqual(
             server.requests(to: "/api/v1/sign-in/token").map(\.body),
@@ -94,7 +93,7 @@ final class SignInUITests: SignInUITestCase {
     /// A 6-digit code on the pasteboard, pasted with the system's edit menu, is checked as soon as it is in, with no
     /// tap on the button. (Mail's one-time-code suggestion above the keyboard inserts the code the same way.)
     func test_F001N_AC3_pastedCodeSubmits() throws {
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server)
         screen.requestCode(for: server.signIn.email)
         XCTAssertTrue(screen.code.exists)
@@ -114,7 +113,7 @@ final class SignInUITests: SignInUITestCase {
 
     func test_F001N_AC6_wrongCodeShowsTheNeutralMessageAndAllowsAnotherTry() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server)
         XCTAssertTrue(screen.email.waitUntilExists(timeout: timeout))
         screen.type(server.signIn.email, into: screen.email)
@@ -135,7 +134,7 @@ final class SignInUITests: SignInUITestCase {
 
     /// The token is in the Keychain, so the app opens on the home after a restart without TM-01.
     func test_F001N_AC8_aRestartKeepsTheSignIn() throws {
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let first = SignInScreen.launch(against: server)
         XCTAssertTrue(first.email.waitUntilExists(timeout: timeout))
         first.type(server.signIn.email, into: first.email)
@@ -154,7 +153,7 @@ final class SignInUITests: SignInUITestCase {
 
     func test_F001N_AC9_signedOutNotice() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
 
         let screen = SignInScreen.launch(against: server, session: .rejectedToken)
 

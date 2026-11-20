@@ -1,8 +1,8 @@
 # F001 native sign-in, AC13 (spec #168): the anonymous app opens on TM-01 and reaches no signed-in screen. Elements are
 # found by id: the Android testTag and the iOS accessibilityIdentifier, the same on both apps (signIn.email, signIn.send).
 # SIGN_IN_SEND_CODE, set by scripts/maestro.sh: signIn.sendCode from packages/i18n in the device language. It has no
-# default here: a flow's own env default would win over the value maestro.sh passes. The E008 hello screen sits behind
-# sign-in: hello.yaml signs in (shared/sign-in.yaml) and tests it.
+# default here: a flow's own env default would win over the value maestro.sh passes. The signed-in home sits behind
+# sign-in: home.yaml signs in (shared/sign-in.yaml) and tests it.
 appId: ${APP_ID}
 name: AC13 anonymous app opens on sign-in
 env:
@@ -21,6 +21,6 @@ env:
 - assertVisible:
     text: ${SIGN_IN_SEND_CODE}
 - assertNotVisible:
-    id: hello\.greeting
+    id: home\.workspaceName
 - assertNotVisible:
     id: home\.signedInAs

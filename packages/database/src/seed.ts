@@ -1,11 +1,17 @@
-import { and, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
+import { defaultOfferPlans } from './default-offers.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from './invitation-validity.ts';
+import { appendOfferVersion, insertOffer, type NewOffer } from './repositories/offers.ts';
 import {
   authUsers,
+  bookingLinks,
+  classSeries,
   clients,
   groupClasses,
   locations,
+  offers,
+  offerVersions,
   organizations,
   sessionParticipants,
   sessions,
@@ -50,10 +56,10 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * row of *Trainers*; nobody knows its token (see `SEED_INVITATION_TOKEN_HASH`), an Owner sends it
  * again to get a link. And a synthetic week of private sessions of John's Gym (F020 AC15): for
  * John, Sarah and Tom with the seeded clients, Monday to Friday of the current week, so previews
- * and the calendars of M4 have data; a week that has sessions already is left alone, and the next
+ * and the calendars of M4 have data; a week that has private sessions already is left alone, and the next
  * week gets its own. And three group classes of John's Gym with their dates in that week (F021
  * AC12): one with an English name and one that needs a trainer; the classes are made once, the
- * dates once per week. And the people and the day of the personal calendar (F013, spec #457): Lisa
+ * dates once per week. And the standing booking links of the three workspaces (F037). And the people and the day of the personal calendar (F013, spec #457): Lisa
  * (`lisa@example.com`), an account that is only a client of John's Gym, Mike (`mike@example.com`),
  * the Owner of a third workspace, "Fit Studio" (`fit-studio`), who does not train, Anna de Vries
  * as a client of Sarah Personal Training, and Tuesday 22 September 2026 as the spec has it: Sarah has
@@ -244,6 +250,143 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     now: options.now ?? new Date(),
   });
   await seedPersonalCalendar(db, { gym, personalTraining });
+  // The standing booking links of every workspace (F037): *Alle boekingen* and *Groepslessen* in
+  // the visitor's language. Idempotent through the partial unique index of the active links; the
+  // API makes them on the first list too, so a workspace made without the seed has them as well.
+  await db
+    .insert(bookingLinks)
+    .values(
+      [gym, personalTraining, fitStudio].flatMap((organizationId) =>
+        (['all', 'group'] as const).map((scope) => ({
+          organizationId,
+          scope,
+          language: 'visitor' as const,
+        })),
+      ),
+    )
+    .onConflictDoNothing();
+  await seedOffers(db, { gym, others: [personalTraining, fitStudio] });
+}
+
+/** The prices of the seed, in euro cents including 21 % VAT: synthetic, as every seeded number. */
+const SEED_PRICES: Readonly<Record<string, number>> = {
+  membership: 7900,
+  group_credit_pack: 15000,
+  private_credit_plan: 26000,
+};
+
+/** The two offers John's Gym makes itself (F052 AC15), so previews can sell every kind. */
+const SEED_OWNER_OFFERS: readonly NewOffer[] = [
+  {
+    kind: 'credit_pack',
+    creditKind: 'private',
+    defaultPlan: null,
+    status: 'on',
+    terms: {
+      nameNl: 'Privécreditpakket',
+      nameEn: 'Private credit pack',
+      credits: 5,
+      validity: { amount: 3, unit: 'month' },
+      cutoffMinutes: 1440,
+      priceCents: 32500,
+      vatRateBasisPoints: 2100,
+      renewalWindowDays: 30,
+    },
+  },
+  {
+    kind: 'single_class_pass',
+    creditKind: null,
+    defaultPlan: null,
+    status: 'on',
+    terms: {
+      nameNl: 'Losse sessie',
+      nameEn: 'Single class pass',
+      cutoffMinutes: 720,
+      priceCents: 1800,
+      vatRateBasisPoints: 2100,
+    },
+  },
+];
+
+/**
+ * The offers of the seeded workspaces (F052, spec #468, AC15; this runs only outside production,
+ * `seed` returns first there). John's Gym gets the three default plans priced and switched on, plus
+ * one owner-made private credit pack and one single class pass, so previews can sell every kind.
+ * The other workspaces get the three default plans as a new workspace does: switched off, without
+ * a price. Idempotent: a default plan is there when the workspace has its key, an owner-made offer
+ * when a version of it has the same Dutch name; what an owner changed since stays.
+ */
+async function seedOffers(
+  db: DatabaseExecutor,
+  workspaces: { gym: string; others: readonly string[] },
+): Promise<void> {
+  const make = async (workspaceId: string, offer: NewOffer, named: string) => {
+    const [found] = await db
+      .select({ id: offers.id })
+      .from(offers)
+      .innerJoin(
+        offerVersions,
+        and(
+          eq(offerVersions.offerId, offers.id),
+          eq(offerVersions.organizationId, offers.organizationId),
+        ),
+      )
+      .where(
+        and(
+          eq(offers.organizationId, workspaceId),
+          offer.defaultPlan === null
+            ? eq(offerVersions.nameNl, named)
+            : eq(offers.defaultPlan, offer.defaultPlan),
+        ),
+      );
+    // The offer and its version point at each other: one transaction, the key is checked at commit.
+    if (!found) await db.transaction((tx) => insertOffer(tx, workspaceId, offer));
+  };
+  // A database that had John's Gym before offers did got the default plans from the migration's
+  // backfill, unpriced and off. Where such a copy is still untouched (off, version 1, no price),
+  // a new version gives it the seed's price and switches it on; what an owner changed stays.
+  const price = async (workspaceId: string, offer: NewOffer) => {
+    if (offer.defaultPlan === null) return;
+    const [untouched] = await db
+      .select({ id: offers.id })
+      .from(offers)
+      .innerJoin(
+        offerVersions,
+        and(
+          eq(offerVersions.organizationId, offers.organizationId),
+          eq(offerVersions.id, offers.currentVersionId),
+        ),
+      )
+      .where(
+        and(
+          eq(offers.organizationId, workspaceId),
+          eq(offers.defaultPlan, offer.defaultPlan),
+          eq(offers.status, 'off'),
+          eq(offerVersions.version, 1),
+          isNull(offerVersions.priceCents),
+        ),
+      );
+    if (!untouched) return;
+    await db.transaction(async (tx) => {
+      await appendOfferVersion(tx, workspaceId, untouched.id, offer.terms);
+      await tx.update(offers).set({ status: 'on' }).where(eq(offers.id, untouched.id));
+    });
+  };
+  for (const plan of defaultOfferPlans()) {
+    const priced: NewOffer = {
+      ...plan,
+      status: 'on',
+      terms: {
+        ...plan.terms,
+        priceCents: SEED_PRICES[plan.defaultPlan ?? ''] ?? null,
+        vatRateBasisPoints: 2100,
+      },
+    };
+    await make(workspaces.gym, priced, plan.terms.nameNl);
+    await price(workspaces.gym, priced);
+    for (const other of workspaces.others) await make(other, plan, plan.terms.nameNl);
+  }
+  for (const offer of SEED_OWNER_OFFERS) await make(workspaces.gym, offer, offer.terms.nameNl);
 }
 
 /**
@@ -504,8 +647,9 @@ const SEED_SESSIONS: readonly SeedSession[] = [
 
 /**
  * A group class of the seed (F021 AC12): the Dutch name, an optional English one, a description in
- * Dutch, the usual trainer's account (none: *Trainer nodig*), capacity and length, and its dates in
- * the week (weekday, 1 is Monday, and local start).
+ * Dutch, the usual trainer's account (none: *Trainer nodig*), capacity and length, and its weekly
+ * dates (weekday, 1 is Monday, and local start): each is a weekly series (F022 AC13), so the week
+ * looks like a gym timetable and the calendar is full 12 weeks ahead.
  */
 interface SeedClass {
   readonly nameNl: string;
@@ -538,7 +682,10 @@ const SEED_CLASSES: readonly SeedClass[] = [
     trainer: 'tom@example.com',
     capacity: 12,
     minutes: 45,
-    dates: [{ weekday: 3, start: '12:15' }],
+    dates: [
+      { weekday: 3, start: '12:15' },
+      { weekday: 6, start: '10:00' },
+    ],
   },
   {
     nameNl: 'Bootcamp',
@@ -547,9 +694,34 @@ const SEED_CLASSES: readonly SeedClass[] = [
     trainer: null,
     capacity: 15,
     minutes: 60,
-    dates: [{ weekday: 5, start: '18:00' }],
+    dates: [
+      { weekday: 5, start: '18:00' },
+      { weekday: 6, start: '11:15' },
+    ],
   },
 ];
+
+/** The weekdays as RRULE writes them, Monday first. */
+const WEEKDAY_CODES = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const;
+
+/** The seeded timetable is kept 12 weeks ahead: today and the 83 days after it (`horizonEnd` of the domain, which this package cannot import). */
+const HORIZON_DAYS = 12 * 7 - 1;
+
+/** The date `days` after `date` (`YYYY-MM-DD`); calendar dates, so the clocks changing does not matter. */
+function addDaysTo(date: string, days: number): string {
+  const [year = 0, month = 1, day = 1] = date.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
+/** The calendar date of `now` in `timeZone`: `YYYY-MM-DD`. */
+function localDate(now: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
 
 /** The date of Monday of the week `now` falls in, in `timeZone`: `YYYY-MM-DD`. */
 function mondayOf(now: Date, timeZone: string): string {
@@ -568,7 +740,7 @@ function mondayOf(now: Date, timeZone: string): string {
 
 /**
  * Seeds the week of private sessions of John's Gym that `now` falls in (F020 AC15), once: a week
- * that has any session already, the seed's or an Owner's, is left alone, and the next week gets
+ * that has any private session already, the seed's or an Owner's, is left alone, and the next week gets
  * its own. The local times become instants in the workspace's time zone with Postgres's own
  * time zone rules, so a week in summer time and one in winter time keep the same wall-clock times.
  */
@@ -595,6 +767,8 @@ async function seedPrivateSessions(
     .where(
       and(
         eq(sessions.organizationId, workspaceId),
+        // Private ones: the weekly series of the classes (F022) put group dates in every coming week.
+        eq(sessions.type, 'private'),
         gte(sessions.startsAt, weekStart as never),
         lt(sessions.startsAt, weekEnd as never),
       ),
@@ -663,12 +837,13 @@ const SEED_INVITATION = { name: 'Invitee', email: 'invitee@example.com' } as con
 const SEED_INVITATION_TOKEN_HASH = '0'.repeat(64);
 
 /**
- * Seeds the classes of John's Gym (F021 AC12) and, for the week `now` falls in, their dates, as
- * `seedPrivateSessions` does for private sessions. A class is made once by its Dutch name: one an
- * Owner changed since stays as it is. The dates of a week are added once: a week with any group
- * session already, the seed's or an Owner's, is left alone. Each date copies the trainer,
- * capacity and length of its class and takes the default location (`scheduleClassOnDate` does the
- * same in the API; this package cannot import the domain).
+ * Seeds the classes of John's Gym (F021 AC12) and their timetable (F022 AC13): about six classes
+ * a week, two trainers and one class that needs a trainer, each a weekly series (`class_series`)
+ * that starts in the week `now` falls in and is filled 12 weeks ahead. A class is made once by its
+ * Dutch name: one an Owner changed since stays as it is. A series is made once; every run adds the
+ * dates it is missing, so a date an Owner cancelled or changed is never made again or reset. Each
+ * date copies the trainer, capacity and length of its series and takes the default location (the
+ * API does the same; this package cannot import the domain).
  */
 async function seedGroupClasses(
   db: DatabaseExecutor,
@@ -726,25 +901,20 @@ async function seedGroupClasses(
     classIds.set(plan.nameNl, created.id);
   }
 
-  const monday = mondayOf(now, workspace.timeZone);
-  const at = (date: ReturnType<typeof sql>) => sql`(${date}) at time zone ${workspace.timeZone}`;
-  const [seeded] = await db
-    .select({ id: sessions.id })
-    .from(sessions)
-    .where(
-      and(
-        eq(sessions.organizationId, workspaceId),
-        eq(sessions.type, 'group'),
-        gte(sessions.startsAt, at(sql`${monday}::date + time '00:00'`) as never),
-        lt(sessions.startsAt, at(sql`${monday}::date + 7 + time '00:00'`) as never),
-      ),
-    )
-    .limit(1);
-  if (seeded) return;
+  // The timetable: one weekly series for each weekday of a class (F022 AC13), starting on that
+  // weekday of the week `now` falls in and filled 12 weeks ahead of today, as the API and the
+  // daily task fill a series (`HORIZON_DAYS`). A series is made once; later runs only add the
+  // dates that are missing, so a date an Owner cancelled or changed is never made again or reset.
+  // The wall-clock times become instants with Postgres's own time zone rules, so a week in summer
+  // time and one in winter time keep the same wall-clock times.
+  const tz = workspace.timeZone;
+  const monday = mondayOf(now, tz);
+  const today = localDate(now, tz);
+  const through = addDaysTo(today, HORIZON_DAYS);
   for (const plan of SEED_CLASSES) {
     const groupClassId = classIds.get(plan.nameNl);
     if (!groupClassId) throw new Error('The seed did not find a class.');
-    // The class as it is now: a date copies it, as the API does.
+    // The class as it is now: a series copies it, as the API does.
     const [current] = await db
       .select({
         capacity: groupClasses.capacity,
@@ -755,18 +925,92 @@ async function seedGroupClasses(
       .where(eq(groupClasses.id, groupClassId));
     if (!current) throw new Error('The seed did not find a class.');
     for (const date of plan.dates) {
-      const startsAt = at(sql`${monday}::date + ${date.weekday - 1}::int + ${date.start}::time`);
-      await db.insert(sessions).values({
-        organizationId: workspaceId,
-        type: 'group',
-        groupClassId,
-        trainerProfileId: current.defaultTrainerProfileId,
-        locationId: location.id,
-        startsAt: startsAt as never,
-        endsAt: sql`(${startsAt}) + ${current.durationMinutes} * interval '1 minute'` as never,
-        capacity: current.capacity,
-        createdByTeamMemberId: plannedBy,
-      });
+      const rrule = `FREQ=WEEKLY;BYDAY=${WEEKDAY_CODES[date.weekday - 1]}`;
+      // The series of this class and weekday, whatever its time and end are now: an Owner can
+      // change a series with "this and following" (it moves to another time, or is split and ends),
+      // and a later seed must not make a second one at the old time.
+      const found = await db
+        .select({
+          id: classSeries.id,
+          startsOn: classSeries.startsOn,
+          endsOn: classSeries.endsOn,
+          localStartTime: classSeries.localStartTime,
+          trainerProfileId: classSeries.trainerProfileId,
+          capacity: classSeries.capacity,
+          durationMinutes: classSeries.durationMinutes,
+        })
+        .from(classSeries)
+        .where(
+          and(
+            eq(classSeries.organizationId, workspaceId),
+            eq(classSeries.groupClassId, groupClassId),
+            eq(classSeries.rrule, rrule),
+          ),
+        )
+        .orderBy(asc(classSeries.startsOn));
+      const [made] =
+        found.length > 0
+          ? []
+          : await db
+              .insert(classSeries)
+              .values({
+                organizationId: workspaceId,
+                groupClassId,
+                rrule,
+                localStartTime: date.start,
+                durationMinutes: current.durationMinutes,
+                timeZone: tz,
+                trainerProfileId: current.defaultTrainerProfileId,
+                capacity: current.capacity,
+                startsOn: addDaysTo(monday, date.weekday - 1),
+                materializedUntil: through,
+              })
+              .returning({
+                id: classSeries.id,
+                startsOn: classSeries.startsOn,
+                endsOn: classSeries.endsOn,
+                localStartTime: classSeries.localStartTime,
+                trainerProfileId: classSeries.trainerProfileId,
+                capacity: classSeries.capacity,
+                durationMinutes: classSeries.durationMinutes,
+              });
+      // Each series is filled with its own time and defaults, up to its end when it has one.
+      for (const series of made ? [made] : found) {
+        const last = series.endsOn !== null && series.endsOn < through ? series.endsOn : through;
+        const start = series.localStartTime.slice(0, 5);
+        const days: string[] = [];
+        for (let day = series.startsOn; day <= last; day = addDaysTo(day, 7)) days.push(day);
+        if (days.length > 0) {
+          await db
+            .insert(sessions)
+            .values(
+              days.map((day) => {
+                const startsAt = sql`(${day}::date + ${start}::time) at time zone ${tz}`;
+                return {
+                  organizationId: workspaceId,
+                  type: 'group' as const,
+                  groupClassId,
+                  seriesId: series.id,
+                  occurrenceDate: day,
+                  trainerProfileId: series.trainerProfileId,
+                  locationId: location.id,
+                  startsAt: startsAt as never,
+                  endsAt:
+                    sql`(${startsAt}) + ${series.durationMinutes} * interval '1 minute'` as never,
+                  capacity: series.capacity,
+                  createdByTeamMemberId: plannedBy,
+                };
+              }),
+            )
+            .onConflictDoNothing();
+        }
+        if (series.endsOn === null) {
+          await db
+            .update(classSeries)
+            .set({ materializedUntil: through })
+            .where(and(eq(classSeries.id, series.id), lt(classSeries.materializedUntil, through)));
+        }
+      }
     }
   }
 }

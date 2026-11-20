@@ -223,13 +223,15 @@ describe('F011 answering a trainer invitation', () => {
     expect(await accountCount()).toBe((accountsBefore ?? 0) + 1);
 
     const authorized = { authorization: `Bearer ${bearer}` };
-    // The link shows the workspace, the inviter and the masked address.
+    // The link shows the workspace, the inviter and the address.
     const preview = await request(server, 'GET', `/v1/invitations/${lisa.token}`, authorized);
     expect(preview.status).toBe(200);
     expect(await preview.json()).toEqual({
       workspaceName: w.gym.marker,
       inviterName: 'John',
+      email: 'lisa@example.com',
       maskedEmail: 'l***@example.com',
+      forYou: true,
     });
 
     const response = await request(
@@ -260,6 +262,7 @@ describe('F011 answering a trainer invitation', () => {
       slug: w.gym.marker,
       trainerWord: 'trainer',
       role: 'trainer',
+      teamMemberId: role?.id,
       capabilities: expect.arrayContaining(['clients.view']),
       trainsHere: true,
     });
@@ -442,27 +445,81 @@ describe('F011 answering a trainer invitation', () => {
   });
 
   describe('AC9: the read is anonymous and minimal; answering needs a session', () => {
-    it('shows only the workspace name, the inviter’s name and the masked address', async () => {
+    it('shows only the workspace name, the inviter’s name, the address and its masked form, to anyone who holds a valid token', async () => {
       const w = await world();
       const server = setup();
       const lisa = await invitation(w, { name: 'Lisa Geheim', email: 'lisa@example.com' });
+      const tom = await createAccount(admin.db, { label: 'tom-reads' });
 
-      const response = await read(server, lisa.token);
+      // Signed in or not, with the invited address or another: the token is what lets it through.
+      for (const who of [undefined, tom]) {
+        const response = await read(server, lisa.token, who);
 
-      expect(response.status).toBe(200);
-      const body = (await response.json()) as Record<string, unknown>;
-      expect(Object.keys(body).sort()).toEqual(['inviterName', 'maskedEmail', 'workspaceName']);
-      const text = JSON.stringify(body);
-      for (const secret of [
-        w.gym.id,
-        lisa.id,
-        lisa.hash,
-        'lisa@example.com',
-        'Lisa Geheim',
-        w.john.email,
-      ]) {
-        expect(text).not.toContain(secret);
+        expect(response.status).toBe(200);
+        const body = (await response.json()) as Record<string, unknown>;
+        expect(Object.keys(body).sort()).toEqual([
+          'email',
+          'forYou',
+          'inviterName',
+          'maskedEmail',
+          'workspaceName',
+        ]);
+        // The sign-in (TW-10) opens with this address filled in (#1413).
+        expect(body.email).toBe('lisa@example.com');
+        const text = JSON.stringify(body);
+        for (const secret of [w.gym.id, lisa.id, lisa.hash, 'Lisa Geheim', w.john.email]) {
+          expect(text).not.toContain(secret);
+        }
       }
+    });
+
+    it('returns no address for a missing, unknown, expired, withdrawn, used or declined token', async () => {
+      const w = await world();
+      const server = setup();
+      const email = 'lisa-no-address@example.com';
+      const tokens = [
+        (await invitation(w, { email, expiresAt: new Date(NOW.getTime() - 1000) })).token,
+        (await invitation(w, { email, status: 'withdrawn' })).token,
+        (await invitation(w, { email, status: 'accepted' })).token,
+        (await invitation(w, { email, status: 'declined' })).token,
+        createInvitationToken().token,
+      ];
+
+      for (const token of tokens) {
+        const response = await read(server, token);
+        expect(response.status).toBe(404);
+        expect(await response.text()).not.toContain(email);
+      }
+      // No token in the path at all: no such route, so nothing to read.
+      const none = await request(server, 'GET', '/v1/invitations/', as());
+      expect(none.status).toBe(404);
+      expect(await none.text()).not.toContain(email);
+    });
+
+    it('says whether the invitation is for the signed-in account: yes for the invited address, no for another account, an unverified address and nobody', async () => {
+      const w = await world();
+      const server = setup();
+      const lisaAccount = await createAccount(admin.db, { label: 'lisa-for-you' });
+      const unverified = await createAccount(admin.db, { label: 'lisa-for-you-unverified' });
+      await admin.db
+        .update(authUsers)
+        .set({ emailVerified: false })
+        .where(eq(authUsers.id, unverified.id));
+      const tom = await createAccount(admin.db, { label: 'tom-for-you' });
+      // Another person whose address masks the same way (first letter and domain).
+      const lookalike = await createAccount(admin.db, { label: 'lara-for-you' });
+      const forLisa = await invitation(w, { email: lisaAccount.email });
+      const forUnverified = await invitation(w, { email: unverified.email });
+
+      const forYou = async (token: string, who?: { id: string }) =>
+        ((await (await read(server, token, who)).json()) as { forYou: boolean }).forYou;
+
+      expect(await forYou(forLisa.token, lisaAccount)).toBe(true);
+      expect(await forYou(forLisa.token, tom)).toBe(false);
+      expect(await forYou(forLisa.token, lookalike)).toBe(false);
+      expect(await forYou(forLisa.token, w.mike)).toBe(false);
+      expect(await forYou(forLisa.token)).toBe(false);
+      expect(await forYou(forUnverified.token, unverified)).toBe(false);
     });
 
     it('says null for an inviter who has no name yet, never the address', async () => {
@@ -613,7 +670,9 @@ describe('F011 answering a trainer invitation', () => {
     expect(Object.keys(contract.components.schemas.InvitationPreview.properties)).toEqual([
       'workspaceName',
       'inviterName',
+      'email',
       'maskedEmail',
+      'forYou',
     ]);
   });
 });

@@ -1,0 +1,738 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E50300000000000000000070 /* FivviAPI in Frameworks */ = {isa = PBXBuildFile; productRef = E503000000000000000000A0 /* FivviAPI */; };
+		E50300000000000000000071 /* FivviDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E503000000000000000000A1 /* FivviDesignTokens */; };
+		E50300000000000000000072 /* OpenAPIRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = E503000000000000000000A2 /* OpenAPIRuntime */; };
+		E50300000000000000000073 /* OpenAPIURLSession in Frameworks */ = {isa = PBXBuildFile; productRef = E503000000000000000000A3 /* OpenAPIURLSession */; };
+		E50300000000000000000075 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000041 /* InfoPlist.xcstrings */; };
+		E50300000000000000000076 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000040 /* Localizable.xcstrings */; };
+		E50300000000000000000077 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000040 /* Localizable.xcstrings */; };
+		E50300000000000000000079 /* FivviDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E503000000000000000000A9 /* FivviDesignTokens */; };
+		E50400000000000000000100 /* FivviStrings in Frameworks */ = {isa = PBXBuildFile; productRef = E504000000000000000000A0 /* FivviStrings */; };
+		E50400000000000000000101 /* FivviSession in Frameworks */ = {isa = PBXBuildFile; productRef = E504000000000000000000A1 /* FivviSession */; };
+		E50400000000000000000102 /* FivviLanguage in Frameworks */ = {isa = PBXBuildFile; productRef = E504000000000000000000A2 /* FivviLanguage */; };
+		E50400000000000000000103 /* FivviUI in Frameworks */ = {isa = PBXBuildFile; productRef = E504000000000000000000A3 /* FivviUI */; };
+		E50400000000000000000104 /* FivviSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = E504000000000000000000A4 /* FivviSignIn */; };
+		E50400000000000000000105 /* FivviObservability in Frameworks */ = {isa = PBXBuildFile; productRef = E504000000000000000000A5 /* FivviObservability */; };
+		E50300000000000000000300 /* Polling.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000200 /* Polling.swift */; };
+		E50300000000000000000301 /* XCUIElement+Wait.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000201 /* XCUIElement+Wait.swift */; };
+		E50300000000000000000302 /* XCUIElement+Traits.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000202 /* XCUIElement+Traits.swift */; };
+		E50300000000000000000303 /* ReachableLaunch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000203 /* ReachableLaunch.swift */; };
+		E50300000000000000000304 /* StubServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000204 /* StubServer.swift */; };
+		E50300000000000000000305 /* StubServer+Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000205 /* StubServer+Account.swift */; };
+		E50300000000000000000306 /* StubResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000206 /* StubResponder.swift */; };
+		E50300000000000000000307 /* StubResponder+Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000207 /* StubResponder+Account.swift */; };
+		E50300000000000000000308 /* StubClientRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000208 /* StubClientRoutes.swift */; };
+		E50300000000000000000316 /* StubSessionRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000216 /* StubSessionRoutes.swift */; };
+		E50300000000000000000309 /* TestCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000209 /* TestCatalog.swift */; };
+		E50300000000000000000310 /* TouchTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000210 /* TouchTarget.swift */; };
+		E50300000000000000000311 /* ScreenColours.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000211 /* ScreenColours.swift */; };
+		E50300000000000000000312 /* SignInScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000212 /* SignInScreen.swift */; };
+		E50300000000000000000313 /* SignInUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000213 /* SignInUITestCase.swift */; };
+		E50300000000000000000314 /* AppLaunch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000214 /* AppLaunch.swift */; };
+		E50300000000000000000320 /* OpenedLinksRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000220 /* OpenedLinksRecorder.swift */; };
+		E50300000000000000000321 /* EmbeddedEntitlements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000221 /* EmbeddedEntitlements.swift */; };
+		E50300000000000000000315 /* AppLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000215 /* AppLifecycle.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E50300000000000000000080 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E50300000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E50300000000000000000050;
+			remoteInfo = Fivvi;
+		};
+		E50300000000000000000081 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E50300000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E50300000000000000000050;
+			remoteInfo = Fivvi;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		E50300000000000000000040 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		E50300000000000000000041 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = client/InfoPlist.xcstrings; sourceTree = "<group>"; };
+		E50300000000000000000042 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ../Fivvi/Config/Debug.xcconfig; sourceTree = "<group>"; };
+		E50300000000000000000043 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ../Fivvi/Config/Release.xcconfig; sourceTree = "<group>"; };
+		E50300000000000000000044 /* Fivvi-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Fivvi-Info.plist"; sourceTree = "<group>"; };
+		E50300000000000000000045 /* Fivvi-Info-Debug.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Fivvi-Info-Debug.plist"; sourceTree = "<group>"; };
+		E50300000000000000000046 /* Fivvi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fivvi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E50300000000000000000047 /* FivviTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FivviTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E50300000000000000000048 /* FivviUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FivviUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E50300000000000000000049 /* Fivvi.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Fivvi.xctestplan; sourceTree = "<group>"; };
+		E50300000000000000000200 /* Polling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Polling.swift"; sourceTree = "<group>"; };
+		E50300000000000000000201 /* XCUIElement+Wait.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCUIElement+Wait.swift"; sourceTree = "<group>"; };
+		E50300000000000000000202 /* XCUIElement+Traits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCUIElement+Traits.swift"; sourceTree = "<group>"; };
+		E50300000000000000000203 /* ReachableLaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReachableLaunch.swift"; sourceTree = "<group>"; };
+		E50300000000000000000204 /* StubServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubServer.swift"; sourceTree = "<group>"; };
+		E50300000000000000000205 /* StubServer+Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubServer+Account.swift"; sourceTree = "<group>"; };
+		E50300000000000000000206 /* StubResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubResponder.swift"; sourceTree = "<group>"; };
+		E50300000000000000000207 /* StubResponder+Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubResponder+Account.swift"; sourceTree = "<group>"; };
+		E50300000000000000000208 /* StubClientRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubClientRoutes.swift"; sourceTree = "<group>"; };
+		E50300000000000000000216 /* StubSessionRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubSessionRoutes.swift"; sourceTree = "<group>"; };
+		E50300000000000000000209 /* TestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TestCatalog.swift"; sourceTree = "<group>"; };
+		E50300000000000000000210 /* TouchTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TouchTarget.swift"; sourceTree = "<group>"; };
+		E50300000000000000000211 /* ScreenColours.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ScreenColours.swift"; sourceTree = "<group>"; };
+		E50300000000000000000212 /* SignInScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignInScreen.swift"; sourceTree = "<group>"; };
+		E50300000000000000000213 /* SignInUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignInUITestCase.swift"; sourceTree = "<group>"; };
+		E50300000000000000000214 /* AppLaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppLaunch.swift"; sourceTree = "<group>"; };
+		E50300000000000000000220 /* OpenedLinksRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OpenedLinksRecorder.swift"; sourceTree = "<group>"; };
+		E50300000000000000000221 /* EmbeddedEntitlements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EmbeddedEntitlements.swift"; sourceTree = "<group>"; };
+		E50300000000000000000215 /* AppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppLifecycle.swift"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E50300000000000000000033 /* Exceptions for "Fivvi" folder in "Fivvi" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Config/Debug.xcconfig,
+				Config/Release.xcconfig,
+			);
+			target = E50300000000000000000050 /* Fivvi */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		E50300000000000000000030 /* Fivvi */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E50300000000000000000033 /* Exceptions for "Fivvi" folder in "Fivvi" target */,
+			);
+			path = Fivvi;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000031 /* FivviTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FivviTests;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000032 /* FivviUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FivviUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E50300000000000000000061 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E50300000000000000000070 /* FivviAPI in Frameworks */,
+				E50300000000000000000071 /* FivviDesignTokens in Frameworks */,
+				E50300000000000000000072 /* OpenAPIRuntime in Frameworks */,
+				E50300000000000000000073 /* OpenAPIURLSession in Frameworks */,
+				E50400000000000000000100 /* FivviStrings in Frameworks */,
+				E50400000000000000000101 /* FivviSession in Frameworks */,
+				E50400000000000000000102 /* FivviLanguage in Frameworks */,
+				E50400000000000000000103 /* FivviUI in Frameworks */,
+				E50400000000000000000104 /* FivviSignIn in Frameworks */,
+				E50400000000000000000105 /* FivviObservability in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E50300000000000000000064 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E50300000000000000000067 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E50300000000000000000079 /* FivviDesignTokens in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E50300000000000000000020 = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000049 /* Fivvi.xctestplan */,
+				E50300000000000000000030 /* Fivvi */,
+				E50300000000000000000031 /* FivviTests */,
+				E50300000000000000000032 /* FivviUITests */,
+				E50300000000000000000022 /* Config */,
+				E50300000000000000000021 /* Strings */,
+				E50300000000000000000025 /* Fivvi Pro UI test support */,
+				E50300000000000000000026 /* Fivvi Pro shared app source */,
+				E50300000000000000000027 /* Fivvi Pro shared test support */,
+				E50300000000000000000023 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E50300000000000000000021 /* Strings */ = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000040 /* Localizable.xcstrings */,
+				E50300000000000000000041 /* InfoPlist.xcstrings */,
+			);
+			name = Strings;
+			path = ../../packages/i18n/generated/ios;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000022 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000042 /* Debug.xcconfig */,
+				E50300000000000000000043 /* Release.xcconfig */,
+				E50300000000000000000044 /* Fivvi-Info.plist */,
+				E50300000000000000000045 /* Fivvi-Info-Debug.plist */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000023 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000046 /* Fivvi.app */,
+				E50300000000000000000047 /* FivviTests.xctest */,
+				E50300000000000000000048 /* FivviUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000025 /* Fivvi Pro UI test support */ = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000200 /* Polling.swift */,
+				E50300000000000000000201 /* XCUIElement+Wait.swift */,
+				E50300000000000000000202 /* XCUIElement+Traits.swift */,
+				E50300000000000000000203 /* ReachableLaunch.swift */,
+				E50300000000000000000204 /* StubServer.swift */,
+				E50300000000000000000205 /* StubServer+Account.swift */,
+				E50300000000000000000206 /* StubResponder.swift */,
+				E50300000000000000000207 /* StubResponder+Account.swift */,
+				E50300000000000000000208 /* StubClientRoutes.swift */,
+				E50300000000000000000216 /* StubSessionRoutes.swift */,
+				E50300000000000000000209 /* TestCatalog.swift */,
+				E50300000000000000000210 /* TouchTarget.swift */,
+				E50300000000000000000211 /* ScreenColours.swift */,
+				E50300000000000000000212 /* SignInScreen.swift */,
+				E50300000000000000000213 /* SignInUITestCase.swift */,
+				E50300000000000000000214 /* AppLaunch.swift */,
+				E50300000000000000000215 /* AppLifecycle.swift */,
+			);
+			name = "Fivvi Pro UI test support";
+			path = FivviProUITests/Support;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000026 /* Fivvi Pro shared app source */ = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000220 /* OpenedLinksRecorder.swift */,
+			);
+			name = "Fivvi Pro shared app source";
+			path = FivviPro/App;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000027 /* Fivvi Pro shared test support */ = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000221 /* EmbeddedEntitlements.swift */,
+			);
+			name = "Fivvi Pro shared test support";
+			path = FivviProTests/Support;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E50300000000000000000050 /* Fivvi */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E50300000000000000000003 /* Build configuration list for PBXNativeTarget "Fivvi" */;
+			buildPhases = (
+				E50300000000000000000060 /* Sources */,
+				E50300000000000000000061 /* Frameworks */,
+				E50300000000000000000062 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E50300000000000000000030 /* Fivvi */,
+			);
+			name = Fivvi;
+			packageProductDependencies = (
+				E503000000000000000000A0 /* FivviAPI */,
+				E503000000000000000000A1 /* FivviDesignTokens */,
+				E503000000000000000000A2 /* OpenAPIRuntime */,
+				E503000000000000000000A3 /* OpenAPIURLSession */,
+				E504000000000000000000A0 /* FivviStrings */,
+				E504000000000000000000A1 /* FivviSession */,
+				E504000000000000000000A2 /* FivviLanguage */,
+				E504000000000000000000A3 /* FivviUI */,
+				E504000000000000000000A4 /* FivviSignIn */,
+				E504000000000000000000A5 /* FivviObservability */,
+			);
+			productName = Fivvi;
+			productReference = E50300000000000000000046 /* Fivvi.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E50300000000000000000051 /* FivviTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E50300000000000000000004 /* Build configuration list for PBXNativeTarget "FivviTests" */;
+			buildPhases = (
+				E50300000000000000000063 /* Sources */,
+				E50300000000000000000064 /* Frameworks */,
+				E50300000000000000000065 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E50300000000000000000082 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E50300000000000000000031 /* FivviTests */,
+			);
+			name = FivviTests;
+			productName = FivviTests;
+			productReference = E50300000000000000000047 /* FivviTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E50300000000000000000052 /* FivviUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E50300000000000000000005 /* Build configuration list for PBXNativeTarget "FivviUITests" */;
+			buildPhases = (
+				E50300000000000000000066 /* Sources */,
+				E50300000000000000000067 /* Frameworks */,
+				E50300000000000000000068 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E50300000000000000000083 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E50300000000000000000032 /* FivviUITests */,
+			);
+			name = FivviUITests;
+			packageProductDependencies = (
+				E503000000000000000000A9 /* FivviDesignTokens */,
+			);
+			productName = FivviUITests;
+			productReference = E50300000000000000000048 /* FivviUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E50300000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					E50300000000000000000050 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					E50300000000000000000051 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = E50300000000000000000050;
+					};
+					E50300000000000000000052 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = E50300000000000000000050;
+					};
+				};
+			};
+			buildConfigurationList = E50300000000000000000002 /* Build configuration list for PBXProject "Fivvi" */;
+			developmentRegion = nl;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				nl,
+				en,
+				Base,
+			);
+			mainGroup = E50300000000000000000020;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E50300000000000000000090 /* XCLocalSwiftPackageReference "../../packages/contract/swift" */,
+				E50300000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/FivviDesignTokens" */,
+				E50300000000000000000092 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */,
+				E50300000000000000000093 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */,
+				E50400000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E50300000000000000000023 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E50300000000000000000050 /* Fivvi */,
+				E50300000000000000000051 /* FivviTests */,
+				E50300000000000000000052 /* FivviUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E50300000000000000000062 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E50300000000000000000075 /* InfoPlist.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E50300000000000000000065 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E50300000000000000000076 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E50300000000000000000068 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E50300000000000000000077 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E50300000000000000000060 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E50300000000000000000320 /* OpenedLinksRecorder.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E50300000000000000000063 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E50300000000000000000321 /* EmbeddedEntitlements.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E50300000000000000000066 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E50300000000000000000300 /* Polling.swift in Sources */,
+				E50300000000000000000301 /* XCUIElement+Wait.swift in Sources */,
+				E50300000000000000000302 /* XCUIElement+Traits.swift in Sources */,
+				E50300000000000000000303 /* ReachableLaunch.swift in Sources */,
+				E50300000000000000000304 /* StubServer.swift in Sources */,
+				E50300000000000000000305 /* StubServer+Account.swift in Sources */,
+				E50300000000000000000306 /* StubResponder.swift in Sources */,
+				E50300000000000000000307 /* StubResponder+Account.swift in Sources */,
+				E50300000000000000000308 /* StubClientRoutes.swift in Sources */,
+				E50300000000000000000316 /* StubSessionRoutes.swift in Sources */,
+				E50300000000000000000309 /* TestCatalog.swift in Sources */,
+				E50300000000000000000310 /* TouchTarget.swift in Sources */,
+				E50300000000000000000311 /* ScreenColours.swift in Sources */,
+				E50300000000000000000312 /* SignInScreen.swift in Sources */,
+				E50300000000000000000313 /* SignInUITestCase.swift in Sources */,
+				E50300000000000000000314 /* AppLaunch.swift in Sources */,
+				E50300000000000000000315 /* AppLifecycle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E50300000000000000000082 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E50300000000000000000050 /* Fivvi */;
+			targetProxy = E50300000000000000000080 /* PBXContainerItemProxy */;
+		};
+		E50300000000000000000083 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E50300000000000000000050 /* Fivvi */;
+			targetProxy = E50300000000000000000081 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		E50300000000000000000010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E50300000000000000000011 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E50300000000000000000012 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E50300000000000000000042 /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		E50300000000000000000013 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E50300000000000000000043 /* Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		E50300000000000000000014 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fivvi.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fivvi";
+			};
+			name = Debug;
+		};
+		E50300000000000000000015 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fivvi.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fivvi";
+			};
+			name = Release;
+		};
+		E50300000000000000000016 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = Fivvi;
+			};
+			name = Debug;
+		};
+		E50300000000000000000017 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = Fivvi;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E50300000000000000000002 /* Build configuration list for PBXProject "Fivvi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E50300000000000000000010 /* Debug */,
+				E50300000000000000000011 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E50300000000000000000003 /* Build configuration list for PBXNativeTarget "Fivvi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E50300000000000000000012 /* Debug */,
+				E50300000000000000000013 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E50300000000000000000004 /* Build configuration list for PBXNativeTarget "FivviTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E50300000000000000000014 /* Debug */,
+				E50300000000000000000015 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E50300000000000000000005 /* Build configuration list for PBXNativeTarget "FivviUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E50300000000000000000016 /* Debug */,
+				E50300000000000000000017 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		E50300000000000000000090 /* XCLocalSwiftPackageReference "../../packages/contract/swift" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/contract/swift;
+		};
+		E50300000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/FivviDesignTokens" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/design-tokens/FivviDesignTokens;
+		};
+		E50400000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/FivviShared;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E50300000000000000000092 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-openapi-runtime";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.12.1;
+			};
+		};
+		E50300000000000000000093 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-openapi-urlsession";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E503000000000000000000A0 /* FivviAPI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50300000000000000000090 /* XCLocalSwiftPackageReference "../../packages/contract/swift" */;
+			productName = FivviAPI;
+		};
+		E503000000000000000000A1 /* FivviDesignTokens */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50300000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/FivviDesignTokens" */;
+			productName = FivviDesignTokens;
+		};
+		E503000000000000000000A2 /* OpenAPIRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50300000000000000000092 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */;
+			productName = OpenAPIRuntime;
+		};
+		E503000000000000000000A3 /* OpenAPIURLSession */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50300000000000000000093 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */;
+			productName = OpenAPIURLSession;
+		};
+		E503000000000000000000A9 /* FivviDesignTokens */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50300000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/FivviDesignTokens" */;
+			productName = FivviDesignTokens;
+		};
+		E504000000000000000000A0 /* FivviStrings */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50400000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviStrings;
+		};
+		E504000000000000000000A1 /* FivviSession */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50400000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviSession;
+		};
+		E504000000000000000000A2 /* FivviLanguage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50400000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviLanguage;
+		};
+		E504000000000000000000A3 /* FivviUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50400000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviUI;
+		};
+		E504000000000000000000A4 /* FivviSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50400000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviSignIn;
+		};
+		E504000000000000000000A5 /* FivviObservability */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E50400000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviObservability;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E50300000000000000000001 /* Project object */;
+}

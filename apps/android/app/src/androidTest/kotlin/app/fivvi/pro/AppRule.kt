@@ -9,8 +9,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import app.fivvi.api.apis.ClientsApi
-import app.fivvi.api.apis.HelloApi
+import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.MeApi
+import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.apis.WorkspacesApi
@@ -28,6 +29,8 @@ import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.FakeWorkspacesApi
+import app.fivvi.pro.sessions.FakeLocationsApi
+import app.fivvi.pro.sessions.FakeSessionsApi
 import app.fivvi.pro.workspace.CurrentWorkspace
 import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
 import app.fivvi.pro.workspace.LastWorkspaceStore
@@ -36,7 +39,7 @@ import org.junit.rules.ExternalResource
 
 /**
  * Starts [MainActivity] with fake API clients and fake OS language settings, and puts the real ones back after. The
- * session defaults to a signed-in one (the home, as E008's hello tests expect); pass `Session(InMemorySessionStore())`
+ * session defaults to a signed-in one (the home); pass `Session(InMemorySessionStore())`
  * for an app that starts signed out. [lastWorkspace] is the device's memory of the workspace used last; pass the same one
  * to a second launch to keep it across a restart.
  */
@@ -45,7 +48,6 @@ class AppRule : ExternalResource() {
     private var scenario: ActivityScenario<MainActivity>? = null
 
     fun launch(
-        api: HelloApi,
         device: List<String>,
         perApp: List<String> = emptyList(),
         signInApi: SignInApi = FakeSignInApi(),
@@ -53,6 +55,8 @@ class AppRule : ExternalResource() {
         workspacesApi: WorkspacesApi = FakeWorkspacesApi(),
         clientsApi: ClientsApi = FakeClientsApi(),
         trainersApi: TrainersApi = FakeTrainersApi(),
+        sessionsApi: SessionsApi = FakeSessionsApi(),
+        locationsApi: LocationsApi = FakeLocationsApi(),
         session: Session = Session(InMemorySessionStore("token-1")),
         signOutApi: (String) -> SignInApi = { signInApi },
         languageStore: LanguageStore = InMemoryLanguageStore(),
@@ -62,12 +66,13 @@ class AppRule : ExternalResource() {
         // The account stores the language of the phone, so the stored preference changes nothing unless a test says so.
         (meApi as? FakeMeApi)?.defaultPreferredLocale = storedOf(perApp + device)
         app.dependencies = object : AppDependencies {
-            override val helloApi = api
             override val signInApi = signInApi
             override val meApi = meApi
             override val workspacesApi = workspacesApi
             override val clientsApi = clientsApi
             override val trainersApi = trainersApi
+            override val sessionsApi = sessionsApi
+            override val locationsApi = locationsApi
             override val session = session
 
             override fun signOutApi(token: String) = signOutApi(token)

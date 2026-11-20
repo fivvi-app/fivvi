@@ -114,6 +114,20 @@ describe('E009 page view scrubber', () => {
     for (const value of PERSONAL) expect(JSON.stringify(scrubbed)).not.toContain(value);
   });
 
+  it('F011 AC10: replaces the token of an invitation link in the URL and the path', () => {
+    const token = 'fake-invitation-token-for-tests';
+    const scrubbed = scrubPageView(
+      pageView({
+        $current_url: `https://app.example.com/invitations/${token}?utm=x`,
+        $pathname: `/invitations/${token}`,
+      }),
+    );
+
+    expect(scrubbed?.properties.$current_url).toBe('https://app.example.com/invitations/{token}');
+    expect(scrubbed?.properties.$pathname).toBe('/invitations/{token}');
+    expect(JSON.stringify(scrubbed)).not.toContain(token);
+  });
+
   it('AC6: drops every event other than a page view', () => {
     for (const event of ['$autocapture', '$rageclick', '$pageleave', '$snapshot', 'survey sent']) {
       expect(scrubPageView({ ...pageView(), event })).toBeNull();

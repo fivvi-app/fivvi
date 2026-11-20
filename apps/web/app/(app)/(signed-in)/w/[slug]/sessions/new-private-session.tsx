@@ -39,6 +39,7 @@ import {
 } from 'react';
 import type { Client } from '../clients/clients-client';
 import { ClientPicker } from './client-picker';
+import { type DoubleBooking, DoubleBookingDialog } from './double-booking';
 import { previewTimes } from './session-time';
 import {
   type DateErrorKey,
@@ -61,8 +62,10 @@ export function useOpenNewSession(): (() => void) | null {
 export interface NewSessionProps {
   workspaceId: string;
   slug: string;
-  /** The signed-in person's email address: their own place among the trainers is found by it. */
+  /** The signed-in person's email address: it names them when they have no name of their own. */
   email: string;
+  /** Their own team-member ID in the workspace: their own place among the trainers. */
+  teamMemberId: string;
   /** Their own name as entered; none until they have one. */
   personName: string | null;
   /** The person has `session.private.manage.any`: any trainer of the workspace. Otherwise only themself. */
@@ -70,6 +73,24 @@ export interface NewSessionProps {
   /** The person has `clients.manage`: PS-02 offers *+ Nieuwe klant*. */
   canAddClients: boolean;
   /** The workspace's word for the people who teach (F068), in the reader's language. */
+  trainerWord: TrainerWordForms;
+  /**
+   * The personal pages (F013): the workspaces where the person may plan their own private
+   * sessions, which PS-01 offers first as **Werkruimte** (a plain line with one). The client
+   * list, the location and the save follow the one chosen; the fields above are the one it starts
+   * with. Left out in a workspace's own frame.
+   */
+  workspaces?: readonly PlanningWorkspace[];
+}
+
+/** A workspace PS-01 can plan in from the personal pages: what the form needs of it. */
+export interface PlanningWorkspace {
+  workspaceId: string;
+  slug: string;
+  name: string;
+  /** The person's own team-member ID in it. */
+  teamMemberId: string;
+  canAddClients: boolean;
   trainerWord: TrainerWordForms;
 }
 
@@ -142,16 +163,26 @@ type Loaded =
 const FIRST_DURATION = 60;
 
 function NewSessionPanel({
-  workspaceId,
-  slug,
+  workspaceId: startId,
+  slug: startSlug,
   email,
+  teamMemberId: startTeamMemberId,
   personName,
   forAnyTrainer,
-  canAddClients,
-  trainerWord,
+  canAddClients: startCanAddClients,
+  trainerWord: startTrainerWord,
+  workspaces,
   close,
   planned,
 }: NewSessionProps & { close: () => void; planned: (saved: Saved) => void }) {
+  // From the personal pages the person picks the workspace first; the rest follows the choice.
+  const [chosenId, setChosenId] = useState(startId);
+  const chosen = workspaces?.find((workspace) => workspace.workspaceId === chosenId);
+  const workspaceId = chosen?.workspaceId ?? startId;
+  const slug = chosen?.slug ?? startSlug;
+  const teamMemberId = chosen?.teamMemberId ?? startTeamMemberId;
+  const canAddClients = chosen?.canAddClients ?? startCanAddClients;
+  const trainerWord = chosen?.trainerWord ?? startTrainerWord;
   const t = useTranslations('sessions.form');
   const e = useTranslations('sessions.form.errors');
   const common = useTranslations('common');
@@ -173,13 +204,18 @@ function NewSessionPanel({
   const [apiErrors, setApiErrors] = useState<{ date?: DateErrorKey; start?: StartErrorKey }>({});
   const [formError, setFormError] = useState<'noPermission' | 'notSaved' | null>(null);
   const [pending, setPending] = useState(false);
+  // PS-07: the sessions the trainer already has then; *Terug* closes it and keeps the form.
+  const [doubleBooking, setDoubleBooking] = useState<DoubleBooking | null>(null);
   const [discarding, setDiscarding] = useState(false);
   const timeZone = loaded.status === 'ready' ? loaded.context.timeZone : 'Europe/Amsterdam';
   const { day, time } = useSessionFormat(timeZone);
 
   useEffect(() => {
     let current = true;
-    void loadPlanningContext(workspaceId, { forAnyTrainer, email }).then((result) => {
+    // Another workspace has its own clients, location and time zone.
+    setLoaded({ status: 'loading' });
+    setClient(null);
+    void loadPlanningContext(workspaceId, { forAnyTrainer, teamMemberId }).then((result) => {
       if (!current) return;
       if (!result.ok) {
         if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
@@ -191,7 +227,7 @@ function NewSessionPanel({
     return () => {
       current = false;
     };
-  }, [workspaceId, forAnyTrainer, email]);
+  }, [workspaceId, forAnyTrainer, teamMemberId]);
 
   const preview = previewTimes({ ...when, timeZone, now: new Date() });
   const dirty =
@@ -230,18 +266,24 @@ function NewSessionPanel({
     setFormError(null);
     setApiErrors({});
     if (!client || missing.trainer || missing.when || preview.status !== 'placed') return;
+    await save(client, loaded.context, false);
+  }
+
+  /** Plans the session; `allowConflicts` is *Toch opslaan* of PS-07, the same request sent again. */
+  async function save(planFor: Client, context: PlanningContext, allowConflicts: boolean) {
     setPending(true);
     const result = await planPrivateSession(workspaceId, {
-      clientId: client.id,
+      clientId: planFor.id,
       ...(forAnyTrainer ? { trainerId } : {}),
       ...when,
       notify,
+      ...(allowConflicts ? { allowConflicts } : {}),
     });
     if (result.ok) {
       router.refresh();
       return planned({
         message: t('saved', {
-          client: client.name,
+          client: planFor.name,
           date: day(result.session.startsAt),
           time: time(result.session.startsAt),
         }),
@@ -249,7 +291,18 @@ function NewSessionPanel({
       });
     }
     setPending(false);
+    setDoubleBooking(null);
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
+    if (result.reason === 'trainerConflict') {
+      // A trainer who plans for themself, or for the Owner's own profile, hears "Je hebt dan al iets".
+      const trainer = forAnyTrainer
+        ? context.trainers.find(({ id }) => id === trainerId)
+        : undefined;
+      return setDoubleBooking({
+        conflicts: result.conflicts,
+        trainerName: trainer && trainer.id !== context.myTrainerId ? trainer.name : null,
+      });
+    }
     if (result.reason === 'fields') {
       return setApiErrors({ date: result.date, start: result.start });
     }
@@ -298,6 +351,34 @@ function NewSessionPanel({
               <DialogDescription id="new-session-description">{t('description')}</DialogDescription>
             </DialogHeader>
             <div className="grid content-start gap-5 overflow-y-auto py-1 pr-1">
+              {workspaces ? (
+                workspaces.length > 1 ? (
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="new-session-workspace">{t('workspaceLabel')}</Label>
+                    <NativeSelect
+                      id="new-session-workspace"
+                      name="workspaceId"
+                      value={workspaceId}
+                      className="w-full"
+                      onChange={(event) => setChosenId(event.target.value)}
+                    >
+                      {workspaces.map((workspace) => (
+                        <NativeSelectOption
+                          key={workspace.workspaceId}
+                          value={workspace.workspaceId}
+                        >
+                          {workspace.name}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                ) : (
+                  <div className="grid gap-1.5">
+                    <span className="text-sm leading-none font-medium">{t('workspaceLabel')}</span>
+                    <p className="text-sm">{workspaces[0]?.name}</p>
+                  </div>
+                )
+              ) : null}
               {loaded.status === 'loading' ? (
                 <p className="text-sm text-muted-foreground">{common('loading')}</p>
               ) : loaded.status === 'failed' ? (
@@ -305,6 +386,7 @@ function NewSessionPanel({
               ) : (
                 <>
                   <ClientPicker
+                    key={workspaceId}
                     workspaceId={workspaceId}
                     defaultLocale={loaded.context.defaultLocale}
                     canAdd={canAddClients}
@@ -401,6 +483,15 @@ function NewSessionPanel({
           </form>
         </DialogContent>
       </Dialog>
+      <DoubleBookingDialog
+        doubleBooking={doubleBooking}
+        timeZone={timeZone}
+        pending={pending}
+        onBack={() => setDoubleBooking(null)}
+        onSaveAnyway={() => {
+          if (client && loaded.status === 'ready') void save(client, loaded.context, true);
+        }}
+      />
       <AlertDialog open={discarding} onOpenChange={setDiscarding}>
         <AlertDialogContent>
           <AlertDialogHeader>

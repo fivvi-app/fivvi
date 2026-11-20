@@ -22,6 +22,7 @@ export function SessionView({
   client,
   defaultLocale,
   canMove,
+  teamMemberId,
   trainerWord,
 }: {
   workspaceId: string;
@@ -32,11 +33,17 @@ export function SessionView({
   defaultLocale: Locale;
   /** The person has `session.private.manage.own` or `.any`. */
   canMove: boolean;
+  /**
+   * The signed-in person's own team-member ID in the workspace. The trainer row reads *Jij* when
+   * it is the session's trainer's ID, and PS-07 words the warning for themself; never by name.
+   */
+  teamMemberId: string;
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('sessions.page');
   const { longDay, time } = useSessionFormat(session.timeZone);
   const cancelled = session.status === 'cancelled';
+  const ownSession = session.trainer?.id === teamMemberId;
   return (
     <main className="flex-1 px-6 pt-5 pb-10">
       <div className="grid max-w-275 content-start gap-4">
@@ -58,7 +65,13 @@ export function SessionView({
               <dt className="text-muted-foreground">{t('whereLabel')}</dt>
               <dd>{session.location.name}</dd>
               <dt className="text-muted-foreground">{t('trainerLabel', { ...trainerWord })}</dt>
-              <dd>{session.trainer ? session.trainer.name : t('noTrainer', { ...trainerWord })}</dd>
+              <dd>
+                {session.trainer
+                  ? ownSession
+                    ? t('you')
+                    : session.trainer.name
+                  : t('noTrainer', { ...trainerWord })}
+              </dd>
               <dt className="text-muted-foreground">{t('clientLabel')}</dt>
               <dd>
                 <Link
@@ -78,6 +91,7 @@ export function SessionView({
               session={session}
               client={client}
               defaultLocale={defaultLocale}
+              ownSession={ownSession}
             />
           ) : null}
           <Button asChild variant="outline">

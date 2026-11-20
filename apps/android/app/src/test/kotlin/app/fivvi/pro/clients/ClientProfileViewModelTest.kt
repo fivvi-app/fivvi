@@ -1,12 +1,20 @@
 package app.fivvi.pro.clients
 
 import app.fivvi.api.models.Client
+import app.fivvi.api.models.SessionTrainer
+import app.fivvi.api.models.UpcomingSession
+import app.fivvi.api.models.UpcomingSessions
 import app.fivvi.api.models.UpdateClientRequest
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.core.quarantine.Permission
+import app.fivvi.pro.sessions.FakeSessionsApi
+import app.fivvi.pro.sessions.sessionIdOf
+import app.fivvi.pro.sessions.trainerOf
 import java.io.IOException
+import java.time.OffsetDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -319,5 +327,101 @@ class ClientProfileViewModelTest {
         viewModel.refresh()
 
         assertEquals(anna, viewModel.loaded().client)
+    }
+
+    // AC9: the profile lists the client's next sessions under Komende sessies, in the order the API gives them.
+    @Test
+    fun test_F020_AC9_theProfileReadsTheNextSessionsAndListsThemInTheApisOrder() {
+        val sessions = FakeSessionsApi()
+        val sarah = trainerOf("Sarah")
+        val list = listOf(
+            UpcomingSession(
+                sessionIdOf("one"),
+                OffsetDateTime.parse("2026-09-24T07:00:00Z"),
+                OffsetDateTime.parse("2026-09-24T08:00:00Z"),
+                SessionTrainer(sarah.id, sarah.name),
+            ),
+            UpcomingSession(
+                sessionIdOf("two"),
+                OffsetDateTime.parse("2026-09-26T07:00:00Z"),
+                OffsetDateTime.parse("2026-09-26T08:00:00Z"),
+                null,
+            ),
+            UpcomingSession(
+                sessionIdOf("three"),
+                OffsetDateTime.parse("2026-10-01T07:00:00Z"),
+                OffsetDateTime.parse("2026-10-01T08:00:00Z"),
+                SessionTrainer(sarah.id, sarah.name),
+            ),
+        )
+        sessions.upcoming[anna.id] = UpcomingSessions(anna.id, "Europe/Amsterdam", list)
+
+        val viewModel = ClientProfileViewModel(api, workspace, anna.id, sessionsApi = sessions)
+
+        assertEquals(list.map { it.id }, viewModel.upcoming.value?.sessions?.map { it.id })
+        assertEquals(listOf(anna.id), sessions.upcomingRead)
+    }
+
+    @Test
+    fun test_F020_AC9_aClientWithoutSessionsHasAnEmptyListNotNoAnswer() {
+        val sessions = FakeSessionsApi()
+
+        val viewModel = ClientProfileViewModel(api, workspace, anna.id, sessionsApi = sessions)
+
+        assertEquals(emptyList<UpcomingSession>(), viewModel.upcoming.value?.sessions)
+    }
+
+    @Test
+    fun test_F020_AC9_aReadOfTheSessionsThatFailsLeavesTheOverviewAndNothingElse() {
+        val sessions = FakeSessionsApi().apply { failure = IOException("offline") }
+
+        val viewModel = ClientProfileViewModel(api, workspace, anna.id, sessionsApi = sessions)
+
+        assertNull(viewModel.upcoming.value)
+        assertEquals(anna, viewModel.loaded().client)
+    }
+
+    @Test
+    fun test_F020_AC9_aRefusedReadOfTheSessionsShowsNothingAndKeepsTheOverview() {
+        val sessions = FakeSessionsApi().apply { upcomingStatus = 403 }
+
+        val viewModel = ClientProfileViewModel(api, workspace, anna.id, sessionsApi = sessions)
+
+        assertNull(viewModel.upcoming.value)
+        assertEquals(anna, viewModel.loaded().client)
+    }
+
+    @Test
+    fun test_F020_AC9_theSessionsAreReadAgainWhenTheProfileIsShownAgain() {
+        val sessions = FakeSessionsApi()
+        val viewModel = ClientProfileViewModel(api, workspace, anna.id, sessionsApi = sessions)
+        assertEquals(emptyList<UpcomingSession>(), viewModel.upcoming.value?.sessions)
+        val one =
+            UpcomingSession(
+                sessionIdOf("one"),
+                OffsetDateTime.parse("2026-09-24T07:00:00Z"),
+                OffsetDateTime.parse("2026-09-24T08:00:00Z"),
+                null,
+            )
+        sessions.upcoming[anna.id] = UpcomingSessions(anna.id, "Europe/Amsterdam", listOf(one))
+
+        viewModel.refresh()
+
+        assertEquals(listOf(one.id), viewModel.upcoming.value?.sessions?.map { it.id })
+    }
+
+    @Test
+    fun test_F020_AC9_theSessionsAreNotReadTwiceWhileTheProfileIsStillLoading() {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        val sessions = FakeSessionsApi()
+        val viewModel = ClientProfileViewModel(api, workspace, anna.id, sessionsApi = sessions)
+
+        // The first opening asks for the sessions at once, while the client is still being read.
+        viewModel.refreshUpcoming()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(anna.id), sessions.upcomingRead)
+        assertEquals(emptyList<UpcomingSession>(), viewModel.upcoming.value?.sessions)
     }
 }

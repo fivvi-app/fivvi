@@ -40,6 +40,9 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [030](ADR-030-public-website.md) | The public website lives in `apps/web` at fivvi.app, rendered per request, the same for every visitor | Proposed |
 | [031](ADR-031-move-pink-is-the-only-accent.md) | Move pink is the only accent; drops the black-and-white alternative of ADR-029 | Accepted |
 | [032](ADR-032-secondary-text-in-the-native-apps.md) | Secondary text in the native apps: the one exception to ADR-029's contrast rule | Accepted |
+| [033](ADR-033-go-live-mode.md) | Go-live mode: duo sessions and the single class pass after go-live; one PR per platform slice; the tests run once; backend and web builds off the Mac (conditional on a spike, #1426, closed as not planned on 20 November 2026: does not take effect); review by risk and CI agent-queueable until pilot setup; amends ADR-016, ADR-018, ADR-023, ADR-024 and ADR-025; itself amended by ADR-034 and ADR-035 | Accepted |
+| [034](ADR-034-fast-pipeline.md) | Fast pipeline: UI tests nightly instead of on every PR, lighter CI, review split into standards per PR and spec per slice; one switch (`.github/pipeline.json`) back to the full setup; amends ADR-016, ADR-018, ADR-024 and ADR-033 while it says `fast` and `split` | Accepted |
+| [035](ADR-035-lean-pipeline.md) | Lean pipeline: one ticket at a time (`builders: 1`), integration tests in the nightly run instead of on every PR (`ci: lean`); extends the switch of ADR-034; back to `fast` before pilot setup | Accepted |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 

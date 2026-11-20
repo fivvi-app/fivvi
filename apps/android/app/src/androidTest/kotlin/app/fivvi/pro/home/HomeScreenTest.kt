@@ -1,12 +1,17 @@
 package app.fivvi.pro.home
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import app.fivvi.api.models.MeResponse
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
@@ -18,8 +23,6 @@ import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.core.signin.SignInTags
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.hello.FakeHelloApi
-import app.fivvi.pro.hello.HelloTags
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
@@ -42,13 +45,11 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
     @get:Rule
     val app = AppRule()
 
-    private val hello = FakeHelloApi().apply { answerGreeting() }
     private val me = FakeMeApi()
     private val signIn = FakeSignInApi()
     private val store = InMemorySessionStore("token-1")
 
     private fun launch() = app.launch(
-        hello,
         device = listOf(language.tag),
         signInApi = signIn,
         meApi = me,
@@ -65,7 +66,6 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         me.answerAccount("owner@example.com")
         launch()
 
-        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(localizedString(language, R.string.hello_title))
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
             .assertTextEquals(localizedString(language, R.string.home_signed_in_as, "owner@example.com"))
         assertEquals(1, me.calls)
@@ -126,12 +126,32 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
 
         compose.onNodeWithTag(HomeTags.ERROR)
             .assertTextEquals(localizedString(language, R.string.sign_in_errors_generic))
-        // The hello block stays while /me has failed.
-        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(localizedString(language, R.string.hello_title))
-        compose.onNodeWithTag(HomeTags.RETRY).performClick()
+        compose.onNodeWithTag(HomeTags.RETRY)
+            .assertTextEquals(localizedString(language, R.string.common_retry))
+            .assertHasClickAction()
+            .performClick()
 
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
             .assertTextEquals(localizedString(language, R.string.home_signed_in_as, "owner@example.com"))
+    }
+
+    // The Hello screen's loading and heading proofs (E008 AC5 and AC7), on the home that replaced it (E020, #652).
+    @Test
+    fun E008_AC5_loadingIndicatorHasLabel() {
+        val never = CompletableDeferred<Response<MeResponse>>()
+        me.answers += { never.await() }
+        launch()
+
+        compose.onNodeWithTag(HomeTags.LOADING).assertContentDescriptionEquals(string(R.string.common_loading))
+    }
+
+    @Test
+    fun E008_AC7_workspaceNameIsHeading() {
+        me.answerAccount(workspaces = listOf("John's Gym"))
+        launch()
+
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME)
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
     }
 
     @Test
@@ -139,7 +159,7 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         // What the auth layer does on a 401 (AuthInterceptorTest); the screen follows the session.
         me.answerAccount()
         val session = Session(store)
-        app.launch(hello, device = listOf(language.tag), meApi = me, session = session)
+        app.launch(device = listOf(language.tag), meApi = me, session = session)
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS).assertIsDisplayed()
 
         session.expire("token-1")
@@ -155,7 +175,7 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         val network = FakeNetwork(status = 401)
         val session = Session(store)
         val services = ApiServices("https://example.com/api/", session, network)
-        app.launch(hello, device = listOf(language.tag), meApi = services.meApi, session = session)
+        app.launch(device = listOf(language.tag), meApi = services.meApi, session = session)
 
         waitForSignIn()
 
@@ -187,7 +207,6 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         val session = Session(store)
         val services = ApiServices("https://example.com/api/", session, network)
         app.launch(
-            hello,
             device = listOf(language.tag),
             meApi = me,
             session = session,

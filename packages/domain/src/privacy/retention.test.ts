@@ -4,6 +4,7 @@ import {
   RETENTION,
   RETENTION_BASIS,
   type RetentionKey,
+  retentionCutoff,
   retentionEndsAt,
 } from './retention.ts';
 
@@ -145,5 +146,58 @@ describe('E014 AC2: every retention period is a named constant', () => {
     expect(
       retentionEndsAt(at('2026-12-31T23:30:00.000Z'), RETENTION.INVOICE, 'UTC').toISOString(),
     ).toBe('2034-01-01T00:00:00.000Z');
+  });
+});
+
+describe('E014 AC17: the cutoff of a period', () => {
+  /** The cutoff is the latest start that is over: it is over at the cutoff, not 1 ms after it. */
+  function expectCutoff(key: RetentionKey, now: Date, cutoff: Date, timeZone?: string) {
+    const period = RETENTION[key];
+    expect(retentionCutoff(now, period, timeZone).toISOString()).toBe(cutoff.toISOString());
+    expect(isRetentionOver(cutoff, period, now, timeZone)).toBe(true);
+    expect(isRetentionOver(new Date(cutoff.getTime() + 1), period, now, timeZone)).toBe(false);
+  }
+
+  it('is 24 hours back for hours, also across a change of the clocks', () => {
+    // 25 October 2026 is the day Amsterdam goes back to winter time: 24 hours are still 24 hours.
+    expectCutoff(
+      'SIGN_IN_TOKEN_AFTER_EXPIRY',
+      at('2026-10-25T03:00:00.000Z'),
+      at('2026-10-24T03:00:00.000Z'),
+    );
+    expectCutoff('RATE_LIMIT', at('2026-03-29T03:00:00.000Z'), at('2026-03-28T03:00:00.000Z'));
+  });
+
+  it('is 30 days back for days, across both changes of the clocks', () => {
+    expectCutoff('DELETION_LOG', at('2026-11-09T03:00:00.000Z'), at('2026-10-10T03:00:00.000Z'));
+    expectCutoff(
+      'TRAINER_INVITATION_AFTER_CLOSING',
+      at('2026-04-09T03:00:00.000Z'),
+      at('2026-03-10T03:00:00.000Z'),
+    );
+  });
+
+  it('is exact for months, also at the end of a short month', () => {
+    expectCutoff('ACCESS_LOG', at('2026-11-14T03:00:00.000Z'), at('2025-11-14T03:00:00.000Z'));
+    expectCutoff('ACCESS_LOG', at('2026-03-31T10:00:00.000Z'), at('2025-03-31T10:00:00.000Z'));
+    expectCutoff('ACCESS_LOG', at('2026-02-28T08:00:00.000Z'), at('2025-02-28T08:00:00.000Z'));
+  });
+
+  it('is never early for months: a clamped day is kept one day longer, not deleted a day early', () => {
+    // 29 February 2024 ends on 28 February 2025 (the day is clamped), but the cutoff of that day is
+    // 28 February 2024: the row of 29 February is kept until 1 March, never deleted early.
+    const now = at('2025-02-28T08:00:00.000Z');
+    const cutoff = retentionCutoff(now, RETENTION.ACCESS_LOG);
+    expect(cutoff.toISOString()).toBe('2024-02-28T08:00:00.000Z');
+    expect(isRetentionOver(cutoff, RETENTION.ACCESS_LOG, now)).toBe(true);
+  });
+
+  it('is exact for years after the end of the year, in the zone of the workspace', () => {
+    expectCutoff(
+      'INVOICE',
+      at('2033-12-31T23:00:00.000Z'),
+      at('2026-12-31T22:59:59.999Z'),
+      'Europe/Amsterdam',
+    );
   });
 });

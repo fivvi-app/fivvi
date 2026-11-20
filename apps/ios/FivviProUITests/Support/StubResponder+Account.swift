@@ -23,12 +23,18 @@ extension Responder {
 
     static func workspaceID(_ index: Int) -> String { "7c1d2e3f-0000-4000-8000-00000000000\(index)" }
 
+    /// The person's own team-member ID in a workspace: in the first it is the trainer the session stubs call the signed-in
+    /// person (`StubSessionRoutes.myMemberID`), in the others a member of their own.
+    static func teamMemberID(_ index: Int) -> String {
+        index == 0 ? StubSessionRoutes.myMemberID : "5b1c2d3e-0000-4000-8000-0000000000b\(index)"
+    }
+
     /// `GET /api/v1/me/workspaces`: the list.
     var teamWorkspaces: [[String: Any]] {
         teamWorkspaceEntries.map {
             [
                 "workspaceId": Self.workspaceID($0.index), "name": $0.workspace.name, "slug": "workspace-\($0.index)",
-                "trainerWord": "trainer",
+                "trainerWord": "trainer", "teamMemberId": Self.teamMemberID($0.index),
                 "role": $0.workspace.role, "capabilities": capabilities(ofWorkspace: $0.index, role: $0.workspace.role),
                 // F005: a Trainer always trains; an Owner trains once the switch was put on
                 "trainsHere": trainsOverride(at: $0.index) ?? ($0.workspace.role != "owner")
@@ -46,9 +52,10 @@ extension Responder {
         role == "owner"
             ? ["workspace.manage", "team.view", "team.manage", "trainers.view", "clients.view", "clients.manage",
                "location.read", "settings.manage", "team.invite", "session.private.manage.own",
-               "session.private.manage.any", "class.manage", "class.read", "join_link.view", "join_link.renew"]
+               "session.private.manage.any", "class.manage", "class.read", "join_link.view", "join_link.renew",
+               "booking_link.manage", "booking_link.copy"]
             : ["trainers.view", "clients.view", "clients.manage", "location.read", "session.private.manage.own",
-               "class.read", "join_link.view"]
+               "class.read", "join_link.view", "booking_link.copy"]
     }
 
     /// `GET /api/v1/me`'s answer for the one account.
@@ -62,6 +69,7 @@ extension Responder {
             "workspaces": teamWorkspaces.map { entry in
                 ["id": entry["workspaceId"] as Any, "name": entry["name"] as Any, "slug": entry["slug"] as Any,
                  "trainerWord": entry["trainerWord"] as Any, "role": entry["role"] as Any,
+                 "teamMemberId": entry["teamMemberId"] as Any,
                  "capabilities": entry["capabilities"] as Any]
             },
             "clientWorkspaces": [Any]()
@@ -76,7 +84,7 @@ extension Responder {
     }
 
     static func isWorkspaceRoute(_ path: String) -> Bool {
-        path.hasPrefix("/api/v1/workspaces/") && !path.contains("/clients")
+        path.hasPrefix("/api/v1/workspaces/") && path.split(separator: "/").count == 4
     }
 
     /// `GET /api/v1/me`, `PATCH /api/v1/me`, `GET /api/v1/me/workspaces`, `GET /api/v1/workspaces/{id}` and the trainer
@@ -181,11 +189,15 @@ extension Responder {
     }
 
     func respondToMe(_ connection: NWConnection, authorization: String?) {
-        if let status = signIn.meStatus {
-            send(connection, status: status, json: nil)
-            return
+        nonisolated(unsafe) let account = account  // read once, by the one closure that answers
+        let answer: @Sendable () -> Void = { [self] in
+            if let status = signIn.meStatus {
+                send(connection, status: status, json: nil)
+                return
+            }
+            let works = authorization == "Bearer \(signIn.token)"
+            send(connection, status: works ? 200 : 401, json: works ? account : Self.notSignedIn)
         }
-        let works = authorization == "Bearer \(signIn.token)"
-        send(connection, status: works ? 200 : 401, json: works ? account : Self.notSignedIn)
+        if !holdAccountRead(answer) { answer() }
     }
 }

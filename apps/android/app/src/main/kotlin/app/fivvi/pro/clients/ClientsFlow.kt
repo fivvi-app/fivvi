@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.apis.ClientsApi
+import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.core.R
@@ -47,10 +48,24 @@ fun ClientsFlow(
     workspaceName: String,
     sessionKey: String,
     onClose: () -> Unit,
+    sessionsApi: SessionsApi? = null,
+    onOpenSession: (UUID) -> Unit = {},
+    openClient: UUID? = null,
 ) {
     // A new composition per workspace, so the screen kept across a rotation is the list again after a switch.
     key(workspaceId) {
-        ClientsFlowContent(clientsApi, workspacesApi, capabilities, workspaceId, workspaceName, sessionKey, onClose)
+        ClientsFlowContent(
+            clientsApi,
+            workspacesApi,
+            capabilities,
+            workspaceId,
+            workspaceName,
+            sessionKey,
+            onClose,
+            sessionsApi,
+            onOpenSession,
+            openClient,
+        )
     }
 }
 
@@ -63,9 +78,14 @@ private fun ClientsFlowContent(
     workspaceName: String,
     sessionKey: String,
     onClose: () -> Unit,
+    sessionsApi: SessionsApi?,
+    onOpenSession: (UUID) -> Unit,
+    openClient: UUID?,
 ) {
-    var screen by rememberSaveable { mutableStateOf(Screen.LIST) }
-    var profileId by rememberSaveable { mutableStateOf<String?>(null) }
+    // [openClient] opens that client's profile at once (from a session's screen); back then leaves the flow, as there is
+    // no list behind it.
+    var screen by rememberSaveable { mutableStateOf(if (openClient != null) Screen.PROFILE else Screen.LIST) }
+    var profileId by rememberSaveable { mutableStateOf(openClient?.toString()) }
     var justAdded by rememberSaveable { mutableStateOf<String?>(null) }
     // Each opening of the form or a profile gets a new view model, so a form starts empty. The counter restarts with
     // every composition of the flow (a workspace switch, closing Klanten), so [visit], which is new each time and
@@ -74,17 +94,11 @@ private fun ClientsFlowContent(
     var openings by rememberSaveable { mutableIntStateOf(0) }
     val snapshot by capabilities.capabilities.collectAsStateWithLifecycle()
     val mayManage = snapshot.mayShow(workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE)
-    val list = viewModel(key = "clients-$sessionKey-$workspaceId") {
-        ClientsViewModel(
-            clientsApi,
-            workspacesApi,
-            workspaceId,
-            onNotAllowed = { capabilities.onResponse(it, workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW) },
-        )
-    }
+    val list = clientsViewModel(clientsApi, workspacesApi, capabilities, workspaceId, sessionKey)
     val workspace by list.workspace.collectAsStateWithLifecycle()
 
     fun showList() {
+        if (openClient != null) return onClose()
         screen = Screen.LIST
         profileId = null
         list.refresh()
@@ -147,9 +161,11 @@ private fun ClientsFlowContent(
                     onSaveNotAllowed = {
                         capabilities.onResponse(it, workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE)
                     },
+                    sessionsApi = sessionsApi,
                 )
             }
             val state by profile.state.collectAsStateWithLifecycle()
+            val upcoming by profile.upcoming.collectAsStateWithLifecycle()
             val edit = (state as? ClientProfileState.Loaded)?.edit
             val editing = edit != null
             // The API refused the save (403, 404): the action is hidden now, so the edit closes, as the form does.
@@ -157,6 +173,8 @@ private fun ClientsFlowContent(
             BackHandler { if (editing) profile.cancelEdit() else showList() }
             // On foreground the client is read again: a change made elsewhere shows (AC7).
             OnForeground(profile::refresh)
+            // Back from a session that may have moved (F020 AC9): the sessions are read again.
+            LaunchedEffect(Unit) { profile.refreshUpcoming() }
             ClientProfileScreen(
                 state,
                 workspace.defaultLocale,
@@ -181,7 +199,9 @@ private fun ClientsFlowContent(
                         onUseAnotherEmail = profile::useAnotherEmail,
                         onDone = profile::save,
                     ),
+                    onOpenSession = onOpenSession,
                 ),
+                upcoming,
             )
         }
 
@@ -215,6 +235,26 @@ private fun ClientsFlowContent(
             )
         }
     }
+}
+
+/**
+ * The list of the workspace's clients of one sign-in. *Klanten* and the client list of the new private session (F020)
+ * ask for it with the same key, so they read and search the same list.
+ */
+@Composable
+internal fun clientsViewModel(
+    clientsApi: ClientsApi,
+    workspacesApi: WorkspacesApi,
+    capabilities: WorkspaceCapabilities,
+    workspaceId: UUID,
+    sessionKey: String,
+): ClientsViewModel = viewModel(key = "clients-$sessionKey-$workspaceId") {
+    ClientsViewModel(
+        clientsApi,
+        workspacesApi,
+        workspaceId,
+        onNotAllowed = { capabilities.onResponse(it, workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW) },
+    )
 }
 
 // Runs [action] each time the app comes back to the foreground, not at the start that composing this already covers.

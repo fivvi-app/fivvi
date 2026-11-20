@@ -2,26 +2,36 @@ import { eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
 import {
   locations,
+  offerVersions,
   organizations,
   paymentRefundStatusChanges,
   paymentRefunds,
   paymentStatusChanges,
   payments,
+  payoutStatusChanges,
+  payouts,
   sessionParticipants,
   trainerProfiles,
 } from '../schema/index.ts';
 import {
   addAccessLogEntry,
+  addBookingLink,
+  addClassSeries,
   addClient,
+  addClientBillingDetails,
   addGroupClass,
+  addOffer,
   addPayment,
   addPaymentChargeback,
   addPaymentCustomer,
   addPaymentRefund,
+  addPayout,
+  addPayoutLine,
   addSession,
   addTeamRole,
   addTrainerInvitation,
   addTrainerProfile,
+  addWorkspaceInvoiceDetails,
   createAccount,
   uniqueMarker,
 } from './factories.ts';
@@ -113,6 +123,53 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
   group_classes: {
     scopeColumn: 'organization_id',
     create: (db, workspaceId) => addGroupClass(db, { workspaceId }),
+  },
+  // The standing link of all bookings, made by the system.
+  booking_links: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addBookingLink(db, { workspaceId }),
+  },
+  // An owner-made offer with its first version (the version is its own row, covered by `offer_versions`).
+  offers: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addOffer(db, { workspaceId }),
+  },
+  // The second version of an offer made for the workspace (the offer's current one stays the first).
+  offer_versions: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const offer = await addOffer(db, { workspaceId });
+      const [row] = await db
+        .insert(offerVersions)
+        .values({
+          organizationId: workspaceId,
+          offerId: offer.id,
+          version: 2,
+          nameNl: uniqueMarker('abonnement'),
+          cutoffMinutes: 720,
+        })
+        .returning({ id: offerVersions.id });
+      if (!row) throw new Error('offer version was not created.');
+      return row;
+    },
+  },
+  // The seller's invoice details of the workspace (F059): one row per workspace.
+  workspace_invoice_details: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addWorkspaceInvoiceDetails(db, { workspaceId }),
+  },
+  // The billing details of a client of the workspace (F059): one row per client.
+  client_billing_details: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const client = await addClient(db, { workspaceId });
+      return addClientBillingDetails(db, { workspaceId, clientId: client.id });
+    },
+  },
+  // A weekly series of a class made for the workspace (its dates are `sessions` rows).
+  class_series: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addClassSeries(db, { workspaceId }),
   },
   // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
   sessions: {
@@ -250,5 +307,48 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
   payment_chargebacks: {
     scopeColumn: 'organization_id',
     create: (db, workspaceId) => addPaymentChargeback(db, { workspaceId }),
+  },
+  // A payout of the workspace (its first status line is its own row).
+  payouts: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addPayout(db, { workspaceId }),
+  },
+  // A status line of a payout made for the workspace: the line of a payout other than the one
+  // `addPayout` gave its first line, so each factory call adds exactly one row.
+  payout_status_changes: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const [payout] = await db
+        .insert(payouts)
+        .values({
+          organizationId: workspaceId,
+          providerSettlementId: uniqueMarker('stl'),
+          reference: null,
+          settledAt: null,
+          amountCents: 39248,
+          status: 'open',
+          fetchedAt: new Date(),
+        })
+        .returning({ id: payouts.id });
+      if (!payout) throw new Error('payout was not created.');
+      const [row] = await db
+        .insert(payoutStatusChanges)
+        .values({
+          organizationId: workspaceId,
+          payoutId: payout.id,
+          fromStatus: null,
+          toStatus: 'open',
+          occurredAt: new Date(),
+          source: 'job',
+        })
+        .returning({ id: payoutStatusChanges.id });
+      if (!row) throw new Error('payout status change was not created.');
+      return row;
+    },
+  },
+  // A line of a payout made for the workspace.
+  payout_lines: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addPayoutLine(db, { workspaceId }),
   },
 };

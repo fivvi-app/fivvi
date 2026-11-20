@@ -37,6 +37,7 @@ import kotlinx.serialization.Contextual
  * @param slug The URL name: `/w/{slug}` on the web.
  * @param trainerWord 
  * @param role What the account is on the team; shown as a label, never decided on.
+ * @param teamMemberId The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
  * @param capabilities What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
  * @param trainsHere Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
  */
@@ -63,6 +64,10 @@ data class MyWorkspace (
     @SerialName(value = "role")
     val role: MyWorkspace.Role,
 
+    /* The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email. */
+    @Contextual @SerialName(value = "teamMemberId")
+    val teamMemberId: java.util.UUID,
+
     /* What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
     @SerialName(value = "capabilities")
     val capabilities: kotlin.collections.List<MyWorkspace.Capabilities>,
@@ -86,7 +91,7 @@ data class MyWorkspace (
     /**
      * What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
      *
-     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE,LOCATION_PERIOD_READ,SETTINGS_PERIOD_MANAGE,TEAM_PERIOD_INVITE,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY,CLASS_PERIOD_MANAGE,CLASS_PERIOD_READ,JOIN_LINK_PERIOD_VIEW,JOIN_LINK_PERIOD_RENEW,ACCESS_LOG_PERIOD_READ
+     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE,LOCATION_PERIOD_READ,SETTINGS_PERIOD_MANAGE,TEAM_PERIOD_INVITE,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY,CLASS_PERIOD_MANAGE,CLASS_PERIOD_READ,JOIN_LINK_PERIOD_VIEW,JOIN_LINK_PERIOD_RENEW,BOOKING_LINK_PERIOD_MANAGE,BOOKING_LINK_PERIOD_COPY,ACCESS_LOG_PERIOD_READ,INVOICES_PERIOD_MANAGE,COMMERCE_PERIOD_OFFERS_PERIOD_MANAGE
      */
     @Serializable
     enum class Capabilities(val value: kotlin.String) {
@@ -105,7 +110,11 @@ data class MyWorkspace (
         @SerialName(value = "class.read") CLASS_PERIOD_READ("class.read"),
         @SerialName(value = "join_link.view") JOIN_LINK_PERIOD_VIEW("join_link.view"),
         @SerialName(value = "join_link.renew") JOIN_LINK_PERIOD_RENEW("join_link.renew"),
-        @SerialName(value = "access_log.read") ACCESS_LOG_PERIOD_READ("access_log.read");
+        @SerialName(value = "booking_link.manage") BOOKING_LINK_PERIOD_MANAGE("booking_link.manage"),
+        @SerialName(value = "booking_link.copy") BOOKING_LINK_PERIOD_COPY("booking_link.copy"),
+        @SerialName(value = "access_log.read") ACCESS_LOG_PERIOD_READ("access_log.read"),
+        @SerialName(value = "invoices.manage") INVOICES_PERIOD_MANAGE("invoices.manage"),
+        @SerialName(value = "commerce.offers.manage") COMMERCE_PERIOD_OFFERS_PERIOD_MANAGE("commerce.offers.manage");
     }
 
 }

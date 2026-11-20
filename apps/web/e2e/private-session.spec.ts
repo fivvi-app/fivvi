@@ -209,7 +209,8 @@ test.describe('F020 private sessions on the web', () => {
     ).toBeVisible();
     const main = page.getByRole('main');
     await expect(main.getByText(GYM, { exact: true })).toBeVisible();
-    await expect(main.getByText('Sarah', { exact: true })).toBeVisible();
+    // The trainer row says who is looking: Sarah's own session reads "You", not her name.
+    await expect(main.getByText(copy.sessions.page.you, { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Anna de Vries' })).toHaveAttribute(
       'href',
       `/w/${slug}/clients/${anna.id}`,

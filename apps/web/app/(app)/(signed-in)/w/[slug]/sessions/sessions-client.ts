@@ -3,6 +3,8 @@ import type { Locale } from '@fivvi/i18n';
 
 export type Session = Schemas['Session'];
 export type Trainer = Schemas['Trainer'];
+/** One session of this workspace that the trainer already has at the time of a save (PS-07). */
+export type TrainerConflictItem = Schemas['TrainerConflictItem'];
 
 /** The `sessions.form.errors.*` keys that word a refused field of the date and start. */
 export type DateErrorKey = 'invalidDate';
@@ -16,10 +18,23 @@ export interface TimeInput {
   localStart: string;
   durationMinutes: number;
   notify: boolean;
+  /** *Toch opslaan* (PS-07): save although the trainer has something then. Left out, the API warns. */
+  allowConflicts?: boolean;
 }
+
+/**
+ * The API found sessions the trainer already has then (`409` `trainer_conflict`, F023 AC7) and stored
+ * nothing: the form asks PS-07 and may send the same request again with `allowConflicts`.
+ */
+export type TrainerConflictRefusal = {
+  ok: false;
+  reason: 'trainerConflict';
+  conflicts: TrainerConflictItem[];
+};
 
 /** The refusals both calls share. */
 type Refused =
+  | TrainerConflictRefusal
   /** The API refused the date or the start: the form words it under the field and keeps the input. */
   | { ok: false; reason: 'fields'; date?: DateErrorKey; start?: StartErrorKey }
   /** The person may not do this (any more), for example a Trainer moving a colleague's session. */
@@ -63,8 +78,10 @@ export async function planPrivateSession(
     notify: input.notify,
   };
   if (input.trainerId) body.trainerId = input.trainerId;
+  if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(`/api/v1/workspaces/${workspaceId}/sessions/private`, body, fetchFn);
   if ('failed' in answered) return answered.failed;
+  if (answered.status === 409) return trainerConflict(answered.body);
   if (answered.status !== 201) return refusal(answered.status, answered.body);
   const planned = answered.body as Schemas['PlannedPrivateSession'] | null;
   if (!planned?.session) return { ok: false, reason: 'generic' };
@@ -88,6 +105,7 @@ export async function reschedulePrivateSession(
     notify: input.notify,
     version: input.version,
   };
+  if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(
     `/api/v1/workspaces/${workspaceId}/sessions/${sessionId}/reschedule`,
     body,
@@ -100,7 +118,9 @@ export async function reschedulePrivateSession(
     return { ok: true, session: moved.session };
   }
   if (answered.status === 409) {
-    const conflict = answered.body as Schemas['SessionConflict'] | null;
+    const conflict = answered.body as Schemas['ReschedulePrivateSessionRefusal'] | null;
+    // `trainer_conflict` has no session: it is PS-07's warning, not a session changed meanwhile.
+    if (conflict?.code === 'trainer_conflict') return trainerConflict(conflict);
     if (!conflict?.session) return { ok: false, reason: 'generic' };
     return {
       ok: false,
@@ -111,6 +131,15 @@ export async function reschedulePrivateSession(
     };
   }
   return refusal(answered.status, answered.body);
+}
+
+/** The refusal of a `409` that lists the overlapping sessions; one that lists none is a generic failure. */
+export function trainerConflict(
+  body: unknown,
+): TrainerConflictRefusal | { ok: false; reason: 'generic' } {
+  const { code, conflicts } = (body ?? {}) as Partial<Schemas['TrainerConflict']>;
+  if (code !== 'trainer_conflict' || !conflicts?.length) return { ok: false, reason: 'generic' };
+  return { ok: false, reason: 'trainerConflict', conflicts };
 }
 
 async function send(
@@ -170,22 +199,20 @@ export type PlanningContextResult =
 /**
  * Reads what PS-01 shows around its fields: the time zone (`GET …/workspaces/{id}`), the default
  * location (`GET …/locations`) and, for a person who plans for any trainer, the trainers
- * (`GET …/trainers`) with their own place among them. That place is found by the email address on
- * `GET …/team-members`, so the field can default to *{name} (ik)*; the API gives no "me" on a
- * trainer.
+ * (`GET …/trainers`) with their own place among them: the trainer whose ID is the person's own
+ * team-member ID (`teamMemberId` of `GET /v1/me`), so the field can default to *{name} (ik)*.
  */
 export async function loadPlanningContext(
   workspaceId: string,
-  { forAnyTrainer, email }: { forAnyTrainer: boolean; email: string },
+  { forAnyTrainer, teamMemberId }: { forAnyTrainer: boolean; teamMemberId: string },
   fetchFn: typeof fetch = fetch,
 ): Promise<PlanningContextResult> {
   const base = `/api/v1/workspaces/${workspaceId}`;
   try {
-    const [workspace, locations, trainers, team] = await Promise.all([
+    const [workspace, locations, trainers] = await Promise.all([
       fetchFn(base),
       fetchFn(`${base}/locations`),
       forAnyTrainer ? fetchFn(`${base}/trainers`) : Promise.resolve(null),
-      forAnyTrainer ? fetchFn(`${base}/team-members`) : Promise.resolve(null),
     ]);
     const answers = [workspace, locations, trainers].filter((answer) => answer !== null);
     if (answers.some(({ status }) => [401, 403, 404].includes(status))) {
@@ -196,13 +223,8 @@ export async function loadPlanningContext(
     const places = (await locations.json()) as Schemas['Location'][];
     const location = places.find(({ isDefault }) => isDefault) ?? places[0];
     const trainerList = trainers ? ((await trainers.json()) as Trainer[]) : [];
-    // The team list is a courtesy for the default; without it the field starts empty.
-    const members =
-      team?.status === 200
-        ? ((await team.json()) as Schemas['TeamMember'][])
-        : ([] as Schemas['TeamMember'][]);
-    const mine = members.find((member) => member.email.toLowerCase() === email.toLowerCase());
-    const myTrainerId = trainerList.find(({ id }) => id === mine?.id)?.id ?? null;
+    // An Owner who does not train is among the team but not among the trainers.
+    const myTrainerId = trainerList.find(({ id }) => id === teamMemberId)?.id ?? null;
     if (!timeZone || !location) return { ok: false, reason: 'failed' };
     return {
       ok: true,

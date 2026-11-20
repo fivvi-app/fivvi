@@ -2,6 +2,7 @@ import type { Schemas } from '@fivvi/contract';
 import type { Locale } from '@fivvi/i18n';
 import { useTranslations } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
+import { type ClassesProps, ClassesProvider } from './classes/classes-provider';
 import { AddClientProvider } from './clients/add-client-dialog';
 import { NewMenu } from './new-menu';
 import { type NewSessionProps, NewSessionProvider } from './sessions/new-private-session';
@@ -21,8 +22,11 @@ import { WorkspaceSwitcher } from './workspace-switcher';
  * the language switch is below them (F010), and the sidebar footer shows the person's name as
  * entered (F005). With `clients.manage` (`quickAdd`) the top bar has **+ Nieuw** → *Klant*, which
  * opens the quick-add dialog (F006) that the list's *Klant toevoegen* opens as well; with a
- * session capability (`newSession`) it has *Privésessie* too, which opens PS-01 (F020). The rest of
- * the navigation comes with F013/F014.
+ * session capability (`newSession`) it has *Privésessie* too, which opens PS-01 (F020); with
+ * `class.manage` (`groupClasses`) it has *Groepsles*, which opens the scheduling of a class (F021),
+ * and the navigation has *Lessen* (TW-03). A person with a trainer profile (`personalPages`) has
+ * the group *Persoonlijk* above the workspace's, with *Mijn dag* and *Mijn agenda* (F013). The
+ * rest of the navigation comes with F014.
  */
 export function WorkspaceFrame({
   name,
@@ -34,6 +38,8 @@ export function WorkspaceFrame({
   personName,
   quickAdd,
   newSession,
+  groupClasses,
+  personalPages = false,
   children,
 }: {
   name: string;
@@ -51,12 +57,19 @@ export function WorkspaceFrame({
   quickAdd?: { workspaceId: string; defaultLocale: Locale };
   /** What PS-01 needs; given only to a person who may plan private sessions (F020). */
   newSession?: Omit<NewSessionProps, 'slug'>;
+  /** What the class dialogs need; given only to a person who manages classes (F021). */
+  groupClasses?: Omit<ClassesProps, 'slug'>;
+  /** The person has a trainer profile in some workspace: the sidebar has *Persoonlijk* (F013). */
+  personalPages?: boolean;
   children: ReactNode;
 }) {
   const t = useTranslations('workspaceNav');
   const items: NavItem[] = [];
   if (capabilities.includes('clients.view')) {
     items.push({ href: `/w/${slug}/clients`, label: t('clients'), icon: 'clients' });
+  }
+  if (capabilities.includes('class.manage')) {
+    items.push({ href: `/w/${slug}/classes`, label: t('classes'), icon: 'classes' });
   }
   if (capabilities.includes('team.view')) {
     items.push({ href: `/w/${slug}/trainers`, label: t('trainers'), icon: 'trainers' });
@@ -79,8 +92,17 @@ export function WorkspaceFrame({
       ],
     });
   }
+  const personal = personalPages
+    ? {
+        heading: t('personal'),
+        items: [
+          { href: '/me/day', label: t('myDay'), icon: 'day' },
+          { href: '/me/calendar', label: t('myCalendar'), icon: 'calendar' },
+        ] satisfies NavItem[],
+      }
+    : undefined;
   let content: ReactNode = children;
-  if (quickAdd || newSession) {
+  if (quickAdd || newSession || groupClasses) {
     content = (
       <>
         <div className="flex h-15 flex-none items-center justify-end border-b px-6">
@@ -101,6 +123,13 @@ export function WorkspaceFrame({
       </AddClientProvider>
     );
   }
+  if (groupClasses) {
+    content = (
+      <ClassesProvider {...groupClasses} slug={slug}>
+        {content}
+      </ClassesProvider>
+    );
+  }
   if (newSession) {
     content = (
       <NewSessionProvider {...newSession} slug={slug}>
@@ -118,7 +147,7 @@ export function WorkspaceFrame({
           workspaces={workspaces}
           canCreateWorkspace={canCreateWorkspace}
         />
-        <SidebarNav label={t('label')} items={items} />
+        <SidebarNav label={t('label')} items={items} heading={name} personal={personal} />
         <div className="mt-auto flex items-center gap-2.5 border-t px-2 pt-2.5">
           {personName ? (
             <>

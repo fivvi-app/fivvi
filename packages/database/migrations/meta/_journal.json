@@ -234,10 +234,66 @@
       "breakpoints": true
     },
     {
-      "idx": 33,
+      "idx": 34,
       "version": "7",
-      "when": 1794547055468,
-      "tag": "0033_duo_session_capacity",
+      "when": 1794658521825,
+      "tag": "0034_offers",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794671915123,
+      "tag": "0035_retention_cron_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794671915124,
+      "tag": "0036_class_series",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795028184329,
+      "tag": "0037_cron_class_series_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795040807838,
+      "tag": "0038_payouts",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795040807839,
+      "tag": "0039_workspace_invoice_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795040807840,
+      "tag": "0040_client_billing_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795040807841,
+      "tag": "0041_booking_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795040807842,
+      "tag": "0042_duo_session_capacity",
       "breakpoints": true
     }
   ]

@@ -19,7 +19,7 @@ P=5ac2d844-191a-4671-9632-50b66817f648
 The health check is public and returns no data, so anyone may run it. The production address is in [ENVIRONMENTS.md §1](ENVIRONMENTS.md#1-environments):
 
 ```bash
-curl -fsS https://web-production-d3fe2.up.railway.app/api/v1/health
+curl -fsS https://fivvi.app/api/v1/health
 ```
 
 ## 1. Incident response

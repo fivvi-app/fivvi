@@ -5,11 +5,15 @@
 #   pr.sh create [--title <t>] [--body-file <f|->] [--ready] [--full] [--no-check]
 #                                                 check, push, then open a draft PR (or update the open one, changing only
 #                                                 what you pass); a new PR's title defaults to the issue title, its body
-#                                                 gets "Closes #<issue>", or "Refs #<issue>" for a spec that closes through
+#                                                 gets "Closes #<issue>" (one for each ticket of a slice, flow.sh start
+#                                                 --slice, ADR-033; it warns, and still pushes, when the branch changes more
+#                                                 than about 1,500 lines), or "Refs #<issue>" for a spec that closes through
 #                                                 its tickets (labelled spec or with sub-issues, and not built as its
 #                                                 own ticket; flow.sh status says when it is complete); a body that
-#                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh, the checks the
-#                                                 change can affect (#293); --full runs check.sh --all, everything
+#                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh --fast, the checks
+#                                                 the change can affect without the integration and e2e tests, which run
+#                                                 in CI or in the nightly run, as .github/pipeline.json says (ci: fast,
+#                                                 lean; ADR-033, ADR-034, ADR-035); --full runs check.sh --all, everything
 #   pr.sh ready                                   mark the draft ready for review, only when for the head commit every
 #                                                 CI check passed (the merge gate's rule), the clean review is recorded
 #                                                 (pr.sh reviewed) and so is the smoke check (pr.sh smoke); else names
@@ -19,7 +23,7 @@
 #                                                 prints the step durations of the native jobs (iOS, Android) that ran
 #   pr.sh status                                  state, review, checks and open threads
 #   pr.sh wait [--timeout <minutes>]              wait for CI: exit 0 passed, 1 failed, 2 still running at the timeout
-#                                                 (default 20 minutes, 60 once an iOS or Android check exists)
+#                                                 (default 40 minutes, 165 once an iOS or Android check exists)
 #   pr.sh threads                                 open review threads with their ids
 #   pr.sh reply <thread-id> (--body <md>|--body-file <f|->) [--resolve]
 #   pr.sh smoke [--timeout <minutes>]             smoke-check the Railway preview and record the result for the PR's head
@@ -30,8 +34,26 @@
 #                                                 PR's own environment, <project>-pr-<n>. Without
 #                                                 the CLI, a preview whose status is success is only
 #                                                 health-checked; otherwise smoke fails with a hint
-#   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
-#                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
+#   pr.sh reviewed [--should-fix <n>] [--axes standards|both]
+#                                                 always pass --axes standards when the reviewer's verdict says
+#                                                 (standards), also with --should-fix; the default records both axes
+#                                                 record in the PR body that both reviewers (standards and spec) found
+#                                                 nothing to fix on the PR's head commit; local HEAD must be that commit.
+#                                                 --axes standards (ADR-034): the reviewer ran the standards axis only (and
+#                                                 the acceptance-criterion to test check), which counts only while
+#                                                 `pipeline.sh get review` says split and for a PR scripts/risk.sh calls
+#                                                 low; the record says "(standards only)"; otherwise it is refused. The
+#                                                 default, both, is the record of both axes
+#                                                 --should-fix <n>: the reviewer's last verdict is clean with n should-fix
+#                                                 findings left (review by risk, ADR-033 item 5, until pilot setup); only
+#                                                 for a PR scripts/risk.sh calls low, they go to the notes file as
+#                                                 follow-ups; a high-risk or owner-only PR is refused
+#   pr.sh refreshed                               after a refresh of a conflicting PR (#1274, work skill, Refresh) was
+#                                                 pushed: record `🔄 **Refreshed:** merged main at <sha>` in the PR body,
+#                                                 <sha> being origin/main, which must be merged into the branch (an
+#                                                 ancestor of HEAD) and HEAD the PR's head commit with nothing uncommitted;
+#                                                 a line is added, never replaced (scripts/usage.mjs counts them), and the
+#                                                 same line is not written twice
 #   pr.sh merge [<pr>] [--after <bug>]            add a low-risk or high-risk (agent-queueable) PR to the merge queue
 #                                                 (ADR-018, ADR-021), which squash-merges it after testing it on the
 #                                                 latest main, only when every condition of the merge gate holds
@@ -39,7 +61,12 @@
 #                                                 reasons; an owner-only PR is never queued; otherwise queue
 #                                                 nothing, record the refusal for the head commit in the PR body, print
 #                                                 why and exit 1: the PR stays for the owner. Never --auto or --admin;
-#                                                 the queued commit is recorded in the PR body. <pr> defaults to the
+#                                                 the queued commit is recorded in the PR body. With `merge: direct`
+#                                                 in .github/pipeline.json (ADR-035) there is no queue: after the same
+#                                                 gate it squash-merges the PR itself (--match-head-commit), says so
+#                                                 when GitHub refuses because the PR is behind main (then the Refresh
+#                                                 steps), warns when the setting and GitHub's queue disagree, and
+#                                                 refuses --after. <pr> defaults to the
 #                                                 open PR of the current branch. A commit the queue removed is refused,
 #                                                 except with --after <bug> (ADR-025): the same commit is queued once
 #                                                 more when <bug> blocks the PR's issue, was closed as completed after
@@ -68,9 +95,9 @@ SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
 REFUSAL_MARK="Merge gate"
 NO_PREVIEW="no preview for this PR"
-# Railway: the project (named fivvi), the web service of its preview, and the only environments pr.sh smoke may touch,
-# `<project>-pr-<n>` (preview_env). Railway names the commit status of the web preview `<project> - <service>`.
-RAILWAY_PROJECT_ID="5ac2d844-191a-4671-9632-50b66817f648"
+# Railway: the project (named fivvi; its id is RAILWAY_PROJECT_ID in _lib.sh), the web service of its preview, and the only
+# environments pr.sh smoke may touch, `<project>-pr-<n>` (preview_env). Railway names the commit status of the web preview
+# `<project> - <service>`.
 RAILWAY_PROJECT_NAME="fivvi"
 RAILWAY_SERVICE="web"
 # Railway's commit status for the web preview, and how its description starts when Railway skipped the deploy because
@@ -78,12 +105,14 @@ RAILWAY_SERVICE="web"
 PREVIEW_CHECK="$RAILWAY_PROJECT_NAME - $RAILWAY_SERVICE"
 PREVIEW_SKIPPED="No deployment needed"
 # How long wait waits for CI, in minutes. The native jobs get longer: a passing iOS run can take, by the timeouts in
-# ci.yml (the "iOS tests" comment), Detect changes 5 + iOS build 12 + iOS tests 38 + the gate job 2 = 57 min, and Android
-# the same by its own (5 + 20 + 30 + 2). When no runner takes the iOS build or a test pass (#1268), each is tried once
-# more and each try may wait 15 min for a runner: 142 min (the comment above ios-build-retry); 155 outlasts all, so wait
-# does not give up on a run that still passes.
-WAIT_MINUTES=20
-WAIT_MINUTES_NATIVE=155
+# ci.yml (the "iOS tests" comment), Detect changes 5 + iOS build 12 + iOS tests 44 + the gate job 2 = 63 min, and Android
+# the same by its own (5 + 20 + 30 + 2). A run with no native job ends with the longer Linux chain: Checks (Linux), 25 min
+# by its timeout (#1490: a full uncached run) and needing no other job, or, in a run with UI tests (ci: full,
+# workflow_dispatch, the nightly run), Detect changes 5 + E2E (Linux) 30 = 35 min; 40 outlasts both. When no runner takes the
+# iOS build or a test pass (#1268), each is tried once more and each try may wait 15 min for a runner: 154 min (the comment
+# above ios-build-retry); 165 outlasts all, so wait does not give up on a run that still passes.
+WAIT_MINUTES=40
+WAIT_MINUTES_NATIVE=165
 # The gates are the required checks iOS and Android; their parts (iOS build, iOS tests (nl), Android Maestro, ...) start with the
 # same word (#293).
 NATIVE_JOBS=(iOS Android)
@@ -96,11 +125,14 @@ current_pr() {
   echo "$pr"
 }
 
-# run_check [--all] [<why>]: scripts/check.sh for the change's affected set, or with --all for everything, announcing
-# which ran and why.
+# run_check [--all|--fast] [<why>]: scripts/check.sh for the change's affected set, with --fast without the integration
+# and e2e tests (run in CI or in the nightly run per .github/pipeline.json, ADR-033, ADR-034, ADR-035), or with --all for everything, announcing which ran and why.
 run_check() {
   local flag="" mode=affected
-  if [ "${1:-}" = --all ]; then flag=--all; mode=full; shift; fi
+  case "${1:-}" in
+    --all) flag=--all; mode=full; shift ;;
+    --fast) flag=--fast; mode=fast; shift ;;
+  esac
   echo "🔎 ${mode} checks${1:+: $1}"
   (cd "$(git rev-parse --show-toplevel)" && scripts/check.sh ${flag:+"$flag"}) || die "checks failed — fix them before opening or updating a PR"
 }
@@ -146,8 +178,26 @@ body_closes_issue() {
   grep -qiE "(^|[^[:alnum:]])(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+(${repo_re}#|https://github[.]com/${repo_re}/issues/|#)$1([^0-9]|$)"
 }
 
+# The lines the branch changes against the default branch, added plus deleted (binary files count 0); empty when git
+# cannot tell (no origin/<default>).
+changed_lines() {
+  local stat
+  stat="$(git diff --numstat "origin/$(default_branch)...HEAD" 2>/dev/null)" || return 0
+  awk '$1 ~ /^[0-9]+$/ { n += $1 + $2 } END { print n + 0 }' <<<"$stat"
+}
+
+# A PR that grew past about 1,500 changed lines (ADR-033): warn, never refuse.
+SLICE_MAX_LINES=1500
+warn_if_large() {
+  local lines
+  lines="$(changed_lines)"
+  [ -n "$lines" ] && [ "$lines" -gt "$SLICE_MAX_LINES" ] || return 0
+  echo "⚠ this branch changes $lines lines, more than about 1,500: a big PR is hard to review (ADR-033). Keep it if the slice" >&2
+  echo "  is one piece of work; otherwise leave the last tickets of the slice for a PR of their own. The push goes on." >&2
+}
+
 cmd_create() {
-  local title="" body="" body_set=false draft=true check=true full=false issue existing
+  local title="" body="" body_set=false draft=true check=true full=false issue existing slice closes t
   while [ $# -gt 0 ]; do
     case "$1" in
       --title) title="${2:?}"; shift ;;
@@ -170,7 +220,15 @@ cmd_create() {
     title="$(gh issue view "$issue" --repo "$REPO" --json title --jq .title)"
   fi
   if [ -n "$issue" ] && { [ -z "$existing" ] || $body_set; }; then
-    if issue_closes_through_tickets "$issue"; then
+    slice="$(slice_tickets "$issue")"
+    if [ -n "$slice" ]; then
+      # A platform slice closes every one of its tickets (ADR-033).
+      closes=""
+      for t in $slice; do
+        body_closes_issue "$t" <<<"$body" || closes="${closes:+$closes$'\n'}Closes #$t"
+      done
+      [ -z "$closes" ] || body="${body:+$body$'\n\n'}$closes"
+    elif issue_closes_through_tickets "$issue"; then
       # A spec closes through its tickets (flow.sh status: complete, then issue.sh close), never through a PR (#509).
       ! body_closes_issue "$issue" <<<"$body" \
         || die "spec #$issue closes through its tickets, not a PR: write Refs #$issue"
@@ -182,10 +240,11 @@ cmd_create() {
 
   if $check; then
     if $full; then run_check --all "--full"
-    elif [ -z "$existing" ]; then run_check "first push of the branch"
-    else run_check "follow-up push to PR #$existing; CI is still the full gate on this commit; --full runs everything here too"
+    elif [ -z "$existing" ]; then run_check --fast "first push of the branch; the integration and e2e tests run in CI or in the nightly run, as .github/pipeline.json says (ADR-034, ADR-035)"
+    else run_check --fast "follow-up push to PR #$existing; CI is still the gate on this commit; --full runs everything here too"
     fi
   fi
+  warn_if_large
   local out
   out="$(git push --quiet -u origin HEAD 2>&1)" || { echo "$out" >&2; die "push failed"; }
 
@@ -212,12 +271,18 @@ READY_CONDITIONS=("checks passed" "self-review clean" "preview smoke-checked")
 
 cmd_ready() {
   [ $# -eq 0 ] || usage
-  local pr facts decision missing out
+  local pr facts decision missing out risk
   pr="$(current_pr)"
   facts="$(pr_facts "$pr")" || exit 1
-  # The facts of the other conditions (risk, threads) are not asked here: their conditions are not read.
+  # The facts of the other conditions (risk, threads) are not asked here: their conditions are not read. Except the risk
+  # of a PR whose review record covers the standards axis only (ADR-034): that record counts for a low-risk PR alone.
+  risk='{"risk": "low", "reasons": []}'
+  if jq -e --arg mark "$REVIEW_MARK" '.pr.body | split("\n")
+      | any(startswith("**\($mark):**") and contains("(standards only)"))' <<<"$facts" >/dev/null; then
+    risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr; nothing changed"
+  fi
   decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg no_preview "$NO_PREVIEW" \
-    -f "$ROOT/scripts/merge-gate.jq" <<<"$(jq '. + {risk: {risk: "low", reasons: []}, threads: 0}' <<<"$facts")")" \
+    -f "$ROOT/scripts/merge-gate.jq" <<<"$(jq --argjson risk "$risk" '. + {risk: $risk, threads: 0}' <<<"$facts")")" \
     || die "could not decide whether PR #$pr is ready; nothing changed"
   missing="$(jq -r --argjson names "$(printf '%s\n' "${READY_CONDITIONS[@]}" | jq -R . | jq -sc .)" '
     [.conditions[] | select(.name | IN($names[])) | select(.ok | not) | "\(.name) (\(.detail))"] | join("; ")' <<<"$decision")"
@@ -309,9 +374,10 @@ cmd_status() {
 # $WAIT_MINUTES, or $WAIT_MINUTES_NATIVE once a native check is among the checks and not skipped: the gate (iOS, Android)
 # or one of its parts, a name that starts with the gate and a space (iOS build, iOS tests (nl), Android Maestro). The
 # parts are listed while they run, the gate only once they are all done (#416). The gates are required checks, so they
-# exist, skipped, in most PRs; --timeout fixes the limit.
+# exist, skipped, in most PRs; --timeout fixes the limit. A cancelled job (no macOS runner took it, #1268) does not fail
+# the wait when its retry job passed or still runs (scripts/check-retries.jq, #1384).
 cmd_wait() {
-  local timeout="" limit="$WAIT_MINUTES" pr head start run checks failed native job
+  local timeout="" limit="$WAIT_MINUTES" pr head start run checks settled failed native job
   while [ $# -gt 0 ]; do
     case "$1" in
       --timeout) timeout="${2:?}"; shift ;;
@@ -328,7 +394,14 @@ cmd_wait() {
     run="$(gh run list --repo "$REPO" --workflow CI --commit "$head" --limit 1 --json status,conclusion \
       --jq '.[0] // {} | "\(.status // "") \(.conclusion // "")"')"
     checks="$(gh pr checks "$pr" --repo "$REPO" --json name,bucket 2>/dev/null || true)"
-    failed="$(jq -r '[.[]? | select(.bucket == "fail" or .bucket == "cancel") | .name] | join(", ")' <<<"${checks:-[]}" 2>/dev/null || true)"
+    # A cancelled job is read by its retry job (scripts/check-retries.jq, #1384): no failure when the retry passed or runs.
+    # A jq error (a file that does not load) fails the wait: it must not read as "no check failed".
+    settled="$(jq -L "$ROOT/scripts" -c 'include "check-retries";
+      [.[]? | {name, state: (if .bucket == "skipping" then "skip" else .bucket end)}] | settle_retries
+      | {total: length, pending: ([.[] | select(.state == "pending")] | length),
+        failed: [.[] | select(.state == "fail" or .state == "cancel") | .name] | join(", ")}' <<<"${checks:-[]}")" \
+      || die "could not read the checks of PR #$pr"
+    failed="$(jq -r .failed <<<"$settled")"
     if [ -z "$timeout" ] && [ "$limit" -lt "$WAIT_MINUTES_NATIVE" ]; then
       native=""
       for job in "${NATIVE_JOBS[@]}"; do
@@ -342,7 +415,13 @@ cmd_wait() {
     if [ -n "$failed" ]; then echo "✗ PR #$pr checks failed: $failed"; return 1; fi
     case "$run" in
       "completed success") echo "✓ PR #$pr: CI passed on ${head:0:7}"; return 0 ;;
-      completed\ *) echo "✗ PR #$pr: CI ${run#completed } on ${head:0:7}"; return 1 ;;
+      completed\ *)
+        # GitHub concludes a whole run "failure" when a job was cancelled and its retry passed, with no failed job
+        # (#1384): the settled checks decide then, once there are checks and none is failing, cancelled or pending.
+        if jq -e '.total > 0 and .pending == 0' <<<"$settled" >/dev/null; then
+          echo "✓ PR #$pr: CI passed on ${head:0:7} (run ${run#completed }, every check passed or was retried)"; return 0
+        fi
+        echo "✗ PR #$pr: CI ${run#completed } on ${head:0:7}"; return 1 ;;
     esac
     if [ "$(date +%s)" -ge $(( start + limit * 60 )) ]; then
       run="${run% *}"
@@ -538,18 +617,89 @@ cmd_smoke() {
   record "$pr" "$SMOKE_MARK" "$line"
 }
 
-# Run only when both reviewers report no must-fix or should-fix finding. A later push makes the record stale.
+# Run only when both reviewers report no must-fix finding, and no should-fix finding either unless the PR is low-risk
+# (review by risk, ADR-033 item 5, until pilot setup): --should-fix <n> says n of them are left, as follow-ups in the
+# notes file. The record says so, and the merge gate refuses it for a PR that is not low-risk then. A later push makes the
+# record stale.
 cmd_reviewed() {
-  [ $# -eq 0 ] || usage
-  local pr head local_head
+  local should_fix=0 pr head local_head risk suffix="" axes=both setting reviewers="standards and spec reviewers" axes_note=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --should-fix) [[ "${2:-}" =~ ^[0-9]+$ ]] || usage; should_fix=$((10#$2)); shift ;;
+      --axes) case "${2:-}" in standards | both) axes="$2" ;; *) usage ;; esac; shift ;;
+      *) usage ;;
+    esac
+    shift
+  done
   pr="$(current_pr)"
   [ -z "$(git status --porcelain)" ] || die "uncommitted changes: the reviewers did not see what is on the PR"
   head="$(head_of "$pr")"
   local_head="$(git rev-parse HEAD)"
   [ "$local_head" = "$head" ] \
     || die "local HEAD ${local_head:0:7} is not the PR head ${head:0:7}: push with scripts/pr.sh create, then review again"
-  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅"
+  if [ "$axes" = standards ]; then
+    # ADR-034: the standards axis alone is enough only while review is split and for a low-risk PR (the merge gate decides
+    # the same again); refused here, so no record is written that the gate would refuse.
+    setting="$(review_setting)"
+    [ "$setting" = split ] \
+      || die "the standards axis only counts while review is split (pipeline.sh get review says ${setting:-nothing}): run both axes"
+    risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr; nothing recorded"
+    [ "$(jq -r .risk <<<"$risk")" = low ] \
+      || die "PR #$pr is not low-risk: the standards axis only counts for a low-risk PR; run both axes (standards and spec), then review again"
+    reviewers="standards reviewer"
+    axes_note=" (standards only)"
+  fi
+  if [ "$should_fix" -gt 0 ]; then
+    risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr; nothing recorded"
+    case "$(jq -r .risk <<<"$risk")" in
+      low) ;;
+      high) die "PR #$pr is high-risk: its review is clean only without should-fix findings; fix them, then review again" ;;
+      owner) die "PR #$pr is owner-only: its review is clean only without should-fix findings; fix them, then review again" ;;
+      *) die "the risk of PR #$pr is unknown: its review is clean only without should-fix findings" ;;
+    esac
+    if [ "$should_fix" -eq 1 ]; then
+      suffix=" (low risk: 1 should-fix finding left as a follow-up, ADR-033)"
+    else
+      suffix=" (low risk: $should_fix should-fix findings left as follow-ups, ADR-033)"
+    fi
+  fi
+  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** $reviewers clean on \`$head\`$axes_note ✅$suffix"
 }
+
+# The record of a refresh (#1274): origin/main was merged into the branch that is the PR's head. It is a line of its own
+# (🔄 **Refreshed:** …), added after the others and never replacing one, so every refresh of a PR stays countable.
+REFRESH_MARK="Refreshed"
+cmd_refreshed() {
+  [ $# -eq 0 ] || usage
+  local pr head local_head main body line
+  pr="$(current_pr)"
+  [ -z "$(git status --porcelain)" ] || die "uncommitted changes: commit the merge and push it first (scripts/pr.sh create)"
+  head="$(head_of "$pr")"
+  local_head="$(git rev-parse HEAD)"
+  [ "$local_head" = "$head" ] \
+    || die "local HEAD ${local_head:0:7} is not the PR head ${head:0:7}: push with scripts/pr.sh create first"
+  main="$(git rev-parse --verify --quiet "origin/$(default_branch)^{commit}")" \
+    || die "origin/$(default_branch) is unknown here: git fetch origin, merge it, push, then run this again"
+  git merge-base --is-ancestor "$main" HEAD \
+    || die "origin/$(default_branch) (${main:0:7}) is not merged into this branch: merge it (git merge origin/$(default_branch)), push, then run this again"
+  line="🔄 **$REFRESH_MARK:** merged main at \`$main\`"
+  body="$(gh pr view "$pr" --repo "$REPO" --json body --jq .body)" || die "could not read the body of PR #$pr; nothing recorded"
+  if grep -qxF "$line" <<<"$body"; then
+    echo "📝 already recorded: $line"
+    return 0
+  fi
+  gh pr edit "$pr" --repo "$REPO" --body "${body:+$body$'\n\n'}$line" >/dev/null \
+    || die "could not update the body of PR #$pr; nothing recorded"
+  echo "📝 $line"
+}
+
+# What `pipeline.sh get merge` says (ADR-035): queue or direct; empty when it can't be read, which is no opinion: pr.sh merge
+# then goes by what GitHub has.
+merge_setting() { "$ROOT/scripts/pipeline.sh" get merge 2>/dev/null || true; }
+
+# What `pipeline.sh get review` says (ADR-034): split or per-pr; empty when it can't be read, which the merge gate reads as
+# unknown, so a standards-only review record never counts then.
+review_setting() { "$ROOT/scripts/pipeline.sh" get review 2>/dev/null || true; }
 
 # The facts of scripts/merge-gate.jq that pr.sh ready reads too: the PR, its checks on the head commit, the required
 # checks and whether the head has a preview. Required checks come from .github/rulesets/main.json in this worktree, the
@@ -563,10 +713,11 @@ pr_facts() {
   required="$(jq '[.rules[] | select(.type == "required_status_checks")
     | .parameters.required_status_checks[].context]' "$ROOT/.github/rulesets/main.json")" \
     || die "could not read the required checks from .github/rulesets/main.json"
-  jq --arg base "$(default_branch)" --argjson required "$required" --arg preview "$preview" '{
+  jq --arg base "$(default_branch)" --argjson required "$required" --arg preview "$preview" \
+    --arg review_setting "$(review_setting)" '{
     head: .headRefOid, branch: .headRefName, default_branch: $base,
     pr: {number, state, draft: .isDraft, base: .baseRefName, body: (.body // "")},
-    required: $required, checks: (.statusCheckRollup // []), preview: $preview}' <<<"$view"
+    required: $required, checks: (.statusCheckRollup // []), preview: $preview, review_setting: $review_setting}' <<<"$view"
 }
 
 # All the facts of the merge gate: pr_facts and what only a merge needs (threads, risk, whether the queue removed it, and
@@ -685,7 +836,7 @@ drop_record() {
 # GraphQL's enqueuePullRequest. A branch without a queue is squash-merged with `gh pr merge`. Should auto-merge ever be
 # on afterwards, turn it off again.
 cmd_merge() {
-  local pr="" after="" facts decision head branch issue out failed state attempt reasons requeue_line=""
+  local pr="" after="" facts decision head branch issue out failed state attempt reasons requeue_line="" setting
   while [ $# -gt 0 ]; do
     case "$1" in
       --after) { [ -z "$after" ] && [[ "${2:-}" =~ ^[0-9]+$ ]]; } || usage; after="$2"; shift ;;
@@ -693,9 +844,20 @@ cmd_merge() {
     esac
     shift
   done
+  setting="$(merge_setting)"
+  if [ -n "$after" ] && [ "$setting" = direct ]; then
+    die "--after re-queues a PR in the merge queue (ADR-025), and .github/pipeline.json says merge: direct (ADR-035): there is no merge queue. Fix the cause in the PR, push, and run pr.sh merge again; nothing queued"
+  fi
   [ -n "$pr" ] || pr="$(current_pr)"
   if ! facts="$(merge_facts "$pr")" || [ -z "$facts" ]; then
     die "could not read the facts of PR #$pr; nothing queued"
+  fi
+  # The switch and GitHub should agree (ADR-035): when they don't, the owner has not applied the ruleset yet
+  # (scripts/github-settings.sh apply). Go by what GitHub has.
+  if [ "$setting" = direct ] && jq -e .queue_enabled <<<"$facts" >/dev/null; then
+    echo "⚠  .github/pipeline.json says merge: direct, but $(default_branch) still has a merge queue: the ruleset is not applied yet (scripts/github-settings.sh apply); going by GitHub: adding PR #$pr to the queue" >&2
+  elif [ "$setting" = queue ] && ! jq -e .queue_enabled <<<"$facts" >/dev/null; then
+    echo "⚠  .github/pipeline.json says merge: queue, but $(default_branch) has no merge queue: the ruleset is not applied yet (scripts/github-settings.sh apply); going by GitHub: squash-merging PR #$pr" >&2
   fi
   branch="$(jq -r .branch <<<"$facts")"
   issue="$(branch_issue "$branch")"
@@ -736,8 +898,14 @@ cmd_merge() {
         enqueuePullRequest(input: {pullRequestId: $id, expectedHeadOid: $head}) { mergeQueueEntry { position } }
       }' 2>&1)" || { drop_record "$pr" "$requeue_line"; die "could not add PR #$pr to the merge queue: $out"; }
   else
-    out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" \
-      || { drop_record "$pr" "$requeue_line"; die "merge failed: $out"; }
+    out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" || {
+      drop_record "$pr" "$requeue_line"
+      # With no merge queue the ruleset requires the branch to be up to date with main (ADR-035): say so when that is the reason.
+      if [ "$(gh pr view "$pr" --repo "$REPO" --json mergeStateStatus --jq .mergeStateStatus 2>/dev/null || true)" = BEHIND ]; then
+        die "PR #$pr is behind $(default_branch), and the ruleset needs the branch up to date with it (no merge queue, ADR-035): Refresh it (work skill, **Refresh**): merge origin/$(default_branch) into the branch, scripts/check.sh --fast, review the merge, scripts/pr.sh create and ship (new records for the new head commit), wait for CI with scripts/pr.sh wait, then run pr.sh merge again. GitHub said: $out"
+      fi
+      die "merge failed: $out"
+    }
   fi
   # The queue answers at once; look a few times in case GitHub is slow to show it.
   for attempt in 1 2 3; do
@@ -790,6 +958,7 @@ case "${1:-}" in
   reply)   shift; cmd_reply "$@" ;;
   smoke)   shift; cmd_smoke "$@" ;;
   reviewed) shift; cmd_reviewed "$@" ;;
+  refreshed) shift; cmd_refreshed "$@" ;;
   merge)   shift; cmd_merge "$@" ;;
   refusal) shift; cmd_refusal "$@" ;;
   queue)   shift; cmd_queue "$@" ;;

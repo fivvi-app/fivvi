@@ -3,8 +3,9 @@ package app.fivvi.pro
 import android.app.Application
 import android.content.Context
 import app.fivvi.api.apis.ClientsApi
-import app.fivvi.api.apis.HelloApi
+import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.MeApi
+import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.apis.WorkspacesApi
@@ -21,12 +22,13 @@ import app.fivvi.pro.workspace.SharedPreferencesLastWorkspaceStore
 
 /** What the screens depend on. Instrumented tests replace it before an activity starts. */
 interface AppDependencies {
-    val helloApi: HelloApi
     val signInApi: SignInApi
     val meApi: MeApi
     val workspacesApi: WorkspacesApi
     val clientsApi: ClientsApi
     val trainersApi: TrainersApi
+    val sessionsApi: SessionsApi
+    val locationsApi: LocationsApi
     val session: Session
     val languageSettings: LanguageSettings
 
@@ -48,12 +50,13 @@ class DefaultAppDependencies(context: Context) : AppDependencies {
 
     // One client for every call, with the auth layer, and nothing that logs.
     private val services: ApiServices by lazy { ApiServices(BuildConfig.API_BASE_URL, session) }
-    override val helloApi: HelloApi get() = services.helloApi
     override val signInApi: SignInApi get() = services.signInApi
     override val meApi: MeApi get() = services.meApi
     override val workspacesApi: WorkspacesApi get() = services.workspacesApi
     override val clientsApi: ClientsApi get() = services.clientsApi
     override val trainersApi: TrainersApi get() = services.trainersApi
+    override val sessionsApi: SessionsApi get() = services.sessionsApi
+    override val locationsApi: LocationsApi get() = services.locationsApi
     override fun signOutApi(token: String): SignInApi = services.signOutApi(token)
     override val languageSettings: LanguageSettings = SystemLanguageSettings(context)
     override val languagePreference: LanguagePreference by lazy {

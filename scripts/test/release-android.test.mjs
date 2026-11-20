@@ -797,14 +797,14 @@ describe('E017 AC2: the Android job of the release workflow', () => {
     assert.ok(!/self-hosted/.test(workflow));
     // One gate for both platforms: the same jobs, not a copy of them in this job.
     const needs = (job) => job.match(/^ {4}needs: (.+)$/m)?.[1];
-    assert.equal(needs(android), '[prepare, ios-tests, android-tests]');
+    assert.equal(needs(android), '[prepare, ios-tests, android-tests, android-maestro]');
     assert.equal(needs(android), needs(ios));
     assert.match(android, /^ {4}if: inputs\.android$/m);
     assert.ok(!/release\.sh tests/.test(android), 'the suites run once, in the test jobs');
     assert.equal(
       workflow.match(/scripts\/release\.sh tests /g).length,
-      2,
-      'ios and android, once each',
+      3,
+      'ios, the Android tests and the Android Maestro flows, once each',
     );
     assert.ok(!/^ {4}if: .*(always|failure|cancelled)\(\)/m.test(android));
     assert.ok(!/continue-on-error/.test(android));
@@ -911,8 +911,15 @@ describe('E017 AC2: the Android job of the release workflow', () => {
 
 describe('E017 AC7: the Android secrets stay in the release job', () => {
   it('E017 AC7: only the Android release job reads them, each in the step that needs it, as an env entry', () => {
-    const { android, prepare, 'ios-tests': iosTests, 'android-tests': androidTests } = jobs();
-    for (const job of [prepare, iosTests, androidTests]) assert.ok(!job.includes('secrets.'));
+    const {
+      android,
+      prepare,
+      'ios-tests': iosTests,
+      'android-tests': androidTests,
+      'android-maestro': maestro,
+    } = jobs();
+    for (const job of [prepare, iosTests, androidTests, maestro])
+      assert.ok(!job.includes('secrets.'));
     const readers = Object.fromEntries(
       steps(android)
         .filter((step) => step.text.includes('secrets.'))

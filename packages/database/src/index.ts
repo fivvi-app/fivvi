@@ -49,6 +49,52 @@ export {
   setPreferredLocale,
 } from './repositories/accounts.ts';
 export {
+  type BillingDetailsChange,
+  type BillingDetailsChangedBy,
+  type BillingDetailsView,
+  findBillingDetails,
+  saveBillingDetails,
+} from './repositories/billing-details.ts';
+export {
+  type BookingLinkClassView,
+  type BookingLinkLanguageName,
+  type BookingLinkScopeName,
+  type BookingLinkSessionFacts,
+  type BookingLinkView,
+  deactivateBookingLink,
+  ensureStandingBookingLinks,
+  findBookingLink,
+  findBookingLinkSession,
+  getOrCreateBookingLink,
+  listBookingLinks,
+  type NewBookingLink,
+} from './repositories/booking-links.ts';
+export {
+  type ClassSeriesChanges,
+  type ClassSeriesView,
+  createClassSeries,
+  createSeriesDates,
+  findClassSeries,
+  listActiveClassSeries,
+  listSeriesDates,
+  moveDatesToSeries,
+  type NewClassSeries,
+  type NewSeriesDate,
+  type SeriesDateRow,
+  type SeriesDateUpdate,
+  updateClassSeries,
+  updateSeriesDates,
+} from './repositories/class-series.ts';
+export {
+  addSeriesDatesIfMissing,
+  findDefaultLocationId,
+  listClassSeriesBehind,
+  lockClassSeries,
+  type SeriesDateToAdd,
+  type SeriesToExtend,
+  setClassSeriesMaterializedUntil,
+} from './repositories/class-series-horizon.ts';
+export {
   type ClientChanges,
   type ClientPage,
   type ClientView,
@@ -81,6 +127,13 @@ export {
   updateGroupClass,
 } from './repositories/group-classes.ts';
 export {
+  findInvoiceQuestionEmail,
+  findInvoiceSettings,
+  type InvoiceSettingsChange,
+  type InvoiceSettingsView,
+  saveInvoiceSettings,
+} from './repositories/invoice-details.ts';
+export {
   findLocation,
   type LocationAddress,
   type LocationChanges,
@@ -88,6 +141,27 @@ export {
   listLocations,
   updateLocation,
 } from './repositories/locations.ts';
+export {
+  addOfferVersion,
+  type CoveredClass,
+  changeOffer,
+  createOffer,
+  findOffer,
+  insertOffer,
+  listCoveredClasses,
+  listOffers,
+  listOfferVersions,
+  type NewOffer,
+  type OfferChange,
+  type OfferChangeResult,
+  type OfferCreditKind,
+  type OfferKind,
+  type OfferStatus,
+  type OfferTerms,
+  type OfferVersionView,
+  type OfferView,
+  runningAgreementCounts,
+} from './repositories/offers.ts';
 export {
   findPayment,
   findProviderCustomerId,
@@ -107,6 +181,29 @@ export {
   recordStatusChange,
   type StatusChangeRecord,
 } from './repositories/payments.ts';
+export {
+  findPayout,
+  findPayoutBySettlement,
+  type InPayoutScope,
+  insertPayout,
+  insertPayoutLines,
+  listPayoutLines,
+  listPayoutStatusChanges,
+  listPayouts,
+  type NewPayout,
+  type NewPayoutLine,
+  type NewPayoutStatusChange,
+  type PayoutDetails,
+  type PayoutFeeKind,
+  type PayoutLineRecord,
+  type PayoutLineType,
+  type PayoutRecord,
+  type PayoutStatus,
+  type PayoutStatusChangeRecord,
+  payoutLedger,
+  recordPayoutStatusChange,
+  refreshPayout,
+} from './repositories/payouts.ts';
 export {
   findMyNextSessionStart,
   hasMySession,
@@ -139,19 +236,31 @@ export {
   refundLedger,
 } from './repositories/refunds.ts';
 export {
+  type DeletedRow,
+  deleteClosedInvitations,
+  deleteExpiredSessions,
+  deleteOldAccessLogEntries,
+  deleteOldDeletionLogEntries,
+  deleteOldRateLimits,
+  deleteSignInTokens,
+} from './repositories/retention.ts';
+export {
   type AttendanceStatus,
   createPrivateSession,
   findSession,
+  listTrainerSessionsBetween,
   listUpcomingSessionsOfClient,
   type NewPrivateSession,
   rescheduleSession,
   type SessionGroupClassView,
   type SessionParticipantView,
   type SessionReschedule,
+  type SessionSeriesView,
   type SessionStatus,
   type SessionTrainerView,
   type SessionType,
   type SessionView,
+  type TrainerSessionView,
   type UpcomingSessionView,
 } from './repositories/sessions.ts';
 export {

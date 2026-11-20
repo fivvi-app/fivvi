@@ -15,11 +15,10 @@ import androidx.compose.ui.unit.dp
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
+import app.fivvi.core.me.teamMemberIdOf
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.assertButtonFits
 import app.fivvi.pro.assertWraps
-import app.fivvi.pro.hello.HelloState
-import app.fivvi.pro.hello.HelloTags
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.showAtLargestFontScale
 import org.junit.Rule
@@ -33,16 +32,14 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     @get:Rule
     val compose = createComposeRule()
 
-    private fun inWorkspace(email: String) =
-        MeState.Loaded(email, HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym")))
+    private fun inWorkspace(email: String, name: String = "John's Gym") =
+        MeState.Loaded(email, HomeDestination.Workspace(name, workspaceIdOf(name), teamMemberIdOf(name)))
 
     private fun show(me: MeState, signingOut: Boolean = false, height: Dp = 640.dp) =
         compose.showAtLargestFontScale(language, height = height) {
             HomeScreen(
-                HelloState.Loaded(R.string.hello_title),
                 me,
                 signingOut,
-                onRetryHello = {},
                 onRetryMe = {},
                 onSignOut = {},
                 onOpenWeb = {},
@@ -76,14 +73,23 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
         compose.assertButtonFits(HomeTags.SIGN_OUT)
     }
 
+    // The workspace's name is the title (the Hello screen's greeting had this proof, E008 AC7): a name too long for one
+    // line at 200% on 320 dp wraps, whole.
+    @Test
+    fun E008_AC7_fontScale200TitleWraps() {
+        show(inWorkspace("owner@example.com", name = "The Personal Training Studio of Sarah and John"))
+
+        compose.assertWraps(HomeTags.WORKSPACE_NAME, wraps = true)
+    }
+
     @Test
     fun F001N_AC15_smallScreenScrollsAsOneToReachEverything() {
-        // A 320 dp high screen at 200%: the hello block and the account block don't fit together. The hello block keeps
-        // its height (it is not squeezed by the account block) and the screen scrolls to the sign-out button.
+        // A 320 dp high screen at 200%: the title and the account block don't fit together. The title keeps its height
+        // (it is not squeezed by the account block) and the screen scrolls to the sign-out button.
         show(inWorkspace("a.long.address.for.a.trainer@example.com"), height = 320.dp)
 
-        compose.assertWraps(HelloTags.GREETING)
-        compose.onNodeWithTag(HelloTags.GREETING).assertIsDisplayed()
+        compose.assertWraps(HomeTags.WORKSPACE_NAME)
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.SIGN_OUT).performScrollTo().assertIsDisplayed()
         compose.assertButtonFits(HomeTags.SIGN_OUT)
     }

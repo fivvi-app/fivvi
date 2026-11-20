@@ -10,6 +10,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -30,11 +31,14 @@ const comments = (...bodies) => bodies.map((body) => ({ body }));
 // A checkout of its own for the scripts under test, with a base commit on main and an origin: a copy of scripts/ (and
 // .github/repo-settings.json with `settings`). Returns its path and a `git` that runs in it. Tests that run flow.sh
 // from here instead of from the real checkout don't see its branches and worktrees.
-function scriptsRepo(prefix, { settings = false } = {}) {
+// The pipeline switch (ADR-034) of that checkout is `review`, per-pr unless a test says otherwise: a spec whose tickets are
+// all closed is `complete` with per-pr and `spec-review` with split.
+function scriptsRepo(prefix, { settings = false, review = 'per-pr' } = {}) {
   const repo = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
   cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+  mkdirSync(join(repo, '.github'));
+  writeFileSync(join(repo, '.github/pipeline.json'), JSON.stringify({ ci: 'fast', review }));
   if (settings) {
-    mkdirSync(join(repo, '.github'));
     cpSync(
       join(SCRIPTS, '../.github/repo-settings.json'),
       join(repo, '.github/repo-settings.json'),
@@ -175,6 +179,8 @@ describe('flow.sh next', () => {
             ],
           },
           { match: '^issue list .*--label ready-for-agent', out: [] },
+          // The open issues of a failed nightly run (ADR-034): none.
+          { match: '^issue list .*in:title', out: [] },
           {
             match: '^issue list .*--label needs-info',
             out: [
@@ -207,6 +213,7 @@ describe('flow.sh next', () => {
             ].map((pr) => ({
               ...pr,
               headRefName: branches[pr.number],
+              mergeable: 'MERGEABLE',
               labels: labels(...(carrying[pr.number] ?? [])),
             })),
           },
@@ -337,6 +344,86 @@ describe('flow.sh next', () => {
         FIVVI_NOW: now,
       },
     });
+
+  // ADR-035: with `merge: direct` GitHub refuses the merge of a branch that is behind main (strict required checks), and the
+  // factory does not refresh such PRs (only conflicting ones), so the owner's line says what to press.
+  describe('ADR-035: an owner-only PR that is behind main, with merge direct', () => {
+    const pipeline = (merge) => {
+      const file = join(repo, '.github/pipeline.json');
+      const before = readFileSync(file, 'utf8');
+      writeFileSync(
+        file,
+        JSON.stringify({ ci: 'lean', review: 'per-pr', builders: 1, ...(merge ? { merge } : {}) }),
+      );
+      return () => writeFileSync(file, before);
+    };
+    const status = (state60) => [
+      { match: '^pr view 60 .*--json mergeStateStatus', out: { mergeStateStatus: state60 } },
+      { match: '^pr view [0-9]+ .*--json mergeStateStatus', out: { mergeStateStatus: 'CLEAN' } },
+    ];
+    const line60 = (result) =>
+      result.stdout.split('\n').find((line) => line.startsWith('Merge PR #60 '));
+    const PLAIN =
+      'Merge PR #60 [F031] Hold a spot (owner-only: scripts/pr.sh: guardrails (/scripts))';
+
+    it('says to press "Update branch" in the merge box, then merge, when GitHub reports it BEHIND', () => {
+      const restore = pipeline('direct');
+      try {
+        const result = next([], NOW, {}, undefined, { rules: status('BEHIND') });
+        assert.equal(result.status, 0, result.stderr);
+        const line = line60(result);
+        assert.match(
+          line,
+          /^Merge PR #60 \[F031\] Hold a spot \(owner-only: scripts\/pr\.sh: guardrails/,
+        );
+        assert.match(line, /behind main/);
+        assert.match(line, /Update branch/);
+        assert.match(line, /then merge/);
+        assert.match(line, /Refresh steps/);
+        // Only this PR: the others stay as they were.
+        assert.ok(
+          result.stdout.includes(
+            'Merge PR #69 [F031] Risk unreadable (owner-only: risk unknown)\n',
+          ),
+        );
+      } finally {
+        restore();
+      }
+    });
+
+    it('leaves the line as it was when the PR is not behind, or the setting is queue (and reads nothing then)', () => {
+      let restore = pipeline('direct');
+      try {
+        assert.equal(line60(next([], NOW, {}, undefined, { rules: status('CLEAN') })), PLAIN);
+      } finally {
+        restore();
+      }
+      restore = pipeline('queue');
+      try {
+        const result = next([], NOW, {}, undefined, { rules: status('BEHIND') });
+        assert.equal(line60(result), PLAIN);
+        assert.ok(
+          !gh.calls().some((call) => call.args.join(' ').includes('mergeStateStatus')),
+          'no read of the merge state with the merge queue',
+        );
+      } finally {
+        restore();
+      }
+    });
+
+    it('a state it cannot read leaves the line as it was', () => {
+      const restore = pipeline('direct');
+      try {
+        const result = next([], NOW, {}, undefined, {
+          rules: [{ match: '^pr view [0-9]+ .*--json mergeStateStatus', out: '', status: 1 }],
+        });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(line60(result), PLAIN);
+      } finally {
+        restore();
+      }
+    });
+  });
 
   it('lists what waits on the owner: specs to approve, owner-only, refused and queue-removed PRs, questions', () => {
     // #71 and #73 still need a spec written (needs-spec) and #74 is complete: none waits on approval.
@@ -752,7 +839,12 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
 
   // `open` are the numbers of the issue's open blockers (gh issue view), `blockers` what the GraphQL read of the
   // blockers answers ({nodes, total}, or a failure).
-  const run = (command, queue, file = 'apps/web/page.tsx', { open = [], blockers } = {}) =>
+  const run = (
+    command,
+    queue,
+    file = 'apps/web/page.tsx',
+    { open = [], blockers, rollup = [] } = {},
+  ) =>
     spawnSync(join(repo, 'scripts/flow.sh'), [command, '9999'], {
       encoding: 'utf8',
       env: gh.env([
@@ -801,10 +893,11 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
               state: 'OPEN',
               isDraft: false,
               reviewDecision: '',
-              statusCheckRollup: [],
+              statusCheckRollup: rollup,
               url: 'https://github.com/o/r/pull/70',
               createdAt: '2026-10-18T10:00:00Z',
               headRefOid: HEAD,
+              mergeable: 'MERGEABLE',
             },
           ],
         },
@@ -821,6 +914,59 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
         },
       ]),
     });
+
+  // #1274: a refresh that stayed with the owner writes `refresh-held <sha>: <why>` to the notes; the refresh push makes the
+  // refusal stale, so the hold is what keeps the PR from ready-to-merge, until a clean review is recorded after it.
+  it('#1274: a refresh-held line in the notes keeps the PR merge-refused until a clean review follows it', () => {
+    const notes = join(repo, '.work/9999/notes.md');
+    mkdirSync(join(repo, '.work/9999'), { recursive: true });
+    try {
+      writeFileSync(
+        notes,
+        '- reviewed 1111111 (full): not clean\n- refresh-held 1111111: the last review was not clean\n',
+      );
+      const held = run('status', {});
+      assert.equal(held.status, 0, held.stderr);
+      assert.match(held.stdout, /^Phase: merge-refused$/m);
+      assert.match(
+        held.stdout,
+        /^Next: A refresh of main was merged into it and it stays with the owner: the last review was not clean\./m,
+      );
+      const owner = run('status', {}, 'scripts/pr.sh');
+      assert.doesNotMatch(owner.stdout, /Phase: ready-to-merge/);
+      // A clean verdict of an older commit, or of the held commit itself, does not end it: only a clean review of the
+      // PR's current head (cccccc…, the commit after the held one) does.
+      const heldNotes = readFileSync(notes, 'utf8');
+      for (const verdict of [
+        '- reviewed 2222222 (since 1111111): clean',
+        '- reviewed 1111111 (full): clean',
+        `- reviewed ${HEAD.slice(0, 7)} (since 1111111): not clean`,
+      ]) {
+        writeFileSync(notes, `${heldNotes}${verdict}\n`);
+        assert.match(run('status', {}).stdout, /^Phase: merge-refused$/m, verdict);
+      }
+      // A clean verdict of the current head before the hold line does not end it either.
+      writeFileSync(
+        notes,
+        `- reviewed ${HEAD.slice(0, 7)} (full): clean\n- refresh-held 1111111: the last review was not clean\n`,
+      );
+      assert.match(run('status', {}).stdout, /^Phase: merge-refused$/m);
+      writeFileSync(notes, `${heldNotes}- reviewed ${HEAD.slice(0, 7)} (since 1111111): clean\n`);
+      const cleared = run('status', {});
+      assert.match(cleared.stdout, /^Phase: ready-to-merge$/m);
+      // The full sha of the head ends it too.
+      writeFileSync(notes, `${heldNotes}- reviewed ${HEAD} (since 1111111): clean\n`);
+      assert.match(run('status', {}).stdout, /^Phase: ready-to-merge$/m);
+      // A merge-only verdict does not clear it.
+      writeFileSync(
+        notes,
+        '- refresh-held 1111111: the last review was not clean\n- refresh-reviewed 3333333 (merge of main): clean\n',
+      );
+      assert.match(run('status', {}).stdout, /^Phase: merge-refused$/m);
+    } finally {
+      rmSync(join(repo, '.work/9999'), { recursive: true, force: true });
+    }
+  });
 
   it('shows a queued PR and says to wait for GitHub, then finish', () => {
     const result = run('status', { queued: true, position: 2 });
@@ -935,10 +1081,89 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
     });
   });
 
+  describe('E008 #1384 a cancelled job whose retry job passed is no failing check', () => {
+    const job = (name, conclusion, status = 'COMPLETED') => ({
+      __typename: 'CheckRun',
+      name,
+      status,
+      conclusion,
+    });
+    // Recorded from CI run 43748423951, attempt 4: "iOS tests (en)" cancelled, its retry passed.
+    const recorded = [
+      job('Checks (Linux)', 'SUCCESS'),
+      job('iOS tests (nl)', 'SUCCESS'),
+      job('iOS tests (en)', 'CANCELLED'),
+      job('iOS build (retry)', 'SKIPPED'),
+      job('iOS tests (en) (retry)', 'SUCCESS'),
+      job('iOS', 'SUCCESS'),
+    ];
+    const withRetry = (retry) =>
+      recorded.map((check) =>
+        check.name === 'iOS tests (en) (retry)' ? { ...check, ...retry } : check,
+      );
+    const facts = (rollup) => JSON.parse(run('facts', {}, 'apps/web/page.tsx', { rollup }).stdout);
+
+    it('counts nothing failing or pending and reaches ready to merge when the retry passed', () => {
+      const { pr } = facts(recorded).branches[0];
+      assert.equal(pr.failing, 0);
+      assert.equal(pr.pending, 0);
+      const result = run('status', {}, 'apps/web/page.tsx', { rollup: recorded });
+      assert.match(result.stdout, /^Phase: ready-to-merge$/m);
+    });
+
+    it('counts the retry that still runs as pending, and the cancelled job as no failure', () => {
+      const { pr } = facts(withRetry({ status: 'IN_PROGRESS', conclusion: '' })).branches[0];
+      assert.equal(pr.failing, 0);
+      assert.ok(pr.pending > 0, 'the PR is not ready while the retry runs');
+    });
+
+    it('still counts the cancelled job when its retry failed, was cancelled or does not exist', () => {
+      for (const retry of [{ conclusion: 'FAILURE' }, { conclusion: 'CANCELLED' }]) {
+        assert.equal(facts(withRetry(retry)).branches[0].pr.failing, 2, JSON.stringify(retry));
+      }
+      const noRetry = recorded.filter((check) => check.name !== 'iOS tests (en) (retry)');
+      assert.equal(facts(noRetry).branches[0].pr.failing, 1);
+      const result = run('status', {}, 'apps/web/page.tsx', { rollup: noRetry });
+      assert.match(result.stdout, /^Phase: changes-requested$/m);
+    });
+
+    it('counts a failing commit status and a pending one as before', () => {
+      const rollup = [
+        ...recorded,
+        { __typename: 'StatusContext', context: 'fivvi - web', state: 'FAILURE' },
+        { __typename: 'StatusContext', context: 'fivvi - cron', state: 'PENDING' },
+      ];
+      const { pr } = facts(rollup).branches[0];
+      assert.equal(pr.failing, 1);
+      assert.equal(pr.pending, 1);
+    });
+  });
+
   it('shows a PR that was never queued as ready to merge', () => {
     const result = run('status', {});
     assert.match(result.stdout, /^Phase: ready-to-merge$/m);
     assert.doesNotMatch(result.stdout, /merge queue \(/);
+  });
+
+  it('ADR-035: with merge direct in the switch, ready to merge says squash-merge, with the queue wording as before otherwise', () => {
+    const file = join(repo, '.github/pipeline.json');
+    const before = readFileSync(file, 'utf8');
+    try {
+      assert.match(run('status', {}).stdout, /^Next: Low-risk: .*adds the PR to the merge queue/m);
+      writeFileSync(
+        file,
+        JSON.stringify({ ci: 'lean', review: 'per-pr', builders: 1, merge: 'direct' }),
+      );
+      const direct = run('status', {});
+      assert.match(direct.stdout, /^Phase: ready-to-merge$/m);
+      assert.match(
+        direct.stdout,
+        /^Next: Low-risk: scripts\/pr\.sh merge in the worktree\. It squash-merges the PR/m,
+      );
+      assert.doesNotMatch(direct.stdout, /^Next: .*merge queue/m);
+    } finally {
+      writeFileSync(file, before);
+    }
   });
 
   it('ADR-021: shows a high-risk PR an agent can merge as ready to merge, with its reasons', () => {
@@ -1750,10 +1975,15 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       blockers = [],
       onGitHub = ['owner-queue', 'owner-decide'],
       rules = [],
+      bugs = [],
+      nightly = [],
+      railway = {},
+      noRailway = false,
     } = scenario;
+    const withRailway = (base) => ({ ...base, ...gh.railway(railway) });
     return spawnSync(join(repo, 'scripts/flow.sh'), [command, ...args], {
       encoding: 'utf8',
-      env: {
+      env: (noRailway ? gh.withoutRailway : withRailway)({
         ...gh.env([
           ...failing.map((match) => ({ match, out: '', status: 1 })),
           ...rules,
@@ -1766,6 +1996,9 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
             out: assigned.map(({ number }) => ({ number })),
           },
           { match: '^issue list .*--label spec ', out: specs },
+          { match: '^issue list .*--label bug ', out: bugs },
+          // The open issues titled "Nightly UI tests failed" (ADR-034), read only with `ci: fast`.
+          { match: '^issue list .*in:title', out: nightly },
           {
             match: '^issue list .*--label ready-for-agent',
             out: tickets,
@@ -1797,7 +2030,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
         FIVVI_NOW: NOW,
         GIT_TERMINAL_PROMPT: '0',
         ...env,
-      },
+      }),
     });
   };
   const readyOf = (stdout) =>
@@ -1876,6 +2109,1150 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /^error: could not read/m);
       assert.doesNotMatch(result.stdout, /\(none\)\n== Waiting/);
+    });
+  });
+
+  // #1415: a failing deploy of the web service on Railway development went unnoticed for two days. `next` and `idle`
+  // read the newest non-SKIPPED deployment of development and production, and nothing else from Railway.
+  describe('#1415 the deploy status of web on Railway', () => {
+    const PROJECT = '5ac2d844-191a-4671-9632-50b66817f648';
+    const MARK = '<!-- fivvi:deploy-failed development -->';
+    const deployment = (status, id, commit, createdAt) => ({
+      id,
+      status,
+      createdAt,
+      meta: { commitHash: commit, branch: 'main' },
+    });
+    const GOOD = deployment(
+      'SUCCESS',
+      'aaaaaaaa-0000-4000-8000-000000000001',
+      'c'.repeat(40),
+      '2026-10-20T09:00:00Z',
+    );
+    const BAD = deployment(
+      'FAILED',
+      '8a369478-1111-4222-8333-444444444444',
+      'd1e2f3a4b5c6'.repeat(3),
+      '2026-10-20T10:30:00Z',
+    );
+    const SKIPPED = deployment(
+      'SKIPPED',
+      'bbbbbbbb-0000-4000-8000-000000000002',
+      'e'.repeat(40),
+      '2026-10-20T11:00:00Z',
+    );
+    const ticket = issue(180, '[F003] Add a client', ['ready-for-agent']);
+    const FAILED_LINE =
+      'web on development is FAILED (deployment 8a369478, commit d1e2f3a, 2026-10-20T10:30:00Z)';
+    const bug = (number, body, names = ['bug', 'ready-for-agent'], extra = {}) => ({
+      ...issue(number, `Deploy of development fails (${number})`, names, { body, ...extra }),
+    });
+    const tied = (number, names, extra) =>
+      bug(number, `## Acceptance criteria\n\n${MARK}`, names, extra);
+    const waitingOf = (stdout) =>
+      stdout.slice(
+        stdout.indexOf('== Waiting on the owner'),
+        stdout.indexOf('== For the owner to read'),
+      );
+    const lookedUpBugs = () =>
+      gh
+        .calls()
+        .filter(({ args }) => args[0] === 'issue' && args[1] === 'list' && args.includes('bug'));
+
+    it('AC1: reads the list of development and of production with the read-only CLI call, and nothing else', () => {
+      const result = run('next', {
+        tickets: [ticket],
+        railway: { development: [GOOD], production: [GOOD] },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(gh.railwayCalls(), [
+        `deployment list -p ${PROJECT} -e development -s web --json`,
+        `deployment list -p ${PROJECT} -e production -s web --json`,
+      ]);
+      const idle = run('idle', { railway: { development: [GOOD], production: [GOOD] } });
+      assert.equal(idle.status, 0, idle.stderr);
+      assert.equal(gh.railwayCalls().length, 2);
+      assert.equal(idle.stdout, 'idle: nothing for an agent\n== Waiting on the owner\n(none)\n');
+    });
+
+    it('lists nothing when the newest deployment passed, whatever the older ones did', () => {
+      const result = run('next', { tickets: [ticket], railway: { development: [GOOD, BAD] } });
+      assert.equal(readyOf(result.stdout), '== Ready for an agent\n#180 [F003] Add a client\n');
+      assert.equal(lookedUpBugs().length, 0);
+    });
+
+    it('skips SKIPPED deployments: a failed one behind them counts, a passed one behind them does not', () => {
+      const failed = run('next', { railway: { development: [SKIPPED, BAD, GOOD] } });
+      assert.match(readyOf(failed.stdout), new RegExp(FAILED_LINE.replace(/[()]/g, '\\$&')));
+      const fine = run('next', { railway: { development: [SKIPPED, GOOD, BAD] } });
+      assert.equal(readyOf(fine.stdout), '== Ready for an agent\n(none)\n');
+      const only = run('next', { railway: { development: [SKIPPED] } });
+      assert.equal(readyOf(only.stdout), '== Ready for an agent\n(none)\n');
+    });
+
+    it('AC2: a FAILED development deploy without a bug is the first thing under Ready, with how to file the bug', () => {
+      const result = run('next', { tickets: [ticket], railway: { development: [BAD, GOOD] } });
+      assert.equal(result.status, 0, result.stderr);
+      const [header, first, second] = readyOf(result.stdout).split('\n');
+      assert.equal(header, '== Ready for an agent');
+      assert.match(first, /^Deploy bug: /);
+      assert.ok(first.includes(FAILED_LINE), first);
+      assert.ok(first.includes(MARK), first);
+      assert.match(first, /scripts\/issue\.sh create bug/);
+      assert.equal(second, '#180 [F003] Add a client');
+    });
+
+    it('AC2: reports a CRASHED deploy like a FAILED one', () => {
+      const crashed = { ...BAD, status: 'CRASHED' };
+      const result = run('next', { railway: { development: [crashed] } });
+      assert.match(readyOf(result.stdout), /^Deploy bug: web on development is CRASHED \(/m);
+    });
+
+    it('AC2: does not report a deploy that is still building or deploying', () => {
+      for (const status of ['BUILDING', 'DEPLOYING', 'INITIALIZING', 'SLEEPING', 'REMOVED']) {
+        const result = run('next', { railway: { development: [{ ...BAD, status }] } });
+        assert.equal(readyOf(result.stdout), '== Ready for an agent\n(none)\n', status);
+      }
+    });
+
+    it('AC2: idle exits 1 and reports the deploy as work', () => {
+      const result = run('idle', { railway: { development: [BAD] } });
+      assert.equal(result.status, 1, result.stderr);
+      assert.match(
+        result.stdout,
+        /^Deploy bug: web on development is FAILED \(deployment 8a369478/m,
+      );
+      assert.doesNotMatch(result.stdout, /^idle/m);
+    });
+
+    it('AC3: with an open bug tied to it, says to build that bug first (the bug is ready work)', () => {
+      const result = run('next', {
+        tickets: [ticket],
+        bugs: [{ number: 1500, body: `x\n${MARK}` }],
+        others: [tied(1500, ['bug', 'ready-for-agent'])],
+        railway: { development: [BAD] },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      const lines = readyOf(result.stdout).split('\n');
+      assert.equal(lines[1], `Build #1500 first: ${FAILED_LINE}`);
+      assert.equal(lines[2], '#180 [F003] Add a client');
+      assert.doesNotMatch(waitingOf(result.stdout), /#1500|FAILED/);
+    });
+
+    it('AC3: ignores a bug without the marker, and a closed one is not read at all', () => {
+      const result = run('next', {
+        bugs: [{ number: 1501, body: 'Some other bug' }],
+        others: [bug(1501, 'Some other bug')],
+        railway: { development: [BAD] },
+      });
+      assert.match(readyOf(result.stdout), /^Deploy bug: /m);
+      assert.equal(viewed(1501), false);
+      const asked = lookedUpBugs()[0].args;
+      assert.deepEqual(
+        [asked.includes('--state'), asked[asked.indexOf('--state') + 1]],
+        [true, 'open'],
+      );
+    });
+
+    it('AC3: with several bugs tied to it, builds the oldest', () => {
+      const result = run('next', {
+        bugs: [
+          { number: 1600, body: MARK },
+          { number: 1502, body: MARK },
+        ],
+        others: [tied(1502, ['bug', 'ready-for-agent']), tied(1600, ['bug', 'ready-for-agent'])],
+        railway: { development: [BAD] },
+      });
+      assert.match(readyOf(result.stdout), /^Build #1502 first: /m);
+    });
+
+    it('AC3: with a bug that waits on a human, lists it under Waiting on the owner, not as work', () => {
+      const scenario = {
+        bugs: [{ number: 1500, body: MARK }],
+        others: [tied(1500, ['bug', 'ready-for-human'])],
+        railway: { development: [BAD] },
+      };
+      const next = run('next', scenario);
+      assert.equal(readyOf(next.stdout), '== Ready for an agent\n(none)\n');
+      assert.match(
+        waitingOf(next.stdout),
+        new RegExp(`^${FAILED_LINE.replace(/[()]/g, '\\$&')}: bug #1500 is human$`, 'm'),
+      );
+      const idle = run('idle', scenario);
+      assert.equal(idle.status, 0, idle.stderr);
+      assert.match(
+        idle.stdout,
+        /^idle: nothing for an agent\n== Waiting on the owner\n.*bug #1500 is human/,
+      );
+    });
+
+    it('AC3: a bug that is in a phase an agent acts on keeps idle at exit 1', () => {
+      const result = run('idle', {
+        bugs: [{ number: 1500, body: MARK }],
+        others: [tied(1500, ['bug', 'ready-for-agent'])],
+        railway: { development: [BAD] },
+      });
+      assert.equal(result.status, 1, result.stderr);
+      assert.match(result.stdout, /^Build #1500 first: /m);
+    });
+
+    it('fails instead of listing nothing when the open bugs cannot be read', () => {
+      const result = run('next', {
+        railway: { development: [BAD] },
+        failing: ['^issue list .*--label bug '],
+      });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /^error: could not read/m);
+      assert.equal(
+        run('idle', { railway: { development: [BAD] }, failing: ['^issue list .*--label bug '] })
+          .status,
+        2,
+      );
+    });
+
+    it('AC4: a FAILED production deploy is status only: Waiting on the owner, never work', () => {
+      const scenario = {
+        railway: { development: [GOOD], production: [{ ...BAD, status: 'CRASHED' }] },
+      };
+      const next = run('next', scenario);
+      assert.equal(readyOf(next.stdout), '== Ready for an agent\n(none)\n');
+      assert.match(
+        waitingOf(next.stdout),
+        /^web on production is CRASHED \(deployment 8a369478, commit d1e2f3a, 2026-10-20T10:30:00Z\)/m,
+      );
+      const idle = run('idle', scenario);
+      assert.equal(idle.status, 0, idle.stderr);
+      assert.match(
+        idle.stdout,
+        /^idle: nothing for an agent\n== Waiting on the owner\nweb on production is CRASHED/,
+      );
+      assert.equal(lookedUpBugs().length, 0);
+    });
+
+    it('AC4: development and production failing at once: the bug is work, production waits on the owner', () => {
+      const result = run('next', { railway: { development: [BAD], production: [BAD] } });
+      assert.match(readyOf(result.stdout), /^Deploy bug: web on development/m);
+      assert.doesNotMatch(readyOf(result.stdout), /production/);
+      assert.match(waitingOf(result.stdout), /^web on production is FAILED/m);
+    });
+
+    it('AC5: when the list fails (logged out), says so for each environment under Waiting; not work, not an error', () => {
+      const scenario = { tickets: [ticket], railway: { fail: ['development', 'production'] } };
+      const next = run('next', scenario);
+      assert.equal(next.status, 0, next.stderr);
+      assert.equal(readyOf(next.stdout), '== Ready for an agent\n#180 [F003] Add a client\n');
+      assert.match(
+        waitingOf(next.stdout),
+        /^Deploy status of web on development unknown: .*railway login/m,
+      );
+      assert.match(
+        waitingOf(next.stdout),
+        /^Deploy status of web on production unknown: .*railway login/m,
+      );
+      const idle = run('idle', { railway: { fail: ['development', 'production'] } });
+      assert.equal(idle.status, 0, idle.stderr);
+      assert.match(
+        idle.stdout,
+        /^idle: nothing for an agent\n== Waiting on the owner\nDeploy status of web on development unknown/,
+      );
+    });
+
+    it('AC5: when the railway CLI is missing, says so under Waiting and keeps the GitHub part working', () => {
+      const next = run('next', { tickets: [ticket], noRailway: true });
+      assert.equal(next.status, 0, next.stderr);
+      assert.equal(readyOf(next.stdout), '== Ready for an agent\n#180 [F003] Add a client\n');
+      assert.match(
+        waitingOf(next.stdout),
+        /^Deploy status of web on development unknown: .*not installed/m,
+      );
+      assert.match(waitingOf(next.stdout), /^Deploy status of web on production unknown: /m);
+      assert.equal(gh.railwayCalls().length, 0);
+      const idle = run('idle', { noRailway: true });
+      assert.equal(idle.status, 0, idle.stderr);
+      const work = run('idle', { tickets: [ticket], noRailway: true });
+      assert.equal(work.status, 1, work.stderr);
+      assert.equal(work.stdout, '#180 [F003] Add a client\n');
+    });
+
+    it('AC5: an answer that is not a deployment list counts as unreadable', () => {
+      for (const development of ['not json', '{"error":"x"}']) {
+        const result = run('next', { railway: { development } });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(readyOf(result.stdout), '== Ready for an agent\n(none)\n');
+        assert.match(waitingOf(result.stdout), /^Deploy status of web on development unknown: /m);
+      }
+    });
+
+    it('AC5: one environment unreadable does not hide the other', () => {
+      const result = run('next', { railway: { fail: ['production'], development: [BAD] } });
+      assert.match(readyOf(result.stdout), /^Deploy bug: web on development/m);
+      assert.match(waitingOf(result.stdout), /^Deploy status of web on production unknown/m);
+      assert.doesNotMatch(waitingOf(result.stdout), /web on development/);
+    });
+  });
+
+  // ADR-034: with `ci: fast` the UI tests run in the nightly run only, and a failure of it is an open issue titled
+  // `Nightly UI tests failed` (scripts/nightly-report.sh). It is the first work after a failing deploy; with `full` there
+  // is no nightly run to wait for, and flow.sh lists it as any other ready ticket.
+  describe('ADR-034 the issue of a failed nightly run', () => {
+    const TITLE = 'Nightly UI tests failed';
+    const night = (number, names = ['bug', 'ready-for-agent'], extra = {}) =>
+      issue(number, TITLE, names, extra);
+    const listed = (number) => ({ number, title: TITLE });
+    const ticket = issue(180, '[F003] Add a client', ['ready-for-agent']);
+    const BAD = {
+      id: '8a369478-1111-4222-8333-444444444444',
+      status: 'FAILED',
+      createdAt: '2026-10-20T10:30:00Z',
+      meta: { commitHash: 'd1e2f3a4b5c6'.repeat(3), branch: 'main' },
+    };
+    const withCi = (ci, fn) => {
+      const file = join(repo, '.github/pipeline.json');
+      const before = readFileSync(file, 'utf8');
+      writeFileSync(file, JSON.stringify({ ci, review: 'per-pr' }));
+      try {
+        return fn();
+      } finally {
+        writeFileSync(file, before);
+      }
+    };
+    const scenario = (extra = {}) => ({
+      tickets: [ticket, night(1700)],
+      nightly: [listed(1700)],
+      others: [night(1700)],
+      ...extra,
+    });
+
+    it('fast: lists the open issue first under Ready, once, as Build #n first (nightly)', () => {
+      const result = withCi('fast', () => run('next', scenario()));
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(readyOf(result.stdout).split('\n'), [
+        '== Ready for an agent',
+        `Build #1700 first (nightly): ${TITLE}`,
+        '#180 [F003] Add a client',
+        '',
+      ]);
+    });
+
+    it('ADR-035 lean: the same as fast, because the integration tests and the UI tests run only in the nightly run', () => {
+      const result = withCi('lean', () => run('next', scenario()));
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(readyOf(result.stdout).split('\n'), [
+        '== Ready for an agent',
+        `Build #1700 first (nightly): ${TITLE}`,
+        '#180 [F003] Add a client',
+        '',
+      ]);
+      const idle = withCi('lean', () => run('idle', scenario({ tickets: [] })));
+      assert.equal(idle.status, 1, idle.stdout + idle.stderr);
+    });
+
+    it('fast: comes right after the deploy line, not before it', () => {
+      const result = withCi('fast', () =>
+        run('next', scenario({ railway: { development: [BAD] } })),
+      );
+      const [, deploy, nightly, ticketLine] = readyOf(result.stdout).split('\n');
+      assert.match(deploy, /^Deploy bug: web on development is FAILED/);
+      assert.equal(nightly, `Build #1700 first (nightly): ${TITLE}`);
+      assert.equal(ticketLine, '#180 [F003] Add a client');
+    });
+
+    it('fast: builds the oldest when several are open, and ignores another title that merely contains it', () => {
+      const result = withCi('fast', () =>
+        run('next', {
+          tickets: [],
+          nightly: [
+            listed(1800),
+            listed(1700),
+            { number: 1500, title: `${TITLE} (again)` },
+            { number: 1400, title: `Re: ${TITLE}` },
+          ],
+          others: [night(1700), night(1800)],
+        }),
+      );
+      assert.match(readyOf(result.stdout), /^Build #1700 first \(nightly\): /m);
+      assert.doesNotMatch(readyOf(result.stdout), /#1800|#1500|#1400/);
+    });
+
+    it('fast: idle is work while the issue is open', () => {
+      const result = withCi('fast', () => run('idle', scenario({ tickets: [] })));
+      assert.equal(result.status, 1, result.stdout + result.stderr);
+      assert.match(result.stdout, /^Build #1700 first \(nightly\): /m);
+    });
+
+    it('fast: lists nothing extra when no such issue is open', () => {
+      const result = withCi('fast', () => run('next', { tickets: [ticket] }));
+      assert.equal(readyOf(result.stdout), '== Ready for an agent\n#180 [F003] Add a client\n');
+    });
+
+    it('fast: an issue that waits on a human is not work', () => {
+      const result = withCi('fast', () =>
+        run('next', {
+          nightly: [listed(1700)],
+          others: [night(1700, ['bug', 'ready-for-human'])],
+        }),
+      );
+      assert.doesNotMatch(readyOf(result.stdout), /nightly/);
+    });
+
+    it('full: as today: no extra line and no search, the ready ticket is listed as any other', () => {
+      const result = withCi('full', () => run('next', scenario()));
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        readyOf(result.stdout),
+        '== Ready for an agent\n#180 [F003] Add a client\n#1700 Nightly UI tests failed\n',
+      );
+      assert.equal(
+        gh.calls().some(({ args }) => args.join(' ').includes('in:title')),
+        false,
+      );
+    });
+
+    it('fails instead of listing nothing when the issues cannot be read, or the setting cannot', () => {
+      const failing = withCi('fast', () => run('next', { failing: ['^issue list .*in:title'] }));
+      assert.notEqual(failing.status, 0);
+      assert.match(failing.stderr, /^error: could not read/m);
+      const file = join(repo, '.github/pipeline.json');
+      const before = readFileSync(file, 'utf8');
+      writeFileSync(file, '{"ci":"sometimes","review":"per-pr"}');
+      try {
+        assert.notEqual(run('next', {}).status, 0);
+      } finally {
+        writeFileSync(file, before);
+      }
+    });
+  });
+
+  // #1274 (spec #1481): the factory keeps every open PR mergeable with main. An open PR GitHub marks CONFLICTING is ready
+  // work, owner-only or not, draft or not, except a PR of a spec the owner has not approved (parked).
+  describe('#1274 open PRs that GitHub marks as conflicting', () => {
+    const TITLE = 'Nightly UI tests failed';
+    const headOf = (number, fill = 'a') => String(number).padEnd(40, fill);
+    const open = (
+      number,
+      mergeable,
+      { draft = false, branch = 'docs/no-issue', head = headOf(number) } = {},
+    ) => ({
+      number,
+      title: `[E001] PR ${number}`,
+      isDraft: draft,
+      headRefName: branch,
+      headRefOid: head,
+      mergeable,
+    });
+    // What risk.sh, the refusal and the merge queue read for a PR: its file decides the risk (scripts/pr.sh is owner-only).
+    const facts = (
+      number,
+      file = 'apps/web/page.tsx',
+      { queued = false, head = headOf(number) } = {},
+    ) => [
+      { match: `^api repos/[^ ]+/pulls/${number}/files`, out: [{ filename: file }] },
+      { match: `^pr view ${number} .*--json body`, out: { body: 'Closes #1' } },
+      {
+        match: `^pr view ${number} .*--json headRefName,closingIssuesReferences`,
+        out: { headRefName: 'docs/no-issue', closingIssuesReferences: [], changedFiles: 1 },
+      },
+      queueRule(number, { queued, head }),
+    ];
+    const OWNER_FILE = 'scripts/pr.sh';
+    const env = { FIVVI_MERGEABLE_WAIT: '0' };
+    const waitingOf = (stdout) =>
+      stdout.slice(
+        stdout.indexOf('== Waiting on the owner'),
+        stdout.indexOf('== For the owner to read'),
+      );
+    const ticket = issue(180, '[F003] Add a client', ['ready-for-agent']);
+    const BAD = {
+      id: '8a369478-1111-4222-8333-444444444444',
+      status: 'FAILED',
+      createdAt: '2026-10-20T10:30:00Z',
+      meta: { commitHash: 'd1e2f3a4b5c6'.repeat(3), branch: 'main' },
+    };
+    const night = issue(1700, TITLE, ['bug', 'ready-for-agent']);
+    const withPipeline = (pipeline, fn) => {
+      const file = join(repo, '.github/pipeline.json');
+      const before = readFileSync(file, 'utf8');
+      writeFileSync(file, JSON.stringify(pipeline));
+      try {
+        return fn();
+      } finally {
+        writeFileSync(file, before);
+      }
+    };
+    const SCENARIO = {
+      openPrs: [
+        open(60, 'CONFLICTING'),
+        open(61, 'CONFLICTING', { draft: true }),
+        open(62, 'MERGEABLE'),
+      ],
+      rules: [...facts(60, OWNER_FILE), ...facts(61), ...facts(62)],
+      env,
+    };
+
+    it('AC1: lists a conflicting PR as Refresh PR, owner-only and draft ones too, after a failing deploy and the nightly bug and before new tickets', () => {
+      const result = run('next', {
+        ...SCENARIO,
+        tickets: [ticket, night],
+        nightly: [{ number: 1700, title: TITLE }],
+        others: [night],
+        railway: { development: [BAD] },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      const lines = readyOf(result.stdout).split('\n');
+      assert.match(lines[1], /^Deploy bug: web on development is FAILED/);
+      assert.deepEqual(lines.slice(2), [
+        `Build #1700 first (nightly): ${TITLE}`,
+        'Refresh PR #60 (conflicting with main)',
+        'Refresh PR #61 (conflicting with main)',
+        '#180 [F003] Add a client',
+        '',
+      ]);
+    });
+
+    it('AC1: a PR GitHub calls mergeable is not listed, and flow.sh idle counts a conflicting one as work', () => {
+      const clean = run('next', { ...SCENARIO, openPrs: [open(62, 'MERGEABLE')] });
+      assert.equal(readyOf(clean.stdout), '== Ready for an agent\n(none)\n');
+      const idle = run('idle', SCENARIO);
+      assert.equal(idle.status, 1, idle.stdout + idle.stderr);
+      assert.match(idle.stdout, /^Refresh PR #60 \(conflicting with main\)$/m);
+    });
+
+    it('AC1: an UNKNOWN state is read again, and a PR still unknown is never taken as clean', () => {
+      const result = run('next', {
+        openPrs: [open(60, 'UNKNOWN'), open(61, 'UNKNOWN'), open(62, 'UNKNOWN')],
+        rules: [
+          {
+            match: '^pr view 60 .*--json mergeable',
+            outs: [{ mergeable: 'UNKNOWN' }, { mergeable: 'CONFLICTING' }],
+          },
+          { match: '^pr view 61 .*--json mergeable', out: { mergeable: 'UNKNOWN' } },
+          { match: '^pr view 62 .*--json mergeable', outs: [{ mergeable: 'MERGEABLE' }] },
+          ...facts(60),
+          ...facts(61),
+          ...facts(62),
+        ],
+        env,
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        readyOf(result.stdout),
+        '== Ready for an agent\nRefresh PR #60 (conflicting with main)\n',
+      );
+      assert.match(
+        waitingOf(result.stdout),
+        /^PR #61 \[E001\] PR 61 \(mergeable state unknown: GitHub has not computed it; read again next run\)$/m,
+      );
+      assert.doesNotMatch(waitingOf(result.stdout), /PR #62/);
+      const reads = (number) =>
+        gh
+          .calls()
+          .filter(
+            ({ args }) =>
+              args.join(' ').startsWith(`pr view ${number} `) && args.includes('mergeable'),
+          );
+      assert.equal(reads(60).length, 2);
+      assert.equal(reads(61).length, 3);
+      assert.equal(reads(62).length, 1);
+    });
+
+    it('AC1: flow.sh status shows a PR that conflicts with main for its issue', () => {
+      const branch = 'chore/9003-refused';
+      const result = run('status', {
+        args: ['9003'],
+        others: [
+          issue(9003, 'Refused', ['ready-for-agent'], { assignees: [{ login: 'thekeyvan' }] }),
+        ],
+        rules: [
+          {
+            match: `^pr list .*--head ${branch}`,
+            out: [
+              {
+                number: 93,
+                state: 'OPEN',
+                isDraft: false,
+                reviewDecision: '',
+                statusCheckRollup: [],
+                url: 'https://github.com/o/r/pull/93',
+                createdAt: '2026-10-18T10:00:00Z',
+                headRefOid: HEAD,
+                mergeable: 'CONFLICTING',
+              },
+            ],
+          },
+        ],
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /^PR: #93 OPEN · .* · conflicting with main · https:/m);
+      assert.match(result.stdout, /^Refresh: PR #93 conflicts with main/m);
+    });
+
+    it('AC3: an owner-only PR is Refresh work while it conflicts, not a Merge PR line; once clean it waits for the owner again, never queued', () => {
+      const conflicting = run('next', { ...SCENARIO, openPrs: [open(60, 'CONFLICTING')] });
+      assert.match(readyOf(conflicting.stdout), /^Refresh PR #60 /m);
+      assert.doesNotMatch(waitingOf(conflicting.stdout), /PR #60/);
+      const refreshed = run('next', { ...SCENARIO, openPrs: [open(60, 'MERGEABLE')] });
+      assert.doesNotMatch(readyOf(refreshed.stdout), /Refresh/);
+      assert.match(
+        waitingOf(refreshed.stdout),
+        /^Merge PR #60 \[E001\] PR 60 \(owner-only: scripts\/pr\.sh: guardrails/m,
+      );
+      assert.equal(
+        gh.calls().some(({ args }) => args.join(' ').includes('enqueuePullRequest')),
+        false,
+      );
+    });
+
+    it('a PR in the merge queue is not refreshed, and a PR of a spec the owner has not approved is parked', () => {
+      const queued = run('next', {
+        openPrs: [open(60, 'CONFLICTING')],
+        rules: facts(60, 'apps/web/page.tsx', { queued: true }),
+        env,
+      });
+      assert.doesNotMatch(queued.stdout, /Refresh PR/);
+      const branch = 'chore/9100-parked';
+      const parkedRules = (specLabels) => [
+        {
+          match: '^issue view 9100 ',
+          out: { state: 'OPEN', labels: labels('ready-for-agent'), parent: { number: 9101 } },
+        },
+        { match: '^issue view 9101 ', out: { state: 'OPEN', labels: labels(...specLabels) } },
+        ...facts(63),
+      ];
+      const parked = run('next', {
+        openPrs: [open(63, 'CONFLICTING', { branch })],
+        rules: parkedRules(['spec']),
+        env,
+      });
+      assert.equal(parked.status, 0, parked.stderr);
+      assert.doesNotMatch(parked.stdout, /Refresh PR/);
+      const approved = run('next', {
+        openPrs: [open(63, 'CONFLICTING', { branch })],
+        rules: parkedRules(['spec', 'spec-approved']),
+        env,
+      });
+      assert.match(readyOf(approved.stdout), /^Refresh PR #63 \(conflicting with main\)$/m);
+    });
+
+    // ADR-033 decision 1 parks work by moving its tickets to ready-for-human, whether or not the spec is approved.
+    it('a PR whose issue is ready-for-human is parked under an approved spec, by its branch issue or a ticket it closes', () => {
+      const approvedSpec = { state: 'OPEN', labels: labels('spec', 'spec-approved') };
+      const held = (number) => ({
+        match: `^issue view ${number} `,
+        out: { state: 'OPEN', labels: labels('ready-for-human'), parent: { number: 9201 } },
+      });
+      const byBranch = run('next', {
+        openPrs: [open(63, 'CONFLICTING', { branch: 'chore/9200-held' })],
+        rules: [held(9200), { match: '^issue view 9201 ', out: approvedSpec }, ...facts(63)],
+        env,
+      });
+      assert.equal(byBranch.status, 0, byBranch.stderr);
+      assert.doesNotMatch(byBranch.stdout, /Refresh PR/);
+      const byClosing = run('next', {
+        openPrs: [{ ...open(64, 'CONFLICTING'), closingIssuesReferences: [{ number: 9202 }] }],
+        rules: [held(9202), { match: '^issue view 9201 ', out: approvedSpec }, ...facts(64)],
+        env,
+      });
+      assert.equal(byClosing.status, 0, byClosing.stderr);
+      assert.doesNotMatch(byClosing.stdout, /Refresh PR/);
+      const ready = run('next', {
+        openPrs: [{ ...open(64, 'CONFLICTING'), closingIssuesReferences: [{ number: 9203 }] }],
+        rules: [
+          {
+            match: '^issue view 9203 ',
+            out: { state: 'OPEN', labels: labels('ready-for-agent'), parent: { number: 9201 } },
+          },
+          { match: '^issue view 9201 ', out: approvedSpec },
+          ...facts(64),
+        ],
+        env,
+      });
+      assert.match(readyOf(ready.stdout), /^Refresh PR #64 /m);
+    });
+
+    it('flow.sh status gives no Refresh line for a parked or a queued PR, though it shows the conflict', () => {
+      const conflicting = (branch, number) => ({
+        match: `^pr list .*--head ${branch}`,
+        out: [
+          {
+            number,
+            state: 'OPEN',
+            isDraft: false,
+            reviewDecision: '',
+            statusCheckRollup: [],
+            url: `https://github.com/o/r/pull/${number}`,
+            createdAt: '2026-10-18T10:00:00Z',
+            headRefOid: HEAD,
+            mergeable: 'CONFLICTING',
+          },
+        ],
+      });
+      const parked = run('status', {
+        args: ['9003'],
+        others: [issue(9003, 'Held', ['ready-for-human'])],
+        rules: [conflicting('chore/9003-refused', 93)],
+      });
+      assert.equal(parked.status, 0, parked.stderr);
+      assert.match(parked.stdout, /conflicting with main/);
+      assert.doesNotMatch(parked.stdout, /^Refresh:/m);
+      const queued = run('status', {
+        args: ['9002'],
+        others: [issue(9002, 'Queued', ['ready-for-agent'])],
+        rules: [conflicting('chore/9002-queued', 92)],
+      });
+      assert.equal(queued.status, 0, queued.stderr);
+      assert.match(queued.stdout, /conflicting with main/);
+      assert.doesNotMatch(queued.stdout, /^Refresh:/m);
+    });
+
+    it('a missing mergeable state is read again like UNKNOWN, and never taken as clean', () => {
+      const missing = { ...open(64, 'x') };
+      delete missing.mergeable;
+      const result = run('next', {
+        openPrs: [missing, { ...missing, number: 65, title: '[E001] PR 65' }],
+        rules: [
+          { match: '^pr view 64 .*--json mergeable', out: { mergeable: 'CONFLICTING' } },
+          { match: '^pr view 65 .*--json mergeable', out: { mergeable: 'UNKNOWN' } },
+          ...facts(64),
+          ...facts(65),
+        ],
+        env,
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(readyOf(result.stdout), /^Refresh PR #64 /m);
+      assert.match(waitingOf(result.stdout), /^PR #65 .*mergeable state unknown/m);
+    });
+
+    // A builder working on a PR in this run (its issue's notes or worktree changed in the last 30 minutes) is not
+    // refreshed under it.
+    it('a PR whose issue notes or worktree changed in the last 30 minutes is being worked on and is not refreshed', () => {
+      const branch = 'chore/9300-building';
+      const scenario = {
+        openPrs: [open(66, 'CONFLICTING', { branch, draft: true })],
+        rules: [
+          {
+            match: `^pr list .*--head ${branch}`,
+            out: [{ number: 66, state: 'OPEN', headRefOid: headOf(66) }],
+          },
+          {
+            match: '^issue view 9300 ',
+            out: { state: 'OPEN', labels: labels('ready-for-agent'), assignees: [{ login: 'x' }] },
+          },
+          ...facts(66),
+        ],
+        env,
+      };
+      const nowSeconds = Date.parse(NOW) / 1000;
+      const touch = (file, minutesAgo) =>
+        utimesSync(file, nowSeconds - minutesAgo * 60, nowSeconds - minutesAgo * 60);
+      writeNotes(9300, '# notes\n');
+      const notes = join(repo, '.work', '9300', 'notes.md');
+      touch(notes, 10);
+      const working = run('next', scenario);
+      assert.equal(working.status, 0, working.stderr);
+      assert.doesNotMatch(working.stdout, /Refresh PR/);
+      touch(notes, 40);
+      const idle = run('next', scenario);
+      assert.match(readyOf(idle.stdout), /^Refresh PR #66 /m);
+      // Uncommitted changes in the PR's worktree count too.
+      const worktree = join(repo, '.worktrees', 'chore-9300-building');
+      execFileSync('git', ['-C', repo, 'worktree', 'add', '--quiet', '-b', branch, worktree]);
+      try {
+        const dirty = join(worktree, 'edit.txt');
+        writeFileSync(dirty, 'not committed\n');
+        touch(dirty, 5);
+        const edited = run('next', scenario);
+        assert.equal(edited.status, 0, edited.stderr);
+        assert.doesNotMatch(edited.stdout, /Refresh PR/);
+        touch(dirty, 90);
+        const stale = run('next', scenario);
+        assert.match(readyOf(stale.stdout), /^Refresh PR #66 /m);
+      } finally {
+        execFileSync('git', ['-C', repo, 'worktree', 'remove', '--force', worktree]);
+        execFileSync('git', ['-C', repo, 'branch', '-D', branch]);
+      }
+    });
+
+    // The refresh of this run writes the notes (a review verdict, the hold), so their change must not hide the PR that
+    // still conflicts afterwards: the refresh record is read before the 30-minute rule.
+    it('a PR refreshed in this run whose notes just changed and that still conflicts goes to the owner, not out of the lists', () => {
+      const branch = 'chore/9300-building';
+      const first = headOf(66, 'a');
+      const pushed = headOf(66, 'b');
+      const scenario = (head) => ({
+        openPrs: [open(66, 'CONFLICTING', { branch, head })],
+        rules: [
+          {
+            match: `^pr list .*--head ${branch}`,
+            out: [{ number: 66, state: 'OPEN', headRefOid: head }],
+          },
+          {
+            match: '^issue view 9300 ',
+            out: { state: 'OPEN', labels: labels('ready-for-agent'), assignees: [{ login: 'x' }] },
+          },
+          {
+            match: '^pr view 66 .*--json state,headRefName,headRefOid',
+            out: { state: 'OPEN', headRefName: branch, headRefOid: head },
+          },
+          ...facts(66, OWNER_FILE, { head }),
+        ],
+        env,
+      });
+      const acquired = run('lock', { args: ['acquire'] });
+      assert.equal(acquired.status, 0, acquired.stderr);
+      writeNotes(9300, '# notes\n- reviewed 1111111 (full): not clean\n');
+      const started = run('refresh', { ...scenario(first), args: ['66'] });
+      assert.equal(started.status, 0, started.stderr);
+      // The notes were just written (the hold line), and the push of the merge left the PR conflicting.
+      const nowSeconds = Date.parse(NOW) / 1000;
+      const touchNotes = () => {
+        const file = join(repo, '.work', '9300', 'notes.md');
+        utimesSync(file, nowSeconds - 300, nowSeconds - 300);
+      };
+      touchNotes();
+      const still = run('next', scenario(pushed));
+      assert.equal(still.status, 0, still.stderr);
+      assert.doesNotMatch(readyOf(still.stdout), /Refresh PR #66/);
+      assert.match(
+        waitingOf(still.stdout),
+        /^Decide on PR #66 \[E001\] PR 66 \(still conflicting with main after a refresh in this run/m,
+      );
+      assert.doesNotMatch(waitingOf(still.stdout), /Merge PR #66/);
+      // The same PR with no refresh of this run and fresh notes is still a builder's.
+      rmSync(join(repo, '.work/refresh/66'), { force: true });
+      touchNotes();
+      const building = run('next', scenario(pushed));
+      assert.doesNotMatch(building.stdout, /PR #66/);
+    });
+
+    it('flow.sh status reads a missing mergeable state again, as next does', () => {
+      const result = run('status', {
+        args: ['9002'],
+        others: [issue(9002, 'Queued', ['ready-for-agent'])],
+        rules: [
+          { match: '^pr view 92 .*--json mergeable', out: { mergeable: 'CONFLICTING' } },
+          {
+            match: '^pr list .*--head chore/9002-queued',
+            out: [
+              {
+                number: 92,
+                state: 'OPEN',
+                isDraft: false,
+                reviewDecision: '',
+                statusCheckRollup: [],
+                url: 'https://github.com/o/r/pull/92',
+                createdAt: '2026-10-18T10:00:00Z',
+                headRefOid: HEAD,
+              },
+            ],
+          },
+        ],
+        env,
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /conflicting with main/);
+    });
+
+    it("fails instead of listing nothing when it can't read the mergeable state", () => {
+      const result = run('next', {
+        openPrs: [open(60, 'UNKNOWN')],
+        rules: [{ match: '^pr view 60 .*--json mergeable', out: '', status: 1 }, ...facts(60)],
+        env,
+      });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /^error: could not read the mergeable state of PR #60/m);
+    });
+
+    describe('AC4: one refresh per run, a decision goes to the owner', () => {
+      const pr = (head) => ({
+        openPrs: [open(60, 'CONFLICTING', { head })],
+        rules: [
+          {
+            match: '^pr view 60 .*--json state,headRefName,headRefOid',
+            out: { state: 'OPEN', headRefName: 'docs/no-issue', headRefOid: head },
+          },
+          ...facts(60, OWNER_FILE, { head }),
+        ],
+        env,
+      });
+      const FIRST = headOf(60, 'a');
+      const PUSHED = headOf(60, 'b');
+      const acquire = () => {
+        const result = run('lock', { args: ['acquire'] });
+        assert.equal(result.status, 0, result.stderr);
+        return result;
+      };
+
+      it('--owner records why, and the PR waits under Waiting on the owner until its head commit changes', () => {
+        const recorded = run('refresh', {
+          ...pr(FIRST),
+          args: ['60', '--owner', 'the conflict is in a price rule: a product decision'],
+        });
+        assert.equal(recorded.status, 0, recorded.stderr);
+        const same = run('next', pr(FIRST));
+        assert.doesNotMatch(readyOf(same.stdout), /Refresh/);
+        assert.match(
+          waitingOf(same.stdout),
+          /^Decide on PR #60 \[E001\] PR 60 \(conflicting with main: the conflict is in a price rule: a product decision; or merge main by hand\)$/m,
+        );
+        assert.doesNotMatch(waitingOf(same.stdout), /Merge PR #60/);
+        const moved = run('next', pr(PUSHED));
+        assert.match(readyOf(moved.stdout), /^Refresh PR #60 /m);
+      });
+
+      it('an attempt of this run keeps the PR out of the lists while the head commit is unchanged, then sends it to the owner when it still conflicts', () => {
+        acquire();
+        const started = run('refresh', { ...pr(FIRST), args: ['60'] });
+        assert.equal(started.status, 0, started.stderr);
+        assert.match(started.stdout, /^Refresh PR #60: branch docs\/no-issue, head 60aaaaa/m);
+        assert.match(started.stdout, /^Worktree: none \(scripts\/wt\.sh add docs\/no-issue\)$/m);
+        const running = run('next', pr(FIRST));
+        assert.doesNotMatch(running.stdout, /PR #60/);
+        const still = run('next', pr(PUSHED));
+        assert.doesNotMatch(readyOf(still.stdout), /Refresh/);
+        assert.match(
+          waitingOf(still.stdout),
+          /^Decide on PR #60 \[E001\] PR 60 \(still conflicting with main after a refresh in this run; the next run tries again, or merge main by hand\)$/m,
+        );
+      });
+
+      it('the next run tries again, and a refresh without a run lock never holds a PR back', () => {
+        acquire();
+        run('refresh', { ...pr(FIRST), args: ['60'] });
+        // A later run: the first one ended (its lock is gone) and a new one holds the lock.
+        rmSync(join(repo, '.work/factory.lock'), { force: true });
+        acquire();
+        const nextRun = run('next', pr(PUSHED));
+        assert.match(readyOf(nextRun.stdout), /^Refresh PR #60 /m);
+        rmSync(join(repo, '.work/factory.lock'), { force: true });
+        const unlocked = run('next', pr(PUSHED));
+        assert.match(readyOf(unlocked.stdout), /^Refresh PR #60 /m);
+      });
+
+      // A refresh can reach a PR that waits on the owner for open findings or a refusal: the script says so, and
+      // carries the last review into the reviewer's brief, so the merge review is never taken for a clean review.
+      describe('a PR that waits on the owner for findings or a refusal stays with the owner', () => {
+        const branch = 'chore/9400-held';
+        const refusal = (sha) =>
+          `Closes #9400\n\n**Merge gate:** refused on \`${sha}\`: self-review clean (no self-review record in the PR body)`;
+        const held = (body) => ({
+          openPrs: [open(60, 'CONFLICTING', { branch, head: FIRST })],
+          rules: [
+            {
+              match: '^pr view 60 .*--json state,headRefName,headRefOid',
+              out: { state: 'OPEN', headRefName: branch, headRefOid: FIRST },
+            },
+            { match: '^pr view 60 .*--json body', out: { body } },
+            ...facts(60, OWNER_FILE, { head: FIRST }).filter(
+              ({ match }) => !match.includes('--json body'),
+            ),
+          ],
+          env,
+        });
+        const refresh = (body, notes) => {
+          if (notes !== undefined) writeNotes(9400, notes);
+          return run('refresh', { ...held(body), args: ['60'] });
+        };
+
+        it('prints the last review and that the PR stays with the owner when it was not clean', () => {
+          const result = refresh(
+            'Closes #9400',
+            '## Review\n- reviewed 1111111 (full): not clean\n- fix round 1\n- reviewed 2222222 (since 1111111): not clean\n',
+          );
+          assert.equal(result.status, 0, result.stderr);
+          assert.match(
+            result.stdout,
+            /^Last review: reviewed 2222222 \(since 1111111\): not clean$/m,
+          );
+          assert.match(
+            result.stdout,
+            /^Stays with the owner: the last review was not clean; the review of the merge is not a clean review: no pr\.sh reviewed, ship or merge after the push$/m,
+          );
+        });
+
+        it('prints that it stays with the owner when the merge gate refused the head commit', () => {
+          const result = refresh(refusal(FIRST), `- reviewed ${FIRST.slice(0, 7)} (full): clean\n`);
+          assert.equal(result.status, 0, result.stderr);
+          assert.match(result.stdout, /^Last review: reviewed 60aaaaa \(full\): clean$/m);
+          assert.match(
+            result.stdout,
+            /^Stays with the owner: the merge gate refused the head commit .*: no pr\.sh reviewed, ship or merge after the push$/m,
+          );
+        });
+
+        it('an annotated or space-trailed not clean verdict holds the PR as well', () => {
+          for (const verdict of [
+            '- reviewed 2222222 (since 1111111): not clean — reviewer, factory run 7',
+            '- reviewed 2222222 (since 1111111): not clean ',
+            '- reviewed 2222222 (since 1111111): not clean (2 must-fix)',
+          ]) {
+            const result = refresh('Closes #9400', `${verdict}\n`);
+            assert.equal(result.status, 0, result.stderr);
+            assert.match(
+              result.stdout,
+              /^Stays with the owner: the last review was not clean; /m,
+              verdict,
+            );
+          }
+        });
+
+        it('a last review that is clean for the previous head commit does not hold the PR; a refusal of an older commit and a merge-only verdict do not either', () => {
+          for (const verdict of [
+            `- reviewed ${FIRST.slice(0, 7)} (since 1111111): clean (low risk, 2 should-fix follow-ups)`,
+            `- reviewed ${FIRST} (full): clean`,
+            `- reviewed ${FIRST.slice(0, 7)} (full): clean — reviewer, factory run 7`,
+          ]) {
+            const result = refresh(
+              refusal('b'.repeat(40)),
+              `- reviewed 1111111 (full): not clean\n${verdict}\n- refresh-reviewed 3333333 (merge of main): not clean\n`,
+            );
+            assert.equal(result.status, 0, result.stderr);
+            assert.match(result.stdout, /^Last review: reviewed /m);
+            assert.doesNotMatch(result.stdout, /Stays with the owner/, verdict);
+          }
+        });
+
+        it('a PR with no notes file stays with the owner: nobody recorded a review of it', () => {
+          const result = run('refresh', { ...pr(FIRST), args: ['60'] });
+          assert.equal(result.status, 0, result.stderr);
+          assert.doesNotMatch(result.stdout, /Last review/);
+          assert.match(
+            result.stdout,
+            /^Stays with the owner: no review verdict is recorded for it; /m,
+          );
+        });
+
+        it('a notes file with no verdict line stays with the owner', () => {
+          const result = refresh(
+            'Closes #9400',
+            '## Build notes\n- built it\n- refresh-reviewed 3333333 (merge of main): clean\n',
+          );
+          assert.equal(result.status, 0, result.stderr);
+          assert.match(
+            result.stdout,
+            /^Stays with the owner: no review verdict is recorded for it; /m,
+          );
+        });
+
+        it('a clean verdict of an older commit stays with the owner: the commits after it were never reviewed', () => {
+          const result = refresh('Closes #9400', '- reviewed 1111111 (full): clean\n');
+          assert.equal(result.status, 0, result.stderr);
+          assert.match(result.stdout, /^Last review: reviewed 1111111 \(full\): clean$/m);
+          assert.match(
+            result.stdout,
+            /^Stays with the owner: the last review \(1111111\) is not of the head commit 60aaaaa; commits after it were never reviewed; /m,
+          );
+        });
+
+        it('a held refresh writes refresh-held <previous head> to the notes once, and a PR that is not held writes nothing', () => {
+          const notes = join(repo, '.work/9400/notes.md');
+          refresh('Closes #9400', '- reviewed 1111111 (full): not clean\n');
+          refresh('Closes #9400');
+          const lines = readFileSync(notes, 'utf8')
+            .split('\n')
+            .filter((line) => line.includes('refresh-held'));
+          assert.deepEqual(lines, [`- refresh-held ${FIRST}: the last review was not clean`]);
+          refresh('Closes #9400', `- reviewed ${FIRST.slice(0, 7)} (full): clean\n`);
+          assert.doesNotMatch(readFileSync(notes, 'utf8'), /refresh-held/);
+        });
+
+        it('a hold ends only on a clean review of the PR head that is not the held commit: a refresh after it holds again, one after any other clean line does not', () => {
+          const notes = join(repo, '.work/9400/notes.md');
+          const heldLines = () =>
+            readFileSync(notes, 'utf8')
+              .split('\n')
+              .filter((line) => line.includes('refresh-held'));
+          const short = FIRST.slice(0, 7);
+          // A clean line of an older commit sits after the hold: it is still held, so no second hold line.
+          refresh(
+            'Closes #9400',
+            `- refresh-held 1111111: the last review was not clean\n- reviewed 1111111 (full): clean\n- reviewed 2222222 (since 1111111): not clean\n`,
+          );
+          assert.equal(heldLines().length, 1);
+          // A clean line of the head commit sits after the hold, then a not clean one: the hold ended, so a new one is written.
+          refresh(
+            'Closes #9400',
+            `- refresh-held 1111111: the last review was not clean\n- reviewed ${short} (full): clean\n- reviewed 2222222 (since ${short}): not clean\n`,
+          );
+          assert.equal(heldLines().length, 2);
+          assert.equal(heldLines()[1], `- refresh-held ${FIRST}: the last review was not clean`);
+          // A clean line of the held commit itself does not end a hold of that commit.
+          refresh(
+            'Closes #9400',
+            `- refresh-held ${FIRST}: the last review was not clean\n- reviewed ${short} (full): clean\n- reviewed 2222222 (since ${short}): not clean\n`,
+          );
+          assert.equal(heldLines().length, 1);
+        });
+      });
+
+      it('refuses a PR that is not open, an empty reason and a bad number', () => {
+        const closed = run('refresh', {
+          args: ['60'],
+          rules: [
+            {
+              match: '^pr view 60 .*--json state,headRefName,headRefOid',
+              out: { state: 'MERGED', headRefName: 'docs/x', headRefOid: FIRST },
+            },
+          ],
+        });
+        assert.equal(closed.status, 1);
+        assert.match(closed.stderr, /PR #60 is MERGED, not open/);
+        assert.equal(run('refresh', { ...pr(FIRST), args: ['60', '--owner', ' '] }).status, 1);
+        assert.equal(run('refresh', { args: ['sixty'] }).status, 1);
+      });
+    });
+
+    it('AC12: the same under ci: full and review: per-pr, and under fast and split', () => {
+      for (const pipeline of [
+        { ci: 'full', review: 'per-pr' },
+        { ci: 'fast', review: 'split' },
+      ]) {
+        const result = withPipeline(pipeline, () =>
+          run('next', { ...SCENARIO, tickets: [ticket] }),
+        );
+        assert.equal(result.status, 0, JSON.stringify(pipeline) + result.stderr);
+        assert.equal(
+          readyOf(result.stdout),
+          [
+            '== Ready for an agent',
+            'Refresh PR #60 (conflicting with main)',
+            'Refresh PR #61 (conflicting with main)',
+            '#180 [F003] Add a client',
+            '',
+          ].join('\n'),
+          JSON.stringify(pipeline),
+        );
+      }
+    });
+
+    it('the work skill carries the refresh step: merge, check, review the merge, create, refreshed, reviewed, ship', () => {
+      const skill = readFileSync(join(SCRIPTS, '../.agents/skills/work/SKILL.md'), 'utf8');
+      const refresh = skill.slice(skill.indexOf('## Refresh'), skill.indexOf('## Spec review'));
+      for (const part of [
+        'Refresh PR #n (conflicting with main)',
+        'scripts/flow.sh refresh',
+        'git merge origin/main',
+        'scripts/wt.sh add',
+        'scripts/check.sh --fast',
+        'since <the previous head>',
+        'scripts/pr.sh create',
+        'scripts/pr.sh refreshed',
+        'scripts/pr.sh reviewed',
+        'scripts/pr.sh ship',
+        '--owner',
+      ]) {
+        assert.ok(refresh.includes(part), `the Refresh section names ${part}`);
+      }
+      // The reviewer sees the last review's open findings, a PR that waited on the owner stays there, and without a
+      // lock there is no one-refresh limit.
+      assert.match(refresh, /Last review:/);
+      assert.match(refresh, /open must-fix and should-fix findings/);
+      assert.match(refresh, /Stays with the owner/);
+      assert.match(refresh, /refresh-reviewed/);
+      assert.match(refresh, /refresh-held/);
+      assert.match(skill, /A refresh merge commit does not/);
+      assert.match(refresh, /no lock.*no one-refresh limit/i);
+      assert.match(refresh, /never a rebase|no rebase/i);
+      assert.match(skill, /Refresh PR #n/);
     });
   });
 
@@ -2011,6 +3388,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
         isDraft: false,
         headRefOid: HEAD,
         headRefName: branch,
+        mergeable: 'MERGEABLE',
         labels: labels(...labelNames),
         ...extra,
       });
@@ -2174,6 +3552,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
           isDraft: false,
           headRefOid: HEAD,
           headRefName: 'chore/9001-removed',
+          mergeable: 'MERGEABLE',
         },
       ];
       const ownerOf = (stdout) =>
@@ -2464,6 +3843,241 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       assert.ok(result.status >= 2, `exit ${result.status}`);
       assert.match(result.stderr, /^error: could not read the open PRs/m);
       assert.doesNotMatch(result.stdout, /idle/);
+    });
+  });
+});
+
+// ADR-034: with review split, a spec whose tickets are all closed waits in the phase spec-review for a clean final spec
+// review (scripts/spec-review.sh status); with per-pr it is complete, as before.
+describe('ADR-034: flow.sh and the final spec review', () => {
+  const gh = fakeGh();
+  const NOW_ISO = '2026-11-18T12:00:00Z';
+  const MERGED_AT = '2026-11-17T10:00:00Z';
+  const dirs = [];
+  after(() => {
+    gh.cleanup();
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  });
+
+  // The checkout has two commits: the base, and the squash commit of PR #60 on top of it (spec-review.sh status compares them).
+  const checkout = (review) => {
+    const { repo, git } = scriptsRepo('flow-spec-review-', { review });
+    dirs.push(repo);
+    git('commit', '--quiet', '--allow-empty', '-m', 'feat(F022): series (#60)');
+    return repo;
+  };
+  const shaOf = (repo, rev) =>
+    execFileSync('git', ['-C', repo, 'rev-parse', rev], { encoding: 'utf8' }).trim();
+  const specItem = (state = 'OPEN') => ({
+    number: 50,
+    title: '[F022] Weekly series',
+    state,
+    labels: labels('spec', 'spec-approved'),
+    assignees: [],
+    body: '## Acceptance criteria\n\n- [ ] A series repeats weekly',
+    comments: [],
+    parent: null,
+    subIssues: { nodes: [{ number: 51 }, { number: 52 }] },
+    blockedBy: { nodes: [] },
+  });
+  const childItem = (number, state = 'CLOSED', names = ['ready-for-agent']) => ({
+    number,
+    title: `ticket ${number}`,
+    state,
+    labels: labels(...names),
+    assignees: [],
+    blockedBy: { nodes: [] },
+  });
+  const mapGraph = (merged = true, commit = '6'.repeat(40)) => ({
+    data: {
+      repository: {
+        issue: {
+          number: 50,
+          title: '[F022] Weekly series',
+          state: 'OPEN',
+          url: 'https://github.com/o/r/issues/50',
+          body: '## Acceptance criteria\n\n- [ ] A series repeats weekly',
+          subIssues: {
+            totalCount: 2,
+            nodes: [51, 52].map((number) => ({
+              number,
+              title: `ticket ${number}`,
+              state: 'CLOSED',
+              url: `https://github.com/o/r/issues/${number}`,
+              body: '## Acceptance criteria\n\n- [ ] it works',
+              timelineItems: {
+                nodes: merged
+                  ? [
+                      {
+                        closer: {
+                          __typename: 'PullRequest',
+                          number: 60,
+                          title: '[F022] Series',
+                          url: 'https://github.com/o/r/pull/60',
+                          merged: true,
+                          mergedAt: MERGED_AT,
+                          mergeCommit: { oid: commit },
+                          files: { totalCount: 1, nodes: [{ path: 'a.ts' }] },
+                        },
+                      },
+                    ]
+                  : [],
+              },
+            })),
+          },
+        },
+      },
+    },
+  });
+  const record = (repo, line) => {
+    mkdirSync(join(repo, '.work/spec-50'), { recursive: true });
+    writeFileSync(join(repo, '.work/spec-50/spec-review.md'), `# Spec review #50\n\n- ${line}\n`);
+  };
+  const FINAL_CLEAN = (time, sha) => `${time} | final | clean | findings 0 | origin/main ${sha}`;
+
+  const flow = (
+    repo,
+    command,
+    args,
+    { children = [childItem(51), childItem(52)], rules = [] } = {},
+  ) =>
+    spawnSync(join(repo, 'scripts/flow.sh'), [command, ...args], {
+      encoding: 'utf8',
+      env: {
+        ...gh.env([
+          ...rules,
+          { match: '^api user', out: { login: 'thekeyvan' } },
+          { match: '^issue view 50 ', out: specItem() },
+          ...children.map((child) => ({ match: `^issue view ${child.number} `, out: child })),
+          { match: '^api graphql .*-F n=50 ', out: mapGraph(true, shaOf(repo, 'HEAD')) },
+          { match: '^label list ', out: [{ name: 'owner-queue' }, { name: 'owner-decide' }] },
+          { match: '^label create ', out: '' },
+          { match: '^pr edit ', out: '' },
+          { match: '^pr list ', out: [] },
+          { match: '^issue list .*--assignee', out: [] },
+          {
+            match: '^issue list .*--label spec ',
+            out: [
+              {
+                number: 50,
+                title: '[F022] Weekly series',
+                body: '## Acceptance criteria',
+                labels: labels('spec', 'spec-approved'),
+                subIssuesSummary: { completed: 2, total: 2 },
+              },
+            ],
+          },
+          { match: '^issue list ', out: [] },
+        ]),
+        FIVVI_NOW: NOW_ISO,
+        GIT_TERMINAL_PROMPT: '0',
+      },
+    });
+  const graphqlReads = () =>
+    gh.calls().filter(({ args }) => args[0] === 'api' && args[1] === 'graphql').length;
+
+  it('split, no final review recorded: the phase is spec-review and Next says to run it', () => {
+    const repo = checkout('split');
+    const result = flow(repo, 'status', ['50']);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /^Phase: spec-review$/m);
+    assert.match(result.stdout, /^Next: .*final spec review.*spec-review\.sh map 50/m);
+    assert.match(result.stdout, /no final spec review is recorded for #50/);
+  });
+
+  it('split, a clean final review of a SHA that holds the last merged PR: complete', () => {
+    const repo = checkout('split');
+    record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z', shaOf(repo, 'HEAD')));
+    const result = flow(repo, 'status', ['50']);
+    assert.match(result.stdout, /^Phase: complete$/m);
+  });
+
+  it('split, a PR merged after the clean final review (its commit is not in the reviewed SHA): spec-review again', () => {
+    const repo = checkout('split');
+    record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z', shaOf(repo, 'HEAD~1')));
+    const result = flow(repo, 'status', ['50']);
+    assert.match(result.stdout, /^Phase: spec-review$/m);
+    assert.match(result.stdout, /PR #60 .*merged after the last clean final spec review/);
+  });
+
+  it('split, a bug ticket under the spec reopens it: building, and no review is read', () => {
+    const repo = checkout('split');
+    record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z', shaOf(repo, 'HEAD')));
+    const result = flow(repo, 'status', ['50'], {
+      children: [childItem(51), childItem(52, 'OPEN', ['bug', 'ready-for-agent'])],
+    });
+    assert.match(result.stdout, /^Phase: building$/m);
+    assert.match(result.stdout, /Ready now: #52/);
+    assert.equal(graphqlReads(), 0);
+  });
+
+  it('per-pr: complete as before, without reading the review of the spec', () => {
+    const repo = checkout('per-pr');
+    const result = flow(repo, 'status', ['50']);
+    assert.match(result.stdout, /^Phase: complete$/m);
+    assert.equal(graphqlReads(), 0);
+  });
+
+  it('fails, never complete, when the review of the spec cannot be read', () => {
+    const repo = checkout('split');
+    const result = flow(repo, 'status', ['50'], {
+      rules: [{ match: '^api graphql .*-F n=50 ', out: '', status: 1 }],
+    });
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(result.stdout, /Phase: complete/);
+    assert.match(result.stderr, /could not read the spec review of #50/);
+  });
+
+  it('fails when the review setting cannot be read', () => {
+    const repo = checkout('split');
+    writeFileSync(join(repo, '.github/pipeline.json'), '{"ci":"fast","review":"never"}');
+    const result = flow(repo, 'status', ['50']);
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(result.stdout, /Phase: complete/);
+  });
+
+  it('facts carry the setting and the review status of a finished spec', () => {
+    const repo = checkout('split');
+    const result = flow(repo, 'facts', ['50']);
+    const facts = JSON.parse(result.stdout);
+    assert.equal(facts.review, 'split');
+    assert.equal(facts.spec_review.covered, false);
+    assert.match(facts.spec_review.detail, /^not covered/);
+  });
+
+  describe('next and idle', () => {
+    const readyOf = (stdout) =>
+      stdout.split('== Ready for an agent\n')[1].split('== Waiting on the owner')[0];
+
+    it('split: lists the final spec review as ready work, under "Ready for an agent"', () => {
+      const repo = checkout('split');
+      const result = flow(repo, 'next', []);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(
+        readyOf(result.stdout),
+        /^Review spec #50 \[F022\] Weekly series \(spec-review\)$/m,
+      );
+    });
+
+    it('split: idle is work while a spec waits for its final review', () => {
+      const repo = checkout('split');
+      const result = flow(repo, 'idle', []);
+      assert.equal(result.status, 1, result.stdout + result.stderr);
+      assert.match(result.stdout, /Review spec #50/);
+    });
+
+    it('split: nothing to review once a clean final review covers it', () => {
+      const repo = checkout('split');
+      record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z', shaOf(repo, 'HEAD')));
+      const result = flow(repo, 'next', []);
+      assert.doesNotMatch(readyOf(result.stdout), /Review spec/);
+    });
+
+    it('per-pr: lists nothing to review', () => {
+      const repo = checkout('per-pr');
+      const result = flow(repo, 'next', []);
+      assert.equal(result.status, 0, result.stderr);
+      assert.doesNotMatch(readyOf(result.stdout), /Review spec/);
     });
   });
 });

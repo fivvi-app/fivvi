@@ -13,7 +13,7 @@ final class ClientsViewModelTests: XCTestCase {
     private let language = InterfaceLanguage.resolve(.system())
     private let workspace = CurrentWorkspace(
         id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", defaultLocale: .nlNL,
-        timeZone: TimeZone(identifier: "Europe/Amsterdam") ?? .current
+        timeZone: TimeZone(identifier: "Europe/Amsterdam") ?? .current, teamMemberId: "member-1"
     )
 
     /// John's Gym (synthetic): every client has an email address.
@@ -138,7 +138,7 @@ final class ClientsViewModelTests: XCTestCase {
         let api = johnsGym()
         let tokyo = CurrentWorkspace(
             id: workspace.id, name: "Tokyo Gym", defaultLocale: .en,
-            timeZone: TimeZone(identifier: "Asia/Tokyo") ?? .current
+            timeZone: TimeZone(identifier: "Asia/Tokyo") ?? .current, teamMemberId: "member-1"
         )
         let updated = ISO8601DateFormatter().date(from: "2026-11-01T07:42:00Z") ?? .distantPast
         let model = model(api, now: { updated }, in: tokyo)

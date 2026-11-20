@@ -25,7 +25,7 @@ const TOO_LONG = 'x'.repeat(81);
 interface Me {
   name: string | null;
   canCreateWorkspace: boolean;
-  workspaces: { id: string; name: string; slug: string; role: string }[];
+  workspaces: { id: string; name: string; slug: string; teamMemberId: string; role: string }[];
 }
 
 test.describe('F002 first run and the signed-in home', () => {
@@ -71,6 +71,7 @@ test.describe('F002 first run and the signed-in home', () => {
         name: "John's Gym",
         slug: expect.stringMatching(/^johns-gym-\d+$/),
         trainerWord: 'trainer',
+        teamMemberId: expect.any(String),
         role: 'owner',
         capabilities: expect.arrayContaining(['workspace.manage', 'team.manage']),
       },
@@ -180,6 +181,7 @@ test.describe('F002 first run and the signed-in home', () => {
         name: "John's Gym",
         slug: SEEDED_SLUG,
         trainerWord: 'trainer',
+        teamMemberId: expect.any(String),
         role: 'owner',
         capabilities: expect.arrayContaining(['workspace.manage']),
       },
@@ -304,6 +306,7 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
         name: "John's Gym Utrecht",
         slug,
         trainerWord: 'trainer',
+        teamMemberId: expect.any(String),
         role: 'owner',
         capabilities: expect.arrayContaining(['workspace.manage']),
       },
@@ -360,8 +363,10 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
     await page.goto('/login');
     await signInWithCode(page, copy, address);
 
-    await expect(page).toHaveURL(`/w/${slug}`);
-    await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
+    // A Trainer's home is Mijn dag (F013), in the frame of John's Gym.
+    await expect(page).toHaveURL('/me/day');
+    await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
+    await expect(page.getByText(`John's Gym · ${copy.roles.trainer}`)).toBeVisible();
     await expect(page.getByRole('link', { name: copy.workspaceNav.settings })).toHaveCount(0);
 
     await page.goto(`/w/${slug}/settings/general`);

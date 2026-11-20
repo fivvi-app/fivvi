@@ -1,4 +1,5 @@
 import Foundation
+import OpenAPIRuntime
 
 /// Settings that differ per build configuration (Config/*.xcconfig).
 enum AppConfiguration {
@@ -21,6 +22,10 @@ enum AppConfiguration {
         }
         return url
     }
+
+    /// How the generated client reads the API's answers. The API writes every instant as JavaScript does, with
+    /// milliseconds (`2026-11-19T08:00:00.000Z`), which the client's default (`.iso8601`) refuses (F020).
+    static let clientConfiguration = Configuration(dateTranscoder: .iso8601WithFractionalSeconds)
 
     /// Trainer web's first-run screen (`/welcome`): the app opens it in the system browser when the account has no
     /// workspace yet. The web app is the API's host; the API is mounted under `/api` (F002 AC10).

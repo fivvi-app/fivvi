@@ -1,3 +1,8 @@
+// Module: Inviting a trainer: valid for 7 days, 20 invitations a day, one pending per address, not
+//        for someone on the team, and the language of the email (chosen, then the address's
+//        account, then the workspace default)
+// Spec: F011 AC1, AC2, AC8, AC10
+
 import {
   type EmailLanguage,
   type Locale,

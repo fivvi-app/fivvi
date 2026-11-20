@@ -1,3 +1,8 @@
+// Module: The invoice and credit note number `{year}-{number}` (`2028-0001`): the year from the
+//        invoice date in the workspace time zone, restarting at 1 each year; the format lives in
+//        `formatInvoiceNumber`
+// Spec: F059 AC8
+
 // The number of an invoice or credit note (F059, spec #474, open question 1): `{year}-{number}`,
 // e.g. `2027-0001`, one series per workspace restarting at 1 each calendar year. The format is a
 // proposal the owner may change: it lives in `formatInvoiceNumber` alone.

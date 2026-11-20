@@ -7,7 +7,9 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
+  readlinkSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -347,6 +349,8 @@ describe('E002 #112 check.sh prints and writes the test summary', () => {
     write(
       join(bin(), 'pnpm'),
       `#!/usr/bin/env bash
+# turbo's dry run (check.sh asks whether the e2e suite is a cache hit): the scenario's answer, if it has one.
+case "$*" in *"--dry=json"*) cat "$FAKE_RUNS/dry.json" 2>/dev/null; exit 0 ;; esac
 printf '%s\\n' "\${TURBO_FORCE:-}" >> "$FAKE_RUNS/turbo-force"
 case "$*" in
   *"run lint"*) name=unit ;;
@@ -354,6 +358,11 @@ case "$*" in
   *"test:e2e"*) name=e2e ;;
   *) exit 0 ;;
 esac
+# A scenario can hold a run in this task until it is told to go on (the file name.release).
+if [ -e "$FAKE_RUNS/$name.hang" ]; then
+  touch "$FAKE_RUNS/$name.hanging"
+  while [ ! -e "$FAKE_RUNS/$name.release" ]; do /bin/sleep 0.1; done
+fi
 [ ! -f "$FAKE_RUNS/$name.log" ] || cat "$FAKE_RUNS/$name.log"
 exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
 `,
@@ -361,6 +370,13 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     );
     for (const fake of ['docker', 'shellcheck'])
       write(join(bin(), fake), '#!/bin/sh\nexit 0\n', 0o755);
+    // sleep notes that a run slept (the e2e queue polls with it): a test that holds the queue can then
+    // let go after the first poll, not after a time that a loaded machine can outlast.
+    write(
+      join(bin(), 'sleep'),
+      '#!/bin/sh\n[ -z "${FAKE_RUNS:-}" ] || touch "$FAKE_RUNS/slept"\nexec /bin/sleep "$@"\n',
+      0o755,
+    );
 
     mkdirSync(join(repo(), 'scripts'), { recursive: true });
     mkdirSync(join(repo(), '.githooks'));
@@ -382,6 +398,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       'check.sh',
       '_lib.sh',
       '_shellcheck.sh',
+      '_slots.sh',
       'test-summary.sh',
       'test-summary.jq',
       'affected.mjs',
@@ -423,7 +440,8 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     execFileSync('git', ['-C', repo(), ...args], { encoding: 'utf8', env: gitEnv() });
 
   let n = 0;
-  const check = (runs, args = ['--all'], setup = () => {}, extraEnv = {}, timeout = undefined) => {
+  // The folder of a run with the canned logs and exit codes of its scenario, for the fake pnpm.
+  const prepareRuns = (runs) => {
     const dir = join(base, `runs-${n++}`);
     mkdirSync(dir);
     for (const [name, { lines, exit = 0, latin1 = false }] of Object.entries(runs)) {
@@ -432,14 +450,20 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       write(join(dir, `${name}.log`), latin1 ? Buffer.from(text, 'latin1') : text);
       write(join(dir, `${name}.exit`), `${exit}\n`);
     }
+    return dir;
+  };
+  const check = (runs, args = ['--all'], setup = () => {}, extraEnv = {}, timeout = undefined) => {
+    const dir = prepareRuns(runs);
     rmSync(join(repo(), '.work'), { recursive: true, force: true });
     setup();
-    const result = spawnSync(join(repo(), 'scripts/check.sh'), args, {
+    const { CHECK_FROM: from = repo(), ...env } = extraEnv;
+    const result = spawnSync(join(from, 'scripts/check.sh'), args, {
       encoding: 'utf8',
-      cwd: repo(),
-      timeout,
+      cwd: from,
+      // A run that hangs fails its test instead of the whole suite.
+      timeout: timeout ?? 120_000,
       killSignal: 'SIGKILL',
-      env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir, ...extraEnv },
+      env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir, ...env },
     });
     const file = join(repo(), '.work/check-summary.json');
     const forced = join(dir, 'turbo-force');
@@ -607,6 +631,617 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     });
   });
 
+  describe('E001 #1336: one e2e suite at a time on the machine', () => {
+    // Several worktrees running their suites at once load the machine until timing-sensitive tests time out
+    // (a factory run with 4-6 builders, load average 20-45). The suites queue on a lock shared by all worktrees
+    // (the main checkout's .work/e2e.lock), a symbolic link to the pid of the check.sh whose suite runs.
+    const lock = () => join(repo(), '.work/e2e.lock');
+    const lockExists = () => {
+      try {
+        lstatSync(lock());
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const holdLock = (pid) => () => {
+      mkdirSync(join(repo(), '.work'), { recursive: true });
+      symlinkSync(String(pid), lock());
+    };
+    const deadPid = () => spawnSync('true').pid;
+    // A live process whose command line names check.sh, for as long as the test needs it.
+    const runningCheck = (seconds) =>
+      spawn('bash', ['-c', `sleep ${seconds}; :`, 'scripts/check.sh'], { stdio: 'ignore' });
+    // The same, but it ends after the run under test has polled the queue once (the fake sleep leaves a mark).
+    const checkUntilPolled = (slept) =>
+      spawn(
+        'bash',
+        [
+          '-c',
+          'for _ in $(seq 600); do [ -e "$1" ] && exit 0; /bin/sleep 0.1; done',
+          'scripts/check.sh',
+          slept,
+        ],
+        { stdio: 'ignore' },
+      );
+    const fast = { E2E_QUEUE_POLL_SECONDS: '0.2' };
+
+    it('AC2: waits for the check.sh whose suite runs, says so, and then runs its own', () => {
+      let holder;
+      try {
+        const result = check(
+          { unit: unit(), integration, e2e },
+          ['--all'],
+          () => {
+            // The next run's directory is runs-<n - 1> once check() has counted it.
+            holder = checkUntilPolled(join(base, `runs-${n - 1}`, 'slept'));
+            holdLock(holder.pid)();
+          },
+          fast,
+        );
+        assert.equal(result.status, 0, result.stdout);
+        assert.match(
+          result.stdout,
+          new RegExp(`waiting for the e2e queue: the suite of pid ${holder.pid} runs`),
+        );
+        assert.match(result.stdout, /✓ e2e tests/);
+        assert.ok(!lockExists(), 'released at the end');
+      } finally {
+        holder?.kill();
+      }
+    });
+
+    it('AC2: runs at once when nobody holds the queue, and prints no waiting line', () => {
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], () => {}, fast);
+      assert.equal(result.status, 0, result.stdout);
+      assert.doesNotMatch(result.stdout, /waiting for the e2e queue/);
+    });
+
+    it('AC2: takes over the queue of a check.sh that is gone, and of a pid that is not a check.sh now', () => {
+      for (const pid of [deadPid(), process.pid]) {
+        const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(pid), fast);
+        assert.equal(result.status, 0, result.stdout);
+        assert.doesNotMatch(result.stdout, /waiting for the e2e queue/);
+        assert.ok(!lockExists(), 'released at the end');
+      }
+    });
+
+    it('AC2: gives up after the queue timeout, names the holder, runs no e2e and leaves the holder its lock', () => {
+      const holder = runningCheck(120);
+      try {
+        const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(holder.pid), {
+          ...fast,
+          E2E_QUEUE_TIMEOUT_SECONDS: '1',
+        });
+        assert.equal(result.status, 1, result.stdout);
+        assert.match(result.stdout, /✗ e2e tests/);
+        assert.match(result.stdout, new RegExp(`still held by pid ${holder.pid} after 1 s`));
+        assert.ok(lockExists(), 'the holder keeps its lock');
+        assert.equal(result.summary.suites.find((s) => s.kind === 'e2e').status, 'not-run');
+      } finally {
+        holder.kill();
+      }
+    });
+
+    it('AC2: stops after three failed takeovers of a stale queue lock instead of spinning', () => {
+      // A stale lock (its pid is gone) that cannot be removed: rm fails on it, as on a read-only .work.
+      const failingRm = join(base, 'failing-rm');
+      mkdirSync(failingRm, { recursive: true });
+      write(
+        join(failingRm, 'rm'),
+        '#!/bin/sh\ncase "$*" in *e2e.lock*) exit 1 ;; esac\nexec /bin/rm "$@"\n',
+        0o755,
+      );
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(deadPid()), {
+        ...fast,
+        PATH: `${failingRm}:${bin()}:${process.env.PATH}`,
+      });
+      assert.equal(result.status, 1, result.stdout);
+      assert.match(result.stdout, /✗ e2e tests/);
+      assert.match(result.stdout, /could not take the e2e queue .*e2e\.lock.* 3 times/);
+      assert.equal(result.summary.suites.find((s) => s.kind === 'e2e').status, 'not-run');
+    });
+
+    it('AC2: the cap counts takeovers in a row: a live holder in between resets it', () => {
+      // The fake rm leaves a stale lock twice, then a live holder's lock; once that holder is done, the lock is stale
+      // again. That is four takeovers in all, but never more than three in a row.
+      const fakeRm = join(base, 'resetting-rm');
+      mkdirSync(fakeRm, { recursive: true });
+      const holderPid = join(fakeRm, 'holder-pid');
+      const counter = join(fakeRm, 'count');
+      write(
+        join(fakeRm, 'rm'),
+        `#!/bin/bash
+case "$*" in *e2e.lock*) ;; *) exec /bin/rm "$@" ;; esac
+lock="\${!#}"
+c=$(( $(cat "${counter}" 2>/dev/null || echo 0) + 1 ))
+echo "$c" > "${counter}"
+if [ "$c" -le 2 ]; then /bin/rm -f "$lock"; ln -s ${deadPid()} "$lock"; exit 0; fi
+if [ "$c" -eq 3 ]; then /bin/rm -f "$lock"; ln -s "$(cat "${holderPid}")" "$lock"; exit 0; fi
+exec /bin/rm "$@"
+`,
+        0o755,
+      );
+      rmSync(counter, { force: true });
+      let holder;
+      try {
+        const result = check(
+          { unit: unit(), integration, e2e },
+          ['--all'],
+          () => {
+            holder = checkUntilPolled(join(base, `runs-${n - 1}`, 'slept'));
+            writeFileSync(holderPid, String(holder.pid));
+            holdLock(deadPid())();
+          },
+          { ...fast, PATH: `${fakeRm}:${bin()}:${process.env.PATH}` },
+        );
+        assert.equal(result.status, 0, result.stdout);
+        assert.match(result.stdout, /✓ e2e tests/);
+        assert.doesNotMatch(result.stdout, /could not take the e2e queue/);
+        assert.ok(!lockExists(), 'released at the end');
+      } finally {
+        holder?.kill();
+      }
+    });
+
+    it('AC2: the queue is shared by the worktrees: a run in a linked worktree waits for a lock in the main checkout', () => {
+      const linked = join(base, 'linked-worktree');
+      git('worktree', 'add', '--quiet', '--detach', linked);
+      mkdirSync(join(linked, 'node_modules'), { recursive: true });
+      let holder;
+      try {
+        const dir = join(base, `runs-${n}`);
+        const result = check(
+          { unit: unit(), integration, e2e },
+          ['--all'],
+          () => {
+            holder = checkUntilPolled(join(dir, 'slept'));
+            holdLock(holder.pid)();
+          },
+          { ...fast, CHECK_FROM: linked },
+        );
+        assert.equal(result.status, 0, result.stdout);
+        assert.match(
+          result.stdout,
+          new RegExp(`waiting for the e2e queue: the suite of pid ${holder.pid} runs`),
+        );
+        assert.match(result.stdout, /✓ e2e tests/);
+        assert.ok(!lockExists(), 'released at the end');
+        assert.ok(
+          !existsSync(join(linked, '.work/e2e.lock')),
+          'no queue of its own in the worktree',
+        );
+      } finally {
+        holder?.kill();
+        git('worktree', 'remove', '--force', linked);
+      }
+    });
+
+    describe('E001 #1388: the turbo run and the e2e suite take a heavy slot of the machine', () => {
+      const slotDir = () => join(repo(), '.work/slots/heavy');
+      const slotFiles = () => (existsSync(slotDir()) ? readdirSync(slotDir()) : []);
+      // Two other jobs (any process that runs) hold both heavy slots, until they end.
+      // With `polled`, they end once the run under test has polled for a slot once (the fake sleep leaves a mark).
+      const holdBoth = (seconds, polled = false) => {
+        const holders = [1, 2].map(() =>
+          polled
+            ? spawn(
+                'bash',
+                [
+                  '-c',
+                  'for _ in $(seq 600); do [ -e "$1" ] && exit 0; /bin/sleep 0.1; done',
+                  'holder',
+                  join(base, `runs-${n}`, 'slept'),
+                ],
+                { stdio: 'ignore' },
+              )
+            : spawn('sleep', [String(seconds)], { stdio: 'ignore' }),
+        );
+        return {
+          holders,
+          setup: () => {
+            mkdirSync(slotDir(), { recursive: true });
+            for (const [i, holder] of holders.entries()) {
+              symlinkSync(
+                `${holder.pid}|${Math.floor(Date.now() / 1000)}||test-ios.sh (other-${i})`,
+                join(slotDir(), `slot-${i + 1}`),
+              );
+            }
+          },
+          stop: () => {
+            for (const holder of holders) holder.kill();
+          },
+        };
+      };
+      const quick = { FIVVI_SLOT_POLL_SECONDS: '0.2', E2E_QUEUE_POLL_SECONDS: '0.2' };
+
+      it('AC2: a check with free slots runs every suite, waits for none and leaves no slot behind', () => {
+        const result = check({ unit: unit(), integration, e2e }, ['--all'], () => {}, quick);
+        assert.equal(result.status, 0, result.stdout);
+        assert.doesNotMatch(result.stderr, /waiting for a heavy slot/);
+        assert.deepEqual(slotFiles(), []);
+      });
+
+      it('AC2: waits for a free heavy slot, says who holds them, and runs when one ends', () => {
+        const both = holdBoth(0, true);
+        try {
+          const result = check({ unit: unit(), integration, e2e }, ['--all'], both.setup, quick);
+          assert.equal(result.status, 0, result.stdout);
+          assert.match(result.stderr, /waiting for a heavy slot \(2 places, all held/);
+          assert.match(result.stderr, /test-ios\.sh \(other-0\), \d+ min/);
+          assert.match(result.stdout, /✓ integration tests/);
+          assert.match(result.stdout, /✓ e2e tests/);
+          // A holder that is gone leaves its link behind for the next job; what check.sh took is given back.
+          assert.deepEqual(
+            slotFiles().filter((f) => /check\.sh/.test(readlinkSync(join(slotDir(), f)))),
+            [],
+          );
+        } finally {
+          both.stop();
+        }
+      });
+
+      it('AC3: gives up after the slot timeout with a message, runs no suite, and leaves the holders their slots', () => {
+        const both = holdBoth(120);
+        try {
+          const result = check({ unit: unit(), integration, e2e }, ['--all'], both.setup, {
+            ...quick,
+            FIVVI_SLOT_TIMEOUT_SECONDS: '1',
+          });
+          assert.equal(result.status, 1, result.stdout);
+          assert.match(result.stdout, /✗ integration tests/);
+          assert.match(result.stdout, /no heavy slot free after \d+ s/);
+          assert.equal(
+            result.summary.suites.find((s) => s.kind === 'integration').status,
+            'not-run',
+          );
+          assert.equal(slotFiles().length, 2);
+        } finally {
+          both.stop();
+        }
+      });
+
+      it('AC3: when the wait for the slot of the turbo run timed out, the e2e suite does not queue for its own', () => {
+        const both = holdBoth(120);
+        // Another check.sh holds the e2e queue for longer than the test lasts: queueing for it would time out below.
+        const other = spawn('bash', ['-c', 'sleep 120; :', 'scripts/check.sh'], {
+          stdio: 'ignore',
+        });
+        try {
+          const result = check(
+            { unit: unit(), integration, e2e },
+            ['--all'],
+            () => {
+              both.setup();
+              symlinkSync(String(other.pid), join(repo(), '.work/e2e.lock'));
+            },
+            { ...quick, FIVVI_SLOT_TIMEOUT_SECONDS: '1', E2E_QUEUE_TIMEOUT_SECONDS: '600' },
+            30_000,
+          );
+          assert.equal(result.status, 1, result.stdout);
+          assert.match(result.stdout, /✗ e2e tests/);
+          assert.doesNotMatch(result.stdout, /waiting for the e2e queue/);
+          assert.equal(result.summary.suites.find((s) => s.kind === 'e2e').status, 'not-run');
+        } finally {
+          other.kill();
+          both.stop();
+        }
+      });
+
+      // A check.sh run for the tests that need to see it while it runs: its own process group (so that a kill reaches the
+      // fake turbo too), its output collected, and `exit` when it is done. `from` is the checkout it runs in.
+      const startCheck = (runsDir, args, { from = repo(), env = {} } = {}) => {
+        const child = spawn(join(from, 'scripts/check.sh'), args, {
+          cwd: from,
+          detached: true,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          env: {
+            ...gitEnv(),
+            PATH: `${bin()}:${process.env.PATH}`,
+            FAKE_RUNS: runsDir,
+            ...quick,
+            ...env,
+          },
+        });
+        const out = { stdout: '', stderr: '' };
+        child.stdout.on('data', (d) => (out.stdout += d));
+        child.stderr.on('data', (d) => (out.stderr += d));
+        const exit = new Promise((resolve) =>
+          child.on('close', (status, signal) => resolve({ status, signal })),
+        );
+        return {
+          child,
+          out,
+          exit,
+          // The fake turbo of task `name` is running, held until `go` is called.
+          inTask: (name) => existsSync(join(runsDir, `${name}.hanging`)),
+          go: (name) => writeFileSync(join(runsDir, `${name}.release`), ''),
+          killGroup: (signal) => process.kill(-child.pid, signal),
+        };
+      };
+      const hangIn = (runs, ...names) => {
+        const dir = prepareRuns(runs);
+        for (const name of names) writeFileSync(join(dir, `${name}.hang`), '');
+        return dir;
+      };
+      const until = async (condition, what, ms = 30_000) => {
+        const begin = Date.now();
+        while (!condition()) {
+          if (Date.now() - begin > ms) assert.fail(`timed out waiting for ${what}`);
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+      };
+      const freshWork = () => rmSync(join(repo(), '.work'), { recursive: true, force: true });
+      // The slot links check.sh runs hold (the others belong to the test).
+      const checkSlots = () =>
+        slotFiles().filter((f) => /check\.sh \(/.test(readlinkSync(join(slotDir(), f))));
+      const holderOf = (file) => Number(readlinkSync(join(slotDir(), file)).split('|')[0]);
+      const children = [];
+      afterEach(() => {
+        for (const child of children.splice(0)) {
+          try {
+            process.kill(-child.pid, 'SIGKILL');
+          } catch {
+            // already gone
+          }
+        }
+      });
+      const tracked = (run) => {
+        children.push(run.child);
+        return run;
+      };
+
+      it('AC1: --fast, the default run and --all hold one heavy slot for the whole turbo run, and give it back', async () => {
+        for (const args of [['--all', '--fast'], ['--all']]) {
+          freshWork();
+          const run = tracked(startCheck(hangIn({ unit: unit(), integration, e2e }, 'unit'), args));
+          await until(() => run.inTask('unit'), `turbo to run (${args})`);
+          assert.deepEqual(
+            checkSlots().map(holderOf),
+            [run.child.pid],
+            `${args}: one slot, held by check.sh`,
+          );
+          run.go('unit');
+          const { status } = await run.exit;
+          assert.equal(status, 0, run.out.stdout);
+          assert.deepEqual(slotFiles(), [], `${args}: given back at the end`);
+        }
+      });
+
+      it('AC1: the integration part reuses the slot of the run: one place is enough, and it holds one, not two', async () => {
+        freshWork();
+        const dir = hangIn({ unit: unit(), integration, e2e }, 'integration');
+        const run = tracked(
+          startCheck(dir, ['--all'], {
+            env: { FIVVI_HEAVY_SLOTS: '1', FIVVI_SLOT_TIMEOUT_SECONDS: '20' },
+          }),
+        );
+        await until(() => run.inTask('integration'), 'the integration tests to run');
+        assert.equal(checkSlots().length, 1);
+        run.go('integration');
+        const { status } = await run.exit;
+        assert.equal(status, 0, run.out.stdout);
+        assert.doesNotMatch(run.out.stderr, /waiting for a heavy slot/);
+        assert.match(run.out.stdout, /✓ integration tests/);
+        assert.deepEqual(slotFiles(), []);
+      });
+
+      it('AC1: a suite that waits for the e2e queue holds no slot meanwhile, and takes one when the queue is its', async () => {
+        freshWork();
+        mkdirSync(join(repo(), '.work'), { recursive: true });
+        // Another check.sh (any live process with check.sh in its command line) holds the e2e queue.
+        const other = spawn('bash', ['-c', 'sleep 60; :', 'scripts/check.sh'], { stdio: 'ignore' });
+        symlinkSync(String(other.pid), join(repo(), '.work/e2e.lock'));
+        try {
+          const dir = hangIn({ unit: unit(), integration, e2e }, 'e2e');
+          const run = tracked(startCheck(dir, ['--all']));
+          await until(
+            () => /waiting for the e2e queue/.test(run.out.stdout),
+            'the wait for the queue',
+          );
+          assert.deepEqual(checkSlots(), [], 'no slot while it waits for the queue');
+          other.kill();
+          await until(() => run.inTask('e2e'), 'the e2e suite to run');
+          assert.deepEqual(
+            checkSlots().map(holderOf),
+            [run.child.pid],
+            'a slot while the suite runs',
+          );
+          run.go('e2e');
+          assert.equal((await run.exit).status, 0, run.out.stdout);
+          assert.deepEqual(slotFiles(), []);
+        } finally {
+          other.kill();
+        }
+      });
+
+      it('AC1: a second and a third check wait while two hold the slots, and run when one ends', async () => {
+        freshWork();
+        const worktrees = ['slot-wt-a', 'slot-wt-b'].map((name) => join(base, name));
+        for (const wt of worktrees) {
+          git('worktree', 'add', '--quiet', '--detach', wt);
+          mkdirSync(join(wt, 'node_modules'), { recursive: true });
+        }
+        try {
+          const first = tracked(startCheck(hangIn({ unit: unit() }, 'unit'), ['--all', '--fast']));
+          await until(() => first.inTask('unit'), 'the first check to run');
+          const second = tracked(
+            startCheck(hangIn({ unit: unit() }, 'unit'), ['--all', '--fast'], {
+              from: worktrees[0],
+            }),
+          );
+          await until(() => second.inTask('unit'), 'the second check to run');
+          assert.equal(checkSlots().length, 2, 'two checks hold the two slots');
+          const third = tracked(
+            startCheck(hangIn({ unit: unit() }, 'unit'), ['--all', '--fast'], {
+              from: worktrees[1],
+            }),
+          );
+          await until(
+            () => /waiting for a heavy slot \(2 places, all held/.test(third.out.stderr),
+            'the wait message',
+          );
+          // It says who holds the slots, with the label (the worktree) and age.
+          assert.match(third.out.stderr, /pid \d+ \(check\.sh \(repo\), \d+ min\)/);
+          assert.match(third.out.stderr, /pid \d+ \(check\.sh \(slot-wt-a\), \d+ min\)/);
+          assert.ok(!third.inTask('unit'), 'it does not run while both slots are held');
+          first.go('unit');
+          assert.equal((await first.exit).status, 0);
+          await until(() => third.inTask('unit'), 'the waiting check to take the freed slot');
+          second.go('unit');
+          third.go('unit');
+          assert.equal((await second.exit).status, 0);
+          assert.equal((await third.exit).status, 0, third.out.stdout);
+          assert.deepEqual(slotFiles(), []);
+        } finally {
+          for (const wt of worktrees) git('worktree', 'remove', '--force', wt);
+        }
+      });
+
+      it('AC2: gives the slot back when a turbo task fails', () => {
+        const failingUnit = {
+          lines: [...vitest('api', 'test', '1 failed | 28 passed (29)')],
+          exit: 1,
+        };
+        const result = check(
+          { unit: failingUnit, integration, e2e },
+          ['--all', '--fast'],
+          () => {},
+          quick,
+        );
+        assert.equal(result.status, 1, result.stdout);
+        assert.deepEqual(slotFiles(), []);
+      });
+
+      it('AC2: gives the slot back when the run is interrupted or terminated', async () => {
+        for (const signal of ['SIGINT', 'SIGTERM']) {
+          freshWork();
+          const run = tracked(startCheck(hangIn({ unit: unit() }, 'unit'), ['--all', '--fast']));
+          await until(() => run.inTask('unit'), 'turbo to run');
+          assert.equal(checkSlots().length, 1);
+          run.killGroup(signal);
+          await run.exit;
+          assert.deepEqual(slotFiles(), [], `${signal}: the slot is given back`);
+        }
+      });
+
+      it('AC3: with CI set and with FIVVI_SLOTS=off a check takes no slot and does not wait for one', () => {
+        for (const env of [{ CI: 'true' }, { FIVVI_SLOTS: 'off' }]) {
+          const both = holdBoth(120);
+          try {
+            const result = check({ unit: unit(), integration, e2e }, ['--all'], both.setup, {
+              ...quick,
+              FIVVI_SLOT_TIMEOUT_SECONDS: '1',
+              ...env,
+            });
+            assert.equal(result.status, 0, `${JSON.stringify(env)}: ${result.stdout}`);
+            assert.doesNotMatch(result.stderr, /waiting for a heavy slot/);
+            assert.deepEqual(checkSlots(), []);
+            assert.equal(slotFiles().length, 2, 'the holders keep their slots');
+          } finally {
+            both.stop();
+          }
+        }
+      });
+    });
+
+    const dryRun = (status) =>
+      JSON.stringify({
+        tasks: [
+          { taskId: '@fivvi/web#build', task: 'build', cache: { status: 'MISS' } },
+          // Turbo lists test:e2e for every package; those without the script have no command and never hit the cache.
+          {
+            taskId: '@fivvi/api#test:e2e',
+            task: 'test:e2e',
+            command: '<NONEXISTENT>',
+            cache: { status: 'MISS' },
+          },
+          {
+            taskId: '@fivvi/web#test:e2e',
+            task: 'test:e2e',
+            command: 'playwright test',
+            cache: { status },
+          },
+        ],
+      });
+    const withDryRun = (status) => () => {
+      write(join(base, `runs-${n - 1}`, 'dry.json'), dryRun(status));
+    };
+
+    it('AC2: a suite that is a turbo cache hit replays its log at once and does not wait for the queue', () => {
+      const holder = runningCheck(120);
+      try {
+        const result = check(
+          { unit: unit(), integration, e2e },
+          ['--all'],
+          () => {
+            withDryRun('HIT')();
+            holdLock(holder.pid)();
+          },
+          fast,
+        );
+        assert.equal(result.status, 0, result.stdout);
+        assert.doesNotMatch(result.stdout, /waiting for the e2e queue/);
+        assert.match(result.stdout, /✓ e2e tests/);
+        assert.ok(lockExists(), 'the holder keeps its lock');
+      } finally {
+        holder.kill();
+      }
+    });
+
+    it('AC2: a cache miss, and a forced run, still wait for the queue', () => {
+      for (const [status, extraEnv] of [
+        ['MISS', {}],
+        ['HIT', { TURBO_FORCE: '1' }],
+      ]) {
+        const holder = runningCheck(120);
+        try {
+          const result = check(
+            { unit: unit(), integration, e2e },
+            ['--all'],
+            () => {
+              withDryRun(status)();
+              holdLock(holder.pid)();
+            },
+            { ...fast, ...extraEnv, E2E_QUEUE_TIMEOUT_SECONDS: '1' },
+          );
+          assert.equal(result.status, 1, `${status}: ${result.stdout}`);
+          assert.match(result.stdout, /still held by pid/);
+        } finally {
+          holder.kill();
+        }
+      }
+    });
+
+    it('AC2: releases the queue when the suite passes and when it fails', () => {
+      assert.equal(check({ unit: unit(), integration, e2e }, ['--all'], () => {}, fast).status, 0);
+      assert.ok(!lockExists());
+      const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 1 };
+      assert.equal(
+        check({ unit: unit(), integration, e2e: e2eFails }, ['--all'], () => {}, fast).status,
+        1,
+      );
+      assert.ok(!lockExists());
+    });
+
+    it('AC2: a run without e2e (--fast, or no web change) never waits for the queue', () => {
+      const holder = runningCheck(120);
+      try {
+        const result = check(
+          { unit: unit(), integration, e2e },
+          ['--all', '--fast'],
+          holdLock(holder.pid),
+          fast,
+        );
+        assert.equal(result.status, 0, result.stdout);
+        assert.doesNotMatch(result.stdout, /waiting for the e2e queue/);
+        assert.ok(lockExists(), 'the holder keeps its lock');
+      } finally {
+        holder.kill();
+      }
+    });
+  });
+
   it('E002 #570 AC1: the rerun of a failed e2e suite is check.sh itself, forced, which sets the e2e port', () => {
     const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 0 };
     const result = check({ unit: unit(), integration, e2e: e2eFails });
@@ -651,6 +1286,22 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       result.summary.suites.find((s) => s.name === 'api'),
       suite('api', 'unit', 'pass', 29, 0, 0),
     );
+  });
+
+  it('E001 #1336: shows the failure of a task with a very long log without minutes of processing', () => {
+    // bash 3.2 (macOS) takes minutes to replace the newlines of a log of 4000 lines in one expansion; a failing
+    // root test run (about 200 KB) made check.sh look hung for 40 minutes in a factory run.
+    const longLog = Array.from({ length: 6000 }, (_, i) => `//:test:root: line ${i} of a long log`);
+    const result = check({
+      unit: {
+        lines: [...longLog, '//#test:root:  ERROR  command (/x) pnpm run test exited (1)'],
+        exit: 1,
+      },
+      integration,
+      e2e,
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stdout, /\n {4}\/\/:test:root: line 5999 of a long log\n/);
   });
 
   it('E002 #112 AC1: shows the output of a failing root test run', () => {

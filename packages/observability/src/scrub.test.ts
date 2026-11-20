@@ -12,6 +12,8 @@ const COOKIE = 'session=test-cookie-value';
 const USER_ID = '0b9c4f2e-5d6a-4c1b-9e8f-1a2b3c4d5e6f';
 const WORKSPACE_ID = '7d3e2a1b-8c9d-4e0f-a1b2-c3d4e5f6a7b8';
 const CLIENT_ID = '3f2e1d0c-9b8a-4765-8432-10fedcba9876';
+// A synthetic invitation link token: a bearer secret (F011 AC10).
+const INVITATION_TOKEN = 'fake-invitation-token-for-tests';
 const ROUTE = '/v1/clients/:clientId/notes';
 const PATH = `/api/v1/clients/${CLIENT_ID}/notes`;
 const PERSONAL = [
@@ -142,6 +144,24 @@ describe('E009 scrubber', () => {
     });
   });
 
+  it('F022: keeps the tags of the cron task, run and class series, and still drops every other tag', () => {
+    const event = eventWithPersonalData();
+    event.tags = {
+      'cron.task': 'extend-class-series-horizon',
+      'cron.run_id': USER_ID,
+      'class_series.id': CLIENT_ID,
+      client_name: CLIENT_NAME,
+    };
+
+    const scrubbed = scrubEvent(event);
+
+    expect(scrubbed.tags).toEqual({
+      'cron.task': 'extend-class-series-horizon',
+      'cron.run_id': USER_ID,
+      'class_series.id': CLIENT_ID,
+    });
+  });
+
   it('AC4: keeps only UUIDs in the user context', () => {
     const event = eventWithPersonalData();
     event.user = { id: EMAIL, organization_id: CLIENT_NAME };
@@ -151,12 +171,43 @@ describe('E009 scrubber', () => {
 
   it('AC4: masks email addresses in the URL path', () => {
     const event = eventWithPersonalData();
-    event.request = { method: 'GET', url: `/api/v1/invitations/${encodeURIComponent(EMAIL)}` };
+    event.request = { method: 'GET', url: `/api/v1/clients/${encodeURIComponent(EMAIL)}` };
 
     expect(scrubEvent(event).request).toEqual({
       method: 'GET',
-      url: '/api/v1/invitations/[email]',
+      url: '/api/v1/clients/[email]',
     });
+  });
+
+  it('F011 AC10: replaces the token of an invitation link in the URL, breadcrumbs and messages', () => {
+    const event = eventWithPersonalData();
+    event.request = {
+      method: 'GET',
+      url: `https://app.example.com/invitations/${INVITATION_TOKEN}?x=1`,
+    };
+    event.breadcrumbs = [
+      {
+        type: 'http',
+        category: 'fetch',
+        data: { method: 'POST', url: `/api/v1/invitations/${INVITATION_TOKEN}/accept` },
+      },
+    ];
+    event.message = `GET /api/v1/invitations/${INVITATION_TOKEN} answered 500.`;
+
+    const scrubbed = scrubEvent(event);
+
+    expect(scrubbed.request?.url).toBe('https://app.example.com/invitations/{token}');
+    expect(scrubbed.breadcrumbs?.[0]?.data?.url).toBe('/api/v1/invitations/{token}/accept');
+    expect(scrubbed.message).toBe('GET /api/v1/invitations/{token} answered 500.');
+    expect(JSON.stringify(scrubbed)).not.toContain(INVITATION_TOKEN);
+  });
+
+  it('F011 AC10: leaves the ID of a trainer invitation, which is no secret, as it is', () => {
+    const event = eventWithPersonalData();
+    const path = `/api/v1/workspaces/${WORKSPACE_ID}/trainer-invitations/${CLIENT_ID}/resend`;
+    event.request = { method: 'POST', url: path };
+
+    expect(scrubEvent(event).request?.url).toBe(path);
   });
 
   it('AC4: breadcrumbs keep the HTTP method, status code and URL path only', () => {

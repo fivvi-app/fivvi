@@ -1,8 +1,9 @@
 package app.fivvi.core.auth
 
 import app.fivvi.api.apis.ClientsApi
-import app.fivvi.api.apis.HelloApi
+import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.MeApi
+import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.apis.WorkspacesApi
@@ -23,12 +24,13 @@ class ApiServices(private val baseUrl: String, session: Session, private val net
     private val authenticated = plain.newBuilder().addInterceptor(AuthInterceptor(session)).withNetwork().build()
 
     private val apiClient: ApiClient by lazy { ApiClient(baseUrl, authenticated.newBuilder()) }
-    val helloApi: HelloApi by lazy { apiClient.createService(HelloApi::class.java) }
     val signInApi: SignInApi by lazy { apiClient.createService(SignInApi::class.java) }
     val meApi: MeApi by lazy { apiClient.createService(MeApi::class.java) }
     val workspacesApi: WorkspacesApi by lazy { apiClient.createService(WorkspacesApi::class.java) }
     val clientsApi: ClientsApi by lazy { apiClient.createService(ClientsApi::class.java) }
     val trainersApi: TrainersApi by lazy { apiClient.createService(TrainersApi::class.java) }
+    val sessionsApi: SessionsApi by lazy { apiClient.createService(SessionsApi::class.java) }
+    val locationsApi: LocationsApi by lazy { apiClient.createService(LocationsApi::class.java) }
 
     /**
      * The sign-in API for one request that carries [token] instead of the session's: sign-out deletes the stored token

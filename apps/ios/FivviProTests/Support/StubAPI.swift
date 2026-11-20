@@ -4,12 +4,6 @@ import FivviAPI
 
 /// A stub of the generated client's `APIProtocol`, the view models' test seam (#34). It records what it was asked.
 actor StubAPI: APIProtocol {
-    enum Answer: Sendable {
-        case greeting(key: String)
-        case status(Int)
-        case offline
-    }
-
     /// What `requestSignIn` answers.
     enum SignInAnswer: Sendable {
         case accepted
@@ -58,6 +52,9 @@ actor StubAPI: APIProtocol {
         var trainsHere: Bool?
     }
 
+    /// The person's own team-member ID in a workspace (synthetic): one per workspace.
+    static func memberID(of workspaceID: String) -> String { "member-of-\(workspaceID)" }
+
     /// What `listMyWorkspaces` answers.
     enum MyWorkspacesAnswer: Sendable {
         case workspaces([Membership])
@@ -87,7 +84,6 @@ actor StubAPI: APIProtocol {
         case hang
     }
 
-    private var answer: Answer
     private var signOutAnswer = SignOutAnswer.noContent
     private var signInAnswer = SignInAnswer.accepted
     private var exchangeAnswer = ExchangeAnswer.unauthorized
@@ -96,9 +92,10 @@ actor StubAPI: APIProtocol {
     private var updateMeAnswer = UpdateMeAnswer.accepted
     /// The clients of the workspace and what the client routes answer (F006).
     let clients = StubClients()
+    /// The session routes and what they answer (F020).
+    let sessions = StubSessions()
     private var goneWorkspaces: Set<String> = []
     private var workspaceStatus: Int?
-    private(set) var requestedLocales: [Components.Schemas.Locale?] = []
     /// The bodies of every `requestSignIn`, `exchangeSignInCode` and the number of `getMe` calls so far.
     private(set) var signInRequests: [Components.Schemas.SignInRequest] = []
     private(set) var exchanges: [Components.Schemas.SignInTokenRequest] = []
@@ -123,10 +120,6 @@ actor StubAPI: APIProtocol {
 
     /// How many `signOut` calls are waiting for `releaseHangingSignOuts()`.
     var hangingSignOuts: Int { hanging.count }
-
-    init(_ answer: Answer = .offline) {
-        self.answer = answer
-    }
 
     func answerSignIn(with answer: SignInAnswer) {
         signInAnswer = answer
@@ -183,22 +176,6 @@ actor StubAPI: APIProtocol {
 
     func answerMe(with answer: MeAnswer) {
         meAnswer = answer
-    }
-
-    func answer(with answer: Answer) {
-        self.answer = answer
-    }
-
-    func getHello(_ input: Operations.GetHello.Input) async throws -> Operations.GetHello.Output {
-        requestedLocales.append(input.query.locale)
-        switch answer {
-        case let .greeting(key):
-            return .ok(.init(body: .json(.init(greetingKey: key, locale: input.query.locale ?? .en))))
-        case let .status(code):
-            return .undocumented(statusCode: code, .init())
-        case .offline:
-            throw URLError(.notConnectedToInternet)
-        }
     }
 
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
@@ -339,6 +316,7 @@ extension StubAPI {
             return .ok(.init(body: .json(memberships.map {
                 .init(
                     workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, trainerWord: .trainer, role: $0.role,
+                    teamMemberId: Self.memberID(of: $0.workspaceID),
                     capabilities: $0.capabilities ?? Self.capabilities(of: $0.role),
                     trainsHere: $0.trainsHere ?? ($0.role == .trainer)
                 )

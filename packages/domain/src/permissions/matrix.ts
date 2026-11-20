@@ -1,3 +1,6 @@
+// Module: The permission matrix: which capabilities a team role has in its workspace; routes and clients ask for a capability, never a role name.
+// Spec: F004
+
 /**
  * The permission matrix (F004, `PRODUCT.md §9`): which capabilities a team role has in its
  * workspace. Pure data and lookups, no I/O. Routes, the web and the apps ask for a capability and
@@ -25,7 +28,11 @@ export const CAPABILITIES = [
   'class.read',
   'join_link.view',
   'join_link.renew',
+  'booking_link.manage',
+  'booking_link.copy',
   'access_log.read',
+  'invoices.manage',
+  'commerce.offers.manage',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
@@ -39,6 +46,7 @@ const MATRIX: Readonly<Record<Role, readonly Capability[]>> = {
     'session.private.manage.own',
     'class.read',
     'join_link.view',
+    'booking_link.copy',
   ],
 };
 

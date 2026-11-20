@@ -126,7 +126,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
       'trainer',
     );
     await expect(page.getByText('Mike')).toHaveCount(0);
-    // The Owner's row has no action; a Trainer's has; nothing adds people (invitations are F011).
+    // The Owner's row has no action; a Trainer's has; no link adds people (F011's invite is a button).
     await expect(rows.nth(1).getByRole('button')).toHaveCount(0);
     await expect(rows.nth(2).getByRole('button', { name: copy.team.remove })).toBeVisible();
     await expect(page.getByRole('main').getByRole('link')).toHaveCount(0);

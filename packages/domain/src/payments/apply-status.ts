@@ -1,3 +1,7 @@
+// Module: `applyProviderStatus(ledger, paymentId, fetched, options)`: the only way a payment's
+//        status changes; appends one status line, or none for a replay or an out-of-order status
+// Spec: E019 AC7
+
 import type { PaymentLedger, PaymentRecord, StatusSource } from './ledger.ts';
 import { decideStatusChange, type PaymentStatus } from './status.ts';
 

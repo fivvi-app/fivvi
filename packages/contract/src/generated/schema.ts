@@ -99,7 +99,7 @@ export interface paths {
         put?: never;
         /**
          * Ask for a code to change the signed-in account’s email address
-         * @description Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
+         * @description Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; a free address under the limits gets the code, an address that already has an account gets a notice instead of a code (EM-36), and nothing is merged. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
          */
         post: operations["requestEmailChange"];
         delete?: never;
@@ -119,7 +119,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm the code and change the signed-in account’s email address
-         * @description With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
+         * @description With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working, and the old address gets a notice that it changed (EM-35). Workspaces, invitations and the sign-up allowlist stay as they were: they hang on the account and on the addresses they were written for. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
          */
         post: operations["confirmEmailChange"];
         delete?: never;
@@ -429,7 +429,7 @@ export interface paths {
         };
         /**
          * What an invitation link is for
-         * @description Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter and the masked address the invitation is for, and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+         * @description Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the address the invitation is for (also masked) and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`, with no address.
          */
         get: operations["getInvitation"];
         put?: never;
@@ -595,7 +595,7 @@ export interface paths {
         put?: never;
         /**
          * Plan a private session
-         * @description Plans a private session for a client, or a duo session for two clients (`secondClientId`, F066), with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default; for a duo, to each client in their own language, naming the other by first name only. The same client twice answers `400` on `secondClientId`; a second client that is not in the workspace answers `404`. Only a team member plans a duo: no client route plans, books or joins one.
+         * @description Plans a private session for a client, or a duo session for two clients (`secondClientId`, F066), with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default; for a duo, to each client in their own language, naming the other by first name only. The same client twice answers `400` on `secondClientId`; a second client that is not in the workspace answers `404`. Only a team member plans a duo: no client route plans, books or joins one. When the trainer already has a scheduled session of this workspace that overlaps (back-to-back does not), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
          */
         post: operations["createPrivateSession"];
         delete?: never;
@@ -615,7 +615,7 @@ export interface paths {
         put?: never;
         /**
          * Reschedule a private session
-         * @description Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+         * @description Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When the trainer already has a scheduled session of this workspace at the new time (back-to-back does not overlap), the answer is `409` with the code `trainer_conflict` and those sessions, unless `allowConflicts` is `true` (PS-07); the version is checked first. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
          */
         post: operations["reschedulePrivateSession"];
         delete?: never;
@@ -663,7 +663,7 @@ export interface paths {
         head?: never;
         /**
          * Change one date of a class
-         * @description Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`.
+         * @description Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`. A new time that puts the date’s trainer where they already have a scheduled session of this workspace (with `scope: following`: any date it moves) answers `409` with the code `trainer_conflict` and those sessions unless `allowConflicts` is `true` (PS-07); a change of the capacity alone is never checked, and the version is checked first.
          */
         patch: operations["updateGroupClassDate"];
         trace?: never;
@@ -683,7 +683,7 @@ export interface paths {
         put?: never;
         /**
          * Create a class
-         * @description Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`.
+         * @description Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`. When the first date puts the class’s trainer where they already have something (a weekly repeat: on any of its 12 dates), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
          */
         post: operations["createGroupClass"];
         delete?: never;
@@ -727,9 +727,29 @@ export interface paths {
         put?: never;
         /**
          * Put a class on a date
-         * @description Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.
+         * @description Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. With `repeat: weekly` (F022) it also makes the weekly series and its next 12 weeks of dates in the same transaction; the answer is the first date with `datesAdded`. A class or trainer that is not in the workspace answers `404`. When the date’s trainer already has a scheduled session of this workspace that overlaps (a weekly repeat: on any of its 12 dates), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
          */
         post: operations["scheduleGroupClassDate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/group-classes/{classId}/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The weekly series of a class
+         * @description The weekly series of the class that still run (no end, or an end that is today or later), in the order they start (TW-03 *Reeksen*). The Owner only: a Trainer gets `403`, and reads the series of a date on the date itself (`Session.series`). A class that is not in the workspace answers `404`.
+         */
+        get: operations["listGroupClassSeries"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -770,6 +790,50 @@ export interface paths {
          * @description Replaces the workspace’s join code with a new one (the Owner only; a Trainer gets `403`) and stores the time. The old link, and every QR code of it, stops working at once; join requests already sent stay. Records the product event `join_link_renewed` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing.
          */
         post: operations["renewJoinLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/booking-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The booking links of a workspace
+         * @description The workspace’s booking links, for any team member. The first list makes the standing links *Alle boekingen* and *Groepslessen* with the visitor’s language, once (a second list, or two at the same time, makes no more; a standing link that was deactivated is made anew). Each has its short URL and the labels of its target: the class name in both stored languages, the class date’s UTC start and the workspace’s time zone. A client of the workspace gets `403`, a person with no place in it `404`.
+         */
+        get: operations["listBookingLinks"];
+        put?: never;
+        /**
+         * Get or make a booking link
+         * @description Gets or makes (get-or-create) the link of a scope, target and page language: an active link with the same scope, target and language is returned (`200`) instead of a second one; otherwise a new link with a new code is made (`201`). The Owner makes any link; a Trainer only the link of a class date with the visitor’s language (any other answers `403`). A target that is not in the workspace, a private session, an Open Gym slot or a class that does not exist answers `404`; a class date that has started or passed answers `400` (`date_passed`); a request that names the wrong target for its scope answers `400` with the field in `issues`. Records the product event `booking_link_created` with the workspace ID, the scope kind, the language mode and the surface (`web`, `ios` or `android`) and nothing else, for a new link only; the web is recorded as `web`, a request with a bearer token records the `surface` it names in the body and, naming none, records nothing.
+         */
+        post: operations["createBookingLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/booking-links/{linkId}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate a booking link
+         * @description Stops a link for good (the Owner only; a Trainer gets `403`): it is listed as deactivated, never comes back, and a new link for the same scope gets a new code. Deactivating a link again changes nothing and answers `200` with the first time. A link that is not in the workspace answers `404`. Records the product event `booking_link_deactivated` (the same properties as `booking_link_created`) the first time only. The body is optional; the web sends none and is recorded as `web`.
+         */
+        post: operations["deactivateBookingLink"];
         delete?: never;
         options?: never;
         head?: never;
@@ -844,6 +908,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/settings/invoice-details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The invoice details of a workspace
+         * @description The seller’s invoice details, the email for invoice questions and the no-VAT switch of the workspace (the Owner only; a Trainer gets `403`). A workspace that never saved them answers `200` with `null` fields, `noVat: false` and `complete: false`.
+         */
+        get: operations["getInvoiceDetails"];
+        /**
+         * Save the invoice details of a workspace
+         * @description Saves the invoice details as typed, replacing what was saved (the Owner only; a Trainer gets `403`). The KvK number is eight digits and the VAT number `NL` + 9 digits + `B` + 2 digits; a field that is empty or does not match answers `422` with its name and code (`required`, `too_long`, `invalid`, `invalid_kvk_number`, `invalid_vat_number`, `invalid_email`) and nothing is saved. A body that is not shaped like the request answers `400`. The changes apply to invoices issued afterwards; issued ones never change.
+         */
+        put: operations["putInvoiceDetails"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/clients/{clientId}/billing-details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The billing details of a client
+         * @description The billing details of one client of the workspace (the Owner only; a Trainer or a client gets `403`). A client who saved none has `asCompany: false`. A client of another workspace, or one that does not exist, answers `404`.
+         */
+        get: operations["getClientBillingDetails"];
+        /**
+         * Save the billing details of a client on their behalf
+         * @description Saves a client’s billing details as typed, replacing what was saved (the Owner only; a Trainer or a client gets `403`). The record notes that the team changed it (`changedBy: team`). They apply to the client’s next invoices; issued ones never change. A client of another workspace, or one that does not exist, answers `404`.
+         */
+        put: operations["putClientBillingDetails"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/me/billing-details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My billing details at a workspace
+         * @description The signed-in client’s own billing details at this workspace. A client of two workspaces has a separate set in each. A person who is not a client of the workspace answers `404`, a team member who is not also a client `403`.
+         */
+        get: operations["getMyBillingDetails"];
+        /**
+         * Save my billing details at a workspace
+         * @description Saves the signed-in client’s own billing details at this workspace, replacing what was saved. The record notes that the client changed them (`changedBy: client`). They apply to the next invoices; issued ones never change.
+         */
+        put: operations["putMyBillingDetails"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The offers of a workspace
+         * @description Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer and a client of the workspace get `403`, anyone with no place in it `404`.
+         */
+        get: operations["listOffers"];
+        put?: never;
+        /**
+         * Create an offer
+         * @description Creates an offer of one kind (and, for credits, one credit kind) with the fields of its first version, validated by the rules of its kind. The new offer is switched off. An amount outside 1 to 1,000,000 cents or not a whole number, a fifth kind, two credit kinds and a term over 12 months without `longTermConfirmed` answer `422` and store nothing. The Owner only.
+         */
+        post: operations["createOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/offers/{offerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One offer of a workspace
+         * @description One offer with its current version. The Owner only. An offer of another workspace answers `404`.
+         */
+        get: operations["getOffer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change an offer: a new version
+         * @description Saves the full set of fields as the offer’s next version, from the version the caller read; the versions before it stay as they were, so agreements that run keep their terms. When the offer has a newer version the answer is `409` with the offer as it is now and nothing is stored. The kind never changes; a credit offer’s credit kind can. An offer that is switched on must stay valid to be sold: it keeps a price and a VAT rate. The Owner only.
+         */
+        patch: operations["updateOffer"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -897,6 +1081,8 @@ export interface components {
                 path: string;
                 /** @description Machine-readable issue code. */
                 code: string;
+                /** @description The local date (`YYYY-MM-DD`) the issue is about, when the field alone does not say: the first date of a weekly class whose start the clocks skip (`time_does_not_exist`). */
+                date?: string;
             }[];
         };
         /** @description The signed-in account. */
@@ -944,8 +1130,13 @@ export interface components {
              * @enum {string}
              */
             role: "owner" | "trainer";
+            /**
+             * Format: uuid
+             * @description The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
+             */
+            teamMemberId: string;
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "access_log.read")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage")[];
         };
         /**
          * @description The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
@@ -982,8 +1173,13 @@ export interface components {
              * @enum {string}
              */
             role: "owner" | "trainer";
+            /**
+             * Format: uuid
+             * @description The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
+             */
+            teamMemberId: string;
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "access_log.read")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -1413,14 +1609,18 @@ export interface components {
              */
             emailLocale?: "nl-NL" | "en" | null;
         };
-        /** @description What the link of a valid invitation shows to anyone who holds it, signed in or not. */
+        /** @description What the link of a valid invitation shows to anyone who holds it, signed in or not: the address it is for, so sign-in opens with it filled in, and the same address masked. `forYou` is the one part that depends on who asks. */
         InvitationPreview: {
             /** @description The name of the workspace that invites. */
             workspaceName: string;
             /** @description The name of the Owner who invited, `null` while they have given none. Never their address. */
             inviterName: string | null;
+            /** @description The address the invitation is for, lower-cased: the sign-in screen opens with it filled in (TW-10). Only a valid, open invitation tells it, to whoever presents its token; it is never part of a link. */
+            email: string;
             /** @description The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use. */
             maskedEmail: string;
+            /** @description Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in. */
+            forYou: boolean;
         };
         /** @description A team member who trains in the workspace. */
         Trainer: {
@@ -1527,6 +1727,7 @@ export interface components {
             location: components["schemas"]["Location"];
             trainer?: components["schemas"]["SessionTrainer"];
             groupClass?: components["schemas"]["SessionGroupClass"];
+            series?: components["schemas"]["SessionSeries"];
             /** @description The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5). */
             participants: components["schemas"]["SessionParticipant"][];
         };
@@ -1552,6 +1753,25 @@ export interface components {
             /** @description The class’s English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage`). */
             nameEn: string | null;
         };
+        /** @description The weekly series of a class date (F022); left out for a date on its own. */
+        SessionSeries: {
+            /**
+             * Format: uuid
+             * @description The series ID.
+             */
+            id: string;
+            /**
+             * @description The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday.
+             * @enum {string}
+             */
+            weekday: "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
+            /** @description The series’ start on the wall clock of the workspace’s time zone: `HH:mm`. */
+            localStartTime: string;
+            /** @description The local date in the series’ rule this date stands for: `YYYY-MM-DD`. */
+            occurrenceDate: string;
+            /** @description What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are. */
+            changedFields: ("time" | "trainer" | "capacity" | "location")[];
+        };
         /** @description A client’s place in a session. */
         SessionParticipant: {
             /**
@@ -1566,6 +1786,40 @@ export interface components {
              * @enum {string}
              */
             attendanceStatus: "booked" | "attended" | "cancelled" | "no_show";
+        };
+        /** @description The trainer already has something at that time (PS-07, a soft warning). Nothing was stored; send the request again with `allowConflicts: true` to save anyway. Contains no user-facing text. */
+        TrainerConflict: {
+            /** @enum {string} */
+            code: "trainer_conflict";
+            /** @description The overlapping sessions, soonest first, of this workspace only. A weekly repeat or a change from a date on lists the sessions that overlap any of its dates. */
+            conflicts: components["schemas"]["TrainerConflictItem"][];
+        };
+        /** @description A session of this workspace that the trainer already has at that time. */
+        TrainerConflictItem: {
+            /**
+             * Format: uuid
+             * @description The overlapping session’s ID.
+             */
+            sessionId: string;
+            /**
+             * @description The kind of the overlapping session.
+             * @enum {string}
+             */
+            type: "private" | "group" | "open_gym";
+            /**
+             * Format: date-time
+             * @description The start, a UTC instant.
+             */
+            startsAt: string;
+            /**
+             * Format: date-time
+             * @description The end, a UTC instant.
+             */
+            endsAt: string;
+            /** @description Who or what the session is: the client’s name of a private session, the class’s Dutch name of a class date. */
+            displayName: string;
+            /** @description The class’s English name of a class date, `null` without one and for any other session. Show it to a viewer whose language is English, else `displayName` (`pickContentLanguage`). */
+            displayNameEn: string | null;
         };
         /** @description A private session to plan: one client, or two for a duo, one trainer, a local date, start and length. */
         PlanPrivateSessionRequest: {
@@ -1592,6 +1846,8 @@ export interface components {
             durationMinutes: number;
             /** @description Whether to email the client the confirmation (EM-11), each client of a duo their own. Not sent for a session that starts in the past, whatever this says. */
             notify: boolean;
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
@@ -1608,19 +1864,21 @@ export interface components {
             /** @description Whether the change (EM-04) goes to the client: it was asked for and the new time is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the change. */
             changeEmail: boolean;
         };
-        /** @description The change was refused because of the session’s state; nothing was stored. Holds the session as it is now, so the form can show its values. */
-        SessionConflict: {
+        /** @description Why the reschedule was refused; nothing was stored. The session’s state (`session_changed`, `session_cancelled`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text. */
+        ReschedulePrivateSessionRefusal: {
             /**
-             * @description `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+             * @description `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
              * @enum {string}
              */
-            code: "session_changed" | "session_cancelled";
-            session: components["schemas"]["Session"];
+            code: "session_changed" | "session_cancelled" | "trainer_conflict";
+            session?: components["schemas"]["Session"] & unknown;
             /** @description Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name. */
             changedBy?: {
                 /** @description The account’s name. */
                 name: string;
             };
+            /** @description The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`. */
+            conflicts?: components["schemas"]["TrainerConflictItem"][];
         };
         /** @description A new local date, start and length for a private session, and the version the person saw. */
         ReschedulePrivateSessionRequest: {
@@ -1632,6 +1890,8 @@ export interface components {
             durationMinutes: number;
             /** @description Whether to email the client the change (EM-04). Not sent when the new time is in the past, whatever this says. */
             notify: boolean;
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
             /** @description The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now. */
             version: number;
             /**
@@ -1696,6 +1956,8 @@ export interface components {
         CreatedGroupClass: {
             groupClass: components["schemas"]["GroupClass"];
             firstDate?: components["schemas"]["Session"] & unknown;
+            /** @description How many dates the class got: 12 when the `firstDate` repeats weekly (“12 groepslessen toegevoegd”); left out otherwise. */
+            datesAdded?: number;
         };
         /** @description A class to create: the Dutch name, optionally an English one, descriptions, the usual trainer, capacity and duration, and optionally its first date. */
         CreateGroupClassRequest: {
@@ -1716,6 +1978,8 @@ export interface components {
             capacity: number;
             /** @description 15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`. */
             durationMinutes: number;
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
             firstDate?: components["schemas"]["FirstGroupClassDate"];
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -1729,6 +1993,11 @@ export interface components {
             localDate: string;
             /** @description The start in the workspace’s time zone: `HH:mm`, 24 hours. */
             localStart: string;
+            /**
+             * @description *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+             * @enum {string}
+             */
+            repeat?: "none" | "weekly";
         };
         /** @description Changes a class: every field left out stays as it is. Dates already planned keep their own trainer, capacity and times (they were copied when they were planned). Other fields are ignored. */
         UpdateGroupClassRequest: {
@@ -1750,6 +2019,11 @@ export interface components {
             /** @description The new duration, 15 to 240 minutes in steps of 5. */
             durationMinutes?: number;
         };
+        /** @description The class date that was scheduled, with how many dates a weekly repeat made. */
+        ScheduledClassDate: components["schemas"]["Session"] & {
+            /** @description How many dates the request made: 12 for a weekly repeat (“12 groepslessen toegevoegd”); left out for one date. The session is the first of them. */
+            datesAdded?: number;
+        };
         /** @description A class on a date: a local date and start; the end follows from the class’s duration. */
         ScheduleGroupClassDateRequest: {
             /** @description The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`. */
@@ -1764,16 +2038,70 @@ export interface components {
             /** @description The capacity of this date, 1 to 100. Leave it out for the class’s. */
             capacity?: number;
             /**
-             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @description *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+             * @enum {string}
+             */
+            repeat?: "none" | "weekly";
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
              */
             surface?: "ios" | "android";
         };
-        /** @description The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text. */
-        ClassDateChanged: {
-            /** @enum {string} */
-            code: "class_date_changed";
-            session: components["schemas"]["Session"];
+        /** @description A weekly series of a class: “Every Tuesday 18:00–19:00 · Sarah · 8 spots, from 6 October”. Its dates are class dates (`Session`) with a `series`. */
+        ClassSeries: {
+            /**
+             * Format: uuid
+             * @description The series ID.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The class the series is of.
+             */
+            groupClassId: string;
+            /** @description The weekly rule: `FREQ=WEEKLY;BYDAY=XX`, one weekday (M4 knows no other). */
+            rrule: string;
+            /**
+             * @description The weekday of the rule: `TU` is every Tuesday.
+             * @enum {string}
+             */
+            weekday: "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
+            /** @description The start on the wall clock of `timeZone`: `HH:mm`. It stays so across daylight saving time. */
+            localStartTime: string;
+            /** @description How long each date lasts. */
+            durationMinutes: number;
+            /** @description The IANA time zone the rule is read in. */
+            timeZone: string;
+            trainer?: components["schemas"]["SessionTrainer"] & unknown;
+            /** @description The capacity its dates start with. */
+            capacity: number;
+            /** @description The first day it may have a date: `YYYY-MM-DD`. */
+            startsOn: string;
+            /** @description The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on. */
+            endsOn?: string;
+            /** @description The last day the calendar was filled to: `YYYY-MM-DD`. */
+            materializedUntil: string;
+            /** @description Raised by every change of the series. */
+            version: number;
+        };
+        /** @description The class date with its changes, and how many other dates kept their own. */
+        UpdatedClassDate: components["schemas"]["Session"] & {
+            /** @description With `scope: following`: how many dates from this one on were changed on their own and kept as they are (CO-04). Left out for `scope: this`. */
+            keptDates?: number;
+        };
+        /** @description Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text. */
+        UpdateGroupClassDateRefusal: {
+            /**
+             * @description `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+             * @enum {string}
+             */
+            code: "class_date_changed" | "trainer_conflict";
+            session?: components["schemas"]["Session"] & unknown;
+            /** @description The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`. */
+            conflicts?: components["schemas"]["TrainerConflictItem"][];
         };
         /** @description Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes. */
         UpdateGroupClassDateRequest: {
@@ -1785,6 +2113,18 @@ export interface components {
             localEnd?: string;
             /** @description The new capacity of this date, 1 to 100. Leave it out to keep it. */
             capacity?: number;
+            /**
+             * @description *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+             * @enum {string}
+             */
+            scope?: "this" | "following";
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
         };
         /** @description The join link (*aanmeldlink*) of a workspace: where a new client asks to become a client. */
         JoinLink: {
@@ -1803,6 +2143,111 @@ export interface components {
         RenewJoinLinkRequest: {
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `join_link_renewed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description The booking links of a workspace. */
+        BookingLinks: {
+            /** @description The workspace’s links: the active ones first (the standing links *Alle boekingen* and *Groepslessen*, then the others by the time they were made), then the deactivated ones. */
+            links: components["schemas"]["BookingLink"][];
+        };
+        /** @description A booking link of a workspace (*boekingslink*). Its scope, target and language are fixed for good; only its deactivation changes. */
+        BookingLink: {
+            /**
+             * Format: uuid
+             * @description The booking link ID.
+             */
+            id: string;
+            /**
+             * Format: uri
+             * @description The short link in full, `https://…/l/{code}`. The QR code and the poster show this same link (F038).
+             */
+            url: string;
+            /**
+             * @description What the link opens: `all` (*Alle boekingen*), `group` (*Groepslessen*), `class` (*Eén les*) or `session` (*Eén les op een datum*). Open Gym returns with F034 to F036.
+             * @enum {string}
+             */
+            scope: "all" | "group" | "class" | "session";
+            /**
+             * @description The page language: `visitor` (*Taal van de bezoeker*), or always Dutch (`nl`) or English (`en`). The visitor can always switch language themselves (ADR-017).
+             * @enum {string}
+             */
+            language: "visitor" | "nl" | "en";
+            /** @description `false` once the Owner has deactivated it; it never comes back. */
+            active: boolean;
+            /**
+             * Format: date-time
+             * @description When it was deactivated, a UTC instant; `null` while it is active.
+             */
+            deactivatedAt: string | null;
+            /**
+             * Format: date-time
+             * @description When it was made, a UTC instant.
+             */
+            createdAt: string;
+            groupClass: components["schemas"]["BookingLinkClass"];
+            /** @description The class date of a `session` link; `null` for the other scopes. */
+            date: {
+                /**
+                 * Format: uuid
+                 * @description The class date (session) ID.
+                 */
+                id: string;
+                /**
+                 * Format: date-time
+                 * @description The start, a UTC instant.
+                 */
+                startsAt: string;
+                /** @description The workspace’s IANA time zone: show the start in it. */
+                timeZone: string;
+                groupClass: components["schemas"]["BookingLinkClass"] & unknown;
+            } | null;
+        };
+        /** @description The class of a `class` link; `null` for the other scopes. */
+        BookingLinkClass: {
+            /**
+             * Format: uuid
+             * @description The class ID.
+             */
+            id: string;
+            /** @description The Dutch name: always there. */
+            nameNl: string;
+            /** @description The English name, `null` without one. Show the Dutch name then. */
+            nameEn: string | null;
+        } | null;
+        /** @description The link to get or make: its scope, its target and its page language. */
+        CreateBookingLinkRequest: {
+            /**
+             * @description What the link opens: `all` (*Alle boekingen*), `group` (*Groepslessen*), `class` (*Eén les*) or `session` (*Eén les op een datum*). Open Gym returns with F034 to F036.
+             * @enum {string}
+             */
+            scope: "all" | "group" | "class" | "session";
+            /**
+             * @description The page language: `visitor` (*Taal van de bezoeker*), or always Dutch (`nl`) or English (`en`). The visitor can always switch language themselves (ADR-017).
+             * @enum {string}
+             */
+            language: "visitor" | "nl" | "en";
+            /**
+             * Format: uuid
+             * @description The class of a `class` link, and only of that scope.
+             */
+            groupClassId?: string;
+            /**
+             * Format: uuid
+             * @description The class date of a `session` link, and only of that scope: an upcoming group session of the workspace (a private session, an Open Gym slot and a date that has passed are refused).
+             */
+            sessionId?: string;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the product event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description Who sends the deactivation. The body is optional; the web sends none. */
+        DeactivateBookingLinkRequest: {
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the product event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
              */
             surface?: "ios" | "android";
@@ -1926,6 +2371,343 @@ export interface components {
              * @description The note’s ID for `note.viewed` and `note.changed`; `null` for any other action. The log never holds a note’s text.
              */
             objectId: string | null;
+        };
+        /** @description The invoice details of a workspace: the seller on every invoice, the email for invoice questions and the no-VAT switch. Before the first save every text field is `null`. */
+        InvoiceDetails: {
+            /** @description The official business name; `null` until details were saved. */
+            legalName: string | null;
+            /** @description The street; `null` until details were saved. */
+            street: string | null;
+            /** @description One to five digits; `null` until details were saved. */
+            houseNumber: string | null;
+            /** @description For example `A` or `2 hoog`; `null` when there is none. */
+            houseNumberAddition: string | null;
+            /** @description Stored as `1234 AB`; `null` until details were saved. */
+            postcode: string | null;
+            /** @description The city; `null` until details were saved. */
+            city: string | null;
+            /** @description Eight digits; `null` until details were saved. */
+            kvkNumber: string | null;
+            /** @description `NL` + 9 digits + `B` + 2 digits; `null` until details were saved. */
+            vatNumber: string | null;
+            /** @description The email address for invoice questions as the Owner saved it; `null` when left empty, then the Owner’s own address is used. */
+            questionEmail: string | null;
+            /** @description The address invoice questions go to: `questionEmail`, else the first Owner’s address. */
+            effectiveQuestionEmail: string | null;
+            /** @description *Ik reken geen btw* / *I don’t charge VAT*: off for a workspace that never saved details. It applies to invoices issued from then on. */
+            noVat: boolean;
+            /** @description Whether the invoice details are complete. Offers can be switched on only when they are. */
+            complete: boolean;
+        };
+        /** @description The invoice details as typed, replacing what was saved. Everything but the house number addition and the question email is required; a field that fails answers `422` with its name and code, and nothing is saved. */
+        SaveInvoiceDetailsRequest: {
+            /** @description The official business name, at most 120 characters. */
+            legalName: string;
+            /** @description The street, at most 120 characters. */
+            street: string;
+            /** @description One to five digits. */
+            houseNumber: string;
+            /** @description For example `A` or `2 hoog`; at most 10 characters. */
+            houseNumberAddition?: string | null;
+            /** @description A Dutch postcode: four digits, an optional space, two letters. */
+            postcode: string;
+            /** @description The city, at most 120 characters. */
+            city: string;
+            /** @description Exactly eight digits. */
+            kvkNumber: string;
+            /** @description `NL` + 9 digits + `B` + 2 digits; typed in lower case it is kept in capitals. */
+            vatNumber: string;
+            /** @description The email address for invoice questions; empty or `null` uses the Owner’s own address. */
+            questionEmail?: string | null;
+            /** @description *Ik reken geen btw*: whether the workspace charges no VAT from now on. */
+            noVat: boolean;
+        };
+        /** @description A client’s billing details in one workspace. A client of two workspaces has two separate sets; a client who saved none has `asCompany: false` and `null` fields. */
+        BillingDetails: {
+            /**
+             * Format: uuid
+             * @description The client these details belong to.
+             */
+            clientId: string;
+            /** @description *Factuur op naam van een bedrijf* / *Invoice in a company’s name*. Off: invoices use the client’s name and every field below is `null`. */
+            asCompany: boolean;
+            companyName: string | null;
+            street: string | null;
+            /** @description One to five digits. */
+            houseNumber: string | null;
+            houseNumberAddition: string | null;
+            /** @description Stored as `1234 AB`. */
+            postcode: string | null;
+            city: string | null;
+            /** @description `NL` + 9 digits + `B` + 2 digits; `null` when the client gave none. */
+            vatNumber: string | null;
+            /**
+             * @description Who changed them last: the `client` themselves or the `team` on their behalf. `null` while nobody has saved any.
+             * @enum {string|null}
+             */
+            changedBy: "client" | "team" | null;
+            /**
+             * Format: date-time
+             * @description When they were last saved; `null` while nobody has saved any.
+             */
+            changedAt: string | null;
+        };
+        /** @description The billing details as typed, replacing what was saved. With `asCompany` the company name and the address are required, and a field that fails answers `422` with its name and code; nothing is saved. */
+        SaveBillingDetailsRequest: {
+            /** @description Whether invoices are made out to a company. Off: the other fields are ignored and cleared. */
+            asCompany: boolean;
+            /** @description Required with `asCompany`, at most 120 characters. */
+            companyName?: string | null;
+            /** @description Required with `asCompany`, at most 120 characters. */
+            street?: string | null;
+            /** @description Required with `asCompany`: one to five digits. */
+            houseNumber?: string | null;
+            /** @description For example `A` or `2 hoog`; at most 10 characters. */
+            houseNumberAddition?: string | null;
+            /** @description Required with `asCompany`: a Dutch postcode. */
+            postcode?: string | null;
+            /** @description Required with `asCompany`, at most 120 characters. */
+            city?: string | null;
+            /** @description Optional: empty or `null` is accepted; given, it is `NL` + 9 digits + `B` + 2 digits. */
+            vatNumber?: string | null;
+        };
+        /** @description An offer of the workspace with its current version. A saved change is a new version; the versions before it stay as they were. */
+        Offer: {
+            /**
+             * Format: uuid
+             * @description The offer ID.
+             */
+            id: string;
+            kind: components["schemas"]["OfferKind"];
+            creditKind: components["schemas"]["OfferCreditKind"];
+            status: components["schemas"]["OfferStatus"];
+            /**
+             * @description `default` for a copy of one of Fivvi’s default plans, `owner` for the rest.
+             * @enum {string}
+             */
+            origin: "default" | "owner";
+            /** @description How many agreements run on the offer: 0 until agreements exist (F057). */
+            runningAgreements: number;
+            /** @description The one-line summary in the caller’s language, e.g. "2 lessen per week · 6 maanden · € 79,00 per maand". Without a price the amount is left out. */
+            summary: string;
+            /** @description The cancellation rule as clients read it, in the caller’s language. */
+            cancellation: string;
+            currentVersion: components["schemas"]["OfferVersion"];
+        };
+        /**
+         * @description The kind of offer: `membership`, `credit_pack`, `credit_plan` or `single_class_pass`. There is no fifth kind, and it never changes once the offer exists.
+         * @enum {string}
+         */
+        OfferKind: "membership" | "credit_pack" | "credit_plan" | "single_class_pass";
+        /**
+         * @description For a credit pack or credit plan; `null` otherwise.
+         * @enum {string|null}
+         */
+        OfferCreditKind: "group" | "private" | null;
+        /**
+         * @description `off` is not for sale, `on` is, `archived` is a deleted offer whose agreements still run.
+         * @enum {string}
+         */
+        OfferStatus: "off" | "on" | "archived";
+        /** @description The terms of an offer as of one saved change. Never changes once stored: an agreement keeps the version it started on. */
+        OfferVersion: {
+            /**
+             * Format: uuid
+             * @description The version ID: what an agreement points at.
+             */
+            id: string;
+            /** @description The version number: 1 for the first, one more for every saved change. */
+            version: number;
+            /** @description The Dutch name: always there. */
+            nameNl: string;
+            /** @description The English name, or `null`. */
+            nameEn: string | null;
+            /** @description The Dutch description. */
+            descriptionNl: string | null;
+            /** @description The English description. */
+            descriptionEn: string | null;
+            /** @description The price including VAT in euro cents, 1 to 1,000,000; `null` until the owner sets it (a default plan). */
+            priceCents: number | null;
+            /** @description The VAT rate in basis points: 2100 or 900; `null` until chosen. Never 0. */
+            vatRateBasisPoints: number | null;
+            billingCycle: components["schemas"]["OfferBillingCycle"];
+            /** @description A membership’s term. */
+            termMonths: number | null;
+            /** @description A credit plan’s minimum term in months. */
+            minimumTermMonths: number | null;
+            endOfTerm: components["schemas"]["OfferEndOfTerm"];
+            /** @description A membership’s classes. */
+            classesPerWeek: number | null;
+            /** @description Credits of a pack, or credits per billing cycle of a plan. */
+            credits: number | null;
+            validity: components["schemas"]["OfferValidity"];
+            /** @description The most credits a credit plan carries over to the next cycle. */
+            carryOverLimit: number | null;
+            /** @description A credit pack a client buys once. */
+            oncePerClient: boolean;
+            /** @description Sold only to clients with a membership. */
+            membersOnly: boolean;
+            /** @description Minutes before the start up to which a client cancels for free: whole hours. */
+            cutoffMinutes: number;
+            /** @description A membership’s makeups. */
+            makeupsPerMonth: number | null;
+            /** @description The most credits that come back a month on a timely cancellation; `null`: all. */
+            returnsPerMonth: number | null;
+            /** @description The classes the version is limited to; `null`: all group classes. */
+            coveredClasses: components["schemas"]["OfferCoveredClass"][] | null;
+            /** @description Days before the end that renewing is suggested and the client is reminded. */
+            renewalWindowDays: number | null;
+            /**
+             * Format: date-time
+             * @description When the version was saved, a UTC instant.
+             */
+            createdAt: string;
+        };
+        /**
+         * @description How often a recurring offer is billed: every `month` or every `four_weeks`.
+         * @enum {string|null}
+         */
+        OfferBillingCycle: "month" | "four_weeks" | null;
+        /**
+         * @description What happens when a term ends: the agreement `stop`s, or `continue`s per billing cycle until notice.
+         * @enum {string|null}
+         */
+        OfferEndOfTerm: "stop" | "continue" | null;
+        /** @description How long a credit pack is good for. */
+        OfferValidity: {
+            /** @description How many units, at least 1. */
+            amount: number;
+            /**
+             * @description `day`, `week` or `month`.
+             * @enum {string}
+             */
+            unit: "day" | "week" | "month";
+        } | null;
+        /** @description A group class an offer version is limited to. */
+        OfferCoveredClass: {
+            /**
+             * Format: uuid
+             * @description The class ID.
+             */
+            id: string;
+            /** @description The class’s name in the caller’s language (the English name when the caller reads English and there is one, else the Dutch). `null` for a class that was removed with its name. */
+            name: string | null;
+            /** @description Whether the class is gone since this version was saved. */
+            deleted: boolean;
+            /** @description How the class is listed in the caller’s language: its name, with "(verwijderd)" / "(deleted)" after it when it is gone. */
+            label: string;
+        };
+        /** @description A new offer: its kind, for credits the credit kind, and the fields of its first version. It starts switched off. */
+        CreateOfferRequest: {
+            kind: components["schemas"]["OfferKind"];
+            /**
+             * @description Required for a credit pack and a credit plan; refused for the other kinds.
+             * @enum {string|null}
+             */
+            creditKind?: "group" | "private" | null;
+            /** @description The Dutch name: trimmed, 1 to 80 characters. */
+            nameNl: string;
+            /** @description The English name: trimmed, at most 80 characters. Blank: none. */
+            nameEn?: string;
+            /** @description The Dutch description: trimmed, at most 500 characters. Blank: none. */
+            descriptionNl?: string;
+            /** @description The English description: trimmed, at most 500 characters. Blank: none. */
+            descriptionEn?: string;
+            /** @description The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`. */
+            priceCents?: number | null;
+            /** @description The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0. */
+            vatRateBasisPoints?: number | null;
+            billingCycle?: components["schemas"]["OfferBillingCycle"];
+            /** @description A membership’s term in months, 1 to 24. */
+            termMonths?: number;
+            /** @description The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`. */
+            longTermConfirmed?: boolean;
+            /** @description A credit plan’s minimum term in months, 0 to 12. */
+            minimumTermMonths?: number;
+            endOfTerm?: components["schemas"]["OfferEndOfTerm"];
+            /** @description A membership’s classes a week, 1 to 7. */
+            classesPerWeek?: number;
+            /** @description A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50). */
+            credits?: number;
+            validity?: components["schemas"]["OfferValidity"];
+            /** @description A credit plan’s carry-over, 0 to 50. */
+            carryOverLimit?: number;
+            /** @description A credit pack a client can buy once. Default `false`. */
+            oncePerClient?: boolean;
+            /** @description Sold only to clients with a membership (credits and the single class pass). Default `false`. */
+            membersOnly?: boolean;
+            /** @description Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320. */
+            cutoffMinutes?: number;
+            /** @description A membership’s makeups a month, 0 to 10. */
+            makeupsPerMonth?: number;
+            /** @description Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always. */
+            returnsPerMonth?: number | null;
+            /** @description The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`. */
+            coveredClassIds?: string[] | null;
+            /** @description Days before the end that renewing is suggested, 0 to 365. Left out: 30. */
+            renewalWindowDays?: number;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `offer_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description The offer changed since the version in the request; nothing was written. `offer` is the offer as it is now. */
+        OfferChanged: {
+            /** @enum {string} */
+            code: "offer_changed";
+            offer: components["schemas"]["Offer"];
+        };
+        /** @description The full set of fields of the offer’s next version, with the version it was changed from. A field left out is empty in the new version, not kept from the old one. The offer’s kind never changes. */
+        UpdateOfferRequest: {
+            /** @description The version the caller read (`Offer.currentVersion.version`). When the offer has been changed since, nothing is stored and the answer is `409`. */
+            version: number;
+            /**
+             * @description A credit offer’s credit kind, which can change while no agreement uses it. Left out: unchanged. Refused for the other kinds.
+             * @enum {string|null}
+             */
+            creditKind?: "group" | "private" | null;
+            /** @description The Dutch name: trimmed, 1 to 80 characters. */
+            nameNl: string;
+            /** @description The English name: trimmed, at most 80 characters. Blank: none. */
+            nameEn?: string;
+            /** @description The Dutch description: trimmed, at most 500 characters. Blank: none. */
+            descriptionNl?: string;
+            /** @description The English description: trimmed, at most 500 characters. Blank: none. */
+            descriptionEn?: string;
+            /** @description The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`. */
+            priceCents?: number | null;
+            /** @description The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0. */
+            vatRateBasisPoints?: number | null;
+            billingCycle?: components["schemas"]["OfferBillingCycle"];
+            /** @description A membership’s term in months, 1 to 24. */
+            termMonths?: number;
+            /** @description The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`. */
+            longTermConfirmed?: boolean;
+            /** @description A credit plan’s minimum term in months, 0 to 12. */
+            minimumTermMonths?: number;
+            endOfTerm?: components["schemas"]["OfferEndOfTerm"];
+            /** @description A membership’s classes a week, 1 to 7. */
+            classesPerWeek?: number;
+            /** @description A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50). */
+            credits?: number;
+            validity?: components["schemas"]["OfferValidity"];
+            /** @description A credit plan’s carry-over, 0 to 50. */
+            carryOverLimit?: number;
+            /** @description A credit pack a client can buy once. Default `false`. */
+            oncePerClient?: boolean;
+            /** @description Sold only to clients with a membership (credits and the single class pass). Default `false`. */
+            membersOnly?: boolean;
+            /** @description Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320. */
+            cutoffMinutes?: number;
+            /** @description A membership’s makeups a month, 0 to 10. */
+            makeupsPerMonth?: number;
+            /** @description Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always. */
+            returnsPerMonth?: number | null;
+            /** @description The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`. */
+            coveredClassIds?: string[] | null;
+            /** @description Days before the end that renewing is suggested, 0 to 365. Left out: 30. */
+            renewalWindowDays?: number;
         };
     };
     responses: never;
@@ -4018,6 +4800,15 @@ export interface operations {
                     "application/json": components["schemas"]["NotFound"];
                 };
             };
+            /** @description The trainer already has something at that time, and `allowConflicts` was not set. Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerConflict"];
+                };
+            };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
             500: {
                 headers: {
@@ -4092,13 +4883,13 @@ export interface operations {
                     "application/json": components["schemas"]["NotFound"];
                 };
             };
-            /** @description The session was changed after the `version` sent, or it is cancelled. Nothing was stored. */
+            /** @description The session was changed after the `version` sent, or it is cancelled (`session_changed`, `session_cancelled`), or the trainer already has something at the new time (`trainer_conflict`). Nothing was stored. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionConflict"];
+                    "application/json": components["schemas"]["ReschedulePrivateSessionRefusal"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
@@ -4276,7 +5067,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Session"];
+                    "application/json": components["schemas"]["UpdatedClassDate"];
                 };
             };
             /** @description The request did not match the contract. */
@@ -4315,13 +5106,13 @@ export interface operations {
                     "application/json": components["schemas"]["NotFound"];
                 };
             };
-            /** @description The date changed since the version in the request; nothing was written. */
+            /** @description The date changed since the version in the request (`class_date_changed`), or the trainer already has something at the new time (`trainer_conflict`); nothing was written. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ClassDateChanged"];
+                    "application/json": components["schemas"]["UpdateGroupClassDateRefusal"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
@@ -4462,6 +5253,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The trainer already has something at that time, and `allowConflicts` was not set. Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerConflict"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
@@ -4637,13 +5437,92 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The class was scheduled. */
+            /** @description The class was scheduled; with a weekly repeat, its first date and how many were made. */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Session"];
+                    "application/json": components["schemas"]["ScheduledClassDate"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The trainer already has something at that time, and `allowConflicts` was not set. Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerConflict"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listGroupClassSeries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The class ID. */
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The series. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassSeries"][];
                 };
             };
             /** @description The request did not match the contract. */
@@ -4784,6 +5663,229 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JoinLink"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listBookingLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The links. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingLinks"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    createBookingLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBookingLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description The active link that already existed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingLink"];
+                };
+            };
+            /** @description The new link. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingLink"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    deactivateBookingLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The booking link ID. */
+                linkId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeactivateBookingLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description The deactivated link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingLink"];
                 };
             };
             /** @description The request did not match the contract. */
@@ -5206,6 +6308,768 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getInvoiceDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The invoice details. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetails"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    putInvoiceDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveInvoiceDetailsRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved invoice details. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetails"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description A field is empty or has the wrong format: the issues name the field and the code. Nothing was saved. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getClientBillingDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The client ID: the client’s record in this workspace. */
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The client’s billing details. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingDetails"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    putClientBillingDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The client ID: the client’s record in this workspace. */
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveBillingDetailsRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved billing details. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingDetails"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description With the company switch on, a required field is empty or a field has the wrong format: the issues name the field and the code (`required`, `too_long`, `invalid`, `invalid_vat_number`). Nothing was saved. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getMyBillingDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The client’s own billing details. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingDetails"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    putMyBillingDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveBillingDetailsRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved billing details. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingDetails"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description With the company switch on, a required field is empty or a field has the wrong format: the issues name the field and the code (`required`, `too_long`, `invalid`, `invalid_vat_number`). Nothing was saved. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listOffers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The offers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"][];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    createOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOfferRequest"];
+            };
+        };
+        responses: {
+            /** @description The offer that was created, switched off, at version 1. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The body is not valid: a field has the wrong type, is out of bounds, does not belong to the kind, or needs a confirmation. `issues` names each field (`path`) and what is wrong (`code`). Nothing is stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The offer ID. */
+                offerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The offer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    updateOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The offer ID. */
+                offerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOfferRequest"];
+            };
+        };
+        responses: {
+            /** @description The offer with its new version as the current one. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The offer changed since the version in the request; nothing was written. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferChanged"];
+                };
+            };
+            /** @description The body is not valid: a field has the wrong type, is out of bounds, does not belong to the kind, or needs a confirmation. `issues` names each field (`path`) and what is wrong (`code`). Nothing is stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
