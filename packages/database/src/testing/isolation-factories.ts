@@ -8,6 +8,8 @@ import {
   paymentRefunds,
   paymentStatusChanges,
   payments,
+  payoutStatusChanges,
+  payouts,
   sessionParticipants,
   trainerProfiles,
 } from '../schema/index.ts';
@@ -22,6 +24,8 @@ import {
   addPaymentChargeback,
   addPaymentCustomer,
   addPaymentRefund,
+  addPayout,
+  addPayoutLine,
   addSession,
   addTeamRole,
   addTrainerInvitation,
@@ -297,5 +301,48 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
   payment_chargebacks: {
     scopeColumn: 'organization_id',
     create: (db, workspaceId) => addPaymentChargeback(db, { workspaceId }),
+  },
+  // A payout of the workspace (its first status line is its own row).
+  payouts: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addPayout(db, { workspaceId }),
+  },
+  // A status line of a payout made for the workspace: the line of a payout other than the one
+  // `addPayout` gave its first line, so each factory call adds exactly one row.
+  payout_status_changes: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const [payout] = await db
+        .insert(payouts)
+        .values({
+          organizationId: workspaceId,
+          providerSettlementId: uniqueMarker('stl'),
+          reference: null,
+          settledAt: null,
+          amountCents: 39248,
+          status: 'open',
+          fetchedAt: new Date(),
+        })
+        .returning({ id: payouts.id });
+      if (!payout) throw new Error('payout was not created.');
+      const [row] = await db
+        .insert(payoutStatusChanges)
+        .values({
+          organizationId: workspaceId,
+          payoutId: payout.id,
+          fromStatus: null,
+          toStatus: 'open',
+          occurredAt: new Date(),
+          source: 'job',
+        })
+        .returning({ id: payoutStatusChanges.id });
+      if (!row) throw new Error('payout status change was not created.');
+      return row;
+    },
+  },
+  // A line of a payout made for the workspace.
+  payout_lines: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addPayoutLine(db, { workspaceId }),
   },
 };

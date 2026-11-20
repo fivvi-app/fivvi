@@ -1,3 +1,14 @@
+// Module: Planning a private session: who may plan for whom (`session.private.manage.own` /
+//        `.any`), the start and end as UTC instants, durations of 15 to 240 minutes in steps of 5,
+//        the default location, a past session flagged; whether EM-11 goes out (asked for, not in
+//        the past) and its language (the client's, then the workspace default).
+//        `reschedulePrivateSession` moves one: the Owner any session, a Trainer their own, the same
+//        time rules, the location kept, a stale version or a cancelled session refused, whether
+//        EM-04 goes out (asked for, new time not in the past). **The seam for later session
+//        specs**: group classes (F021) and Open Gym (F034) add their own planning functions beside
+//        it over the same session record
+// Spec: F020 AC1–AC8
+
 import { type EmailLanguage, type Locale, resolveClientCommunicationLanguage } from '@fivvi/i18n';
 import { defaultLocation } from '../locations/default-location.ts';
 import { hasCapability, type Role } from '../permissions/matrix.ts';

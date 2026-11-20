@@ -257,15 +257,29 @@
     {
       "idx": 37,
       "version": "7",
-      "when": 1794974141086,
-      "tag": "0037_workspace_invoice_details",
+      "when": 1795028184329,
+      "tag": "0037_cron_class_series_policies",
       "breakpoints": true
     },
     {
       "idx": 38,
       "version": "7",
-      "when": 1794976105445,
-      "tag": "0038_client_billing_details",
+      "when": 1795040807838,
+      "tag": "0038_payouts",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795040807839,
+      "tag": "0039_workspace_invoice_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795040807840,
+      "tag": "0040_client_billing_details",
       "breakpoints": true
     }
   ]

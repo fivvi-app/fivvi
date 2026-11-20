@@ -1,4 +1,12 @@
+// Module: A class on a date (F021): `scheduleClassOnDate` copies the class's trainer (or none),
+//        capacity and duration onto the date, takes the default location and the DST rules of
+//        `zoned-time.ts`; `decideGroupDateEdit` edits one date's day, start, end and capacity (an
+//        end not after the start is refused); `GROUP_CLASS_LIMITS` (name 80, description 500,
+//        capacity 1–100, duration 15–240 in steps of 5)
+// Spec: F021 AC3–AC5, AC9
+
 import { defaultLocation } from '../locations/default-location.ts';
+import { GROUP_CLASS_LIMITS } from './group-class-limits.ts';
 import { instantToWallClock, wallClockToInstant } from './zoned-time.ts';
 
 // A group class on a date (F021, spec #427): the rules the API applies before it stores a group
@@ -8,13 +16,7 @@ import { instantToWallClock, wallClockToInstant } from './zoned-time.ts';
 // copied onto the date, so a later change of the class does not change a date already planned
 // (AC9). Who may do this is the route's access (`class.manage`, F004's matrix), not decided here.
 
-/** The limits of a class and its dates (spec #427, open question 2). */
-export const GROUP_CLASS_LIMITS = {
-  nameMaxLength: 80,
-  descriptionMaxLength: 500,
-  capacity: { min: 1, max: 100 },
-  duration: { min: 15, max: 240, step: 5 },
-} as const;
+export { GROUP_CLASS_LIMITS };
 
 const MINUTE_MS = 60_000;
 

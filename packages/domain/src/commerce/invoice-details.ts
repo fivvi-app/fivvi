@@ -1,3 +1,8 @@
+// Module: The seller's invoice details (legal name, address, KvK 8 digits, VAT `NL` + 9 digits +
+//        `B` + 2 digits; complete when all valid) and a client's billing details (company name and
+//        address required, VAT number optional), with their own error codes
+// Spec: F059 AC2
+
 // The details on an invoice (F059, spec #474): the seller's invoice details of a workspace and a
 // client's billing details. Pure rules: the route asks, the repository stores the answer. The
 // seller's KvK and VAT number are required because the Dutch invoice requirements name them

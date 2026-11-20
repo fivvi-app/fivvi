@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, gte, inArray, lt, ne, sql } from 'drizzle-orm';
 import {
   authUsers,
   classSeries,
@@ -387,5 +387,97 @@ export async function listUpcomingSessionsOfClient(
   return rows.map(({ trainerId, trainerName, ...session }) => ({
     ...session,
     trainer: trainerId ? { id: trainerId, name: trainerName ?? '' } : null,
+  }));
+}
+
+/**
+ * A session of a trainer that may overlap a time window (F023): what the double-booking rule reads
+ * and what a `409 trainer_conflict` names. `displayName` is the client of a private session, the
+ * Dutch name of the class of a class date, empty for any other; `displayNameEn` is the class's
+ * English name of a class date (`null` without one, and for any other session), for the viewer's
+ * language (PRODUCT.md §296).
+ */
+export interface TrainerSessionView {
+  readonly id: string;
+  readonly type: SessionType;
+  readonly status: SessionStatus;
+  readonly trainerProfileId: string;
+  readonly startsAt: Date;
+  readonly endsAt: Date;
+  readonly displayName: string;
+  readonly displayNameEn: string | null;
+}
+
+/**
+ * The sessions of the trainer profile in the scope's workspace that start before `to` and end after
+ * `from`, of any status (the rule decides which count), soonest first. Only this workspace's
+ * sessions: the scope and RLS show none of another workspace, so a trainer's sessions elsewhere
+ * never come back (F023 AC4).
+ */
+export async function listTrainerSessionsBetween(
+  scope: WorkspaceScope,
+  trainerProfileId: string,
+  window: { from: Date; to: Date },
+): Promise<TrainerSessionView[]> {
+  const db = executorOf(scope);
+  const rows = await db
+    .select({
+      id: sessions.id,
+      type: sessions.type,
+      status: sessions.status,
+      startsAt: sessions.startsAt,
+      endsAt: sessions.endsAt,
+      className: groupClasses.nameNl,
+      classNameEn: groupClasses.nameEn,
+    })
+    .from(sessions)
+    .leftJoin(
+      groupClasses,
+      and(
+        eq(groupClasses.organizationId, sessions.organizationId),
+        eq(groupClasses.id, sessions.groupClassId),
+      ),
+    )
+    .where(
+      and(
+        eq(sessions.organizationId, scope.workspaceId),
+        eq(sessions.trainerProfileId, trainerProfileId),
+        lt(sessions.startsAt, window.to),
+        gt(sessions.endsAt, window.from),
+      ),
+    )
+    .orderBy(asc(sessions.startsAt), asc(sessions.id));
+  const privateIds = rows.filter((row) => row.type === 'private').map((row) => row.id);
+  const clientNames = new Map<string, string>();
+  if (privateIds.length > 0) {
+    const participants = await db
+      .select({ sessionId: sessionParticipants.sessionId, name: clients.name })
+      .from(sessionParticipants)
+      .innerJoin(
+        clients,
+        and(
+          eq(clients.organizationId, sessionParticipants.organizationId),
+          eq(clients.id, sessionParticipants.clientId),
+        ),
+      )
+      .where(
+        and(
+          eq(sessionParticipants.organizationId, scope.workspaceId),
+          inArray(sessionParticipants.sessionId, privateIds),
+        ),
+      )
+      .orderBy(asc(sessionParticipants.createdAt), asc(sessionParticipants.id));
+    // A private session has one client: the first place is the client.
+    for (const participant of participants) {
+      if (!clientNames.has(participant.sessionId)) {
+        clientNames.set(participant.sessionId, participant.name);
+      }
+    }
+  }
+  return rows.map(({ className, classNameEn, ...row }) => ({
+    ...row,
+    trainerProfileId,
+    displayName: row.type === 'private' ? (clientNames.get(row.id) ?? '') : (className ?? ''),
+    displayNameEn: row.type === 'private' ? null : (classNameEn ?? null),
   }));
 }

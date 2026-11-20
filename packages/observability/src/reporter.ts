@@ -27,7 +27,7 @@ export interface ErrorContext {
   level?: 'error' | 'warning';
   /**
    * Tags to put on the event. Only the tags of the scrubber's allow-list are sent (`cron.task`,
-   * `cron.run_id`); every other name is dropped, so a tag can never carry personal data.
+   * `cron.run_id`, `class_series.id`); every other name is dropped, so a tag can never carry personal data.
    */
   tags?: Readonly<Record<string, string>>;
 }

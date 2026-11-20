@@ -1,3 +1,9 @@
+// Module: The refund ledger port (`RefundLedger`): refunds with their append-only status lines, and
+//        reversals (the provider's chargebacks, one per provider ID). `insertRefund` reads the
+//        facts and writes the row under one lock, so the bound holds for two requests at once.
+//        `packages/database` implements it (`refundLedger`)
+// Spec: F060 AC9, AC13
+
 import type { StatusSource } from './ledger.ts';
 import type { RefundStatus } from './refund-status.ts';
 import type { RefundBasis } from './refundable.ts';

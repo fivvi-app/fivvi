@@ -148,6 +148,12 @@ function sliceRepo(prefix) {
   execFileSync('git', ['init', '--quiet', '--initial-branch=main', repo]);
   cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
   writeFileSync(join(repo, '.gitignore'), '.work/\n.worktrees/\n');
+  // The pipeline switch `flow.sh next` reads (ADR-034).
+  mkdirSync(join(repo, '.github'));
+  writeFileSync(
+    join(repo, '.github/pipeline.json'),
+    JSON.stringify({ ci: 'fast', review: 'per-pr' }),
+  );
   const git = (...args) =>
     execFileSync(
       'git',
@@ -561,6 +567,7 @@ describe('ADR-033 flow.sh status and finish for a slice PR', () => {
         { match: '^issue close ', out: '' },
         // What `next` also reads: nothing else is open.
         { match: '^issue list .*--label (spec|needs-info|ready-for-agent)', out: [] },
+        { match: '^issue list .*in:title', out: [] },
         { match: '^pr list .*--state (open|merged)', out: [] },
         {
           match: '^api graphql ',

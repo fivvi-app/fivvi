@@ -12,6 +12,7 @@ export * from './locations.ts';
 export * from './offers.ts';
 export * from './organizations.ts';
 export * from './payments.ts';
+export * from './payouts.ts';
 export * from './refunds.ts';
 export * from './sessions.ts';
 export * from './system-greetings.ts';

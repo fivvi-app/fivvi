@@ -1982,7 +1982,7 @@ extension Components {
                 case emailLocale
             }
         }
-        /// What the link of a valid invitation shows to anyone who holds it, signed in or not. `forYou` is the one part that depends on who asks.
+        /// What the link of a valid invitation shows to anyone who holds it, signed in or not: the address it is for, so sign-in opens with it filled in, and the same address masked. `forYou` is the one part that depends on who asks.
         ///
         /// - Remark: Generated from `#/components/schemas/InvitationPreview`.
         public struct InvitationPreview: Codable, Hashable, Sendable {
@@ -1994,6 +1994,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/InvitationPreview/inviterName`.
             public var inviterName: Swift.String?
+            /// The address the invitation is for, lower-cased: the sign-in screen opens with it filled in (TW-10). Only a valid, open invitation tells it, to whoever presents its token; it is never part of a link.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/email`.
+            public var email: Swift.String
             /// The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
             ///
             /// - Remark: Generated from `#/components/schemas/InvitationPreview/maskedEmail`.
@@ -2007,22 +2011,26 @@ extension Components {
             /// - Parameters:
             ///   - workspaceName: The name of the workspace that invites.
             ///   - inviterName: The name of the Owner who invited, `null` while they have given none. Never their address.
+            ///   - email: The address the invitation is for, lower-cased: the sign-in screen opens with it filled in (TW-10). Only a valid, open invitation tells it, to whoever presents its token; it is never part of a link.
             ///   - maskedEmail: The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
             ///   - forYou: Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in.
             public init(
                 workspaceName: Swift.String,
                 inviterName: Swift.String? = nil,
+                email: Swift.String,
                 maskedEmail: Swift.String,
                 forYou: Swift.Bool
             ) {
                 self.workspaceName = workspaceName
                 self.inviterName = inviterName
+                self.email = email
                 self.maskedEmail = maskedEmail
                 self.forYou = forYou
             }
             public enum CodingKeys: String, CodingKey {
                 case workspaceName
                 case inviterName
+                case email
                 case maskedEmail
                 case forYou
             }
@@ -2591,6 +2599,106 @@ extension Components {
                 case attendanceStatus
             }
         }
+        /// The trainer already has something at that time (PS-07, a soft warning). Nothing was stored; send the request again with `allowConflicts: true` to save anyway. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerConflict`.
+        public struct TrainerConflict: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/TrainerConflict/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case trainerConflict = "trainer_conflict"
+            }
+            /// - Remark: Generated from `#/components/schemas/TrainerConflict/code`.
+            public var code: Components.Schemas.TrainerConflict.CodePayload
+            /// The overlapping sessions, soonest first, of this workspace only. A weekly repeat or a change from a date on lists the sessions that overlap any of its dates.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerConflict/conflicts`.
+            public var conflicts: [Components.Schemas.TrainerConflictItem]
+            /// Creates a new `TrainerConflict`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            ///   - conflicts: The overlapping sessions, soonest first, of this workspace only. A weekly repeat or a change from a date on lists the sessions that overlap any of its dates.
+            public init(
+                code: Components.Schemas.TrainerConflict.CodePayload,
+                conflicts: [Components.Schemas.TrainerConflictItem]
+            ) {
+                self.code = code
+                self.conflicts = conflicts
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case conflicts
+            }
+        }
+        /// A session of this workspace that the trainer already has at that time.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerConflictItem`.
+        public struct TrainerConflictItem: Codable, Hashable, Sendable {
+            /// The overlapping session’s ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerConflictItem/sessionId`.
+            public var sessionId: Swift.String
+            /// The kind of the overlapping session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerConflictItem/type`.
+            @frozen public enum _TypePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case _private = "private"
+                case group = "group"
+                case openGym = "open_gym"
+            }
+            /// The kind of the overlapping session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerConflictItem/type`.
+            public var _type: Components.Schemas.TrainerConflictItem._TypePayload
+            /// The start, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerConflictItem/startsAt`.
+            public var startsAt: Foundation.Date
+            /// The end, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerConflictItem/endsAt`.
+            public var endsAt: Foundation.Date
+            /// Who or what the session is: the client’s name of a private session, the class’s Dutch name of a class date.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerConflictItem/displayName`.
+            public var displayName: Swift.String
+            /// The class’s English name of a class date, `null` without one and for any other session. Show it to a viewer whose language is English, else `displayName` (`pickContentLanguage`).
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerConflictItem/displayNameEn`.
+            public var displayNameEn: Swift.String?
+            /// Creates a new `TrainerConflictItem`.
+            ///
+            /// - Parameters:
+            ///   - sessionId: The overlapping session’s ID.
+            ///   - _type: The kind of the overlapping session.
+            ///   - startsAt: The start, a UTC instant.
+            ///   - endsAt: The end, a UTC instant.
+            ///   - displayName: Who or what the session is: the client’s name of a private session, the class’s Dutch name of a class date.
+            ///   - displayNameEn: The class’s English name of a class date, `null` without one and for any other session. Show it to a viewer whose language is English, else `displayName` (`pickContentLanguage`).
+            public init(
+                sessionId: Swift.String,
+                _type: Components.Schemas.TrainerConflictItem._TypePayload,
+                startsAt: Foundation.Date,
+                endsAt: Foundation.Date,
+                displayName: Swift.String,
+                displayNameEn: Swift.String? = nil
+            ) {
+                self.sessionId = sessionId
+                self._type = _type
+                self.startsAt = startsAt
+                self.endsAt = endsAt
+                self.displayName = displayName
+                self.displayNameEn = displayNameEn
+            }
+            public enum CodingKeys: String, CodingKey {
+                case sessionId
+                case _type = "type"
+                case startsAt
+                case endsAt
+                case displayName
+                case displayNameEn
+            }
+        }
         /// A private session to plan: one client, one trainer, a local date, start and length.
         ///
         /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest`.
@@ -2619,6 +2727,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/notify`.
             public var notify: Swift.Bool
+            /// Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/allowConflicts`.
+            public var allowConflicts: Swift.Bool?
             /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/surface`.
@@ -2639,6 +2751,7 @@ extension Components {
             ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
             ///   - durationMinutes: The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
             ///   - notify: Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says.
+            ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 clientId: Swift.String,
@@ -2647,6 +2760,7 @@ extension Components {
                 localStart: Swift.String,
                 durationMinutes: Swift.Int,
                 notify: Swift.Bool,
+                allowConflicts: Swift.Bool? = nil,
                 surface: Components.Schemas.PlanPrivateSessionRequest.SurfacePayload? = nil
             ) {
                 self.clientId = clientId
@@ -2655,6 +2769,7 @@ extension Components {
                 self.localStart = localStart
                 self.durationMinutes = durationMinutes
                 self.notify = notify
+                self.allowConflicts = allowConflicts
                 self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
@@ -2664,6 +2779,7 @@ extension Components {
                 case localStart
                 case durationMinutes
                 case notify
+                case allowConflicts
                 case surface
             }
         }
@@ -2710,30 +2826,60 @@ extension Components {
                 case changeEmail
             }
         }
-        /// The change was refused because of the session’s state; nothing was stored. Holds the session as it is now, so the form can show its values.
+        /// Why the reschedule was refused; nothing was stored. The session’s state (`session_changed`, `session_cancelled`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.
         ///
-        /// - Remark: Generated from `#/components/schemas/SessionConflict`.
-        public struct SessionConflict: Codable, Hashable, Sendable {
-            /// `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+        /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal`.
+        public struct ReschedulePrivateSessionRefusal: Codable, Hashable, Sendable {
+            /// `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///
-            /// - Remark: Generated from `#/components/schemas/SessionConflict/code`.
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/code`.
             @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case sessionChanged = "session_changed"
                 case sessionCancelled = "session_cancelled"
+                case trainerConflict = "trainer_conflict"
             }
-            /// `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+            /// `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///
-            /// - Remark: Generated from `#/components/schemas/SessionConflict/code`.
-            public var code: Components.Schemas.SessionConflict.CodePayload
-            /// - Remark: Generated from `#/components/schemas/SessionConflict/session`.
-            public var session: Components.Schemas.Session
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/code`.
+            public var code: Components.Schemas.ReschedulePrivateSessionRefusal.CodePayload
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/session`.
+            public struct SessionPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/session/value1`.
+                public var value1: Components.Schemas.Session
+                /// The session as it is now, for `session_changed` and `session_cancelled`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/session/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SessionPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The session as it is now, for `session_changed` and `session_cancelled`.
+                public init(
+                    value1: Components.Schemas.Session,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/session`.
+            public var session: Components.Schemas.ReschedulePrivateSessionRefusal.SessionPayload?
             /// Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
             ///
-            /// - Remark: Generated from `#/components/schemas/SessionConflict/changedBy`.
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/changedBy`.
             public struct ChangedByPayload: Codable, Hashable, Sendable {
                 /// The account’s name.
                 ///
-                /// - Remark: Generated from `#/components/schemas/SessionConflict/changedBy/name`.
+                /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/changedBy/name`.
                 public var name: Swift.String
                 /// Creates a new `ChangedByPayload`.
                 ///
@@ -2748,27 +2894,35 @@ extension Components {
             }
             /// Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
             ///
-            /// - Remark: Generated from `#/components/schemas/SessionConflict/changedBy`.
-            public var changedBy: Components.Schemas.SessionConflict.ChangedByPayload?
-            /// Creates a new `SessionConflict`.
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/changedBy`.
+            public var changedBy: Components.Schemas.ReschedulePrivateSessionRefusal.ChangedByPayload?
+            /// The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/conflicts`.
+            public var conflicts: [Components.Schemas.TrainerConflictItem]?
+            /// Creates a new `ReschedulePrivateSessionRefusal`.
             ///
             /// - Parameters:
-            ///   - code: `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+            ///   - code: `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///   - session:
             ///   - changedBy: Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            ///   - conflicts: The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
             public init(
-                code: Components.Schemas.SessionConflict.CodePayload,
-                session: Components.Schemas.Session,
-                changedBy: Components.Schemas.SessionConflict.ChangedByPayload? = nil
+                code: Components.Schemas.ReschedulePrivateSessionRefusal.CodePayload,
+                session: Components.Schemas.ReschedulePrivateSessionRefusal.SessionPayload? = nil,
+                changedBy: Components.Schemas.ReschedulePrivateSessionRefusal.ChangedByPayload? = nil,
+                conflicts: [Components.Schemas.TrainerConflictItem]? = nil
             ) {
                 self.code = code
                 self.session = session
                 self.changedBy = changedBy
+                self.conflicts = conflicts
             }
             public enum CodingKeys: String, CodingKey {
                 case code
                 case session
                 case changedBy
+                case conflicts
             }
         }
         /// A new local date, start and length for a private session, and the version the person saw.
@@ -2791,6 +2945,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest/notify`.
             public var notify: Swift.Bool
+            /// Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest/allowConflicts`.
+            public var allowConflicts: Swift.Bool?
             /// The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
             ///
             /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest/version`.
@@ -2813,6 +2971,7 @@ extension Components {
             ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
             ///   - durationMinutes: The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
             ///   - notify: Whether to email the client the change (EM-04). Not sent when the new time is in the past, whatever this says.
+            ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - version: The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_rescheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
@@ -2820,6 +2979,7 @@ extension Components {
                 localStart: Swift.String,
                 durationMinutes: Swift.Int,
                 notify: Swift.Bool,
+                allowConflicts: Swift.Bool? = nil,
                 version: Swift.Int,
                 surface: Components.Schemas.ReschedulePrivateSessionRequest.SurfacePayload? = nil
             ) {
@@ -2827,6 +2987,7 @@ extension Components {
                 self.localStart = localStart
                 self.durationMinutes = durationMinutes
                 self.notify = notify
+                self.allowConflicts = allowConflicts
                 self.version = version
                 self.surface = surface
             }
@@ -2835,6 +2996,7 @@ extension Components {
                 case localStart
                 case durationMinutes
                 case notify
+                case allowConflicts
                 case version
                 case surface
             }
@@ -3117,6 +3279,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/durationMinutes`.
             public var durationMinutes: Swift.Int
+            /// Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/allowConflicts`.
+            public var allowConflicts: Swift.Bool?
             /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/firstDate`.
             public var firstDate: Components.Schemas.FirstGroupClassDate?
             /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -3140,6 +3306,7 @@ extension Components {
             ///   - trainerId: The usual trainer’s team-member ID, from `GET …/trainers`. Leave it out, or send `null`, for *Trainer nodig*. A team member who does not train in the workspace answers `404`.
             ///   - capacity: 1 to 100 people.
             ///   - durationMinutes: 15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`.
+            ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - firstDate:
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
@@ -3150,6 +3317,7 @@ extension Components {
                 trainerId: Swift.String? = nil,
                 capacity: Swift.Int,
                 durationMinutes: Swift.Int,
+                allowConflicts: Swift.Bool? = nil,
                 firstDate: Components.Schemas.FirstGroupClassDate? = nil,
                 surface: Components.Schemas.CreateGroupClassRequest.SurfacePayload? = nil
             ) {
@@ -3160,6 +3328,7 @@ extension Components {
                 self.trainerId = trainerId
                 self.capacity = capacity
                 self.durationMinutes = durationMinutes
+                self.allowConflicts = allowConflicts
                 self.firstDate = firstDate
                 self.surface = surface
             }
@@ -3171,6 +3340,7 @@ extension Components {
                 case trainerId
                 case capacity
                 case durationMinutes
+                case allowConflicts
                 case firstDate
                 case surface
             }
@@ -3365,6 +3535,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/repeat`.
             public var _repeat: Components.Schemas.ScheduleGroupClassDateRequest.RepeatPayload?
+            /// Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/allowConflicts`.
+            public var allowConflicts: Swift.Bool?
             /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/surface`.
@@ -3384,6 +3558,7 @@ extension Components {
             ///   - trainerId: The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*.
             ///   - capacity: The capacity of this date, 1 to 100. Leave it out for the class’s.
             ///   - _repeat: *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 localDate: Swift.String,
@@ -3391,6 +3566,7 @@ extension Components {
                 trainerId: Swift.String? = nil,
                 capacity: Swift.Int? = nil,
                 _repeat: Components.Schemas.ScheduleGroupClassDateRequest.RepeatPayload? = nil,
+                allowConflicts: Swift.Bool? = nil,
                 surface: Components.Schemas.ScheduleGroupClassDateRequest.SurfacePayload? = nil
             ) {
                 self.localDate = localDate
@@ -3398,6 +3574,7 @@ extension Components {
                 self.trainerId = trainerId
                 self.capacity = capacity
                 self._repeat = _repeat
+                self.allowConflicts = allowConflicts
                 self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
@@ -3406,6 +3583,7 @@ extension Components {
                 case trainerId
                 case capacity
                 case _repeat = "repeat"
+                case allowConflicts
                 case surface
             }
         }
@@ -3611,33 +3789,75 @@ extension Components {
                 try self.value2.encode(to: encoder)
             }
         }
-        /// The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text.
+        /// Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.
         ///
-        /// - Remark: Generated from `#/components/schemas/ClassDateChanged`.
-        public struct ClassDateChanged: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/code`.
+        /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal`.
+        public struct UpdateGroupClassDateRefusal: Codable, Hashable, Sendable {
+            /// `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/code`.
             @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case classDateChanged = "class_date_changed"
+                case trainerConflict = "trainer_conflict"
             }
-            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/code`.
-            public var code: Components.Schemas.ClassDateChanged.CodePayload
-            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/session`.
-            public var session: Components.Schemas.Session
-            /// Creates a new `ClassDateChanged`.
+            /// `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/code`.
+            public var code: Components.Schemas.UpdateGroupClassDateRefusal.CodePayload
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/session`.
+            public struct SessionPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/session/value1`.
+                public var value1: Components.Schemas.Session
+                /// The date as it is now, for `class_date_changed`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/session/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SessionPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The date as it is now, for `class_date_changed`.
+                public init(
+                    value1: Components.Schemas.Session,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/session`.
+            public var session: Components.Schemas.UpdateGroupClassDateRefusal.SessionPayload?
+            /// The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/conflicts`.
+            public var conflicts: [Components.Schemas.TrainerConflictItem]?
+            /// Creates a new `UpdateGroupClassDateRefusal`.
             ///
             /// - Parameters:
-            ///   - code:
+            ///   - code: `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///   - session:
+            ///   - conflicts: The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
             public init(
-                code: Components.Schemas.ClassDateChanged.CodePayload,
-                session: Components.Schemas.Session
+                code: Components.Schemas.UpdateGroupClassDateRefusal.CodePayload,
+                session: Components.Schemas.UpdateGroupClassDateRefusal.SessionPayload? = nil,
+                conflicts: [Components.Schemas.TrainerConflictItem]? = nil
             ) {
                 self.code = code
                 self.session = session
+                self.conflicts = conflicts
             }
             public enum CodingKeys: String, CodingKey {
                 case code
                 case session
+                case conflicts
             }
         }
         /// Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes.
@@ -3671,6 +3891,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/scope`.
             public var scope: Components.Schemas.UpdateGroupClassDateRequest.ScopePayload?
+            /// Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/allowConflicts`.
+            public var allowConflicts: Swift.Bool?
             /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/surface`.
@@ -3690,6 +3914,7 @@ extension Components {
             ///   - localEnd: The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
             ///   - capacity: The new capacity of this date, 1 to 100. Leave it out to keep it.
             ///   - scope: *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+            ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 version: Swift.Int,
@@ -3697,6 +3922,7 @@ extension Components {
                 localEnd: Swift.String? = nil,
                 capacity: Swift.Int? = nil,
                 scope: Components.Schemas.UpdateGroupClassDateRequest.ScopePayload? = nil,
+                allowConflicts: Swift.Bool? = nil,
                 surface: Components.Schemas.UpdateGroupClassDateRequest.SurfacePayload? = nil
             ) {
                 self.version = version
@@ -3704,6 +3930,7 @@ extension Components {
                 self.localEnd = localEnd
                 self.capacity = capacity
                 self.scope = scope
+                self.allowConflicts = allowConflicts
                 self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
@@ -3712,6 +3939,7 @@ extension Components {
                 case localEnd
                 case capacity
                 case scope
+                case allowConflicts
                 case surface
             }
         }

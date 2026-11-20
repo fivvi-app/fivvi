@@ -88,6 +88,31 @@ export {
   validateOffer,
 } from './commerce/offers.ts';
 export {
+  type NewPayout,
+  type NewPayoutLine,
+  PAYOUT_FEE_KINDS,
+  PAYOUT_LINE_TYPES,
+  type PayoutDetails,
+  type PayoutLedger,
+  type PayoutLineRecord,
+  type PayoutRecord,
+  type PayoutStatusChange,
+  type RecordPayoutStatusChange,
+} from './commerce/payout-ledger.ts';
+export {
+  decidePayoutStatusChange,
+  PAYOUT_STATUSES,
+  type PayoutStatus,
+  type PayoutStatusDecision,
+} from './commerce/payout-status.ts';
+export {
+  type ImportedSettlement,
+  InvalidSettlementError,
+  type InvalidSettlementField,
+  importSettlement,
+  type SettlementImport,
+} from './commerce/reconciliation.ts';
+export {
   type AgreementClock,
   agreementClock,
   anchorDay,
@@ -181,6 +206,7 @@ export {
   type ProviderCustomerRequest,
   ProviderError,
   type ProviderErrorCode,
+  type ProviderFeeKind,
   type ProviderPayment,
   type ProviderPaymentRequest,
   type ProviderRefund,
@@ -189,6 +215,7 @@ export {
   type ProviderSequenceType,
   type ProviderSettlement,
   type ProviderSettlementLine,
+  type ProviderSettlementLineType,
 } from './payments/provider.ts';
 export type {
   ChargebackRecord,
@@ -362,6 +389,10 @@ export {
   weekdayOf,
   weeklyRule,
 } from './scheduling/series-rule.ts';
+export {
+  findTrainerConflicts,
+  type TrainerBusySession,
+} from './scheduling/trainer-conflicts.ts';
 export {
   addDays,
   instantToWallClock,

@@ -6,7 +6,6 @@ import XCTest
 final class ProfileEditUITests: SignInUITestCase {
     private func launchAsSarah(name: String? = "Sarah") throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(
                 email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer",
                 otherWorkspaces: [.init(name: "Sarah Personal Training", role: "owner")], name: name

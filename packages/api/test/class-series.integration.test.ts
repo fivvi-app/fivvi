@@ -4,10 +4,11 @@ import {
   createErrorReporter,
   createProductEventCaptureTransport,
   createProductEvents,
+  whatFivviSent,
 } from '@fivvi/observability';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { asc, eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   type CreatedClassBody,
   call,
@@ -781,7 +782,17 @@ describe('F022 weekly class series through the API', () => {
   });
 
   describe('AC12: the events carry no personal data', () => {
-    function withEvents() {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function withEvents(clock?: string) {
+      // posthog-node stamps every event with the wall clock; pinning it makes a run at 18:00 or
+      // 19:15 UTC (or on the 13th of October) the same as any other (#1494). Only `Date` is faked.
+      if (clock) {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date(clock));
+      }
       const lines: string[] = [];
       const logs = (['error', 'log', 'warn', 'info'] as const).map((level) =>
         vi
@@ -800,6 +811,7 @@ describe('F022 weekly class series through the API', () => {
         productEvents,
         restore: () => {
           for (const log of logs) log.mockRestore();
+          if (clock) vi.useRealTimers();
         },
       };
     }
@@ -808,100 +820,105 @@ describe('F022 weekly class series through the API', () => {
         Object.entries(event?.properties ?? {}).filter(([key]) => !key.startsWith('$')),
       );
 
-    it('class_series_created and class_series_changed have the workspace ID and the surface only; refusals record nothing', async () => {
-      const { posthog, lines, productEvents, restore } = withEvents();
-      const world = await groupClassWorld(admin);
-      const { server } = setup({ productEvents });
-      const { groupClass } = (await (
-        await createClass(server, world.gym.id, world.john, {
-          ...kracht(world.sarahRole.id),
-          nameNl: 'Geheime les',
-        })
-      ).json()) as CreatedClassBody;
-      posthog.events.length = 0;
+    it.each(['2026-10-13T18:00:30Z', '2026-10-13T19:15:30Z'])(
+      'class_series_created and class_series_changed have the workspace ID and the surface only; refusals record nothing (the clock at %s)',
+      async (clock) => {
+        const { posthog, lines, productEvents, restore } = withEvents(clock);
+        const world = await groupClassWorld(admin);
+        const { server } = setup({ productEvents });
+        const { groupClass } = (await (
+          await createClass(server, world.gym.id, world.john, {
+            ...kracht(world.sarahRole.id),
+            nameNl: 'Geheime les',
+          })
+        ).json()) as CreatedClassBody;
+        posthog.events.length = 0;
 
-      // A refusal, a DST error and a single date record no series event.
-      await scheduleClass(server, world.gym.id, groupClass.id, world.sarah, {
-        localDate: '2026-10-06',
-        localStart: '18:00',
-        repeat: 'weekly',
-      });
-      await scheduleClass(server, world.gym.id, groupClass.id, world.john, {
-        localDate: '2027-03-14',
-        localStart: '02:30',
-        repeat: 'weekly',
-      });
-      await scheduleClass(server, world.gym.id, groupClass.id, world.john, {
-        localDate: '2026-10-06',
-        localStart: '18:00',
-      });
-      expect(posthog.events.map(({ event }) => event)).toEqual(['class_scheduled']);
-      posthog.events.length = 0;
+        // A refusal, a DST error and a single date record no series event.
+        await scheduleClass(server, world.gym.id, groupClass.id, world.sarah, {
+          localDate: '2026-10-06',
+          localStart: '18:00',
+          repeat: 'weekly',
+        });
+        await scheduleClass(server, world.gym.id, groupClass.id, world.john, {
+          localDate: '2027-03-14',
+          localStart: '02:30',
+          repeat: 'weekly',
+        });
+        await scheduleClass(server, world.gym.id, groupClass.id, world.john, {
+          localDate: '2026-10-06',
+          localStart: '18:00',
+        });
+        expect(posthog.events.map(({ event }) => event)).toEqual(['class_scheduled']);
+        posthog.events.length = 0;
 
-      await scheduleClass(server, world.gym.id, groupClass.id, world.john, {
-        localDate: '2026-10-13',
-        localStart: '19:15',
-        repeat: 'weekly',
-      });
-      const target = await dateOn(world.gym.id, '2026-10-20');
-      await updateDate(server, world.gym.id, target.id, world.john, {
-        version: 1,
-        capacity: 9,
-        scope: 'following',
-      });
-      // "This" changes a date, not the series: no series event.
-      const other = await dateOn(world.gym.id, '2026-10-27');
-      await updateDate(server, world.gym.id, other.id, world.john, {
-        version: 1,
-        capacity: 9,
-        scope: 'this',
-      });
-      // A bearer token names its surface; without one nothing is recorded.
-      await scheduleClass(
-        server,
-        world.gym.id,
-        groupClass.id,
-        world.john,
-        { localDate: '2026-10-14', localStart: '09:15', repeat: 'weekly', surface: 'android' },
-        { authorization: 'Bearer synthetic-token' },
-      );
-      await scheduleClass(
-        server,
-        world.gym.id,
-        groupClass.id,
-        world.john,
-        { localDate: '2026-10-15', localStart: '09:15', repeat: 'weekly' },
-        { authorization: 'Bearer synthetic-token' },
-      );
+        await scheduleClass(server, world.gym.id, groupClass.id, world.john, {
+          localDate: '2026-10-13',
+          localStart: '19:15',
+          repeat: 'weekly',
+        });
+        const target = await dateOn(world.gym.id, '2026-10-20');
+        await updateDate(server, world.gym.id, target.id, world.john, {
+          version: 1,
+          capacity: 9,
+          scope: 'following',
+        });
+        // "This" changes a date, not the series: no series event.
+        const other = await dateOn(world.gym.id, '2026-10-27');
+        await updateDate(server, world.gym.id, other.id, world.john, {
+          version: 1,
+          capacity: 9,
+          scope: 'this',
+        });
+        // A bearer token names its surface; without one nothing is recorded.
+        await scheduleClass(
+          server,
+          world.gym.id,
+          groupClass.id,
+          world.john,
+          { localDate: '2026-10-14', localStart: '09:15', repeat: 'weekly', surface: 'android' },
+          { authorization: 'Bearer synthetic-token' },
+        );
+        await scheduleClass(
+          server,
+          world.gym.id,
+          groupClass.id,
+          world.john,
+          { localDate: '2026-10-15', localStart: '09:15', repeat: 'weekly' },
+          { authorization: 'Bearer synthetic-token' },
+        );
 
-      const seriesEvents = posthog.events.filter(({ event }) => event.startsWith('class_series_'));
-      expect(seriesEvents.map(({ event }) => event)).toEqual([
-        'class_series_created',
-        'class_series_changed',
-        'class_series_created',
-      ]);
-      expect(seriesEvents.map(properties)).toEqual([
-        { workspace_id: world.gym.id, surface: 'web' },
-        { workspace_id: world.gym.id, surface: 'web' },
-        { workspace_id: world.gym.id, surface: 'android' },
-      ]);
-      expect(seriesEvents[0]?.distinct_id).toBe(world.john.id);
-      const sent = JSON.stringify([posthog.events, lines]);
-      for (const personal of [
-        'Geheime les',
-        'Sarah',
-        'Tom',
-        'FREQ=WEEKLY',
-        '2026-10-13',
-        '18:00',
-        '19:15',
-        world.sarahRole.id,
-        groupClass.id,
-      ]) {
-        expect(sent, personal).not.toContain(personal);
-      }
-      restore();
-    });
+        const seriesEvents = posthog.events.filter(({ event }) =>
+          event.startsWith('class_series_'),
+        );
+        expect(seriesEvents.map(({ event }) => event)).toEqual([
+          'class_series_created',
+          'class_series_changed',
+          'class_series_created',
+        ]);
+        expect(seriesEvents.map(properties)).toEqual([
+          { workspace_id: world.gym.id, surface: 'web' },
+          { workspace_id: world.gym.id, surface: 'web' },
+          { workspace_id: world.gym.id, surface: 'android' },
+        ]);
+        expect(seriesEvents[0]?.distinct_id).toBe(world.john.id);
+        const sent = JSON.stringify([whatFivviSent(posthog.events), lines]);
+        for (const personal of [
+          'Geheime les',
+          'Sarah',
+          'Tom',
+          'FREQ=WEEKLY',
+          '2026-10-13',
+          '18:00',
+          '19:15',
+          world.sarahRole.id,
+          groupClass.id,
+        ]) {
+          expect(sent, personal).not.toContain(personal);
+        }
+        restore();
+      },
+    );
   });
 
   it('AC11: the routes are in the contract with their access', () => {

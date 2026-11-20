@@ -327,7 +327,8 @@ ${snippet}`,
     it('prints the test that ran last when a step fails or times out, before the emulator stops', () => {
       const last = step('The Compose UI test that ran last');
       assert.match(last, /run: scripts\/android\.sh last-test\n/);
-      assert.match(last, /^ {8}if: failure\(\)$/m);
+      // ADR-034: only in a run with UI tests, where the Compose UI tests ran.
+      assert.match(last, /^ {8}if: failure\(\) && needs\.changes\.outputs\.ui_tests == 'true'$/m);
       assert.ok(
         job.indexOf('- name: The Compose UI test that ran last') <
           job.indexOf('- name: Stop the emulator'),

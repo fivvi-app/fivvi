@@ -9,6 +9,100 @@
     <string name="app_name">Fivvi Pro</string>
     <!-- Browser tab title (HTML <title>) of web pages that don't set their own, and the name of the client app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The product name, Fivvi, the same in both languages. -->
     <string name="app_title">Fivvi</string>
+    <string name="classes_date_back">Alle lessen</string>
+    <plurals name="classes_date_booked">
+        <item quantity="one">%1$s/%2$s geboekt · %3$d plek vrij</item>
+        <item quantity="other">%1$s/%2$s geboekt · %3$d plekken vrij</item>
+    </plurals>
+    <string name="classes_date_booked_label">Boekingen</string>
+    <string name="classes_date_edit">Wijzigen</string>
+    <string name="classes_date_no_bookings">Nog geen boekingen.</string>
+    <string name="classes_date_time_range">%1$s, %3$s–%2$s</string>
+    <string name="classes_date_trainer_label">%1$s</string>
+    <string name="classes_date_when_label">Wanneer</string>
+    <string name="classes_date_where_label">Locatie</string>
+    <string name="classes_duration_column">Duur</string>
+    <string name="classes_edit_cancel">Annuleren</string>
+    <string name="classes_edit_capacity_label">Capaciteit</string>
+    <string name="classes_edit_changed">Deze les is net gewijzigd. Je ziet nu de nieuwe gegevens.</string>
+    <string name="classes_edit_description">Je wijzigt alleen %1$s. De les zelf en de andere data blijven zoals ze zijn.</string>
+    <string name="classes_edit_end_label">Eind</string>
+    <string name="classes_edit_errors_capacity_invalid">Vul een capaciteit in van %2$s tot en met %1$s.</string>
+    <string name="classes_edit_errors_end_before_start">De eindtijd moet na de begintijd liggen.</string>
+    <string name="classes_edit_errors_invalid_time">Dit is geen geldige tijd.</string>
+    <string name="classes_edit_errors_no_permission">Je mag deze les niet meer wijzigen.</string>
+    <string name="classes_edit_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="classes_edit_errors_time_does_not_exist">Deze tijd bestaat niet op %1$s door de zomertijd.</string>
+    <string name="classes_edit_save">Opslaan</string>
+    <string name="classes_edit_saved">Les opgeslagen.</string>
+    <string name="classes_edit_start_label">Begin</string>
+    <string name="classes_edit_title">Les wijzigen</string>
+    <string name="classes_empty">Nog geen lessen. Maak je eerste les aan.</string>
+    <string name="classes_form_cancel">Annuleren</string>
+    <string name="classes_form_capacity_label">Capaciteit</string>
+    <string name="classes_form_class_section">De les</string>
+    <string name="classes_form_description">Geef de les een naam en stel in wie hem geeft, hoeveel plekken er zijn en hoe lang hij duurt.</string>
+    <string name="classes_form_description_en_label">Omschrijving (Engels, optioneel)</string>
+    <string name="classes_form_description_nl_label">Omschrijving (Nederlands, optioneel)</string>
+    <string name="classes_form_duration_label">Duur (minuten)</string>
+    <string name="classes_form_errors_capacity_invalid">Vul een capaciteit in van %2$s tot en met %1$s.</string>
+    <string name="classes_form_errors_description_too_long">De omschrijving mag maximaal %1$s tekens hebben.</string>
+    <string name="classes_form_errors_duration_invalid">Vul een duur in van %2$s tot en met %1$s minuten, in stappen van %3$s.</string>
+    <string name="classes_form_errors_name_required">Vul de naam in het Nederlands in.</string>
+    <string name="classes_form_errors_name_too_long">De naam mag maximaal %1$s tekens hebben.</string>
+    <string name="classes_form_errors_no_permission">Je mag geen lessen beheren.</string>
+    <string name="classes_form_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="classes_form_load_failed">De gegevens konden niet worden geladen.</string>
+    <string name="classes_form_name_en_label">Naam (Engels, optioneel)</string>
+    <string name="classes_form_name_nl_label">Naam (Nederlands)</string>
+    <string name="classes_form_name_section">Naam en omschrijving</string>
+    <string name="classes_form_save">Opslaan</string>
+    <string name="classes_form_saved">Les opgeslagen.</string>
+    <string name="classes_form_title">Nieuwe les</string>
+    <string name="classes_form_trainer_label">%1$s</string>
+    <string name="classes_minutes">%1$s min</string>
+    <string name="classes_name_column">Les</string>
+    <string name="classes_new">Nieuwe les</string>
+    <string name="classes_page_back">Alle lessen</string>
+    <string name="classes_page_description_title">Omschrijving</string>
+    <string name="classes_page_facts">%3$s · %2$s · %1$s</string>
+    <string name="classes_page_no_description">Nog geen omschrijving.</string>
+    <string name="classes_page_schedule">Op een datum plannen</string>
+    <string name="classes_schedule_cancel">Annuleren</string>
+    <string name="classes_schedule_capacity_label">Capaciteit</string>
+    <string name="classes_schedule_class_choose">Kies een les</string>
+    <string name="classes_schedule_class_label">Les</string>
+    <string name="classes_schedule_class_none">Je hebt nog geen lessen.</string>
+    <string name="classes_schedule_class_section">De les</string>
+    <string name="classes_schedule_date_label">Datum</string>
+    <string name="classes_schedule_description">Kies de datum en het begin. De duur, de locatie en de standaardwaarden komen van de les.</string>
+    <string name="classes_schedule_ends_at">Eindigt om %1$s</string>
+    <string name="classes_schedule_ends_at_next_day">Eindigt om %1$s (volgende dag)</string>
+    <string name="classes_schedule_errors_capacity_invalid">Vul een capaciteit in van %2$s tot en met %1$s.</string>
+    <string name="classes_schedule_errors_class_required">Kies een les.</string>
+    <string name="classes_schedule_errors_date_required">Kies een datum.</string>
+    <string name="classes_schedule_errors_invalid_date">Deze datum bestaat niet.</string>
+    <string name="classes_schedule_errors_invalid_time">Dit is geen geldige tijd.</string>
+    <string name="classes_schedule_errors_no_permission">Je mag geen lessen plannen.</string>
+    <string name="classes_schedule_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="classes_schedule_errors_start_required">Kies een begintijd.</string>
+    <string name="classes_schedule_errors_time_does_not_exist">Deze tijd bestaat niet op %1$s door de zomertijd.</string>
+    <string name="classes_schedule_load_failed">De gegevens konden niet worden geladen.</string>
+    <string name="classes_schedule_location">Locatie: %1$s</string>
+    <string name="classes_schedule_save">Plannen</string>
+    <string name="classes_schedule_saved">Groepsles toegevoegd</string>
+    <string name="classes_schedule_start_label">Begin</string>
+    <string name="classes_schedule_title">Op een datum plannen</string>
+    <string name="classes_schedule_trainer_label">%1$s</string>
+    <string name="classes_schedule_when_section">Wanneer</string>
+    <plurals name="classes_spots">
+        <item quantity="one">%1$d plek</item>
+        <item quantity="other">%1$d plekken</item>
+    </plurals>
+    <string name="classes_spots_column">Plekken</string>
+    <string name="classes_title">Lessen</string>
+    <string name="classes_trainer_column">%1$s</string>
+    <string name="classes_trainer_needed">%1$s nodig</string>
     <!-- Second tab of the client app: where a client books a class. A verb in the tab bar (GLOSSARY: Book / Boeken). -->
     <string name="client_nav_book">Boeken</string>
     <!-- First tab of the client app. The same word in both languages (GLOSSARY: Home). -->
@@ -223,8 +317,6 @@
     <string name="exercises_types_reps_only">Alleen herhalingen</string>
     <string name="exercises_types_time">Tijd</string>
     <string name="exercises_types_weight_reps">Gewicht × herhalingen</string>
-    <!-- Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button. -->
-    <string name="hello_error">We konden de begroeting niet laden. Probeer het opnieuw.</string>
     <!-- Greeting above the home screen. {name} is the user's first name. -->
     <string name="hello_greeting">Hoi %1$s,</string>
     <!-- {date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone. -->
@@ -836,6 +928,7 @@
     <string name="welcome_workspace_name_label">Naam van je sportschool of bedrijf</string>
     <!-- Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive. -->
     <string name="workspace_home_description">Hier komt binnenkort het overzicht van je sportschool of bedrijf.</string>
+    <string name="workspace_nav_classes">Lessen</string>
     <string name="workspace_nav_clients">Klanten</string>
     <string name="workspace_nav_join_link">Aanmeldlink</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->
@@ -844,6 +937,7 @@
     <string name="workspace_nav_my_day">Mijn dag</string>
     <string name="workspace_nav_new">Nieuw</string>
     <string name="workspace_nav_new_client">Klant</string>
+    <string name="workspace_nav_new_group_class">Groepsles</string>
     <string name="workspace_nav_new_menu">Nieuw maken</string>
     <string name="workspace_nav_new_private_session">Privésessie</string>
     <string name="workspace_nav_personal">Persoonlijk</string>

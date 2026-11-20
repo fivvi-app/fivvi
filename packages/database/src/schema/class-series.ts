@@ -1,5 +1,16 @@
 import { sql } from 'drizzle-orm';
-import { check, date, foreignKey, index, integer, text, time, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  date,
+  foreignKey,
+  index,
+  integer,
+  pgPolicy,
+  text,
+  time,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import { CRON_ROLE } from '../cron-role.ts';
 import { businessTable } from './business-table.ts';
 import { timestamps } from './columns.ts';
 import { groupClasses } from './group-classes.ts';
@@ -72,6 +83,22 @@ export const classSeries = businessTable(
       sql`${table.endsOn} IS NULL OR ${table.endsOn} >= ${table.startsOn}`,
     ),
     check('class_series_version_positive', sql`${table.version} >= 1`),
+    // The daily task that keeps series 12 weeks ahead (F022, E012) runs as the cron role, which
+    // sets no workspace context: it reads every series and moves `materialized_until` forward,
+    // nothing else (the privileges list grants SELECT and an UPDATE of that column).
+    pgPolicy('class_series_cron_select', {
+      as: 'permissive',
+      for: 'select',
+      to: CRON_ROLE,
+      using: sql`true`,
+    }),
+    pgPolicy('class_series_cron_update', {
+      as: 'permissive',
+      for: 'update',
+      to: CRON_ROLE,
+      using: sql`true`,
+      withCheck: sql`true`,
+    }),
   ],
 );
 

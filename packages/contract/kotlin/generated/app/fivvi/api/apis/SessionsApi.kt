@@ -12,10 +12,11 @@ import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.PlanPrivateSessionRequest
 import app.fivvi.api.models.PlannedPrivateSession
+import app.fivvi.api.models.ReschedulePrivateSessionRefusal
 import app.fivvi.api.models.ReschedulePrivateSessionRequest
 import app.fivvi.api.models.ReschedulePrivateSessionResult
 import app.fivvi.api.models.Session
-import app.fivvi.api.models.SessionConflict
+import app.fivvi.api.models.TrainerConflict
 import app.fivvi.api.models.UpcomingSessions
 import app.fivvi.api.models.ValidationError
 
@@ -23,13 +24,14 @@ interface SessionsApi {
     /**
      * POST v1/workspaces/{workspaceId}/sessions/private
      * Plan a private session
-     * Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers &#x60;403&#x60;) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (&#x60;past&#x60;). A client or trainer that is not in the workspace (or a trainer who does not train) answers &#x60;404&#x60;; an invalid duration, date or time, or a start the clocks skip answers &#x60;400&#x60; with the field in &#x60;issues&#x60;. When &#x60;notify&#x60; is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
+     * Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers &#x60;403&#x60;) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (&#x60;past&#x60;). A client or trainer that is not in the workspace (or a trainer who does not train) answers &#x60;404&#x60;; an invalid duration, date or time, or a start the clocks skip answers &#x60;400&#x60; with the field in &#x60;issues&#x60;. When &#x60;notify&#x60; is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default. When the trainer already has a scheduled session of this workspace that overlaps (back-to-back does not), the answer is &#x60;409&#x60; with the code &#x60;trainer_conflict&#x60; and those sessions, and nothing is stored, unless &#x60;allowConflicts&#x60; is &#x60;true&#x60; (PS-07).
      * Responses:
      *  - 201: The session was planned.
      *  - 400: The request did not match the contract.
      *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
      *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
      *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 409: The trainer already has something at that time, and `allowConflicts` was not set. Nothing was stored.
      *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
      *
      * @param workspaceId The workspace ID.
@@ -80,14 +82,14 @@ interface SessionsApi {
     /**
      * POST v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule
      * Reschedule a private session
-     * Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (&#x60;403&#x60; otherwise). &#x60;version&#x60; is the one the person saw: if the session has been changed since, nothing is stored and the answer is &#x60;409&#x60; with the session as it is now and who changed it last. A cancelled session answers &#x60;409&#x60; too; a session that is not private or not in the workspace answers &#x60;404&#x60;. When &#x60;notify&#x60; is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+     * Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (&#x60;403&#x60; otherwise). &#x60;version&#x60; is the one the person saw: if the session has been changed since, nothing is stored and the answer is &#x60;409&#x60; with the session as it is now and who changed it last. A cancelled session answers &#x60;409&#x60; too; a session that is not private or not in the workspace answers &#x60;404&#x60;. When the trainer already has a scheduled session of this workspace at the new time (back-to-back does not overlap), the answer is &#x60;409&#x60; with the code &#x60;trainer_conflict&#x60; and those sessions, unless &#x60;allowConflicts&#x60; is &#x60;true&#x60; (PS-07); the version is checked first. When &#x60;notify&#x60; is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
      * Responses:
      *  - 200: The session was moved.
      *  - 400: The request did not match the contract.
      *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
      *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
      *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
-     *  - 409: The session was changed after the `version` sent, or it is cancelled. Nothing was stored.
+     *  - 409: The session was changed after the `version` sent, or it is cancelled (`session_changed`, `session_cancelled`), or the trainer already has something at the new time (`trainer_conflict`). Nothing was stored.
      *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
      *
      * @param workspaceId The workspace ID.

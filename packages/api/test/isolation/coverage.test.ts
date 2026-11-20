@@ -5,6 +5,7 @@ import {
   accessCoverageProblems,
   type ContractDocument,
   isolationCoverageProblems,
+  isolationOrderProblems,
   listOperations,
 } from './coverage.ts';
 import { ISOLATION_CASES } from './isolation-cases.ts';
@@ -151,5 +152,30 @@ describe('@isolation AC14: every workspace and account route has an isolation ca
     });
 
     expect(isolationCoverageProblems(contractDoc, app, ['probe'])).toEqual([]);
+  });
+});
+
+describe('@isolation E001 #1272 AC7: the isolation cases are in order of operation ID', () => {
+  it('holds for ISOLATION_CASES', () => {
+    expect(isolationOrderProblems(Object.keys(ISOLATION_CASES))).toEqual([]);
+  });
+
+  it('accepts cases in order, and none', () => {
+    expect(isolationOrderProblems([])).toEqual([]);
+    expect(isolationOrderProblems(['getMe', 'listMyWorkspaces', 'probeOwner'])).toEqual([]);
+  });
+
+  it('fails on a case that comes after one that sorts later, naming both and the fix', () => {
+    expect(isolationOrderProblems(['getMe', 'addClient', 'probeOwner'])).toEqual([
+      expect.stringMatching(/addClient comes after getMe.*sort the cases by operation ID/),
+    ]);
+  });
+
+  it('names every case that is out of order, one problem each', () => {
+    const problems = isolationOrderProblems(['b', 'a', 'd', 'c']);
+
+    expect(problems).toHaveLength(2);
+    expect(problems[0]).toContain('a comes after b');
+    expect(problems[1]).toContain('c comes after d');
   });
 });
