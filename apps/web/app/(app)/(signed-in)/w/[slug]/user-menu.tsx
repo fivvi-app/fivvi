@@ -14,6 +14,11 @@ import { LanguageOptions, languageNameKey } from '../../language/language-option
  * re-renders in the new language in place, without a reload, so what was typed stays (the route
  * guard writes the stored language into the cookie of the request). When the save fails the page
  * keeps its language and says so. *Mijn profiel* / *My profile* (F003) opens TW-09.
+ *
+ * Beside the sidebar (768 px and wider) the menu opens to the side, over the page, like the account
+ * menu of shadcn's sidebar; it never covers the navigation, however long that grows (a widget over
+ * part of a link leaves it under 24 px to hit, WCAG 2.5.8). Below that the sidebar sits above the
+ * page and the menu opens upwards.
  */
 export function UserMenu({ initiallyOpen = false }: { initiallyOpen?: boolean }) {
   const t = useTranslations('userMenu');
@@ -71,7 +76,7 @@ export function UserMenu({ initiallyOpen = false }: { initiallyOpen?: boolean })
       {open ? (
         <div
           id="user-menu"
-          className="absolute end-0 bottom-full z-10 mb-1 grid min-w-48 gap-1 rounded-lg border bg-background p-1 shadow-md"
+          className="absolute end-0 bottom-full z-10 mb-1 grid min-w-48 gap-1 rounded-lg border bg-background p-1 shadow-md md:start-full md:end-auto md:bottom-0 md:mb-0 md:ms-6"
         >
           <Button asChild variant="ghost" className="justify-start">
             <Link href="/me/profile">{t('profile')}</Link>

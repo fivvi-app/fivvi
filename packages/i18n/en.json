@@ -14,6 +14,112 @@
     "name": "Fivvi Pro",
     "title": "Fivvi"
   },
+  "classes": {
+    "date": {
+      "back": "All classes",
+      "booked": "{booked}/{capacity} booked · {free, plural, one {# spot free} other {# spots free}}",
+      "bookedLabel": "Bookings",
+      "edit": "Edit",
+      "noBookings": "No bookings yet.",
+      "timeRange": "{date}, {start}–{end}",
+      "trainerLabel": "{Word}",
+      "whenLabel": "When",
+      "whereLabel": "Location"
+    },
+    "durationColumn": "Duration",
+    "edit": {
+      "cancel": "Cancel",
+      "capacityLabel": "Capacity",
+      "changed": "This class was just changed. You now see the new details.",
+      "description": "You're changing only {date}. The class itself and its other dates stay as they are.",
+      "endLabel": "End",
+      "errors": {
+        "capacityInvalid": "Enter a capacity from {min} to {max}.",
+        "endBeforeStart": "The end time must be after the start time.",
+        "invalidTime": "This isn't a valid time.",
+        "noPermission": "You can't change this class any more.",
+        "notSaved": "Not saved. Check your connection and try again.",
+        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time."
+      },
+      "save": "Save",
+      "saved": "Class saved.",
+      "startLabel": "Start",
+      "title": "Edit class"
+    },
+    "empty": "No classes yet. Create your first class.",
+    "form": {
+      "cancel": "Cancel",
+      "capacityLabel": "Capacity",
+      "classSection": "The class",
+      "description": "Name the class and set who teaches it, how many spots it has and how long it lasts.",
+      "descriptionEnLabel": "Description (English, optional)",
+      "descriptionNlLabel": "Description (Dutch, optional)",
+      "durationLabel": "Duration (minutes)",
+      "errors": {
+        "capacityInvalid": "Enter a capacity from {min} to {max}.",
+        "descriptionTooLong": "The description can have at most {max} characters.",
+        "durationInvalid": "Enter a duration from {min} to {max} minutes, in steps of {step}.",
+        "nameRequired": "Enter the name in Dutch.",
+        "nameTooLong": "The name can have at most {max} characters.",
+        "noPermission": "You can't manage classes.",
+        "notSaved": "Not saved. Check your connection and try again."
+      },
+      "loadFailed": "The details couldn't be loaded.",
+      "nameEnLabel": "Name (English, optional)",
+      "nameNlLabel": "Name (Dutch)",
+      "nameSection": "Name and description",
+      "save": "Save",
+      "saved": "Class saved.",
+      "title": "New class",
+      "trainerLabel": "{Word}"
+    },
+    "minutes": "{minutes} min",
+    "nameColumn": "Class",
+    "new": "New class",
+    "page": {
+      "back": "All classes",
+      "descriptionTitle": "Description",
+      "facts": "{trainer} · {spots} · {duration}",
+      "noDescription": "No description yet.",
+      "schedule": "Schedule on a date"
+    },
+    "schedule": {
+      "cancel": "Cancel",
+      "capacityLabel": "Capacity",
+      "classChoose": "Choose a class",
+      "classLabel": "Class",
+      "classNone": "You don't have any classes yet.",
+      "classSection": "The class",
+      "dateLabel": "Date",
+      "description": "Choose the date and the start. The duration, the location and the defaults come from the class.",
+      "endsAt": "Ends at {time}",
+      "endsAtNextDay": "Ends at {time} (next day)",
+      "errors": {
+        "capacityInvalid": "Enter a capacity from {min} to {max}.",
+        "classRequired": "Choose a class.",
+        "dateRequired": "Choose a date.",
+        "invalidDate": "This date doesn't exist.",
+        "invalidTime": "This isn't a valid time.",
+        "noPermission": "You can't schedule classes.",
+        "notSaved": "Not saved. Check your connection and try again.",
+        "startRequired": "Choose a start time.",
+        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time."
+      },
+      "loadFailed": "The details couldn't be loaded.",
+      "location": "Location: {name}",
+      "save": "Schedule",
+      "saved": "Group class added",
+      "startLabel": "Start",
+      "title": "Schedule on a date",
+      "trainerLabel": "{Word}",
+      "whenSection": "When"
+    },
+    "spots": "{count, plural, one {# spot} other {# spots}}",
+    "spotsColumn": "Spots",
+    "title": "Classes",
+    "trainerColumn": "{Word}",
+    "trainerNeeded": "{Word} needed"
+  },
   "clientNav": {
     "book": "Book",
     "home": "Home",
@@ -1557,6 +1663,7 @@
     "description": "The overview of your gym or business will appear here soon."
   },
   "workspaceNav": {
+    "classes": "Classes",
     "clients": "Clients",
     "joinLink": "Join link",
     "label": "Main navigation",
@@ -1564,6 +1671,7 @@
     "myDay": "My day",
     "new": "New",
     "newClient": "Client",
+    "newGroupClass": "Group class",
     "newMenu": "Create new",
     "newPrivateSession": "Private session",
     "personal": "Personal",

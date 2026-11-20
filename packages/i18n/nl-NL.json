@@ -14,6 +14,112 @@
     "name": "Fivvi Pro",
     "title": "Fivvi"
   },
+  "classes": {
+    "date": {
+      "back": "Alle lessen",
+      "booked": "{booked}/{capacity} geboekt · {free, plural, one {# plek vrij} other {# plekken vrij}}",
+      "bookedLabel": "Boekingen",
+      "edit": "Wijzigen",
+      "noBookings": "Nog geen boekingen.",
+      "timeRange": "{date}, {start}–{end}",
+      "trainerLabel": "{Word}",
+      "whenLabel": "Wanneer",
+      "whereLabel": "Locatie"
+    },
+    "durationColumn": "Duur",
+    "edit": {
+      "cancel": "Annuleren",
+      "capacityLabel": "Capaciteit",
+      "changed": "Deze les is net gewijzigd. Je ziet nu de nieuwe gegevens.",
+      "description": "Je wijzigt alleen {date}. De les zelf en de andere data blijven zoals ze zijn.",
+      "endLabel": "Eind",
+      "errors": {
+        "capacityInvalid": "Vul een capaciteit in van {min} tot en met {max}.",
+        "endBeforeStart": "De eindtijd moet na de begintijd liggen.",
+        "invalidTime": "Dit is geen geldige tijd.",
+        "noPermission": "Je mag deze les niet meer wijzigen.",
+        "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.",
+        "timeDoesNotExist": "Deze tijd bestaat niet op {date} door de zomertijd."
+      },
+      "save": "Opslaan",
+      "saved": "Les opgeslagen.",
+      "startLabel": "Begin",
+      "title": "Les wijzigen"
+    },
+    "empty": "Nog geen lessen. Maak je eerste les aan.",
+    "form": {
+      "cancel": "Annuleren",
+      "capacityLabel": "Capaciteit",
+      "classSection": "De les",
+      "description": "Geef de les een naam en stel in wie hem geeft, hoeveel plekken er zijn en hoe lang hij duurt.",
+      "descriptionEnLabel": "Omschrijving (Engels, optioneel)",
+      "descriptionNlLabel": "Omschrijving (Nederlands, optioneel)",
+      "durationLabel": "Duur (minuten)",
+      "errors": {
+        "capacityInvalid": "Vul een capaciteit in van {min} tot en met {max}.",
+        "descriptionTooLong": "De omschrijving mag maximaal {max} tekens hebben.",
+        "durationInvalid": "Vul een duur in van {min} tot en met {max} minuten, in stappen van {step}.",
+        "nameRequired": "Vul de naam in het Nederlands in.",
+        "nameTooLong": "De naam mag maximaal {max} tekens hebben.",
+        "noPermission": "Je mag geen lessen beheren.",
+        "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw."
+      },
+      "loadFailed": "De gegevens konden niet worden geladen.",
+      "nameEnLabel": "Naam (Engels, optioneel)",
+      "nameNlLabel": "Naam (Nederlands)",
+      "nameSection": "Naam en omschrijving",
+      "save": "Opslaan",
+      "saved": "Les opgeslagen.",
+      "title": "Nieuwe les",
+      "trainerLabel": "{Word}"
+    },
+    "minutes": "{minutes} min",
+    "nameColumn": "Les",
+    "new": "Nieuwe les",
+    "page": {
+      "back": "Alle lessen",
+      "descriptionTitle": "Omschrijving",
+      "facts": "{trainer} · {spots} · {duration}",
+      "noDescription": "Nog geen omschrijving.",
+      "schedule": "Op een datum plannen"
+    },
+    "schedule": {
+      "cancel": "Annuleren",
+      "capacityLabel": "Capaciteit",
+      "classChoose": "Kies een les",
+      "classLabel": "Les",
+      "classNone": "Je hebt nog geen lessen.",
+      "classSection": "De les",
+      "dateLabel": "Datum",
+      "description": "Kies de datum en het begin. De duur, de locatie en de standaardwaarden komen van de les.",
+      "endsAt": "Eindigt om {time}",
+      "endsAtNextDay": "Eindigt om {time} (volgende dag)",
+      "errors": {
+        "capacityInvalid": "Vul een capaciteit in van {min} tot en met {max}.",
+        "classRequired": "Kies een les.",
+        "dateRequired": "Kies een datum.",
+        "invalidDate": "Deze datum bestaat niet.",
+        "invalidTime": "Dit is geen geldige tijd.",
+        "noPermission": "Je mag geen lessen plannen.",
+        "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.",
+        "startRequired": "Kies een begintijd.",
+        "timeDoesNotExist": "Deze tijd bestaat niet op {date} door de zomertijd."
+      },
+      "loadFailed": "De gegevens konden niet worden geladen.",
+      "location": "Locatie: {name}",
+      "save": "Plannen",
+      "saved": "Groepsles toegevoegd",
+      "startLabel": "Begin",
+      "title": "Op een datum plannen",
+      "trainerLabel": "{Word}",
+      "whenSection": "Wanneer"
+    },
+    "spots": "{count, plural, one {# plek} other {# plekken}}",
+    "spotsColumn": "Plekken",
+    "title": "Lessen",
+    "trainerColumn": "{Word}",
+    "trainerNeeded": "{Word} nodig"
+  },
   "clientNav": {
     "book": "Boeken",
     "home": "Home",
@@ -1557,6 +1663,7 @@
     "description": "Hier komt binnenkort het overzicht van je sportschool of bedrijf."
   },
   "workspaceNav": {
+    "classes": "Lessen",
     "clients": "Klanten",
     "joinLink": "Aanmeldlink",
     "label": "Hoofdnavigatie",
@@ -1564,6 +1671,7 @@
     "myDay": "Mijn dag",
     "new": "Nieuw",
     "newClient": "Klant",
+    "newGroupClass": "Groepsles",
     "newMenu": "Nieuw maken",
     "newPrivateSession": "Privésessie",
     "personal": "Persoonlijk",
