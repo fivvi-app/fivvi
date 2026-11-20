@@ -78,6 +78,7 @@ describe('GET /v1/me', () => {
       sendEmail: createSendEmail({
         transport,
         sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+        replyTo: { email: 'support@example.com' },
       }),
       runInBackground: (task) => pending.push(task),
     });

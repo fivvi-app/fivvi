@@ -149,6 +149,7 @@ function standaloneServer(
       DEMO_REQUEST_TO: DEMO_REQUEST_ADDRESS,
       EMAIL_FROM_ADDRESS: 'noreply@fivvi.e2e.test',
       EMAIL_FROM_NAME: 'Fivvi',
+      EMAIL_REPLY_TO_ADDRESS: 'support@fivvi.e2e.test',
       // Closed sign-up (F001): only this domain gets an account at its first sign-in.
       SIGN_UP_ALLOWED_EMAILS: `@${ALLOWED_SIGN_UP_DOMAIN}`,
     },

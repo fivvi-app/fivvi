@@ -6361,7 +6361,7 @@ esac`,
       assert.ok(
         env.LETTERMINT_API_TOKEN && env.LETTERMINT_ROUTE_SIGN_IN && env.LETTERMINT_ROUTE_MAIL,
       );
-      assert.ok(env.EMAIL_FROM_ADDRESS && env.EMAIL_FROM_NAME);
+      assert.ok(env.EMAIL_FROM_ADDRESS && env.EMAIL_FROM_NAME && env.EMAIL_REPLY_TO_ADDRESS);
       assert.ok(env.BETTER_AUTH_SECRET?.length >= 32, 'a secret of at least 32 characters');
       assert.equal(env.BETTER_AUTH_URL, `http://127.0.0.1:${fake.port}`);
       assert.match(env.SIGN_UP_ALLOWED_EMAILS, /@example\.com/);

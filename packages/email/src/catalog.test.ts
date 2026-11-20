@@ -10,9 +10,9 @@ import {
   internalCatalog,
   templates,
 } from './catalog.ts';
-import { lettermintRequestBody } from './lettermint.ts';
+import { createLettermintTransport, lettermintRequestBody } from './lettermint.ts';
 import { createMemoryTransport } from './memory.ts';
-import type { EmailTemplate } from './render.tsx';
+import { createEmailContext, type EmailTemplate, renderEmail } from './render.tsx';
 import { createSendEmail } from './send.ts';
 import { checkContent, checkLinks, checkRendering, checkSyntheticData } from './template-checks.ts';
 import { dutch, english } from './test-languages.ts';
@@ -266,7 +266,11 @@ describe('AC5: no tracking, no redirects, no List-Unsubscribe', () => {
     '$name: the message carries no List-Unsubscribe header',
     async ({ template }) => {
       const transport = createMemoryTransport();
-      const send = createSendEmail({ transport, sender: { email: 'noreply@fivvi.app' } });
+      const send = createSendEmail({
+        transport,
+        sender: { email: 'noreply@fivvi.app' },
+        replyTo: { email: 'support@example.com' },
+      });
       for (const locale of [dutch, english]) {
         await send({
           template,
@@ -301,4 +305,83 @@ describe('AC7: the preview data is synthetic', () => {
   it.each(checked)('$name: only example.com addresses', async ({ template }) => {
     expect(await checkSyntheticData(template)).toEqual([]);
   });
+});
+
+// #1514: Outlook.com put a Fivvi email in Junk. Two of the likely causes were in our code: the hidden
+// padding of invisible characters React Email's `<Preview>` adds, and a `noreply@` sender with no Reply-To.
+describe('#1514: no hidden padding in the preview line', () => {
+  const invisible = ['\u200B', '\u200C', '\u200D', '\u200E', '\u200F', '\uFEFF'];
+
+  it.each(checked)(
+    '$name: the HTML has its preview line and none of the invisible characters',
+    async ({ template }) => {
+      for (const locale of locales) {
+        const ctx = createEmailContext({ locale });
+        const preview = template.preview(ctx, template.previewProps);
+        const { html } = await renderEmail(template, template.previewProps, { locale });
+        expect(preview.trim()).not.toBe('');
+        expect(html).toContain(preview.replaceAll('&', '&amp;').replaceAll("'", '&#x27;'));
+        for (const character of invisible) {
+          expect(html, `${locale}: U+${character.codePointAt(0)?.toString(16)}`).not.toContain(
+            character,
+          );
+        }
+        // The filler of `<Preview>` is `&nbsp;` too: the hidden block holds the preview line and nothing else.
+        const hidden = /<div [^>]*display:none[^>]*>(.*?)<\/div>/s.exec(html);
+        expect(hidden?.[1]).toBeDefined();
+        expect(hidden?.[1]).not.toContain('\u00A0');
+        expect(hidden?.[1]).not.toContain('&nbsp;');
+        expect(hidden?.[1]?.length).toBeLessThanOrEqual(preview.length * 2);
+      }
+    },
+  );
+});
+
+describe('#1514: every email carries a Reply-To', () => {
+  const replyTo = { email: 'support@example.com' };
+
+  it.each(checked)(
+    '$name: the Lettermint request has reply_to, the capture transport records it',
+    async ({ template }) => {
+      const requests: Record<string, unknown>[] = [];
+      const fetch = (_url: string | URL | Request, init: RequestInit = {}) => {
+        requests.push(JSON.parse(String(init.body)) as Record<string, unknown>);
+        return Promise.resolve(
+          new Response(JSON.stringify({ message_id: 'msg-1', status: 'pending' }), {
+            status: 202,
+          }),
+        );
+      };
+      const lettermint = createSendEmail({
+        transport: createLettermintTransport({
+          apiToken: 'lm-test-not-a-real-token',
+          routes: { signIn: 'sign-in-route', mail: 'mail-route' },
+          fetch: fetch as typeof globalThis.fetch,
+        }),
+        sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+        replyTo,
+      });
+      const capture = createMemoryTransport();
+      const captured = createSendEmail({
+        transport: capture,
+        sender: { email: 'noreply@fivvi.app' },
+        replyTo,
+      });
+      for (const [send, locale] of [
+        [lettermint, dutch],
+        [captured, english],
+      ] as const) {
+        await send({
+          template,
+          props: template.previewProps,
+          to: { email: 'anna@example.com' },
+          locale,
+          event: 'reply-to',
+        });
+      }
+      expect(requests).toHaveLength(1);
+      expect(requests[0]?.reply_to).toEqual(['support@example.com']);
+      expect(capture.sent.map((email) => email.replyTo)).toEqual([replyTo]);
+    },
+  );
 });

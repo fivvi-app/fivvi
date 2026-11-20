@@ -12,6 +12,7 @@ import { EmailSendError, type OutgoingEmail } from './transport.ts';
 
 const sender = { email: 'noreply@fivvi.app', name: 'Fivvi' };
 const props = { firstName: 'Anna', sentAt: new Date('2026-09-22T16:00:00Z') };
+const replyTo = { email: 'support@example.com' };
 const to = { email: 'anna@example.com' };
 
 function setup(onSent?: (event: SentEvent) => void, onSentError?: (error: unknown) => void) {
@@ -19,6 +20,7 @@ function setup(onSent?: (event: SentEvent) => void, onSentError?: (error: unknow
   const sendEmail = createSendEmail({
     transport,
     sender,
+    replyTo,
     sleep: () => Promise.resolve(),
     random: () => 0,
     onSent,
@@ -147,6 +149,7 @@ describe('F049 AC11: every send carries its catalog ID', () => {
     const sendEmail = createSendEmail({
       transport,
       sender,
+      replyTo,
       sleep: () => Promise.resolve(),
       random: () => 0,
     });
@@ -229,6 +232,7 @@ describe('E006 memory transport', () => {
     const transport = createMemoryTransport();
     await transport.send({
       from: sender,
+      replyTo,
       to: { email: 'a@example.com' },
       subject: 's',
       html: '<a href="https://example.com/login?token=abc&amp;next=%2F">x</a> <a href="/b">y</a>',

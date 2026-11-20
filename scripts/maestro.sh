@@ -163,6 +163,7 @@ start_stack() {
     LETTERMINT_API_URL="http://localhost:$LETTERMINT_PORT/v1/send" LETTERMINT_API_TOKEN=maestro-synthetic-lettermint-token \
     LETTERMINT_ROUTE_SIGN_IN=maestro-sign-in LETTERMINT_ROUTE_MAIL=maestro-mail \
     EMAIL_FROM_ADDRESS=noreply@fivvi.maestro.test EMAIL_FROM_NAME=Fivvi \
+    EMAIL_REPLY_TO_ADDRESS=support@fivvi.maestro.test \
     SIGN_UP_ALLOWED_EMAILS=@example.com \
     exec node --env-file=../../packages/database/.env .next/standalone/apps/web/server.js) >"$REPORTS/web.log" 2>&1 &
   SERVER_PID=$!

@@ -24,6 +24,11 @@ export interface LettermintRoutes {
 export interface EmailConfig {
   /** The From address and name. Lettermint only sends from a verified domain. */
   sender: EmailAddress;
+  /**
+   * The Reply-To address of every email (`EMAIL_REPLY_TO_ADDRESS`). The sender is a `noreply@`
+   * address, and a sender that can't receive replies counts against us with spam filters (#1514).
+   */
+  replyTo: EmailAddress;
   lettermint: LettermintConfig;
 }
 
@@ -43,23 +48,29 @@ export function readEmailConfig(
   const routeMail = env.LETTERMINT_ROUTE_MAIL?.trim();
   const address = env.EMAIL_FROM_ADDRESS?.trim();
   const name = env.EMAIL_FROM_NAME?.trim();
+  const replyToAddress = env.EMAIL_REPLY_TO_ADDRESS?.trim();
 
-  if (!apiToken || !routeSignIn || !routeMail || !address || !name) {
+  if (!apiToken || !routeSignIn || !routeMail || !address || !name || !replyToAddress) {
     throw notSet([
       !apiToken && 'LETTERMINT_API_TOKEN',
       !routeSignIn && 'LETTERMINT_ROUTE_SIGN_IN',
       !routeMail && 'LETTERMINT_ROUTE_MAIL',
       !address && 'EMAIL_FROM_ADDRESS',
       !name && 'EMAIL_FROM_NAME',
+      !replyToAddress && 'EMAIL_REPLY_TO_ADDRESS',
     ]);
   }
   const sender = senderOf(address, name);
+  if (!EMAIL.test(replyToAddress)) {
+    throw new Error('EMAIL_REPLY_TO_ADDRESS is not an email address.');
+  }
   const apiUrl = env.LETTERMINT_API_URL?.trim();
   if (apiUrl && !URL.canParse(apiUrl)) {
     throw new Error('LETTERMINT_API_URL is not a URL.');
   }
   return {
     sender,
+    replyTo: { email: replyToAddress },
     lettermint: {
       apiToken,
       routes: { signIn: routeSignIn, mail: routeMail },

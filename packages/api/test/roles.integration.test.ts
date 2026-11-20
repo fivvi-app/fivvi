@@ -81,6 +81,7 @@ describe('@permission F004 roles on every workspace route', () => {
         sendEmail: createSendEmail({
           transport: createMemoryTransport(),
           sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+          replyTo: { email: 'support@example.com' },
         }),
         appBaseUrl: () => 'https://fivvi.example.test',
       }),
