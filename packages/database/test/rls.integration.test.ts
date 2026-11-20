@@ -9,6 +9,7 @@ import {
 } from '../src/index.ts';
 import {
   addClient,
+  addClientBillingDetails,
   addPayment,
   addPaymentChargeback,
   addPaymentCustomer,
@@ -107,6 +108,8 @@ async function seedScenario(admin: DatabaseExecutor): Promise<Scenario> {
   const refundTarget = { workspaceId: a, paymentId: paymentInA.id, clientId: clientInA };
   await addPaymentRefund(admin, refundTarget);
   await addPaymentChargeback(admin, refundTarget);
+  // And Sam's client's billing details (F059): the client policy covers them too.
+  await addClientBillingDetails(admin, { workspaceId: a, clientId: clientInA });
   const all: Scenario['rows'] = {};
   for (const [table, factory] of Object.entries(isolationFactories)) {
     const found = await visible(admin, table, factory);

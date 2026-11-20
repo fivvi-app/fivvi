@@ -267,6 +267,20 @@
       "when": 1795040807838,
       "tag": "0038_payouts",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795040807839,
+      "tag": "0039_workspace_invoice_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795040807840,
+      "tag": "0040_client_billing_details",
+      "breakpoints": true
     }
   ]
 }

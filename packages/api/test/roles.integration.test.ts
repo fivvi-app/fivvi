@@ -169,8 +169,14 @@ describe('@permission F004 roles on every workspace route', () => {
       // Mike is an Owner of Fit Studio and nothing in John's Gym.
       expect((await call(route, mike)).status, `${route.name} Mike`).toBe(404);
       // Anna is a client of John's Gym: she has a place in the workspace but no team capability,
-      // so 403 (E011 AC10). 404 is only for no place at all (Mike).
-      expect((await call(route, anna)).status, `${route.name} Anna`).toBe(403);
+      // so 403 (E011 AC10). 404 is only for no place at all (Mike). A client route is hers: she
+      // gets past the access (F059: her own billing details), the probe body then fails or not.
+      const annaAnswer = (await call(route, anna)).status;
+      if (route.access?.type === 'workspace' && route.access.client === 'own-records') {
+        expect([200, 400], `${route.name} Anna`).toContain(annaAnswer);
+      } else {
+        expect(annaAnswer, `${route.name} Anna`).toBe(403);
+      }
     }
   });
 
@@ -186,6 +192,9 @@ describe('@permission F004 roles on every workspace route', () => {
       'createOffer',
       'createTrainerInvitation',
       'deleteTrainerProfile',
+      'getClientBillingDetails',
+      'getInvoiceDetails',
+      'getMyBillingDetails',
       'getOffer',
       'listAccessLog',
       'listGroupClassSeries',
@@ -193,6 +202,9 @@ describe('@permission F004 roles on every workspace route', () => {
       'listTeamMembers',
       'listTrainerInvitations',
       'lookupAddress',
+      'putClientBillingDetails',
+      'putInvoiceDetails',
+      'putMyBillingDetails',
       'putTrainerProfile',
       'removeTeamMember',
       'renameWorkspace',
@@ -290,21 +302,26 @@ describe('@permission F004 roles on every workspace route', () => {
       // 422 of the address lookup alone, which the probe calls without its query (F015), and the
       // 404 of the read of a session, an offer or a class's series for the ID the probe invented. The
       // offers answer 422 `validation_failed` for a body they refuse (F052), as the probe's is no offer.
+      // A client route (F059) is for clients alone: John, who is no client, gets 403.
+      const clientOnly =
+        route.access?.type === 'workspace' && route.access.client === 'own-records';
       const allowed =
         route.name === 'lookupAddress'
           ? [422]
-          : [
-              200,
-              201,
-              204,
-              400,
-              ...(['getSession', 'getGroupClass', 'getOffer', 'listGroupClassSeries'].includes(
-                route.name,
-              )
-                ? [404]
-                : []),
-              ...(['createOffer', 'updateOffer'].includes(route.name) ? [422] : []),
-            ];
+          : clientOnly
+            ? [403]
+            : [
+                200,
+                201,
+                204,
+                400,
+                ...(['getSession', 'getGroupClass', 'getOffer', 'listGroupClassSeries'].includes(
+                  route.name,
+                )
+                  ? [404]
+                  : []),
+                ...(['createOffer', 'updateOffer'].includes(route.name) ? [422] : []),
+              ];
       expect(allowed, route.name).toContain((await call({ ...route, url }, john)).status);
     }
   });

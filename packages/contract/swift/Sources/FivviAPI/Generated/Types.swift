@@ -368,6 +368,48 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/access-log`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/access-log/get(listAccessLog)`.
     func listAccessLog(_ input: Operations.ListAccessLog.Input) async throws -> Operations.ListAccessLog.Output
+    /// The invoice details of a workspace
+    ///
+    /// The seller’s invoice details, the email for invoice questions and the no-VAT switch of the workspace (the Owner only; a Trainer gets `403`). A workspace that never saved them answers `200` with `null` fields, `noVat: false` and `complete: false`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/settings/invoice-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)`.
+    func getInvoiceDetails(_ input: Operations.GetInvoiceDetails.Input) async throws -> Operations.GetInvoiceDetails.Output
+    /// Save the invoice details of a workspace
+    ///
+    /// Saves the invoice details as typed, replacing what was saved (the Owner only; a Trainer gets `403`). The KvK number is eight digits and the VAT number `NL` + 9 digits + `B` + 2 digits; a field that is empty or does not match answers `422` with its name and code (`required`, `too_long`, `invalid`, `invalid_kvk_number`, `invalid_vat_number`, `invalid_email`) and nothing is saved. A body that is not shaped like the request answers `400`. The changes apply to invoices issued afterwards; issued ones never change.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/settings/invoice-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)`.
+    func putInvoiceDetails(_ input: Operations.PutInvoiceDetails.Input) async throws -> Operations.PutInvoiceDetails.Output
+    /// The billing details of a client
+    ///
+    /// The billing details of one client of the workspace (the Owner only; a Trainer or a client gets `403`). A client who saved none has `asCompany: false`. A client of another workspace, or one that does not exist, answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}/billing-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/billing-details/get(getClientBillingDetails)`.
+    func getClientBillingDetails(_ input: Operations.GetClientBillingDetails.Input) async throws -> Operations.GetClientBillingDetails.Output
+    /// Save the billing details of a client on their behalf
+    ///
+    /// Saves a client’s billing details as typed, replacing what was saved (the Owner only; a Trainer or a client gets `403`). The record notes that the team changed it (`changedBy: team`). They apply to the client’s next invoices; issued ones never change. A client of another workspace, or one that does not exist, answers `404`.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/clients/{clientId}/billing-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/billing-details/put(putClientBillingDetails)`.
+    func putClientBillingDetails(_ input: Operations.PutClientBillingDetails.Input) async throws -> Operations.PutClientBillingDetails.Output
+    /// My billing details at a workspace
+    ///
+    /// The signed-in client’s own billing details at this workspace. A client of two workspaces has a separate set in each. A person who is not a client of the workspace answers `404`, a team member who is not also a client `403`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/me/billing-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/me/billing-details/get(getMyBillingDetails)`.
+    func getMyBillingDetails(_ input: Operations.GetMyBillingDetails.Input) async throws -> Operations.GetMyBillingDetails.Output
+    /// Save my billing details at a workspace
+    ///
+    /// Saves the signed-in client’s own billing details at this workspace, replacing what was saved. The record notes that the client changed them (`changedBy: client`). They apply to the next invoices; issued ones never change.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/me/billing-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/me/billing-details/put(putMyBillingDetails)`.
+    func putMyBillingDetails(_ input: Operations.PutMyBillingDetails.Input) async throws -> Operations.PutMyBillingDetails.Output
     /// The offers of a workspace
     ///
     /// Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer and a client of the workspace get `403`, anyone with no place in it `404`.
@@ -1173,6 +1215,102 @@ extension APIProtocol {
             path: path,
             query: query,
             headers: headers
+        ))
+    }
+    /// The invoice details of a workspace
+    ///
+    /// The seller’s invoice details, the email for invoice questions and the no-VAT switch of the workspace (the Owner only; a Trainer gets `403`). A workspace that never saved them answers `200` with `null` fields, `noVat: false` and `complete: false`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/settings/invoice-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)`.
+    public func getInvoiceDetails(
+        path: Operations.GetInvoiceDetails.Input.Path,
+        headers: Operations.GetInvoiceDetails.Input.Headers = .init()
+    ) async throws -> Operations.GetInvoiceDetails.Output {
+        try await getInvoiceDetails(Operations.GetInvoiceDetails.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Save the invoice details of a workspace
+    ///
+    /// Saves the invoice details as typed, replacing what was saved (the Owner only; a Trainer gets `403`). The KvK number is eight digits and the VAT number `NL` + 9 digits + `B` + 2 digits; a field that is empty or does not match answers `422` with its name and code (`required`, `too_long`, `invalid`, `invalid_kvk_number`, `invalid_vat_number`, `invalid_email`) and nothing is saved. A body that is not shaped like the request answers `400`. The changes apply to invoices issued afterwards; issued ones never change.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/settings/invoice-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)`.
+    public func putInvoiceDetails(
+        path: Operations.PutInvoiceDetails.Input.Path,
+        headers: Operations.PutInvoiceDetails.Input.Headers = .init(),
+        body: Operations.PutInvoiceDetails.Input.Body
+    ) async throws -> Operations.PutInvoiceDetails.Output {
+        try await putInvoiceDetails(Operations.PutInvoiceDetails.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// The billing details of a client
+    ///
+    /// The billing details of one client of the workspace (the Owner only; a Trainer or a client gets `403`). A client who saved none has `asCompany: false`. A client of another workspace, or one that does not exist, answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}/billing-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/billing-details/get(getClientBillingDetails)`.
+    public func getClientBillingDetails(
+        path: Operations.GetClientBillingDetails.Input.Path,
+        headers: Operations.GetClientBillingDetails.Input.Headers = .init()
+    ) async throws -> Operations.GetClientBillingDetails.Output {
+        try await getClientBillingDetails(Operations.GetClientBillingDetails.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Save the billing details of a client on their behalf
+    ///
+    /// Saves a client’s billing details as typed, replacing what was saved (the Owner only; a Trainer or a client gets `403`). The record notes that the team changed it (`changedBy: team`). They apply to the client’s next invoices; issued ones never change. A client of another workspace, or one that does not exist, answers `404`.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/clients/{clientId}/billing-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/billing-details/put(putClientBillingDetails)`.
+    public func putClientBillingDetails(
+        path: Operations.PutClientBillingDetails.Input.Path,
+        headers: Operations.PutClientBillingDetails.Input.Headers = .init(),
+        body: Operations.PutClientBillingDetails.Input.Body
+    ) async throws -> Operations.PutClientBillingDetails.Output {
+        try await putClientBillingDetails(Operations.PutClientBillingDetails.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// My billing details at a workspace
+    ///
+    /// The signed-in client’s own billing details at this workspace. A client of two workspaces has a separate set in each. A person who is not a client of the workspace answers `404`, a team member who is not also a client `403`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/me/billing-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/me/billing-details/get(getMyBillingDetails)`.
+    public func getMyBillingDetails(
+        path: Operations.GetMyBillingDetails.Input.Path,
+        headers: Operations.GetMyBillingDetails.Input.Headers = .init()
+    ) async throws -> Operations.GetMyBillingDetails.Output {
+        try await getMyBillingDetails(Operations.GetMyBillingDetails.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Save my billing details at a workspace
+    ///
+    /// Saves the signed-in client’s own billing details at this workspace, replacing what was saved. The record notes that the client changed them (`changedBy: client`). They apply to the next invoices; issued ones never change.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/me/billing-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/me/billing-details/put(putMyBillingDetails)`.
+    public func putMyBillingDetails(
+        path: Operations.PutMyBillingDetails.Input.Path,
+        headers: Operations.PutMyBillingDetails.Input.Headers = .init(),
+        body: Operations.PutMyBillingDetails.Input.Body
+    ) async throws -> Operations.PutMyBillingDetails.Output {
+        try await putMyBillingDetails(Operations.PutMyBillingDetails.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
     /// The offers of a workspace

@@ -86,7 +86,7 @@ data class MyWorkspace (
     /**
      * What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
      *
-     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE,LOCATION_PERIOD_READ,SETTINGS_PERIOD_MANAGE,TEAM_PERIOD_INVITE,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY,CLASS_PERIOD_MANAGE,CLASS_PERIOD_READ,JOIN_LINK_PERIOD_VIEW,JOIN_LINK_PERIOD_RENEW,ACCESS_LOG_PERIOD_READ,COMMERCE_PERIOD_OFFERS_PERIOD_MANAGE
+     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE,LOCATION_PERIOD_READ,SETTINGS_PERIOD_MANAGE,TEAM_PERIOD_INVITE,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY,CLASS_PERIOD_MANAGE,CLASS_PERIOD_READ,JOIN_LINK_PERIOD_VIEW,JOIN_LINK_PERIOD_RENEW,ACCESS_LOG_PERIOD_READ,INVOICES_PERIOD_MANAGE,COMMERCE_PERIOD_OFFERS_PERIOD_MANAGE
      */
     @Serializable
     enum class Capabilities(val value: kotlin.String) {
@@ -106,6 +106,7 @@ data class MyWorkspace (
         @SerialName(value = "join_link.view") JOIN_LINK_PERIOD_VIEW("join_link.view"),
         @SerialName(value = "join_link.renew") JOIN_LINK_PERIOD_RENEW("join_link.renew"),
         @SerialName(value = "access_log.read") ACCESS_LOG_PERIOD_READ("access_log.read"),
+        @SerialName(value = "invoices.manage") INVOICES_PERIOD_MANAGE("invoices.manage"),
         @SerialName(value = "commerce.offers.manage") COMMERCE_PERIOD_OFFERS_PERIOD_MANAGE("commerce.offers.manage");
     }
 
