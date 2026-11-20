@@ -903,22 +903,23 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     const ciJobs = (id) => ci.slice(ci.indexOf(`\n  ${id}:\n`) + 1).split(/\n  [a-z-]+:\n/)[0];
     const build = minutes(ciJobs('ios-build'));
     const testsOfCi = minutes(ciJobs('ios-tests'));
-    // The retry's deadline, the enumeration's that shows the first run complete before it, and the grace of each, as
-    // scripts/test-ios.sh has them, plus a minute for what the job spends around the retry (the reports, the summary); the
-    // retry boots nothing and settles nothing.
+    // What the release adds to CI's part, as scripts/test-ios.sh has the numbers: the count of the part's tests before the
+    // run (select_shard: the enumeration's deadline and grace, twice when the first try gives nothing), then the retry's
+    // deadline and grace, plus a minute for what the job spends around the retry (the reports, the summary); the retry
+    // boots nothing and settles nothing, and counts nothing again (the part was counted when it was chosen).
     const testIos = readFileSync(join(ROOT, 'scripts/test-ios.sh'), 'utf8');
     const seconds = (name) => Number(testIos.match(new RegExp(`IOS_${name}:-(\\d+)`))[1]);
     const retry = Math.ceil(
-      (seconds('ENUMERATE_DEADLINE') +
+      (2 * (seconds('ENUMERATE_DEADLINE') + seconds('TEST_DEADLINE_GRACE')) +
         seconds('RETRY_DEADLINE') +
-        2 * seconds('TEST_DEADLINE_GRACE') +
+        seconds('TEST_DEADLINE_GRACE') +
         60) /
         60,
     );
     const timeout = minutes(jobs()['ios-tests']);
     assert.ok(
       timeout >= build + testsOfCi + retry,
-      `${timeout} minutes for a build (${build}), the tests of one part (${testsOfCi}) and a retry (${retry})`,
+      `${timeout} minutes for a build (${build}), the tests of one part (${testsOfCi}), its count and a retry (${retry})`,
     );
     // The comment above the timeout shows the sum, and it is the one this test checks: setup + build + tests + retry.
     const comment = jobs()['ios-tests'].match(/(?:^ {4}#.*\n)+ {4}timeout-minutes:/m)[0];
@@ -943,8 +944,8 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     );
   });
 
-  it('E017 #1403: the release pins its iOS test timeout to the parts it runs: 77 minutes for build, one part and one retry', () => {
-    assert.equal(Number(jobs()['ios-tests'].match(/^ {4}timeout-minutes: (\d+)$/m)[1]), 77);
+  it('E017 #1403: the release pins its iOS test timeout to the parts it runs: 80 minutes for build, one part, its count (two tries) and one retry', () => {
+    assert.equal(Number(jobs()['ios-tests'].match(/^ {4}timeout-minutes: (\d+)$/m)[1]), 80);
   });
 
   it('E017 #1433: only the release retries failed UI tests: CI never passes --retry-failed', () => {

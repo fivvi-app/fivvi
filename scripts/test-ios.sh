@@ -706,12 +706,13 @@ first_run_complete() { # <simulator> <locale> <listed failed tests>
 # in the retry (each is reported as flaky), 1 otherwise: with no retry, when the failed tests are not all UI tests or are
 # too many, when the run hit its deadline or the failed tests can't be read; and when the retry fails or leaves one out.
 retry_failed_ui_tests() { # <simulator> <locale>
-  local udid=$1 locale=$2 first retry
+  local udid=$1 locale=$2 label first retry
+  label="${RESULT_LABEL:-$locale}" # the part too, when the run is one (#1403): each job summary names its own
   first="$(result_bundle "${RESULT_NAME:-$2}")"
   retry=".build/$RESULT_STEM-${RESULT_NAME:-$2}-retry.xcresult"
   local rows reason kind id message ids="" others="" count=0 only=() outcomes result problems="" status=0 flaky=""
   if $RUN_TIMED_OUT; then
-    echo "Not retrying: the $locale run hit its deadline, which is a stall and not a flaky test (#305)"
+    echo "Not retrying: the $label run hit its deadline, which is a stall and not a flaky test (#305)"
     return 1
   fi
   rows="$(failed_test_rows "$first" "${APP}UITests")"
@@ -740,8 +741,8 @@ retry_failed_ui_tests() { # <simulator> <locale>
     return 1
   fi
   for id in $ids; do only+=("-only-testing:${APP}UITests/$id"); done
-  step "Retry the failed$APP_WORD UI tests in $locale (simulator $udid)"
-  echo "Retrying $count failed UI test(s) once in $locale:$ids"
+  step "Retry the failed$APP_WORD UI tests in $label (simulator $udid)"
+  echo "Retrying $count failed UI test(s) once in $label:$ids"
   rm -rf "$retry"
   run_xcodebuild "$udid" "$retry" "$RETRY_DEADLINE" "$locale retried tests" -only-test-configuration "$locale" "${only[@]}" \
     || status=$?
@@ -755,16 +756,16 @@ retry_failed_ui_tests() { # <simulator> <locale>
     esac
   done
   if [ -n "$problems" ] || [ "$status" != 0 ]; then
-    [ "$status" = 0 ] || echo "::error::xcodebuild failed in the retry of the $locale tests (exit $status)"
-    [ -z "$problems" ] || echo "::error::The retry of the failed UI tests in $locale did not pass:$problems"
-    report_failed "$retry" "$locale (retry)"
+    [ "$status" = 0 ] || echo "::error::xcodebuild failed in the retry of the $label tests (exit $status)"
+    [ -z "$problems" ] || echo "::error::The retry of the failed UI tests in $label did not pass:$problems"
+    report_failed "$retry" "$label (retry)"
     return 1
   fi
   while IFS=$'\t' read -r kind id message; do
-    echo "::warning::flaky: $id ($locale) failed in the first run and passed on its retry (#1433): ${message:0:500}"
+    echo "::warning::flaky: $id ($label) failed in the first run and passed on its retry (#1433): ${message:0:500}"
     flaky="${flaky:+$flaky$'\n'}- \`$id\`: ${message:0:500}"
   done <<<"$rows"
-  summary "### iOS tests that passed only on a retry in $locale$APP_NOTE" "" \
+  summary "### iOS tests that passed only on a retry in $label$APP_NOTE" "" \
     "Each failed in the first run and passed on its retry: file a bug for each and quarantine it (TESTING.md §8)." \
     "$flaky" ""
 }
@@ -923,7 +924,7 @@ test_one_locale() { # <simulator>
   if [ "$tests" != 0 ]; then
     report_failed "$bundle" "$RESULT_LABEL"
     if $RETRY_FAILED && retry_failed_ui_tests "$1" "$ONLY_LOCALE"; then
-      echo "✓ $APP_IOS tests in $ONLY_LOCALE (the failed UI tests passed on their retry)"
+      echo "✓ $APP_IOS tests in $RESULT_LABEL (the failed UI tests passed on their retry)"
       return 0
     fi
     return 1

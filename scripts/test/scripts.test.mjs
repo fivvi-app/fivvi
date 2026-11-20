@@ -3164,11 +3164,16 @@ esac`,
           assert.match(run.output, /^::warning::.*flaky.*XUITests\/test1.*XUITests\/test1 broke/m);
           assert.match(
             run.output,
-            /✓ iOS tests in nl \(the failed UI tests passed on their retry\)/,
+            /✓ iOS tests in nl, part 2 of 2 \(the failed UI tests passed on their retry\)/,
+          );
+          assert.match(run.output, /Retry the failed.* UI tests in nl, part 2 of 2 /);
+          assert.match(
+            run.output,
+            /^::warning::flaky: .* \(nl, part 2 of 2\) failed in the first run/m,
           );
           assert.match(
             readFileSync(summary, 'utf8'),
-            /### iOS tests that passed only on a retry in nl/,
+            /### iOS tests that passed only on a retry in nl, part 2 of 2/,
           );
         });
 
