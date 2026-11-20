@@ -9,6 +9,12 @@
     <string name="app_name">Fivvi Pro</string>
     <!-- Browser tab title (HTML <title>) of web pages that don't set their own, and the name of the client app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The product name, Fivvi, the same in both languages. -->
     <string name="app_title">Fivvi</string>
+    <!-- Accessibility label of the back button on the opened-link screen of the client app: returns to the tabs. -->
+    <string name="app_link_back">Terug</string>
+    <!-- Button on appLink.soon, in the client app: opens the same link in the phone's browser. -->
+    <string name="app_link_open_in_browser">Openen in de browser</string>
+    <!-- Client app (Fivvi): the screen a join link (/j/...) or an invitation link (/i/...) opens until the join and invitation screens exist (F029, F032). Says the app will open the link itself soon. -->
+    <string name="app_link_soon">Deze link openen we binnenkort in de app.</string>
     <string name="classes_date_back">Alle lessen</string>
     <plurals name="classes_date_booked">
         <item quantity="one">%1$s/%2$s geboekt · %3$d plek vrij</item>
