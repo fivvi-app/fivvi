@@ -45,6 +45,8 @@ describe('E002 #1357 the push run of CI on main', () => {
       'android-maestro',
       'android',
       'quarantine-android',
+      // ADR-034: the report of the nightly run, which runs only on the schedule.
+      'nightly-report',
     ]);
   });
 
@@ -56,6 +58,8 @@ describe('E002 #1357 the push run of CI on main', () => {
       /^ {2}merge_group:\n {4}types: \[checks_requested\]\n {4}branches: \[main\]$/m,
     );
     assert.match(ci, /^ {2}workflow_dispatch:$/m);
+    // ADR-034: and every night.
+    assert.match(ci, /^ {2}schedule:\n {4}- cron: '0 2 \* \* \*'$/m);
   });
 
   it('no job can fail the run of a push: each has continue-on-error on a push, and only on a push', () => {
@@ -70,7 +74,7 @@ describe('E002 #1357 the push run of CI on main', () => {
     // results of every task that passed in the same run. Turbo caches only a task that passed.
     for (const name of ['checks', 'e2e']) {
       const turbo = steps(jobs[name]).filter((step) =>
-        /run: (>-\n +)?pnpm exec turbo run/.test(step),
+        /run: (>-\n +|\|\n(?: {10}.*\n)*? {10})?pnpm exec turbo run/.test(step),
       );
       assert.ok(turbo.length > 0, name);
       for (const step of turbo) {
@@ -86,7 +90,11 @@ describe('E002 #1357 the push run of CI on main', () => {
   it('the Linux jobs run on a push as on a pull request: nothing narrows them to other events', () => {
     assert.equal(jobIf(jobs.checks), '');
     assert.equal(jobIf(jobs.changes), '');
-    assert.equal(jobIf(jobs.e2e), "needs.changes.outputs.e2e == 'true'");
+    // ADR-034: with `ci: fast` the Playwright suite runs only in a run with UI tests, which a push is not.
+    assert.equal(
+      jobIf(jobs.e2e),
+      "needs.changes.outputs.e2e == 'true' && needs.changes.outputs.ui_tests == 'true'",
+    );
   });
 
   it('no native test suite runs on a push: not iOS tests, Android tests, Maestro or their retries', () => {
@@ -108,9 +116,13 @@ describe('E002 #1357 the push run of CI on main', () => {
         );
       }
     }
+    // A step per command: the iOS tests jobs and "Android tests" have one for a run with UI tests and one without (ADR-034).
     assert.deepEqual(found, [
       'ios-tests',
+      'ios-tests',
       'ios-tests-retry',
+      'ios-tests-retry',
+      'android-tests',
       'android-tests',
       'android-maestro',
       // The Quarantine (Android) job, itself skipped on a push (E002 #1363).
@@ -149,7 +161,8 @@ describe('E002 #1357 the push run of CI on main', () => {
     ]) {
       const step = upload(job, artifact);
       assert.ok(step, `${job} uploads ${artifact}`);
-      assert.match(step, new RegExp(`^ {8}if: ${NOT_PUSH}$`, 'm'), `${job} on a push`);
+      // ADR-034: the Maestro app is also left out of a run without UI tests, `... && needs.changes.outputs.ui_tests == 'true'`.
+      assert.match(step, new RegExp(`^ {8}if: ${NOT_PUSH}( && .+)?$`, 'm'), `${job} on a push`);
     }
   });
 
@@ -157,7 +170,7 @@ describe('E002 #1357 the push run of CI on main', () => {
     const maestroApk = steps(jobs['android-build']).find((step) =>
       step.includes('run: scripts/android.sh maestro-apk'),
     );
-    assert.match(maestroApk, new RegExp(`^ {8}if: ${NOT_PUSH}$`, 'm'));
+    assert.match(maestroApk, new RegExp(`^ {8}if: ${NOT_PUSH}( && .+)?$`, 'm'));
   });
 
   it('every long step of a job that runs on a push has a step timeout below its job timeout, only on a push', () => {
@@ -216,7 +229,7 @@ describe('E002 #1357 the push run of CI on main', () => {
     }
     // The steps that took the longest or are most exposed to a hang are among them.
     for (const label of [
-      'checks: Lint, typecheck, unit and integration tests, build, format and static checks',
+      'checks: Lint, typecheck, unit tests, integration tests (when the run has them), build, format and static checks',
       'e2e: Web e2e (nl-NL and en)',
       'ios-build: SwiftLint, checks and build for testing',
       'android-build: ktlint, checks and debug build',
@@ -270,8 +283,9 @@ describe('E002 #1357 the push run of CI on main', () => {
     const e2eStep = minutes(turbo('e2e'));
     assert.ok(checksStep * 60 >= 1.2 * 620, `Checks (Linux) turbo step: ${checksStep} minutes`);
     assert.ok(e2eStep * 60 >= 1.2 * 754, `E2E (Linux) turbo step: ${e2eStep} minutes`);
-    // Checks (Linux): the step, the minute outside it and the cache save fit the job's 15 minutes.
-    assert.ok(checksStep + 1 + 1 <= 15);
+    // Checks (Linux): the step, the minute outside it and the cache save fit the job's 25 minutes (#1490).
+    const checksJob = Number(jobs.checks.match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
+    assert.ok(checksStep + 1 + 1 <= checksJob, `step ${checksStep} + 2 in a job of ${checksJob}`);
     // E2E (Linux): 35 minutes on a push, 30 on the other events (#1408: 1 + the OS packages step 10 + the suite's 17 + 2); the push
     // job holds the minute outside the steps, the worst case of the OS packages step (10), the work step and 2 minutes for the post steps.
     assert.match(
@@ -282,6 +296,28 @@ describe('E002 #1357 the push run of CI on main', () => {
     // The comments tie the numbers to the measured runs.
     assert.match(ci, /slowest of 34 push runs of main took 620 s/);
     assert.match(ci, /slowest of 32 push runs of main took 754 s/);
+  });
+
+  it('E002 #1490 AC1: Checks (Linux) has 1.5 times the slowest full uncached run, on every event, with the push step below it', () => {
+    // A change to a package almost every other one depends on (packages/i18n, PR #1488) misses the turbo cache everywhere,
+    // so the job runs every package's lint, typecheck, tests and build: 11 minutes on the PR (run 44523798956), and the
+    // merge group (run 44526069321) was cancelled at the job's 15 minutes with no test failing, so that run took at least
+    // 15. The job needs 1.5 times that, on a PR, a merge group and a push alike: a plain number, not a push expression.
+    const SLOWEST_FULL_RUN_MINUTES = 15;
+    const value = jobs.checks.match(/^ {4}timeout-minutes: (.+)$/m)?.[1];
+    assert.match(value, /^\d+$/, `the job timeout is the same on every event: ${value}`);
+    assert.ok(
+      Number(value) >= 1.5 * SLOWEST_FULL_RUN_MINUTES,
+      `Checks (Linux) has ${value} minutes for a full run of at least ${SLOWEST_FULL_RUN_MINUTES}`,
+    );
+    // The job stays far under the merge queue's timeout: it needs only Detect changes (5 minutes, for the integration tests
+    // decision of ADR-035) and runs beside the native chain.
+    assert.match(jobs.checks, /^ {4}needs: changes$/m);
+    // The push run's step still ends first, with room for the minute outside it and the cache save.
+    const turbo = steps(jobs.checks).find((step) => /pnpm exec turbo run/.test(step));
+    const pushStep = Number(turbo.match(/^ {8}timeout-minutes: .* && (\d+) \|\| 360 \}\}$/m)?.[1]);
+    assert.ok(pushStep + 2 <= Number(value), `push step ${pushStep} in a job of ${value}`);
+    assert.match(ci, /run 44526069321/);
   });
 
   it('the required checks keep their names', () => {
@@ -312,6 +348,15 @@ describe('E002 #1357 the docs describe the push run', () => {
     assert.match(section, /without their test suites/);
     assert.match(section, /no failed step or job fails it/);
     assert.match(section, /ADR-018/);
+  });
+
+  it('E002 #1490 AC3: WORKFLOW.md §7 says Checks (Linux) has 25 minutes for a full uncached run, with the runs as the measure', () => {
+    const workflow = read('docs/engineering/WORKFLOW.md');
+    const section = workflow.slice(workflow.indexOf('## 7. CI and required checks'));
+    assert.match(section, /`Checks \(Linux\)` has 25 minutes/);
+    assert.match(section, /44523798956/);
+    assert.match(section, /44526069321/);
+    assert.match(section, /1\.5 times/);
   });
 
   it('WORKFLOW.md §7 does not claim the run always succeeds: a cancelled job is still open, with the evidence', () => {

@@ -39,6 +39,7 @@ import kotlinx.serialization.Contextual
  * @param descriptionNl The Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
  * @param descriptionEn The English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
  * @param trainerId The usual trainer’s team-member ID, from `GET …/trainers`. Leave it out, or send `null`, for *Trainer nodig*. A team member who does not train in the workspace answers `404`.
+ * @param allowConflicts Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
  * @param firstDate 
  * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
  */
@@ -73,6 +74,10 @@ data class CreateGroupClassRequest (
     /* The usual trainer’s team-member ID, from `GET …/trainers`. Leave it out, or send `null`, for *Trainer nodig*. A team member who does not train in the workspace answers `404`. */
     @Contextual @SerialName(value = "trainerId")
     val trainerId: java.util.UUID? = null,
+
+    /* Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+    @SerialName(value = "allowConflicts")
+    val allowConflicts: kotlin.Boolean? = null,
 
     @SerialName(value = "firstDate")
     val firstDate: FirstGroupClassDate? = null,

@@ -40,6 +40,18 @@ describe('#1361 AC2 the Quarantine job', () => {
     assert.doesNotMatch(quarantine, /^ {4}needs:/m);
   });
 
+  // ADR-034: the job waits for nothing, so it reads the pipeline switch itself, in its first step, to decide whether the
+  // Playwright list (a UI test list) runs in this run (the full behaviour is tested in ci-fast-pipeline.test.mjs).
+  it('ADR-034: reads the switch and the event itself to decide whether the Playwright list runs', () => {
+    const lists = steps(quarantine).find((step) =>
+      step.includes('name: Read the quarantine lists'),
+    );
+    assert.match(lists, /^ {10}EVENT: \$\{\{ github\.event_name \}\}$/m);
+    assert.match(lists, /scripts\/pipeline\.sh ui-tests --event "\$EVENT"/);
+    assert.doesNotMatch(lists, /pipeline\.sh get ci/);
+    assert.doesNotMatch(quarantine, /needs\.changes/);
+  });
+
   it('is not required, and no job needs it: the ruleset of main names the five required checks only', () => {
     const ruleset = JSON.parse(read('.github/rulesets/main.json'));
     const required = ruleset.rules

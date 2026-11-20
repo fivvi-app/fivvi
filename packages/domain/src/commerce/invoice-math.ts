@@ -1,3 +1,8 @@
+// Module: Invoice arithmetic: prices include VAT, the amount excluding VAT is `incl × 10000 /
+//        (10000 + rate)` rounded half up (a credit note mirrors it), totals are sums of lines, a
+//        workspace without VAT has lines with only the amount
+// Spec: F059 AC3, AC9
+
 // The arithmetic of an invoice (F059, spec #474): prices are stored including VAT, so the amount
 // excluding VAT is derived, rounded half up, and the VAT is the difference. Integers in cents and
 // rates in basis points only (2100 is 21 %); pure rules, no I/O.

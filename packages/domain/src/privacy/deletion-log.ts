@@ -1,3 +1,9 @@
+// Module: The deletion log writer: `createDeletionLog(store, clock).record(entries)` for every hard
+//        deletion and anonymization, with the table (one the registry declares), the record ID and
+//        the workspace ID as UUIDs, and the time; no content. E016's restore re-applies it
+//        (`retention-policy.md` §3.5)
+// Spec: E014 AC21
+
 import { declaredTable } from './registry.ts';
 
 // The deletion log writer (E014, spec #477, ticket #1173; `retention-policy.md` §3.5, AC21): every

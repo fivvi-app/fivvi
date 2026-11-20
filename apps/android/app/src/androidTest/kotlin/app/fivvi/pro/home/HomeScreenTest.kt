@@ -23,7 +23,6 @@ import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.core.signin.SignInTags
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
@@ -46,13 +45,11 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
     @get:Rule
     val app = AppRule()
 
-    private val hello = FakeHelloApi().apply { answerGreeting() }
     private val me = FakeMeApi()
     private val signIn = FakeSignInApi()
     private val store = InMemorySessionStore("token-1")
 
     private fun launch() = app.launch(
-        hello,
         device = listOf(language.tag),
         signInApi = signIn,
         meApi = me,
@@ -162,7 +159,7 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         // What the auth layer does on a 401 (AuthInterceptorTest); the screen follows the session.
         me.answerAccount()
         val session = Session(store)
-        app.launch(hello, device = listOf(language.tag), meApi = me, session = session)
+        app.launch(device = listOf(language.tag), meApi = me, session = session)
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS).assertIsDisplayed()
 
         session.expire("token-1")
@@ -178,7 +175,7 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         val network = FakeNetwork(status = 401)
         val session = Session(store)
         val services = ApiServices("https://example.com/api/", session, network)
-        app.launch(hello, device = listOf(language.tag), meApi = services.meApi, session = session)
+        app.launch(device = listOf(language.tag), meApi = services.meApi, session = session)
 
         waitForSignIn()
 
@@ -210,7 +207,6 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         val session = Session(store)
         val services = ApiServices("https://example.com/api/", session, network)
         app.launch(
-            hello,
             device = listOf(language.tag),
             meApi = me,
             session = session,

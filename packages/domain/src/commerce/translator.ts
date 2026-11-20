@@ -1,3 +1,6 @@
+// Module: The translator of the commerce rules: the wording is in the catalogs (`offers.*`, `agreements.*`), never in the rules.
+// Spec: F052, F057
+
 // The translator of the commerce rules: the wording is in the catalogs, never in the rules.
 
 import { formattingLocales, type Locale, messages } from '@fivvi/i18n';

@@ -15,7 +15,6 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         session: AppLaunch.Session = .signedIn, deviceLanguages: [String]? = nil
     ) throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(
                 email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer", otherWorkspaces: workspaces
             )
@@ -104,7 +103,6 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
 
     func test_F012_AC6_oneWorkspaceHasNoCheckAndNoAction() throws {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer")
         )
         self.server = server

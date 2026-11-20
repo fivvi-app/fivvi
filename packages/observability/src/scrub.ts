@@ -37,8 +37,8 @@ export const NO_DATA_COLLECTION: DataCollection = {
 /** Request headers worth keeping for debugging. Never cookies, auth or forwarding (IP) headers. */
 const REQUEST_HEADERS = new Set(['accept', 'accept-language', 'content-length', 'content-type']);
 
-/** Tags we set ourselves. Values are route templates, cron task names and run IDs. */
-const TAGS = new Set(['route', 'cron.task', 'cron.run_id']);
+/** Tags we set ourselves. Values are route templates, cron task names, run IDs and class series IDs (UUIDs). */
+const TAGS = new Set(['route', 'cron.task', 'cron.run_id', 'class_series.id']);
 
 /** Contexts the SDK fills with facts about the runtime, never about people. */
 const CONTEXTS = new Set(['app', 'cloud_resource', 'culture', 'device', 'os', 'runtime', 'trace']);

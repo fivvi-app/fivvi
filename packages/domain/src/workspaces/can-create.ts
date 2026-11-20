@@ -1,3 +1,7 @@
+// Module: Who may create a workspace: on the sign-up allowlist (F001) alone, also with a workspace
+//        already (F012)
+// Spec: F002 AC5, F012 AC8, AC9
+
 /**
  * Who may create a workspace: the operator-approved, that is the sign-up allowlist of F001, so
  * closed sign-up stays closed. An allowlisted account may create another workspace when it has one

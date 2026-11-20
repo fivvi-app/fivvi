@@ -1,3 +1,9 @@
+// Module: The status of a refund (`requested`, `queued`, `pending`, then an end: `refunded`,
+//        `failed` or `canceled`; the provider's `processing` is `pending`) and
+//        `refundableAmount(basis)`: what was paid, minus refunds that have not failed or been
+//        canceled, minus what the bank reversed, never below 0 or above what was paid
+// Spec: F060 AC9, AC13
+
 import type { ProviderRefundStatus } from './provider.ts';
 
 // The status of a refund in our ledger (F060, spec #493, AC13). It only moves forward, and only
