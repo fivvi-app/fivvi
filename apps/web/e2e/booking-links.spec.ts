@@ -432,6 +432,45 @@ test.describe('F037 booking links on the web', () => {
     await expect(row.locator('code')).toHaveText(first);
   });
 
+  test('AC8: when the clipboard refuses, CO-01 shows the date’s link to select by hand', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.addInitScript(() => {
+      // A browser whose clipboard refuses the write (a click permission that ran out).
+      Object.defineProperty(window, 'ClipboardItem', { value: undefined });
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: () => Promise.reject(new Error('NotAllowedError')) },
+      });
+    });
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const { classId, sessionId } = await seedClassDate(page.request, workspaceId);
+
+    await page.goto(`/w/${slug}/classes/${classId}/${sessionId}`);
+    await expect(page.getByRole('button', { name: copy.classes.date.edit })).toBeVisible();
+    await page.getByRole('button', { name: copy.bookingLinks.copyBooking }).click();
+
+    await expect(
+      page.getByRole('alert').filter({ hasText: copy.bookingLinks.errors.copy }),
+    ).toBeVisible();
+    const field = page.getByRole('textbox', { name: copy.bookingLinks.linkLabel });
+    await expect(field).toHaveAttribute('readonly', '');
+    const [stored] = (await links(page.request, workspaceId)).filter(
+      ({ scope }) => scope === 'session',
+    );
+    await expect(field).toHaveValue(stored?.url ?? '');
+    await field.focus();
+    expect(await field.evaluate((input: HTMLInputElement) => input.selectionEnd)).toBe(
+      stored?.url.length,
+    );
+    await expectNoAxeViolations(page, `CO-01 with the link to select in ${appLocale}`);
+  });
+
   test('AC9: a Trainer copies the same date’s link from CO-01', async ({
     page,
     context,

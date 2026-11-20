@@ -550,6 +550,23 @@
         }
       }
     },
+    "bookingLinks.linkLabel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Booking link"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boekingslink"
+          }
+        }
+      }
+    },
     "bookingLinks.new.classChoose" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -937,23 +954,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Actief"
-          }
-        }
-      }
-    },
-    "bookingLinks.status.inactive" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inactive"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Niet actief"
           }
         }
       }

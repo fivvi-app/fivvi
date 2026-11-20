@@ -97,12 +97,40 @@ describe('F037 copying the link of a class date', () => {
     }
   });
 
-  it('a clipboard that refuses is "copy"', async () => {
+  it('AC8: a clipboard that refuses is "copy", with the link the request got so the page can show it', async () => {
     vi.stubGlobal('navigator', { clipboard: { writeText: () => Promise.reject(new Error('no')) } });
     try {
       expect(await copyDateLinkToClipboard('w1', 's1', reply(200, link))).toEqual({
         ok: false,
         reason: 'copy',
+        url: link.url,
+      });
+    } finally {
+      stopped();
+    }
+  });
+
+  it('AC8: a clipboard item that is refused after the request worked is "copy" with the link', async () => {
+    class FakeClipboardItem {
+      items: Record<string, Promise<Blob>>;
+      constructor(items: Record<string, Promise<Blob>>) {
+        this.items = items;
+      }
+    }
+    vi.stubGlobal('ClipboardItem', FakeClipboardItem);
+    vi.stubGlobal('navigator', {
+      clipboard: {
+        write: async (items: FakeClipboardItem[]) => {
+          await items[0]?.items['text/plain'];
+          throw new Error('NotAllowedError');
+        },
+      },
+    });
+    try {
+      expect(await copyDateLinkToClipboard('w1', 's1', reply(201, link))).toEqual({
+        ok: false,
+        reason: 'copy',
+        url: link.url,
       });
     } finally {
       stopped();

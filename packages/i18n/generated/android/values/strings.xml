@@ -38,6 +38,7 @@
     <string name="booking_links_language_en">Altijd Engels</string>
     <string name="booking_links_language_nl">Altijd Nederlands</string>
     <string name="booking_links_language_visitor">Taal van de bezoeker</string>
+    <string name="booking_links_link_label">Boekingslink</string>
     <string name="booking_links_new_class_choose">Kies een les</string>
     <string name="booking_links_new_class_label">Les</string>
     <string name="booking_links_new_class_none">Je hebt nog geen lessen.</string>
@@ -61,7 +62,6 @@
     <string name="booking_links_scope_group">Groepslessen</string>
     <string name="booking_links_scope_session">Les op %2$s: %1$s</string>
     <string name="booking_links_status_active">Actief</string>
-    <string name="booking_links_status_inactive">Niet actief</string>
     <string name="booking_links_title">Boekingslinks</string>
     <string name="booking_links_trainer_note">%1$s zien de links, maar kunnen ze niet wijzigen.</string>
     <string name="classes_date_back">Alle lessen</string>

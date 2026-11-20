@@ -33,6 +33,7 @@
     <string name="booking_links_language_en">Always English</string>
     <string name="booking_links_language_nl">Always Dutch</string>
     <string name="booking_links_language_visitor">Visitor\'s language</string>
+    <string name="booking_links_link_label">Booking link</string>
     <string name="booking_links_new_class_choose">Choose a class</string>
     <string name="booking_links_new_class_label">Class</string>
     <string name="booking_links_new_class_none">You don\'t have any classes yet.</string>
@@ -56,7 +57,6 @@
     <string name="booking_links_scope_group">Group classes</string>
     <string name="booking_links_scope_session">Class on %2$s: %1$s</string>
     <string name="booking_links_status_active">Active</string>
-    <string name="booking_links_status_inactive">Inactive</string>
     <string name="booking_links_title">Booking links</string>
     <string name="booking_links_trainer_note">%1$s see the links, but can\'t change them.</string>
     <string name="classes_date_back">All classes</string>

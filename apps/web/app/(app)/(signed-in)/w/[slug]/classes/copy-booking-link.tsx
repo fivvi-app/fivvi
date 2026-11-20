@@ -2,6 +2,7 @@
 
 import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import { Button } from '@fivvi/ui/components/button';
+import { Input } from '@fivvi/ui/components/input';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { Toast } from '@fivvi/ui/kit/toast';
 import { useTranslations } from 'next-intl';
@@ -26,6 +27,8 @@ export function CopyBookingLink({
   const [failure, setFailure] = useState<
     'copy' | 'noConnection' | 'generic' | 'noPermission' | null
   >(null);
+  // The link, shown to select by hand when the clipboard refused although the request worked.
+  const [shownUrl, setShownUrl] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   // The button waits for the page to hydrate: a click before that would do nothing.
   const [ready, setReady] = useState(false);
@@ -41,10 +44,12 @@ export function CopyBookingLink({
     setPending(true);
     setNotice(null);
     setFailure(null);
+    setShownUrl(null);
     const result = await copyDateLinkToClipboard(workspaceId, sessionId);
     setPending(false);
     if (result.ok) return setNotice(t('copied'));
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
+    if (result.reason === 'copy') setShownUrl(result.url ?? null);
     setFailure(result.reason === 'forbidden' ? 'noPermission' : result.reason);
   }
 
@@ -59,6 +64,16 @@ export function CopyBookingLink({
         {t('copyBooking')}
       </Button>
       {failure ? <ErrorLine className="basis-full">{t(`errors.${failure}`)}</ErrorLine> : null}
+      {shownUrl ? (
+        <Input
+          readOnly
+          value={shownUrl}
+          aria-label={t('linkLabel')}
+          data-testid="booking-link-url"
+          className="basis-full"
+          onFocus={(event) => event.currentTarget.select()}
+        />
+      ) : null}
       {notice ? <Toast>{notice}</Toast> : null}
     </>
   );

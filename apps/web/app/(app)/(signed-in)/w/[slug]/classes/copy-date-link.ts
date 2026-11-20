@@ -21,18 +21,18 @@ export async function copyDateLink(
  * The short link of a class date, put on the clipboard (F037 AC8). Where the browser has clipboard
  * items (Chrome, Safari, Firefox) the request runs inside the item, so the copy still belongs to
  * the click that started it (Safari refuses a write that comes after a network wait); elsewhere the
- * link is asked for first and then written. `copy` says the clipboard refused.
+ * link is asked for first and then written. `copy` says the clipboard refused; when the request
+ * itself worked the answer carries the `url`, so the page can show the link to select by hand.
  */
 export async function copyDateLinkToClipboard(
   workspaceId: string,
   sessionId: string,
   fetchFn: typeof fetch = fetch,
-): Promise<{ ok: true; url: string } | Refused | { ok: false; reason: 'copy' }> {
-  type Answer = Awaited<ReturnType<typeof copyDateLink>>;
-  const asked: { answer?: Answer } = {};
-  const ask = async () => {
-    asked.answer = await copyDateLink(workspaceId, sessionId, fetchFn);
-    return asked.answer;
+): Promise<{ ok: true; url: string } | Refused | { ok: false; reason: 'copy'; url?: string }> {
+  let asked: ReturnType<typeof copyDateLink> | undefined;
+  const ask = () => {
+    asked ??= copyDateLink(workspaceId, sessionId, fetchFn);
+    return asked;
   };
   let copied = false;
   try {
@@ -55,9 +55,9 @@ export async function copyDateLinkToClipboard(
   } catch {
     // Either the request was refused (said below) or the clipboard refused.
   }
-  const { answer } = asked;
-  if (answer && !answer.ok) return answer;
-  return answer?.ok && copied ? answer : { ok: false, reason: 'copy' };
+  const answer = await ask();
+  if (!answer.ok) return answer;
+  return copied ? answer : { ok: false, reason: 'copy', url: answer.url };
 }
 
 /**

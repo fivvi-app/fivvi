@@ -51,6 +51,7 @@
       "nl": "Always Dutch",
       "visitor": "Visitor's language"
     },
+    "linkLabel": "Booking link",
     "new": {
       "classChoose": "Choose a class",
       "classLabel": "Class",
@@ -82,8 +83,7 @@
       "session": "Class on {date}: {class}"
     },
     "status": {
-      "active": "Active",
-      "inactive": "Inactive"
+      "active": "Active"
     },
     "title": "Booking links",
     "trainerNote": "{Words} see the links, but can't change them."

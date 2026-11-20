@@ -51,6 +51,7 @@
       "nl": "Altijd Nederlands",
       "visitor": "Taal van de bezoeker"
     },
+    "linkLabel": "Boekingslink",
     "new": {
       "classChoose": "Kies een les",
       "classLabel": "Les",
@@ -82,8 +83,7 @@
       "session": "Les op {date}: {class}"
     },
     "status": {
-      "active": "Actief",
-      "inactive": "Niet actief"
+      "active": "Actief"
     },
     "title": "Boekingslinks",
     "trainerNote": "{Words} zien de links, maar kunnen ze niet wijzigen."
