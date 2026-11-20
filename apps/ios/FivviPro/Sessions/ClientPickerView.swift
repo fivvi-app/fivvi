@@ -20,46 +20,46 @@ struct ClientPickerView: View {
     private var catalog: Catalog { model.catalog }
 
     var body: some View {
-        List { content }
-            .listStyle(.plain)
-            .scrollDismissesKeyboard(.immediately)
-            .scrollContentBackground(.hidden)
-            .background(Tokens.Colors.bgCanvas)
-            .navigationTitle(catalog[.sessionFormClientLabel])
-            .navigationBarTitleDisplayMode(.inline)
-            .searchable(
-                text: $searchText, placement: .navigationBarDrawer(displayMode: .always),
-                prompt: catalog[.sessionFormClientSearch]
-            )
-            .searchFieldIdentifier("clientPicker.search")
-            .task(id: searchText) {
-                if searchText != model.query {
-                    try? await Task.sleep(for: .milliseconds(250))
-                    guard !Task.isCancelled else { return }
-                }
-                await model.search(searchText)
+        VStack(spacing: Tokens.Spacing.space3) {
+            SearchPill(text: $searchText, prompt: catalog[.sessionFormClientSearch], identifier: "clientPicker.search")
+                .tint(Tokens.Colors.accentText)
+                .padding(.horizontal, Tokens.Spacing.space6)
+            List { content }
+                .listStyle(.plain)
+                .scrollDismissesKeyboard(.immediately)
+                .scrollContentBackground(.hidden)
+        }
+        .background(Tokens.Colors.bgCanvas)
+        .navigationTitle(catalog[.sessionFormClientLabel])
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: searchText) {
+            if searchText != model.query {
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled else { return }
             }
-            .onDisappear { Task { await model.search("") } }
-            .sheet(item: $newClient) { form in
-                NavigationStack {
-                    ClientFormView(
-                        model: form, idPrefix: "clientPicker.add", submitID: "submit",
-                        title: catalog[.clientsNewClient], submitTitle: catalog[.clientsSubmit],
-                        onSaved: { client in
-                            model.didAdd(client)
-                            newClient = nil
-                            pick(client)
-                        },
-                        onOpenExisting: { id in
-                            newClient = nil
-                            if let existing = model.clients.first(where: { $0.id == id }) { pick(existing) }
-                        },
-                        onCancel: { newClient = nil }
-                    )
-                }
-                .presentationDetents([.large])
+            await model.search(searchText)
+        }
+        .onDisappear { Task { await model.search("") } }
+        .sheet(item: $newClient) { form in
+            NavigationStack {
+                ClientFormView(
+                    model: form, idPrefix: "clientPicker.add", submitID: "submit",
+                    title: catalog[.clientsNewClient], submitTitle: catalog[.clientsSubmit],
+                    onSaved: { client in
+                        model.didAdd(client)
+                        newClient = nil
+                        pick(client)
+                    },
+                    onOpenExisting: { id in
+                        newClient = nil
+                        if let existing = model.clients.first(where: { $0.id == id }) { pick(existing) }
+                    },
+                    onCancel: { newClient = nil }
+                )
             }
-            .environment(\.locale, catalog.formattingLocale)
+            .presentationDetents([.large])
+        }
+        .environment(\.locale, catalog.formattingLocale)
     }
 
     private func pick(_ client: Components.Schemas.Client) {

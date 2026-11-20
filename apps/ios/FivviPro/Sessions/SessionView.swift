@@ -65,15 +65,18 @@ struct SessionView: View {
     private var failure: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space4) {
             StatusMessage(text: catalog[.sessionFormLoadFailed], kind: .error, id: "session.error")
-            Button {
-                Task { await model.load() }
-            } label: {
-                Text(catalog[.commonRetry])
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+            PillButtonStack {
+                Button {
+                    Task { await model.load() }
+                } label: {
+                    Text(catalog[.commonRetry])
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.pill(.filled))
+                .accessibilityIdentifier("session.retry")
             }
-            .buttonStyle(.primaryAction)
-            .accessibilityIdentifier("session.retry")
         }
     }
 

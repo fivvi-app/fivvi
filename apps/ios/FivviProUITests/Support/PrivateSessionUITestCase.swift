@@ -11,7 +11,6 @@ class PrivateSessionUITestCase: SignInUITestCase {
     /// Sarah (synthetic): a Trainer of John's Gym, or John, its Owner.
     func launch(owner: Bool = false, recordsLinks: Bool = false) throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(
                 email: owner ? "owner@example.com" : "trainer@example.com", workspaceName: "John's Gym",
                 role: owner ? "owner" : "trainer", name: owner ? "John Smit" : "Sarah Visser"

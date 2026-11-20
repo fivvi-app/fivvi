@@ -135,12 +135,18 @@ final class RescheduleViewModel: Identifiable {
         return nil
     }
 
-    /// The session was changed first: the form shows it as it is now and the next save uses its version.
-    private func reload(from conflict: Components.Schemas.SessionConflict) throws {
-        session = conflict.session
-        time.start = conflict.session.startsAt
-        time.durationMinutes = SessionClock.minutes(from: conflict.session.startsAt, to: conflict.session.endsAt)
+    /// The session was changed first: the form shows it as it is now and the next save uses its version. A refusal
+    /// for a clash with the trainer's own calendar (`trainer_conflict`, PS-07) is not this ticket's: it says the save
+    /// failed, and nothing was stored.
+    private func reload(from refusal: Components.Schemas.ReschedulePrivateSessionRefusal) throws {
+        guard refusal.code != .trainerConflict, let current = refusal.session?.value1 else {
+            failure = .notSaved
+            return
+        }
+        session = current
+        time.start = current.startsAt
+        time.durationMinutes = SessionClock.minutes(from: current.startsAt, to: current.endsAt)
         time.durationChoice = SessionTimeFields.chips.contains(time.durationMinutes) ? time.durationMinutes : 0
-        failure = conflict.code == .sessionCancelled ? .cancelled : .changed(byName: conflict.changedBy?.name)
+        failure = refusal.code == .sessionCancelled ? .cancelled : .changed(byName: refusal.changedBy?.name)
     }
 }

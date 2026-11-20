@@ -157,14 +157,15 @@ final class StubSessions: @unchecked Sendable {
                     stored[index].version += 1
                     if cancelled { stored[index].status = .cancelled }
                     return .conflict(.init(body: .json(.init(
-                        code: cancelled ? .sessionCancelled : .sessionChanged, session: stored[index],
+                        code: cancelled ? .sessionCancelled : .sessionChanged, session: try Self.refused(stored[index]),
                         changedBy: changedBy.map { .init(name: $0) }
                     ))))
                 }
                 return try Self.output(failure)
             }
             guard stored[index].version == body.version else {
-                return .conflict(.init(body: .json(.init(code: .sessionChanged, session: stored[index]))))
+                let current = try Self.refused(stored[index])
+                return .conflict(.init(body: .json(.init(code: .sessionChanged, session: current))))
             }
             guard let start = Self.date(body.localDate, body.localStart, timeZoneName) else {
                 return .badRequest(.init(body: .json(.init(
@@ -212,6 +213,13 @@ final class StubSessions: @unchecked Sendable {
     }
 
     /// The instant of a local date and time in a time zone.
+    /// The session as a `409` carries it: the generated `allOf` of the session and its description.
+    private static func refused(
+        _ session: Components.Schemas.Session
+    ) throws -> Components.Schemas.ReschedulePrivateSessionRefusal.SessionPayload {
+        .init(value1: session, value2: try .init(unvalidatedValue: nil))
+    }
+
     static func date(_ day: String, _ time: String, _ zone: String) -> Date? {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
