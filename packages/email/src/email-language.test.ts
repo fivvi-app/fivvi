@@ -50,7 +50,11 @@ describe('F049: the send function only accepts a language a resolver returned', 
 
   it('AC4 (EN): Mark Jansen, whose account prefers English, gets a client email in English', async () => {
     const transport = createMemoryTransport();
-    const sendEmail = createSendEmail({ transport, sender: { email: 'hi@example.com' } });
+    const sendEmail = createSendEmail({
+      transport,
+      sender: { email: 'hi@example.com' },
+      replyTo: { email: 'support@example.com' },
+    });
     const locale = resolveClientCommunicationLanguage({
       accountPreference: 'en',
       workspaceDefault: 'nl-NL', // John's Gym
@@ -69,7 +73,11 @@ describe('F049: the send function only accepts a language a resolver returned', 
 
   it('AC4 (NL): Anna de Vries, with no language of her own, gets a client email in Dutch', async () => {
     const transport = createMemoryTransport();
-    const sendEmail = createSendEmail({ transport, sender: { email: 'hi@example.com' } });
+    const sendEmail = createSendEmail({
+      transport,
+      sender: { email: 'hi@example.com' },
+      replyTo: { email: 'support@example.com' },
+    });
     const locale = resolveClientCommunicationLanguage({
       accountPreference: null,
       clientLanguage: null,

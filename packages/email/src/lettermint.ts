@@ -95,6 +95,7 @@ export function lettermintRequestBody(email: OutgoingEmail, routes: LettermintRo
   return {
     route: email.template === signInTemplate ? routes.signIn : routes.mail,
     from: formatAddress(email.from),
+    reply_to: [formatAddress(email.replyTo)],
     to: [formatAddress(email.to)],
     subject: email.subject,
     html: email.html,

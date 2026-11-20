@@ -31,6 +31,7 @@ function isExampleAddress(address: string): boolean {
 
 /** Used outside production while no sender is configured: only `@example.com` mail is logged. */
 const FALLBACK_SENDER: EmailAddress = { email: 'noreply@example.com', name: 'Fivvi' };
+const FALLBACK_REPLY_TO: EmailAddress = { email: 'support@example.com' };
 
 export interface EnvironmentSendEmailOptions {
   /** Default: `process.env`. */
@@ -56,7 +57,7 @@ export interface EnvironmentSendEmailOptions {
  *   mail through it too, for e2e runs with a fake Lettermint server.
  *
  * The provider is Lettermint (`LETTERMINT_API_TOKEN`, `LETTERMINT_ROUTE_SIGN_IN`,
- * `LETTERMINT_ROUTE_MAIL`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` and, for e2e runs with a fake
+ * `LETTERMINT_ROUTE_MAIL`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO_ADDRESS` and, for e2e runs with a fake
  * Lettermint server, `LETTERMINT_API_URL`). Outside production the variables may be missing while
  * only `@example.com` mail is sent; production without them throws.
  */
@@ -82,6 +83,7 @@ export function createEnvironmentSendEmail(options: EnvironmentSendEmailOptions 
   return createSendEmail({
     transport,
     sender: config?.sender ?? FALLBACK_SENDER,
+    replyTo: config?.replyTo ?? FALLBACK_REPLY_TO,
     onSent,
     ...(onSentError ? { onSentError } : {}),
   });

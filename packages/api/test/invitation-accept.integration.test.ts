@@ -110,6 +110,7 @@ describe('F011 answering a trainer invitation', () => {
       sendEmail: createSendEmail({
         transport,
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+        replyTo: { email: 'support@example.com' },
       }),
     });
     const server = setup({

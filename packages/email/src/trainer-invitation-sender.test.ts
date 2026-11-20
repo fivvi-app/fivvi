@@ -22,6 +22,7 @@ function setup(appBaseUrl: () => string) {
   const sendEmail = createSendEmail({
     transport,
     sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+    replyTo: { email: 'support@example.com' },
   });
   return { transport, send: createTrainerInvitationSender({ sendEmail, appBaseUrl }) };
 }

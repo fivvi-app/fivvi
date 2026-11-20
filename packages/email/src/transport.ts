@@ -9,6 +9,8 @@ export interface EmailAddress {
 /** A rendered email, ready for a transport. */
 export interface OutgoingEmail {
   from: EmailAddress;
+  /** Where a reply goes: the sender is a `noreply@` address no one reads (#1514). */
+  replyTo: EmailAddress;
   to: EmailAddress;
   subject: string;
   html: string;

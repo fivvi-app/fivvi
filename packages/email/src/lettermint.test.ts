@@ -14,6 +14,7 @@ import { EmailSendError } from './transport.ts';
 const apiToken = 'lm-test-not-a-real-token';
 const routes = { signIn: 'sign-in-route', mail: 'mail-route' };
 const sender = { email: 'noreply@fivvi.app', name: 'Fivvi' };
+const replyTo = { email: 'support@example.com' };
 const to = { email: 'anna@example.com', name: 'Anna' };
 const event = 'event-1';
 // What `sendEmail` makes of the hello email (a catalog entry of its own) and the event.
@@ -54,6 +55,7 @@ function setup(...replies: Reply[]) {
   const sendEmail = createSendEmail({
     transport: createLettermintTransport({ apiToken, routes, fetch: http.fetch }),
     sender,
+    replyTo,
     sleep: (ms) => {
       waits.push(ms);
       return Promise.resolve();
@@ -106,6 +108,18 @@ describe('E006 Lettermint transport', () => {
     expect(request?.body.text).toContain('Hoi Anna,');
   });
 
+  it('posts reply_to, an array with the configured Reply-To address, on both routes (#1514)', async () => {
+    const { requests, send, sendSignIn } = setup(accepted(), accepted());
+
+    await send();
+    await sendSignIn();
+
+    expect(requests.map((r) => r.body.reply_to)).toEqual([
+      ['support@example.com'],
+      ['support@example.com'],
+    ]);
+  });
+
   it('sends sign-in emails on the sign-in route and every other template on the mail route', async () => {
     const { requests, send, sendSignIn } = setup(accepted(), accepted());
 
@@ -129,6 +143,7 @@ describe('E006 Lettermint transport', () => {
 
     await transport.send({
       from: sender,
+      replyTo,
       to,
       subject: 'Hoi',
       html: '<p>Hoi</p>',
@@ -144,6 +159,7 @@ describe('E006 Lettermint transport', () => {
   it('writes an address without a name bare, and quotes a name that needs it', () => {
     const base = {
       from: { email: 'noreply@fivvi.app' },
+      replyTo,
       subject: 's',
       html: 'h',
       text: 'text',
@@ -166,6 +182,7 @@ describe('E006 Lettermint transport', () => {
   it('sends a non-ASCII display name as plain text, never MIME-encoded', () => {
     const base = {
       from: { email: 'noreply@fivvi.app', name: 'Zoë Ünal' },
+      replyTo,
       to: { email: 'a@gym.test', name: 'Zoë Ünal' },
       subject: 's',
       html: 'h',

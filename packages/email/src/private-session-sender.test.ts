@@ -33,6 +33,7 @@ function setup() {
   const sendEmail = createSendEmail({
     transport,
     sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+    replyTo: { email: 'support@example.com' },
   });
   return { transport, send: createPrivateSessionSender({ sendEmail }) };
 }

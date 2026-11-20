@@ -37,6 +37,7 @@ await sendEmail({
 | `src/private-session-sender.ts` | `createPrivateSessionSender()`: EM-11 (F020), the client's confirmation of a private session, or EM-04, the notice that it moved (a mail with `previous`), in the language it is given and the workspace's time zone, with the address written the Dutch way; `apps/web` wires it into the API, which sends it after the session is committed |
 | `src/demo-request-sender.ts` | `createDemoRequestSender()`: the website's demo request (F064) as one email to the address it is given (the support address; `apps/web` picks it, `server/demo-request-recipient.ts`), always in Dutch, listing the visitor's answers and the language of the page they used; nothing goes to the visitor; `apps/web` wires it into the API, which cannot import `.tsx` templates itself |
 | `src/components/layout.tsx` | The plain shell of an email without a workspace (sign-in, trainer invitation): `<html lang>`, `<title>`, preview line, footer |
+| `src/components/preview-text.tsx` | The inbox preview line as a hidden block with the line alone. React Email's `<Preview>` pads it with `&nbsp;` and invisible characters, which Outlook.com counts as hidden spam text (#1514): don't use it |
 | `src/components/frames.tsx` | `EmailFrameLayout` and its named forms `ClientEmailLayout` and `TeamEmailLayout` (F049): the workspace's name at the top, the content, one button to `https://fivvi.app/home`, the footer |
 | `src/render.tsx` | `renderEmail()` and the per-locale context (`t`, `formatDateTime`) |
 | `src/send.ts` | `createSendEmail()`: render, send, inline retry |
@@ -101,11 +102,11 @@ Internal emails (the demo request to Fivvi's own inbox, the developer sample) ar
 
 Transports implement `EmailTransport` (`send(email) → { messageId }`, one attempt). Swapping Lettermint for another provider means writing one transport; templates and callers don't change.
 
-**Tests** use `createMemoryTransport()`: it records every email (to, locale, template, subject, HTML, text and the `links` in it) and can fail the next sends with `failNext(error)`. Never call Lettermint from a test.
+**Tests** use `createMemoryTransport()`: it records every email (to, Reply-To, locale, template, subject, HTML, text and the `links` in it) and can fail the next sends with `failNext(error)`. Never call Lettermint from a test.
 
 ## Configuration
 
-**Which provider:** Lettermint (ADR-028). The token, both route variables and the sender are required; production without them throws.
+**Which provider:** Lettermint (ADR-028). The token, both route variables, the sender and the Reply-To address are required; production without them throws.
 
 | Variable | Example | Notes |
 |---|---|---|
@@ -115,13 +116,14 @@ Transports implement `EmailTransport` (`send(email) → { messageId }`, one atte
 | `LETTERMINT_API_URL` | `http://localhost:4010/v1/send` | Optional. Sends the requests here instead of to Lettermint, for tests and for the e2e and Maestro runs against a fake Lettermint server. Leave it unset everywhere else |
 | `EMAIL_FROM_ADDRESS` | `noreply@fivvi.app` | Must be on a domain verified in Lettermint |
 | `EMAIL_FROM_NAME` | `Fivvi` | Display name of the sender |
+| `EMAIL_REPLY_TO_ADDRESS` | `support@fivvi.app` | The Reply-To of every email, sent as Lettermint's `reply_to` (an array). Required, like the sender. The sender is a `noreply@` address, and Outlook.com and Lettermint both count a sender that can't receive replies against it (#1514). A preview or a test uses an `example.com` address |
 | `EMAIL_SEND_EXAMPLE_DOMAIN` | `1` | Optional. Outside production, sends `@example.com` mail through Lettermint (here `LETTERMINT_API_URL`) instead of writing it to the log. Only the Maestro run sets it (`scripts/maestro.sh`: its fake Lettermint server holds the sign-in codes). Leave it unset everywhere else; production ignores it |
 
 `createEnvironmentSendEmail()` is the `sendEmail` the server uses (F001): **production** always sends through the provider and never logs an email; **outside production**, mail to an `@example.com` address is written to the server log instead (the whole text, so the sign-in code and link can be read from it), and all other mail goes through the provider (`EMAIL_SEND_EXAMPLE_DOMAIN=1` sends `@example.com` mail through it too). "Production" is the Railway environment named `production` (`RAILWAY_ENVIRONMENT_NAME`). Outside production the provider's variables may be missing while only `@example.com` mail is sent.
 
 The log transport is the one known place where a sign-in link is printed as it is, with the page asked for (`returnTo`, #207) next to the token and code (F001 AC15). That is acceptable because it never runs in production and only for `@example.com` addresses; everywhere else the page asked for is not logged (`packages/auth/README.md`).
 
-- **Local:** put the variables in `packages/email/.env` (git-ignored; every worktree needs its own). The `send:test` script loads it. It needs `LETTERMINT_API_TOKEN`, `LETTERMINT_ROUTE_SIGN_IN` and `LETTERMINT_ROUTE_MAIL` plus the sender (`EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`).
+- **Local:** put the variables in `packages/email/.env` (git-ignored; every worktree needs its own). The `send:test` script loads it. It needs `LETTERMINT_API_TOKEN`, `LETTERMINT_ROUTE_SIGN_IN` and `LETTERMINT_ROUTE_MAIL` plus the sender (`EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`) and `EMAIL_REPLY_TO_ADDRESS`.
 - **Preview and production:** Railway variables on `web`, declared in `.railway/railway.ts` (`preserve()` for the keys, routes and address, so the file holds no value) and listed in [`docs/engineering/ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). The owner sets the values: the production token only in `production`, a separate token in `development` (every preview copies it). Never commit a token; rotate it in Lettermint if it leaks.
 - The sender comes from config, not code, because it changed when the own domain fivvi.app arrived.
 
