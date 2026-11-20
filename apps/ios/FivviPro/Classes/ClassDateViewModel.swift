@@ -94,7 +94,6 @@ final class ClassDateViewModel {
 
     var noBookingsText: String { catalog[.classDateNoBookings] }
     var showsNoBookings: Bool { booked == 0 }
-    var isCancelled: Bool { session?.status == .cancelled }
 
     /// "Groepsles toegevoegd", on the screen the new class opens on.
     var addedText: String? { justAdded ? catalog[.classDateAdded] : nil }

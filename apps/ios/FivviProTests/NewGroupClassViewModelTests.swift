@@ -101,7 +101,7 @@ final class NewGroupClassViewModelTests: XCTestCase {
     func test_F021_Design_theLabelsNameTheirLanguageAndTheSectionsAreTitled() async {
         let model = form(SessionFixtures.api())
         let catalog = TestCatalog(language)
-        XCTAssertEqual(model.titleText, catalog["workspaceNav.newGroupClass"])
+        XCTAssertEqual(model.titleText, catalog["classes.app.newTitle"])
         XCTAssertEqual(model.nameNlLabel, catalog["classes.form.nameNlLabel"])
         XCTAssertEqual(model.nameEnLabel, catalog["classes.form.nameEnLabel"])
         XCTAssertEqual(model.descriptionNlLabel, catalog["classes.form.descriptionNlLabel"])

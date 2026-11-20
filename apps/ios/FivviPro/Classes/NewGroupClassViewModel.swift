@@ -102,7 +102,7 @@ final class NewGroupClassViewModel: Identifiable {
     var loadFailedText: String { catalog[.sessionFormLoadFailed] }
     var noPermissionText: String { catalog.string(.noPermissionBody, workspace.name) }
     var words: TrainerWordForms { TrainerWordForms(workspace.trainerWord, catalog: catalog) }
-    var titleText: String { catalog[.newGroupClass] }
+    var titleText: String { catalog[.newGroupClassTitle] }
     var nameSectionText: String { catalog[.classFormNameSection] }
     var classSectionText: String { catalog[.classFormClassSection] }
     var whenSectionText: String { catalog[.classFormWhenSection] }

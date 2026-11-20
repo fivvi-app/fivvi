@@ -3,6 +3,7 @@ import FivviStrings
 /// The i18n keys of the group class screens (F021, packages/i18n/{nl-NL,en}.json).
 extension StringKey {
     static let newGroupClass = StringKey("workspaceNav.newGroupClass")
+    static let newGroupClassTitle = StringKey("classes.app.newTitle")
     static let newGroupClassNote = StringKey("workspaceNav.newGroupClassNote")
 
     static let classFormNameSection = StringKey("classes.form.nameSection")

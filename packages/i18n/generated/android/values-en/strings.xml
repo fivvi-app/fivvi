@@ -65,6 +65,7 @@
     <string name="classes_app_description_note">Without an English text, English-speaking clients see the Dutch one.</string>
     <string name="classes_app_edit">Edit class</string>
     <string name="classes_app_manage_on_web">You manage this on the web</string>
+    <string name="classes_app_new_title">New group class</string>
     <string name="classes_app_owner_note">You manage editing a class, a fixed series and %1$s on the web.</string>
     <string name="classes_date_back">All classes</string>
     <plurals name="classes_date_booked">

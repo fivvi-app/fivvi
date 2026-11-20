@@ -70,6 +70,7 @@
     <string name="classes_app_description_note">Zonder Engelse tekst zien Engelstalige klanten de Nederlandse.</string>
     <string name="classes_app_edit">Les wijzigen</string>
     <string name="classes_app_manage_on_web">Dit beheer je op het web</string>
+    <string name="classes_app_new_title">Nieuwe groepsles</string>
     <string name="classes_app_owner_note">Les wijzigen, een vaste reeks en %1$s beheer je op het web.</string>
     <string name="classes_date_back">Alle lessen</string>
     <plurals name="classes_date_booked">

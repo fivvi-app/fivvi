@@ -1094,6 +1094,23 @@
         }
       }
     },
+    "classes.app.newTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New group class"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuwe groepsles"
+          }
+        }
+      }
+    },
     "classes.app.ownerNote" : {
       "extractionState" : "manual",
       "localizations" : {

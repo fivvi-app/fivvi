@@ -30,7 +30,7 @@ final class ClassUITests: PrivateSessionUITestCase {
         let (screen, server) = try launch(owner: true)
         let app = screen.app
         openNewClass(app)
-        XCTAssertEqual(app.staticTexts["newClass.title"].label, catalog["workspaceNav.newGroupClass"])
+        XCTAssertEqual(app.staticTexts["newClass.title"].label, catalog["classes.app.newTitle"])
         let repeatRow = any("newClass.repeat", in: app)
         XCTAssertTrue(repeatRow.label.contains(catalog["classes.schedule.repeatNone"]), repeatRow.label)
 

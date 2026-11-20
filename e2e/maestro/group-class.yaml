@@ -1,4 +1,4 @@
-# F021 native group classes (spec #427, AC5, AC6, AC7 and the TD-05 / TD-03 design), against the local stack: John (the
+# F021 native group classes (spec #427, AC6, AC7 and the TD-05 / TD-03 design), against the local stack: John (the
 # seeded owner@example.com, Owner of John's Gym) adds the group class "Mobility" with a Dutch and an English description
 # from + → Groepsles (TD-05, Herhalen: Niet herhalen), and TD-03 opens with "Groepsles toegevoegd", the trainer row (John
 # trains, so "Jij" or "You") and the description with its Meer / More toggle and the Owner's ⋯ menu with Les wijzigen. Then
@@ -10,7 +10,7 @@
 # flow (the other language's, against the same database) ends in the double-booking alert, which the flow answers with
 # Toch opslaan, as private-session.yaml does. The two platform tickets (iOS #450, Android #451) run this one flow.
 appId: ${APP_ID}
-name: AC5 AC6 AC7 Add a group class, read it and find no Groepsles as a Trainer
+name: AC6 AC7 Add a group class, read it and find no Groepsles as a Trainer
 env:
   # The Android application id and the iOS bundle id.
   APP_ID: app.fivvi.pro

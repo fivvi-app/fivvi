@@ -235,7 +235,7 @@ final class StubSessions: @unchecked Sendable {
     /// The local date and time of a request in the workspace's time zone.
     func instant(_ day: String, _ time: String) -> Date? { Self.date(day, time, timeZoneName) }
 
-    /// The workspace's default location and the trainers the person may choose among.
+    /// The trainers the person may choose among.
     var trainerPeople: [Components.Schemas.Trainer] { lock.withLock { trainerList } }
 
     private func conflicts(
