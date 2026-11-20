@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Context
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SignInApi
+import app.fivvi.client.links.AndroidBrowser
+import app.fivvi.client.links.Browser
 import app.fivvi.core.LanguagePreference
 import app.fivvi.core.LanguageSettings
 import app.fivvi.core.SharedPreferencesLanguageStore
@@ -23,6 +25,9 @@ interface ClientDependencies {
     /** The language shown and kept (F010). */
     val languagePreference: LanguagePreference
     val connectivity: Connectivity
+
+    /** Opens an address in the phone's browser (the opened-link screen, E017 #506). */
+    val browser: Browser
 
     /** The sign-in API for the one sign-out request that carries [token] (F001 AC10). */
     fun signOutApi(token: String): SignInApi
@@ -44,6 +49,7 @@ class DefaultClientDependencies(context: Context) : ClientDependencies {
         LanguagePreference(SharedPreferencesLanguageStore(context), languageSettings)
     }
     override val connectivity: Connectivity by lazy { AndroidConnectivity(context) }
+    override val browser: Browser by lazy { AndroidBrowser(context) }
 }
 
 class ClientApplication : Application() {
