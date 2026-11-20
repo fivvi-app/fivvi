@@ -22,6 +22,10 @@ final class StubSessions: @unchecked Sendable {
         case badRequest(path: String, code: String)
         /// `409` for a move: `session_changed` by this person, or `session_cancelled`.
         case conflict(cancelled: Bool, changedBy: String?)
+        /// `409` `trainer_conflict` (PS-07), with the session as it is stored.
+        case trainerConflict
+        /// `409` `session_changed` that carries no session.
+        case conflictWithoutSession
     }
 
     /// One reschedule the app sent.
@@ -161,6 +165,14 @@ final class StubSessions: @unchecked Sendable {
                         changedBy: changedBy.map { .init(name: $0) }
                     ))))
                 }
+                if case .trainerConflict = failure {
+                    return .conflict(.init(body: .json(.init(
+                        code: .trainerConflict, session: try Self.refused(stored[index])
+                    ))))
+                }
+                if case .conflictWithoutSession = failure {
+                    return .conflict(.init(body: .json(.init(code: .sessionChanged))))
+                }
                 return try Self.output(failure)
             }
             guard stored[index].version == body.version else {
@@ -212,7 +224,6 @@ final class StubSessions: @unchecked Sendable {
         )
     }
 
-    /// The instant of a local date and time in a time zone.
     /// The session as a `409` carries it: the generated `allOf` of the session and its description.
     private static func refused(
         _ session: Components.Schemas.Session
@@ -220,6 +231,7 @@ final class StubSessions: @unchecked Sendable {
         .init(value1: session, value2: try .init(unvalidatedValue: nil))
     }
 
+    /// The instant of a local date and time in a time zone.
     static func date(_ day: String, _ time: String, _ zone: String) -> Date? {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -236,7 +248,7 @@ final class StubSessions: @unchecked Sendable {
         case .forbidden: return Output.forbidden()
         case .notFound: return Output.notFound()
         case let .badRequest(path, code): return Output.badRequest(path, code)
-        case .conflict: return Output.undocumented(409)
+        case .conflict, .trainerConflict, .conflictWithoutSession: return Output.undocumented(409)
         }
     }
 }

@@ -175,4 +175,33 @@ final class RescheduleViewModelTests: XCTestCase {
         XCTAssertEqual(form.failureText, TestCatalog(language)["sessions.form.errors.notSaved"])
         XCTAssertEqual(form.time.localDate, "2026-11-22")
     }
+
+    /// PS-07 owns the answer to a clash with the trainer's own calendar; until then it is a plain "not saved".
+    func test_F020_AC8_aTrainerConflictSaysNotSavedAndLeavesTheSessionAsItWas() async {
+        let ready = setup()
+        ready.api.sessions.fail(.reschedule, with: .trainerConflict)
+        let form = model(ready)
+        form.time.start = SessionFixtures.at("2026-11-22", "09:00")
+
+        let moved = await form.save()
+
+        XCTAssertNil(moved)
+        XCTAssertEqual(form.failureText, TestCatalog(language)["sessions.form.errors.notSaved"])
+        XCTAssertEqual(form.session.version, ready.session.version, "nothing was stored, so nothing is reloaded")
+        XCTAssertEqual(form.session.startsAt, ready.session.startsAt)
+        XCTAssertEqual(form.time.localDate, "2026-11-22", "the input is kept")
+    }
+
+    func test_F020_AC8_aConflictThatCarriesNoSessionSaysNotSavedAndLeavesTheSessionAsItWas() async {
+        let ready = setup()
+        ready.api.sessions.fail(.reschedule, with: .conflictWithoutSession)
+        let form = model(ready)
+
+        let moved = await form.save()
+
+        XCTAssertNil(moved)
+        XCTAssertEqual(form.failureText, TestCatalog(language)["sessions.form.errors.notSaved"])
+        XCTAssertEqual(form.session.version, ready.session.version)
+        XCTAssertEqual(form.session.startsAt, ready.session.startsAt)
+    }
 }
