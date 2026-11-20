@@ -12,7 +12,8 @@
 #                                                 own ticket; flow.sh status says when it is complete); a body that
 #                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh --fast, the checks
 #                                                 the change can affect without the integration and e2e tests, which run
-#                                                 in CI (ADR-033); --full runs check.sh --all, everything
+#                                                 in CI or in the nightly run, as .github/pipeline.json says (ci: fast,
+#                                                 lean; ADR-033, ADR-034, ADR-035); --full runs check.sh --all, everything
 #   pr.sh ready                                   mark the draft ready for review, only when for the head commit every
 #                                                 CI check passed (the merge gate's rule), the clean review is recorded
 #                                                 (pr.sh reviewed) and so is the smoke check (pr.sh smoke); else names
@@ -125,7 +126,7 @@ current_pr() {
 }
 
 # run_check [--all|--fast] [<why>]: scripts/check.sh for the change's affected set, with --fast without the integration
-# and e2e tests (ADR-033), or with --all for everything, announcing which ran and why.
+# and e2e tests (run in CI or in the nightly run per .github/pipeline.json, ADR-033, ADR-034, ADR-035), or with --all for everything, announcing which ran and why.
 run_check() {
   local flag="" mode=affected
   case "${1:-}" in
@@ -239,7 +240,7 @@ cmd_create() {
 
   if $check; then
     if $full; then run_check --all "--full"
-    elif [ -z "$existing" ]; then run_check --fast "first push of the branch; the integration and e2e tests run in CI (ADR-033)"
+    elif [ -z "$existing" ]; then run_check --fast "first push of the branch; the integration and e2e tests run in CI or in the nightly run, as .github/pipeline.json says (ADR-034, ADR-035)"
     else run_check --fast "follow-up push to PR #$existing; CI is still the full gate on this commit; --full runs everything here too"
     fi
   fi
