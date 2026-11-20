@@ -1130,6 +1130,11 @@ export interface components {
              * @enum {string}
              */
             role: "owner" | "trainer";
+            /**
+             * Format: uuid
+             * @description The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
+             */
+            teamMemberId: string;
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
             capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage")[];
         };

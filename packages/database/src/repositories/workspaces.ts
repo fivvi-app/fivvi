@@ -42,6 +42,11 @@ export interface WorkspaceSummary {
   readonly trainerWord: TrainerWord;
   /** What the account is in it: the page decides from this who sees the settings. */
   readonly role: TeamRole;
+  /**
+   * The account's own team-member record in it (Owner and Trainer alike): the ID that a session's
+   * trainer carries, so a screen knows which sessions are the person's own (F020).
+   */
+  readonly teamMemberId: string;
   /** Whether the account has a trainer profile in it, that is whether it trains there (F005). */
   readonly trainsHere: boolean;
 }
@@ -158,6 +163,7 @@ export function listTeamWorkspaces(scope: TenantScope): Promise<WorkspaceSummary
       slug: organizations.slug,
       trainerWord: organizations.trainerWord,
       role: teamMembers.role,
+      teamMemberId: teamMembers.id,
       trainerProfileId: trainerProfiles.id,
     })
     .from(organizations)

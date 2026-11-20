@@ -7,6 +7,7 @@ import {
   type Database,
   type DatabaseClient,
   organizations,
+  teamMembers,
 } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
 import { addClient, addTeamRole, createWorkspace } from '@fivvi/database/testing';
@@ -150,6 +151,10 @@ describe('GET /v1/me', () => {
       .select()
       .from(organizations)
       .where(eq(organizations.slug, 'johns-gym'));
+    const [ownerMember] = await client.db
+      .select({ id: teamMembers.id })
+      .from(teamMembers)
+      .where(eq(teamMembers.organizationId, gym?.id ?? ''));
     expect(body).toEqual({
       id: row?.id,
       email: 'owner@example.com',
@@ -165,6 +170,7 @@ describe('GET /v1/me', () => {
           slug: 'johns-gym',
           trainerWord: 'trainer',
           role: 'owner',
+          teamMemberId: ownerMember?.id,
           capabilities: capabilitiesOf('owner'),
         },
       ],
@@ -208,7 +214,7 @@ describe('GET /v1/me', () => {
   it('AC8: allowlisted accounts can create a workspace whether or not they have one', async () => {
     const { id, cookie } = await accountSignedIn('second@allowed.test', 'Sam');
     const workspace = await createWorkspace(client.db, { label: 'sam-gym' });
-    await addTeamRole(client.db, { workspaceId: workspace.id, accountId: id });
+    const member = await addTeamRole(client.db, { workspaceId: workspace.id, accountId: id });
 
     const me = await meOf(cookie);
 
@@ -220,6 +226,7 @@ describe('GET /v1/me', () => {
         slug: workspace.marker,
         trainerWord: 'trainer',
         role: 'trainer',
+        teamMemberId: member.id,
         capabilities: capabilitiesOf('trainer'),
       },
     ]);
@@ -250,6 +257,56 @@ describe('GET /v1/me', () => {
     expect(me.workspaces.map((workspace) => workspace.id)).toEqual([mine.id]);
     expect(me.clientWorkspaces.map((workspace) => workspace.id)).toEqual([clientOf.id]);
     expect(JSON.stringify(me)).not.toContain(other.id);
+  });
+
+  it('F020 #1414 AC1: an Owner and a Trainer each get their own teamMemberId per workspace, and the contract requires it', async () => {
+    const { id, cookie } = await accountSignedIn('sarah-both@example.com', 'Sarah');
+    const gym = await createWorkspace(client.db, { label: 'gym-both' });
+    const own = await createWorkspace(client.db, { label: 'own-both' });
+    const trainer = await addTeamRole(client.db, {
+      workspaceId: gym.id,
+      accountId: id,
+      role: 'trainer',
+    });
+    const owner = await addTeamRole(client.db, { workspaceId: own.id, accountId: id, role: 'owner' });
+    // A colleague with the same name in the same workspace is someone else.
+    const { id: colleagueAccount } = await accountSignedIn('sarah-two@example.com', 'Sarah');
+    const colleague = await addTeamRole(client.db, {
+      workspaceId: gym.id,
+      accountId: colleagueAccount,
+    });
+
+    const me = await meOf(cookie);
+
+    expect(Object.fromEntries(me.workspaces.map((w) => [w.id, w.teamMemberId]))).toEqual({
+      [gym.id]: trainer.id,
+      [own.id]: owner.id,
+    });
+    expect(me.workspaces.map((w) => w.teamMemberId)).not.toContain(colleague.id);
+    expect(contract.components.schemas.MeWorkspace.required).toContain('teamMemberId');
+    expect(contract.components.schemas.MeWorkspace.properties.teamMemberId.format).toBe('uuid');
+  });
+
+  it('@isolation F020 #1414 AC1: never names a team member of another workspace or account', async () => {
+    const { id, cookie } = await accountSignedIn('iso-me@example.com', 'Iso');
+    const mine = await createWorkspace(client.db, { label: 'iso-mine' });
+    const elsewhere = await createWorkspace(client.db, { label: 'iso-elsewhere' });
+    const own = await addTeamRole(client.db, { workspaceId: mine.id, accountId: id, role: 'owner' });
+    const others = await accountSignedIn('iso-other@example.com', 'Iso');
+    // Another account's roles: in her workspace, and in a workspace she is not part of.
+    const colleague = await addTeamRole(client.db, { workspaceId: mine.id, accountId: others.id });
+    const stranger = await addTeamRole(client.db, {
+      workspaceId: elsewhere.id,
+      accountId: others.id,
+      role: 'owner',
+    });
+
+    const me = await meOf(cookie);
+
+    expect(me.workspaces.map((w) => [w.id, w.teamMemberId])).toEqual([[mine.id, own.id]]);
+    const text = JSON.stringify(me);
+    expect(text).not.toContain(colleague.id);
+    expect(text).not.toContain(stranger.id);
   });
 
   it('F030 AC11: the contract lists clientWorkspaces with ID, slug and name, and GET /v1/me reads client relationships too', () => {
@@ -292,7 +349,11 @@ describe('GET /v1/me', () => {
   it('F030 AC11: Sarah, a Trainer who is also a client of the same workspace, sees it under both', async () => {
     const { id, cookie } = await accountSignedIn('sarah@example.com', 'Sarah');
     const gym = await createWorkspace(client.db, { label: 'johns-gym-sarah' });
-    await addTeamRole(client.db, { workspaceId: gym.id, accountId: id, role: 'trainer' });
+    const member = await addTeamRole(client.db, {
+      workspaceId: gym.id,
+      accountId: id,
+      role: 'trainer',
+    });
     await addClient(client.db, { workspaceId: gym.id, accountId: id });
 
     const me = await meOf(cookie);
@@ -304,6 +365,7 @@ describe('GET /v1/me', () => {
         slug: gym.marker,
         trainerWord: 'trainer',
         role: 'trainer',
+        teamMemberId: member.id,
         capabilities: capabilitiesOf('trainer'),
       },
     ]);
