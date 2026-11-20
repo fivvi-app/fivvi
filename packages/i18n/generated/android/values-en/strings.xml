@@ -7,6 +7,9 @@
     <string name="agreements_due_day_two">on the %1$snd</string>
     <string name="app_name">Fivvi Pro</string>
     <string name="app_title">Fivvi</string>
+    <string name="app_link_back">Back</string>
+    <string name="app_link_open_in_browser">Open in the browser</string>
+    <string name="app_link_soon">We\'ll open this link in the app soon.</string>
     <string name="classes_date_back">All classes</string>
     <plurals name="classes_date_booked">
         <item quantity="one">%1$s/%2$s booked · %3$d spot free</item>

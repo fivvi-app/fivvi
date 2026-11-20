@@ -14,6 +14,11 @@
     "name": "Fivvi Pro",
     "title": "Fivvi"
   },
+  "appLink": {
+    "back": "Terug",
+    "openInBrowser": "Openen in de browser",
+    "soon": "Deze link openen we binnenkort in de app."
+  },
   "classes": {
     "date": {
       "back": "Alle lessen",
