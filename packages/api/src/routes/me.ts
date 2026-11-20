@@ -38,6 +38,13 @@ const CapabilitiesSchema = z.array(z.enum(CAPABILITIES)).openapi({
     'name; the API refuses the rest with `403` anyway.',
 });
 
+const TeamMemberIdSchema = z.uuid().openapi({
+  description:
+    'The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ' +
+    'ID a session’s trainer carries when it is the account’s own. The web and the apps show ' +
+    '*Jij* / *You* by comparing it with the session’s trainer, never by name or email.',
+});
+
 export const MeWorkspaceSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The workspace ID.' }),
@@ -47,12 +54,7 @@ export const MeWorkspaceSchema = z
     role: RoleSchema.openapi({
       description: 'What the account is in the workspace; shown as a label, never decided on.',
     }),
-    teamMemberId: z.uuid().openapi({
-      description:
-        'The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: ' +
-        'the ID a session’s trainer carries when it is the account’s own. The web and the apps ' +
-        'show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.',
-    }),
+    teamMemberId: TeamMemberIdSchema,
     capabilities: CapabilitiesSchema,
   })
   .openapi('MeWorkspace', { description: 'A workspace the account has a team role in.' });
@@ -119,6 +121,7 @@ export const MyWorkspaceSchema = z
     role: RoleSchema.openapi({
       description: 'What the account is on the team; shown as a label, never decided on.',
     }),
+    teamMemberId: TeamMemberIdSchema,
     capabilities: CapabilitiesSchema,
     trainsHere: z.boolean().openapi({
       description:
@@ -412,10 +415,7 @@ export function registerMe(app: OpenAPIHono) {
     // The same query as `GET /v1/me`: the account's own team-member records, within its scope.
     const workspaces = await listTeamWorkspaces(c.get('scope'));
     return c.json(
-      workspaces.map(({ id, teamMemberId: _teamMemberId, ...rest }) => ({
-        workspaceId: id,
-        ...withCapabilities(rest),
-      })),
+      workspaces.map(({ id, ...rest }) => ({ workspaceId: id, ...withCapabilities(rest) })),
       200,
     );
   });

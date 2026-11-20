@@ -515,6 +515,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/role`.
             public var role: Components.Schemas.MyWorkspace.RolePayload
+            /// The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/teamMemberId`.
+            public var teamMemberId: Swift.String
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/CapabilitiesPayload`.
             @frozen public enum CapabilitiesPayloadPayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case workspace_manage = "workspace.manage"
@@ -558,6 +562,7 @@ extension Components {
             ///   - slug: The URL name: `/w/{slug}` on the web.
             ///   - trainerWord:
             ///   - role: What the account is on the team; shown as a label, never decided on.
+            ///   - teamMemberId: The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
             ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///   - trainsHere: Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
             public init(
@@ -566,6 +571,7 @@ extension Components {
                 slug: Swift.String,
                 trainerWord: Components.Schemas.TrainerWord,
                 role: Components.Schemas.MyWorkspace.RolePayload,
+                teamMemberId: Swift.String,
                 capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload,
                 trainsHere: Swift.Bool
             ) {
@@ -574,6 +580,7 @@ extension Components {
                 self.slug = slug
                 self.trainerWord = trainerWord
                 self.role = role
+                self.teamMemberId = teamMemberId
                 self.capabilities = capabilities
                 self.trainsHere = trainsHere
             }
@@ -583,6 +590,7 @@ extension Components {
                 case slug
                 case trainerWord
                 case role
+                case teamMemberId
                 case capabilities
                 case trainsHere
             }

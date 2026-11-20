@@ -378,6 +378,11 @@
             ],
             "description": "What the account is on the team; shown as a label, never decided on."
           },
+          "teamMemberId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email."
+          },
           "capabilities": {
             "type": "array",
             "items": {
@@ -418,6 +423,7 @@
           "slug",
           "trainerWord",
           "role",
+          "teamMemberId",
           "capabilities",
           "trainsHere"
         ],
