@@ -8,6 +8,7 @@ import { apiClient } from '../../../../../../../../server/api';
 import { workspaceOf } from '../../../../../../../../server/workspace-of';
 import { NoPermission } from '../../../settings/general/no-permission';
 import { ClassDateView } from '../../class-date-view';
+import { offersBookingLink } from '../../copy-date-link';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('classes');
@@ -17,7 +18,8 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * CO-01 *Les op datum* (`/w/{slug}/classes/{classId}/{sessionId}`, F021): every team member with
  * `class.read` (the Owner and the Trainers) reads a class date of the workspace; the Owner, with
- * `class.manage`, also has **Wijzigen**. The date is read from
+ * `class.manage`, also has **Wijzigen**; with `booking_link.copy` (both) a scheduled class date that
+ * has not started has **Boekingslink kopiëren** (F037). The date is read from
  * `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`. A session the workspace doesn't have, one
  * that is no class date and one of another class are a 404.
  */
@@ -46,6 +48,9 @@ export default async function ClassDatePage({
       slug={slug}
       session={session}
       canManage={canManage}
+      canCopyLink={
+        capabilities.includes('booking_link.copy') && offersBookingLink(session, new Date())
+      }
       ownDate={ownDate}
       trainerWord={trainerWordForms(trainerWord, catalogLocale(await getLocale()))}
     />

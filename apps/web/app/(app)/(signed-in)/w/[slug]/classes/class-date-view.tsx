@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSessionFormat } from '../sessions/use-session-format';
 import type { Session } from './classes-client';
+import { CopyBookingLink } from './copy-booking-link';
 import { EditClassDate } from './edit-class-date';
 
 /**
@@ -13,13 +14,15 @@ import { EditClassDate } from './edit-class-date';
  * name in the viewer's language (else Dutch), the date and the start–end, the location, the trainer
  * or *Trainer nodig*, *{booked}/{capacity} geboekt* with the free spots, and *Nog geen boekingen.*
  * until bookings exist (M5). The Owner has **Wijzigen** (CO-04, this one date); the assigned
- * Trainer sees the page without actions.
+ * Trainer sees the page without those. Both have **Boekingslink kopiëren** on a class date that is
+ * scheduled and has not started (F037).
  */
 export function ClassDateView({
   workspaceId,
   slug,
   session,
   canManage,
+  canCopyLink,
   ownDate,
   trainerWord,
 }: {
@@ -28,6 +31,8 @@ export function ClassDateView({
   session: Session;
   /** The person has `class.manage`. */
   canManage: boolean;
+  /** The person has `booking_link.copy` and the date offers a link (scheduled, not started): *Boekingslink kopiëren* (F037). */
+  canCopyLink: boolean;
   /** The date's trainer is the signed-in person: PS-07 says "Je hebt dan al iets". */
   ownDate: boolean;
   trainerWord: TrainerWordForms;
@@ -51,8 +56,15 @@ export function ClassDateView({
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="min-w-0 text-[22px] font-semibold tracking-tight">{name}</h1>
-        {canManage ? (
-          <EditClassDate workspaceId={workspaceId} session={session} ownDate={ownDate} />
+        {canManage || canCopyLink ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {canCopyLink ? (
+              <CopyBookingLink workspaceId={workspaceId} sessionId={session.id} />
+            ) : null}
+            {canManage ? (
+              <EditClassDate workspaceId={workspaceId} session={session} ownDate={ownDate} />
+            ) : null}
+          </div>
         ) : null}
       </div>
       <Card>

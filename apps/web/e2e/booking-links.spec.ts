@@ -1,18 +1,20 @@
 import { formattingLocales, type Locale, type Messages } from '@fivvi/i18n';
 import type { APIRequestContext, Page } from '@playwright/test';
 import {
+  cancelSession,
   clientIpHeaders,
   createAccount,
   createGymWithTrainer,
   joinCodeOf,
   joinTeam,
   newAddress,
+  passSession,
   signInWithSession,
 } from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
-// F037 (spec #473, ticket #966): TW-07 *Boekingslinks* (the join-link card and the booking links,
-// *Nieuwe boekingslink*, *Deactiveren*). Copy comes from the catalogs. Each spec has accounts and workspaces of its own: John is the Owner and Sarah a
+// F037 (spec #473, tickets #966 and #968): TW-07 *Boekingslinks* (the join-link card and the booking links,
+// *Nieuwe boekingslink*, *Deactiveren*) and *Boekingslink kopiëren* on CO-01. Copy comes from the catalogs. Each spec has accounts and workspaces of its own: John is the Owner and Sarah a
 // Trainer of John's Gym; the class is Kracht (Strength in English) every Tuesday 18:00. The dates are
 // relative to the day the spec runs. The form's *Eén les op een datum* waits for an API that lists a
 // class's upcoming dates, so the date links of this spec are made through CO-01 or the API.
@@ -380,5 +382,108 @@ test.describe('F037 booking links on the web', () => {
         )
       ).status(),
     ).toBe(403);
+  });
+
+  test("AC8: copy a date's link", async ({ page, context, appLocale, messages: copy }) => {
+    const { john, slug } = await team();
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const { classId, sessionId } = await seedClassDate(page.request, workspaceId);
+
+    await page.goto(`/w/${slug}/classes/${classId}/${sessionId}`);
+    await expect(page.getByRole('button', { name: copy.classes.date.edit })).toBeVisible();
+    await page.getByRole('button', { name: copy.bookingLinks.copyBooking }).click();
+
+    await expect(page.getByRole('status')).toHaveText(copy.bookingLinks.copied);
+    const first = await page.evaluate(() => navigator.clipboard.readText());
+    expect(first).toMatch(/^https?:\/\/.+\/l\/[a-z0-9]{8}$/);
+    await expectNoAxeViolations(page, `CO-01 after copying the link in ${appLocale}`);
+
+    // A second copy gives the same link.
+    await page.evaluate(() => navigator.clipboard.writeText(''));
+    await page.getByRole('button', { name: copy.bookingLinks.copyBooking }).click();
+    await expect(page.getByRole('status')).toHaveText(copy.bookingLinks.copied);
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(first);
+    const dateLinks = (await links(page.request, workspaceId)).filter(
+      ({ scope }) => scope === 'session',
+    );
+    expect(dateLinks).toMatchObject([{ url: first, language: 'visitor' }]);
+
+    // TW-07 lists "Les op di 17 nov: Kracht".
+    await openBookingLinks(page, copy, slug);
+    const row = rowOf(
+      page,
+      copy,
+      copy.bookingLinks.scope.session
+        .replace('{date}', writtenTuesday(appLocale))
+        .replace('{class}', className(appLocale)),
+    );
+    await expect(row).toHaveCount(1);
+    await expect(row.locator('code')).toHaveText(first);
+  });
+
+  test('AC9: a Trainer copies the same date’s link from CO-01', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, sarah, slug } = await team();
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const { classId, sessionId } = await seedClassDate(page.request, workspaceId);
+    const johns = await page.request.post(`/api/v1/workspaces/${workspaceId}/booking-links`, {
+      data: { scope: 'session', language: 'visitor', sessionId },
+    });
+    expect(johns.status()).toBe(201);
+    const { url } = (await johns.json()) as LinkBody;
+
+    await context.clearCookies();
+    await signInWithSession(context, sarah);
+    await page.goto(`/w/${slug}/classes/${classId}/${sessionId}`);
+    // She sees no other action than this one.
+    await expect(page.getByRole('button', { name: copy.classes.date.edit })).toHaveCount(0);
+    await expect(page.getByRole('main').getByRole('button')).toHaveCount(1);
+    await page.getByRole('button', { name: copy.bookingLinks.copyBooking }).click();
+
+    await expect(page.getByRole('status')).toHaveText(copy.bookingLinks.copied);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
+    await expectNoAxeViolations(page, `CO-01 of Sarah in ${appLocale}`);
+  });
+
+  test('a cancelled or past class date shows no Boekingslink kopiëren', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const { classId, sessionId } = await seedClassDate(page.request, workspaceId);
+    const other = await page.request.post(
+      `/api/v1/workspaces/${workspaceId}/group-classes/${classId}/dates`,
+      { data: { localDate: tuesday(), localStart: '19:30' } },
+    );
+    expect(other.status()).toBe(201);
+    const { id: pastId } = (await other.json()) as { id: string };
+
+    // Open date: it has the button.
+    await page.goto(`/w/${slug}/classes/${classId}/${sessionId}`);
+    await expect(page.getByRole('button', { name: copy.bookingLinks.copyBooking })).toBeVisible();
+
+    await cancelSession(sessionId);
+    await page.reload();
+    await expect(page.getByRole('button', { name: copy.classes.date.edit })).toBeVisible();
+    await expect(page.getByRole('button', { name: copy.bookingLinks.copyBooking })).toHaveCount(0);
+
+    await passSession(pastId);
+    await page.goto(`/w/${slug}/classes/${classId}/${pastId}`);
+    await expect(page.getByRole('button', { name: copy.classes.date.edit })).toBeVisible();
+    await expect(page.getByRole('button', { name: copy.bookingLinks.copyBooking })).toHaveCount(0);
   });
 });
