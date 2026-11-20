@@ -80,7 +80,7 @@
 **Open punten voor de eigenaar:**
 
 1. **Productie-inrichting (#398): gedaan.** Productie verstuurt alle transactionele e-mail via Lettermint, en de eigenaar heeft gecontroleerd dat het werkt. Brevo is op 9 november 2026 uit de code gehaald (#692), met `BREVO_API_KEY` in productie en ontwikkeling.
-2. **Brevo opruimen:** het transport en de variabelen zijn weg (#692), en de eigenaar heeft op 9 november 2026 de DNS-records (`brevo1/2._domainkey`, `brevo-code`) verwijderd. Daarmee is Brevo helemaal weg: de eigenaar heeft het account op 20 november 2026 opgeheven (#404). Brevo staat **niet** in de lijst: er gaan geen echte gegevens doorheen (alleen testverzending). Gebruiken we Brevo toch ooit voor echte gegevens, dan komt het eerst terug in §1.
+2. **Brevo opruimen:** het transport en de variabelen zijn weg (#692), en de eigenaar heeft op 9 november 2026 de DNS-records (`brevo1/2._domainkey`, `brevo-code`) verwijderd. Het account is op 20 november 2026 opgeheven (#404), dus Brevo is helemaal weg. Brevo staat **niet** in de lijst: er gaan geen echte gegevens doorheen (alleen testverzending). Gebruiken we Brevo toch ooit voor echte gegevens, dan komt het eerst terug in §1.
 3. **DPA bewaren:** een pdf van Lettermint's voorwaarden en DPA buiten de repo bewaren, en vóór G4 nakijken of er een nieuwe versie is.
 4. **Vraag aan Lettermint-support:** het standaardbereik van automatische onderdrukkingen (testadressen maken er geen).
 5. **Starter:** overschakelen bij pilotopzet; **nooit** "overages uitzetten" of een lage bestedingslimiet instellen (dat weigert inlogmail bij de grens).
@@ -97,7 +97,7 @@
 **Open items for the owner:**
 
 1. **Production setup (#398): done.** Production sends all transactional email through Lettermint, and the owner checked that it works. Brevo was removed from the code on 9 November 2026 (#692), with `BREVO_API_KEY` in production and development.
-2. **Remove Brevo:** the transport and the variables are gone (#692), and the owner deleted the DNS records (`brevo1/2._domainkey`, `brevo-code`) on 9 November 2026. With that Brevo is fully removed: the owner closed the account on 20 November 2026 (#404). Brevo is **not** on the list: no real data goes through it (test sending only). If Brevo is ever used for real data, it comes back in §1 first.
+2. **Remove Brevo:** the transport and the variables are gone (#692), and the owner deleted the DNS records (`brevo1/2._domainkey`, `brevo-code`) on 9 November 2026. The owner closed the account on 20 November 2026 (#404), so Brevo is fully removed. Brevo is **not** on the list: no real data goes through it (test sending only). If Brevo is ever used for real data, it comes back in §1 first.
 3. **Keep the DPA:** save a PDF of Lettermint's terms and DPA outside the repo, and check for a newer version before G4.
 4. **Question to Lettermint support:** the default scope of automatic suppressions (test addresses create none).
 5. **Starter:** switch at pilot setup; **never** "disable overages" or set a low spend cap (either rejects sign-in email at the limit).
