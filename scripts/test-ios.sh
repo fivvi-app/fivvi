@@ -44,14 +44,16 @@
 #                                unit test) from xcodebuild's own enumeration, every class to exactly one part, so the parts
 #                                together run every test once. The run says which classes it runs, and fails when it ran
 #                                fewer tests than they have. Its result bundle is TestResults-<locale>-<part>of<of>.xcresult.
-#                                Not with --retry-failed or --unit-only. Without it the run is the whole language (as Release
-#                                runs it)
+#                                Not with --unit-only; with --retry-failed it retries the failed UI tests of the part, which is
+#                                shown complete against the tests of the part (Release runs each language in two parts, #1403).
+#                                Without it the run is the whole language
 #                                --unit-only (ADR-034: part 1 of the `iOS tests` jobs passes it while .github/pipeline.json
 #                                says `ci: fast`; the nightly run and `ci: full` run the parts without it) leaves out the UI
 #                                test target: -skip-testing:<app>UITests, the unit tests only
 #                                --retry-failed (only `release.sh tests ios` passes it, #1433) retries the failed UI tests
 #                                once when the run fails: on the same simulator, with -only-testing: for each of them, the
-#                                same configuration and allowances, into TestResults-<locale>-retry.xcresult, within
+#                                same configuration and allowances, into TestResults-<locale>-retry.xcresult (of a part,
+#                                TestResults-<locale>-<part>of<of>-retry.xcresult), within
 #                                IOS_RETRY_DEADLINE. The run passes when every one of them ran and passed in the retry, and a
 #                                test that passed only then is reported as flaky (a ::warning:: and the job summary). No retry
 #                                when a test that failed is not a UI test (unit tests are never retried), when more than 3 UI
@@ -104,8 +106,6 @@ case "${1:-}" in
       esac
       shift
     done
-    # A retry names the failed tests of a whole run; a part of one has no such run to be shown complete against.
-    ! $RETRY_FAILED || [ -z "$SHARD_OF" ] || die "--shard and --retry-failed don't go together"
     # --unit-only has no UI tests to deal out: CI runs it in part 1 and leaves part 2 without a step.
     ! $UNIT_ONLY || [ -z "$SHARD_OF" ] || die "--shard and --unit-only don't go together"
     ;;
@@ -667,20 +667,29 @@ shard_complete() { # <bundle>
 }
 
 # Whether the first run of locale $2 on simulator $1, with $3 failed tests listed, ran everything: its summary's failed
-# count is the $3 the reader found, and its total is the number of tests the configuration has. A run that aborts for a
+# count is the $3 the reader found, and its total is the number of tests the configuration has, or the number of tests of
+# its part (select_shard counted them when it chose the part, #1403). A run that aborts for a
 # reason that is no test (a lost connection to the test runner, a bundle that never started its tests) lists one failure
 # and never ran the rest, and that must not pass on the retry of the one failure. Prints why not, and returns 1.
 first_run_complete() { # <simulator> <locale> <listed failed tests>
   local counts failed total expected
-  counts="$(run_counts "$(result_bundle "$2")")"
+  counts="$(run_counts "$(result_bundle "${RESULT_NAME:-$2}")")"
   if [ -z "$counts" ]; then
-    echo "the counts of the tests cannot be read from $(result_bundle "$2")"
+    echo "the counts of the tests cannot be read from $(result_bundle "${RESULT_NAME:-$2}")"
     return 1
   fi
   IFS=$'\t' read -r failed total <<<"$counts"
   if [ "$failed" != "$3" ]; then
     echo "the summary counts $failed failed tests and the reader found $3, so a failure is not accounted for"
     return 1
+  fi
+  if [ -n "$SHARD_OF" ]; then
+    # The part was counted by the enumeration that chose it: a second one would count the whole language.
+    if [ "$total" != "$SHARD_TESTS" ]; then
+      echo "the $RESULT_LABEL run has $total tests of the $SHARD_TESTS of its classes: it did not run them all"
+      return 1
+    fi
+    return 0
   fi
   expected="$(enumerated_test_count "$1" "$2")"
   if [ -z "$expected" ]; then
@@ -698,8 +707,8 @@ first_run_complete() { # <simulator> <locale> <listed failed tests>
 # too many, when the run hit its deadline or the failed tests can't be read; and when the retry fails or leaves one out.
 retry_failed_ui_tests() { # <simulator> <locale>
   local udid=$1 locale=$2 first retry
-  first="$(result_bundle "$2")"
-  retry=".build/$RESULT_STEM-$2-retry.xcresult"
+  first="$(result_bundle "${RESULT_NAME:-$2}")"
+  retry=".build/$RESULT_STEM-${RESULT_NAME:-$2}-retry.xcresult"
   local rows reason kind id message ids="" others="" count=0 only=() outcomes result problems="" status=0 flaky=""
   if $RUN_TIMED_OUT; then
     echo "Not retrying: the $locale run hit its deadline, which is a stall and not a flaky test (#305)"
@@ -889,7 +898,7 @@ test_one_locale() { # <simulator>
     RESULT_LABEL="$ONLY_LOCALE, part $SHARD_PART of $SHARD_OF"
   fi
   bundle="$(result_bundle "$RESULT_NAME")"
-  rm -rf "$bundle" ".build/$RESULT_STEM-$ONLY_LOCALE-retry.xcresult"
+  rm -rf "$bundle" ".build/$RESULT_STEM-$RESULT_NAME-retry.xcresult"
   if [ -n "$SHARD_OF" ]; then
     step "Choose the$APP_WORD tests of part $SHARD_PART of $SHARD_OF in $ONLY_LOCALE (simulator $1)"
     select_shard "$1" "$ONLY_LOCALE" || return 1

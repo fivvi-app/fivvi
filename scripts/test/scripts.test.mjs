@@ -3086,18 +3086,141 @@ esac`,
         });
       }
 
-      it('refuses --shard together with --retry-failed', async () => {
-        const { fake } = await built();
+      // #1403: the release runs each language in two parts too, each with the retry of #1433. The retry counts the tests of
+      // the part (what select_shard counted), not of the whole language, and keeps the bundles of the part apart.
+      describe('#1403: --shard together with --retry-failed retries the failed UI tests of the part', () => {
+        const X1 = 'XUITests/test1';
+        const X2 = 'XUITests/test2';
+        const target = 'FivviProUITests';
+        // The canned bundles of part 2 (X and Y: 3 tests) and of its retry; `failed` are ids of UI tests of the part.
+        const cannedPart = (fake, { failed, total = 3, retryPassed }) => {
+          const dir = join(fake.repo, '..', 'bundles');
+          mkdirSync(dir, { recursive: true });
+          const nodeOf = (id, result) => ({
+            nodeType: 'Test Case',
+            nodeIdentifier: `${id}()`,
+            nodeIdentifierURL: `test://com.apple.xcode/FivviPro/${target}/${id}`,
+            result,
+            durationInSeconds: 1,
+          });
+          writeFileSync(
+            join(dir, 'TestResults-nl-2of2.xcresult.json'),
+            JSON.stringify({
+              failedTests: failed.length,
+              passedTests: total - failed.length,
+              skippedTests: 0,
+              expectedFailures: 0,
+              totalTestCount: total,
+              testFailures: failed.map((id) => ({
+                testName: `${id.split('/')[1]}()`,
+                targetName: target,
+                failureText: `${id} broke`,
+                testIdentifierString: `${id}()`,
+                testIdentifierURL: `test://com.apple.xcode/FivviPro/${target}/${id}`,
+              })),
+              testNodes: failed.map((id) => nodeOf(id, 'Failed')),
+            }),
+          );
+          writeFileSync(
+            join(dir, 'TestResults-nl-2of2-retry.xcresult.json'),
+            JSON.stringify({
+              testFailures: [],
+              testNodes: (retryPassed ?? failed).map((id) => nodeOf(id, 'Passed')),
+            }),
+          );
+          return dir;
+        };
+        const retried = (fake, list, dir, env = {}) =>
+          fake.run('scripts/test-ios.sh', ['test', 'nl', '--shard', '2/2', '--retry-failed'], {
+            IOS_SIM_SETTLE: '0',
+            FAKE_ENUMERATION_IDS: list,
+            FAKE_XCRESULT_DIR: dir,
+            FAKE_RESULT: 'fail',
+            FAKE_RETRY_RESULT: 'pass',
+            ...env,
+          });
 
-        const run = await fake.run(
-          'scripts/test-ios.sh',
-          ['test', 'nl', '--shard', '1/2', '--retry-failed'],
-          { IOS_SIM_SETTLE: '0' },
-        );
+        it('retries the failed UI test once, in its part, into the bundle of the part, and passes as flaky', async () => {
+          const { fake, list } = await built();
+          const summary = join(fake.repo, '..', 'summary.md');
 
-        assert.equal(run.status, 1, run.output);
-        assert.match(run.output, /--shard and --retry-failed don't go together/);
-        assert.equal(runs(fake).length, 0);
+          const run = await retried(fake, list, cannedPart(fake, { failed: [X1] }), {
+            GITHUB_STEP_SUMMARY: summary,
+          });
+
+          assert.equal(run.status, 0, run.output);
+          const [first, retry] = runs(fake);
+          assert.equal(runs(fake).length, 2, 'the part and one retry');
+          assert.deepEqual(only(first), ['FivviProUITests/XUITests', 'FivviProUITests/YUITests']);
+          assert.match(first, /-resultBundlePath \.build\/TestResults-nl-2of2\.xcresult\b/);
+          assert.match(retry, /-only-test-configuration nl\b/);
+          assert.deepEqual(only(retry), [`${target}/${X1}`]);
+          assert.match(retry, /-resultBundlePath \.build\/TestResults-nl-2of2-retry\.xcresult\b/);
+          assert.equal(
+            fake.log('xcodebuild').filter((line) => line.includes('-enumerate-tests')).length,
+            1,
+            'the part is counted by the enumeration that chose it: no second one for the retry',
+          );
+          assert.match(run.output, /^::warning::.*flaky.*XUITests\/test1.*XUITests\/test1 broke/m);
+          assert.match(
+            run.output,
+            /✓ iOS tests in nl \(the failed UI tests passed on their retry\)/,
+          );
+          assert.match(
+            readFileSync(summary, 'utf8'),
+            /### iOS tests that passed only on a retry in nl/,
+          );
+        });
+
+        it('does not retry a part that ran fewer tests than its classes have', async () => {
+          const { fake, list } = await built();
+
+          const run = await retried(fake, list, cannedPart(fake, { failed: [X1], total: 2 }));
+
+          assert.equal(run.status, 1, run.output);
+          assert.match(run.output, /the part ran 2 tests of the 3 of its classes/);
+          assert.match(run.output, /Not retrying: the nl, part 2 of 2 run has 2 tests of the 3/);
+          assert.equal(runs(fake).length, 1, 'no retry');
+        });
+
+        it('does not retry more than 3 failed UI tests of a part: that is a break, not a flake', async () => {
+          // Y weighs 60 and goes to part 1, X (5 tests, 50) is part 2 alone.
+          const { fake, list } = await built([
+            ['FivviProUITests/XUITests', 5],
+            ['FivviProUITests/YUITests', 6],
+          ]);
+          const many = ['XUITests/test1', 'XUITests/test2', 'XUITests/test3', 'XUITests/test4'];
+
+          const run = await retried(fake, list, cannedPart(fake, { failed: many, total: 5 }));
+
+          assert.equal(run.status, 1, run.output);
+          assert.match(run.output, /Not retrying: 4 UI tests failed, more than the 3/);
+          assert.equal(runs(fake).length, 1, 'no retry');
+        });
+
+        it('fails when the retry of the part does not pass', async () => {
+          const { fake, list } = await built();
+
+          const run = await retried(fake, list, cannedPart(fake, { failed: [X1] }), {
+            FAKE_RETRY_RESULT: 'fail',
+          });
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(runs(fake).length, 2, 'one retry, not a second');
+        });
+
+        it('fails when the retry leaves one of two failed UI tests out', async () => {
+          const { fake, list } = await built();
+
+          const run = await retried(
+            fake,
+            list,
+            cannedPart(fake, { failed: [X1, X2], retryPassed: [X1] }),
+          );
+
+          assert.equal(run.status, 1, run.output);
+          assert.match(run.output, /XUITests\/test2: did not run in the retry/);
+        });
       });
 
       it('refuses --shard together with --unit-only (CI runs the unit tests in part 1 only, ADR-034)', async () => {
