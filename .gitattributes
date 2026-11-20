@@ -1,0 +1,11 @@
+# Generated files: GitHub collapses them in diffs and counts them out of the language statistics. Never edit or merge
+# them by hand; after a merge, resolve the sources and run `node scripts/regenerate.mjs` (docs/agents/build.md).
+# Keep these paths in step with GROUPS in scripts/regenerate.mjs.
+packages/contract/openapi.json linguist-generated=true
+packages/contract/src/generated/** linguist-generated=true
+packages/contract/swift/Sources/FivviAPI/Generated/** linguist-generated=true
+packages/contract/kotlin/generated/** linguist-generated=true
+packages/i18n/generated/** linguist-generated=true
+packages/design-tokens/generated/** linguist-generated=true
+packages/design-tokens/FivviDesignTokens/Sources/FivviDesignTokens/Generated/** linguist-generated=true
+packages/design-tokens/kotlin/generated/** linguist-generated=true

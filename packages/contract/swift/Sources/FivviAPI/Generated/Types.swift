@@ -181,7 +181,7 @@ public protocol APIProtocol: Sendable {
     func withdrawTrainerInvitation(_ input: Operations.WithdrawTrainerInvitation.Input) async throws -> Operations.WithdrawTrainerInvitation.Output
     /// What an invitation link is for
     ///
-    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the masked address the invitation is for and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the address the invitation is for (also masked) and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`, with no address.
     ///
     /// - Remark: HTTP `GET /v1/invitations/{token}`.
     /// - Remark: Generated from `#/paths//v1/invitations/{token}/get(getInvitation)`.
@@ -244,14 +244,14 @@ public protocol APIProtocol: Sendable {
     func lookupAddress(_ input: Operations.LookupAddress.Input) async throws -> Operations.LookupAddress.Output
     /// Plan a private session
     ///
-    /// Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
+    /// Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default. When the trainer already has a scheduled session of this workspace that overlaps (back-to-back does not), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/private`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/private/post(createPrivateSession)`.
     func createPrivateSession(_ input: Operations.CreatePrivateSession.Input) async throws -> Operations.CreatePrivateSession.Output
     /// Reschedule a private session
     ///
-    /// Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+    /// Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When the trainer already has a scheduled session of this workspace at the new time (back-to-back does not overlap), the answer is `409` with the code `trainer_conflict` and those sessions, unless `allowConflicts` is `true` (PS-07); the version is checked first. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/post(reschedulePrivateSession)`.
@@ -272,7 +272,7 @@ public protocol APIProtocol: Sendable {
     func getSession(_ input: Operations.GetSession.Input) async throws -> Operations.GetSession.Output
     /// Change one date of a class
     ///
-    /// Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`.
+    /// Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`. A new time that puts the date’s trainer where they already have a scheduled session of this workspace (with `scope: following`: any date it moves) answers `409` with the code `trainer_conflict` and those sessions unless `allowConflicts` is `true` (PS-07); a change of the capacity alone is never checked, and the version is checked first.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/patch(updateGroupClassDate)`.
@@ -286,7 +286,7 @@ public protocol APIProtocol: Sendable {
     func listGroupClasses(_ input: Operations.ListGroupClasses.Input) async throws -> Operations.ListGroupClasses.Output
     /// Create a class
     ///
-    /// Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`.
+    /// Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`. When the first date puts the class’s trainer where they already have something (a weekly repeat: on any of its 12 dates), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/post(createGroupClass)`.
@@ -307,11 +307,18 @@ public protocol APIProtocol: Sendable {
     func updateGroupClass(_ input: Operations.UpdateGroupClass.Input) async throws -> Operations.UpdateGroupClass.Output
     /// Put a class on a date
     ///
-    /// Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.
+    /// Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. With `repeat: weekly` (F022) it also makes the weekly series and its next 12 weeks of dates in the same transaction; the answer is the first date with `datesAdded`. A class or trainer that is not in the workspace answers `404`. When the date’s trainer already has a scheduled session of this workspace that overlaps (a weekly repeat: on any of its 12 dates), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes/{classId}/dates`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/dates/post(scheduleGroupClassDate)`.
     func scheduleGroupClassDate(_ input: Operations.ScheduleGroupClassDate.Input) async throws -> Operations.ScheduleGroupClassDate.Output
+    /// The weekly series of a class
+    ///
+    /// The weekly series of the class that still run (no end, or an end that is today or later), in the order they start (TW-03 *Reeksen*). The Owner only: a Trainer gets `403`, and reads the series of a date on the date itself (`Session.series`). A class that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/group-classes/{classId}/series`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/series/get(listGroupClassSeries)`.
+    func listGroupClassSeries(_ input: Operations.ListGroupClassSeries.Input) async throws -> Operations.ListGroupClassSeries.Output
     /// The join link of a workspace
     ///
     /// The workspace’s join link in full and when it was last renewed. The Owner and the Trainers may read it, to send it to a new client; a client of the workspace gets `403`, a person with no place in it `404`.
@@ -382,6 +389,34 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/access-log`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/access-log/get(listAccessLog)`.
     func listAccessLog(_ input: Operations.ListAccessLog.Input) async throws -> Operations.ListAccessLog.Output
+    /// The offers of a workspace
+    ///
+    /// Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer and a client of the workspace get `403`, anyone with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/offers`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/get(listOffers)`.
+    func listOffers(_ input: Operations.ListOffers.Input) async throws -> Operations.ListOffers.Output
+    /// Create an offer
+    ///
+    /// Creates an offer of one kind (and, for credits, one credit kind) with the fields of its first version, validated by the rules of its kind. The new offer is switched off. An amount outside 1 to 1,000,000 cents or not a whole number, a fifth kind, two credit kinds and a term over 12 months without `longTermConfirmed` answer `422` and store nothing. The Owner only.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/offers`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/post(createOffer)`.
+    func createOffer(_ input: Operations.CreateOffer.Input) async throws -> Operations.CreateOffer.Output
+    /// One offer of a workspace
+    ///
+    /// One offer with its current version. The Owner only. An offer of another workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/offers/{offerId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/{offerId}/get(getOffer)`.
+    func getOffer(_ input: Operations.GetOffer.Input) async throws -> Operations.GetOffer.Output
+    /// Change an offer: a new version
+    ///
+    /// Saves the full set of fields as the offer’s next version, from the version the caller read; the versions before it stay as they were, so agreements that run keep their terms. When the offer has a newer version the answer is `409` with the offer as it is now and nothing is stored. The kind never changes; a credit offer’s credit kind can. An offer that is switched on must stay valid to be sold: it keeps a price and a VAT rate. The Owner only.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/offers/{offerId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/{offerId}/patch(updateOffer)`.
+    func updateOffer(_ input: Operations.UpdateOffer.Input) async throws -> Operations.UpdateOffer.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -732,7 +767,7 @@ extension APIProtocol {
     }
     /// What an invitation link is for
     ///
-    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the masked address the invitation is for and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the address the invitation is for (also masked) and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`, with no address.
     ///
     /// - Remark: HTTP `GET /v1/invitations/{token}`.
     /// - Remark: Generated from `#/paths//v1/invitations/{token}/get(getInvitation)`.
@@ -871,7 +906,7 @@ extension APIProtocol {
     }
     /// Plan a private session
     ///
-    /// Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
+    /// Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default. When the trainer already has a scheduled session of this workspace that overlaps (back-to-back does not), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/private`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/private/post(createPrivateSession)`.
@@ -888,7 +923,7 @@ extension APIProtocol {
     }
     /// Reschedule a private session
     ///
-    /// Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+    /// Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When the trainer already has a scheduled session of this workspace at the new time (back-to-back does not overlap), the answer is `409` with the code `trainer_conflict` and those sessions, unless `allowConflicts` is `true` (PS-07); the version is checked first. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/post(reschedulePrivateSession)`.
@@ -935,7 +970,7 @@ extension APIProtocol {
     }
     /// Change one date of a class
     ///
-    /// Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`.
+    /// Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`. A new time that puts the date’s trainer where they already have a scheduled session of this workspace (with `scope: following`: any date it moves) answers `409` with the code `trainer_conflict` and those sessions unless `allowConflicts` is `true` (PS-07); a change of the capacity alone is never checked, and the version is checked first.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/patch(updateGroupClassDate)`.
@@ -967,7 +1002,7 @@ extension APIProtocol {
     }
     /// Create a class
     ///
-    /// Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`.
+    /// Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`. When the first date puts the class’s trainer where they already have something (a weekly repeat: on any of its 12 dates), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/post(createGroupClass)`.
@@ -1016,7 +1051,7 @@ extension APIProtocol {
     }
     /// Put a class on a date
     ///
-    /// Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.
+    /// Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. With `repeat: weekly` (F022) it also makes the weekly series and its next 12 weeks of dates in the same transaction; the answer is the first date with `datesAdded`. A class or trainer that is not in the workspace answers `404`. When the date’s trainer already has a scheduled session of this workspace that overlaps (a weekly repeat: on any of its 12 dates), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes/{classId}/dates`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/dates/post(scheduleGroupClassDate)`.
@@ -1029,6 +1064,21 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// The weekly series of a class
+    ///
+    /// The weekly series of the class that still run (no end, or an end that is today or later), in the order they start (TW-03 *Reeksen*). The Owner only: a Trainer gets `403`, and reads the series of a date on the date itself (`Session.series`). A class that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/group-classes/{classId}/series`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/series/get(listGroupClassSeries)`.
+    public func listGroupClassSeries(
+        path: Operations.ListGroupClassSeries.Input.Path,
+        headers: Operations.ListGroupClassSeries.Input.Headers = .init()
+    ) async throws -> Operations.ListGroupClassSeries.Output {
+        try await listGroupClassSeries(Operations.ListGroupClassSeries.Input(
+            path: path,
+            headers: headers
         ))
     }
     /// The join link of a workspace
@@ -1193,6 +1243,70 @@ extension APIProtocol {
             path: path,
             query: query,
             headers: headers
+        ))
+    }
+    /// The offers of a workspace
+    ///
+    /// Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer and a client of the workspace get `403`, anyone with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/offers`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/get(listOffers)`.
+    public func listOffers(
+        path: Operations.ListOffers.Input.Path,
+        headers: Operations.ListOffers.Input.Headers = .init()
+    ) async throws -> Operations.ListOffers.Output {
+        try await listOffers(Operations.ListOffers.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Create an offer
+    ///
+    /// Creates an offer of one kind (and, for credits, one credit kind) with the fields of its first version, validated by the rules of its kind. The new offer is switched off. An amount outside 1 to 1,000,000 cents or not a whole number, a fifth kind, two credit kinds and a term over 12 months without `longTermConfirmed` answer `422` and store nothing. The Owner only.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/offers`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/post(createOffer)`.
+    public func createOffer(
+        path: Operations.CreateOffer.Input.Path,
+        headers: Operations.CreateOffer.Input.Headers = .init(),
+        body: Operations.CreateOffer.Input.Body
+    ) async throws -> Operations.CreateOffer.Output {
+        try await createOffer(Operations.CreateOffer.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// One offer of a workspace
+    ///
+    /// One offer with its current version. The Owner only. An offer of another workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/offers/{offerId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/{offerId}/get(getOffer)`.
+    public func getOffer(
+        path: Operations.GetOffer.Input.Path,
+        headers: Operations.GetOffer.Input.Headers = .init()
+    ) async throws -> Operations.GetOffer.Output {
+        try await getOffer(Operations.GetOffer.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Change an offer: a new version
+    ///
+    /// Saves the full set of fields as the offer’s next version, from the version the caller read; the versions before it stay as they were, so agreements that run keep their terms. When the offer has a newer version the answer is `409` with the offer as it is now and nothing is stored. The kind never changes; a credit offer’s credit kind can. An offer that is switched on must stay valid to be sold: it keeps a price and a VAT rate. The Owner only.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/offers/{offerId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/{offerId}/patch(updateOffer)`.
+    public func updateOffer(
+        path: Operations.UpdateOffer.Input.Path,
+        headers: Operations.UpdateOffer.Input.Headers = .init(),
+        body: Operations.UpdateOffer.Input.Body
+    ) async throws -> Operations.UpdateOffer.Output {
+        try await updateOffer(Operations.UpdateOffer.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
 }

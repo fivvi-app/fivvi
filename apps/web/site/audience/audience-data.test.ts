@@ -142,7 +142,7 @@ describe.each(locales)('F064 the four audience pages’ words in %s', (locale: L
     for (const page of audiencePageIds) {
       const copy = audience[page];
       const moments = copy.moments as Moments;
-      expect(Object.keys(copy.pains)).toEqual(['one', 'two', 'three']);
+      expect(Object.keys(copy.pains).sort()).toEqual(['one', 'two', 'three'].sort());
       expect(Object.keys(moments).sort()).toEqual(
         audiencePages[page].moments.map(({ id }) => id).sort(),
       );

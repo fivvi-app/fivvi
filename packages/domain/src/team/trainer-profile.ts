@@ -1,3 +1,6 @@
+// Module: The trainer profile: its existence means "this team member trains in this workspace"; whether a team member or a role change has one.
+// Spec: F005
+
 import type { TeamRole } from './last-owner.ts';
 
 // The trainer profile (F005, spec #173): its existence means "this team member trains in this

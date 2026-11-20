@@ -1,3 +1,14 @@
+// Module: The access log writer: `ACCESS_LOG_ACTIONS` (the closed list: `client.exported`,
+//        `client.trashed`, `client.restored`, `client.purged`, `workspace.exported`,
+//        `client.retention_kept`, `note.viewed`, `note.changed`), `accessLogEntry(input, now)`
+//        (checks the shape of the action: a client action names the client and no object, a note
+//        action names the client and the note's ID, the workspace export names neither, and only
+//        the daily cleanup acts without a team member) and `createAccessLog(store,
+//        clock).record(input)`, which other code calls. IDs and a time only, never free text or
+//        note content. `packages/database` implements the `AccessLogStore`
+//        (`accessLogStore(scope)`)
+// Spec: E014 AC21, AC22
+
 // The access log writer (E014, spec #477, ticket #1173; `retention-policy.md` §3.4, R12): who
 // exported, trashed, restored or purged which client, and (from M7) who viewed or changed which
 // note. Everything that writes to the log goes through `createAccessLog`, so an entry can only be

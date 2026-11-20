@@ -204,6 +204,7 @@ describe('@permission F004 capabilities on GET /v1/me/workspaces', () => {
       'booking_link.manage',
       'booking_link.copy',
       'access_log.read',
+      'commerce.offers.manage',
     ]);
     expect(capabilitiesIn(gym.id)).toEqual([
       'trainers.view',

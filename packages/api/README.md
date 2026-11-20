@@ -53,7 +53,8 @@ A route that creates the caller's workspace (`POST /v1/workspaces`, F002) says s
 ### A new route's isolation case
 
 Add one entry to `ISOLATION_CASES` in `test/isolation/isolation-cases.ts`, keyed by the route's
-`operationId`. A case holds data only, and has no field for a status or an expectation: the status,
+`operationId`, in its place in the order of operation IDs (`coverage.test.ts` fails on a case out of order).
+A case holds data only, and has no field for a status or an expectation: the status,
 what a response may show and what may change come from one module, `test/isolation/expectations.ts`.
 
 ```ts

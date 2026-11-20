@@ -12,7 +12,6 @@ final class ProfileAccessibilityUITests: SignInUITestCase {
 
     private func makeServer() throws -> StubServer {
         try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(
                 email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer",
                 otherWorkspaces: [.init(name: "Sarah Personal Training", role: "owner")], name: "Sarah"

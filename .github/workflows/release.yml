@@ -130,7 +130,8 @@ jobs:
           path: |
             apps/ios/.build/TestResults-*.xcresult
             apps/ios/.build/build-for-testing.log
-          # .build is a hidden folder, which the action skips by default (#290). Only these two paths are named.
+            apps/ios/.build/build-for-testing-Fivvi.log
+          # .build is a hidden folder, which the action skips by default (#290). Only these three paths are named.
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: ignore
@@ -148,9 +149,9 @@ jobs:
     # platform.
     runs-on: ubuntu-24.04
     # What the job spends: the setup before the emulator boots (5 min; CI's `Android tests` has the SDK and emulator at
-    # 15 on a push), the boot (10 at most), the step (35, below) and the steps after it (5): 5 + 10 + 35 + 5 = 55. CI's own
-    # `Android tests` has 40 for the Compose UI tests and the unit tests alone, and its `Android build` 12 for the rest.
-    timeout-minutes: 55
+    # 15 on a push), the boot (10 at most), the step (50, below) and the steps after it (5): 5 + 10 + 50 + 5 = 70. CI's own
+    # `Android tests` has 50 for the Compose UI tests and the unit tests alone, and its `Android build` 12 for the rest.
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -226,11 +227,11 @@ jobs:
           EMULATOR_BOOT_TIMEOUT: '480'
         run: scripts/android.sh emulator
 
-      # CI's `Android build` step (10 minutes for ktlint, the checks and the build) and `Android tests` step (25 for the unit
-      # tests, the release bundle and the Compose UI tests), in one step: 35. The Compose UI tests alone took 21 minutes on
-      # a slow runner (run 43717147404), so this holds the rest with about 60 % to spare.
+      # CI's `Android build` step (10 minutes for ktlint, the checks and the build) and `Android tests` step (40 for the unit
+      # tests, the release bundle and the Compose UI tests; it ran out of 25 on slow runners, #1442), in one step: 50. The
+      # Compose UI tests alone took 21 minutes on a slow runner (run 43717147404), so this holds the rest with room to spare.
       - name: ktlint, build, unit tests and Compose UI tests
-        timeout-minutes: 35
+        timeout-minutes: 50
         run: scripts/release.sh tests android
 
       # The emulator must not be running when the cache of it is saved.

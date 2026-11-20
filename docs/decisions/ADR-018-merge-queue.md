@@ -90,7 +90,7 @@ AI still never approves a PR and never turns on auto-merge.
 | GitHub auto-merge | Not allowed (`AGENTS.md`); GitHub cannot see risk, the local review or the preview smoke check. |
 | `gh pr merge --admin` or a ruleset bypass actor | Skips the queue and the checks; `bypass_actors` stays empty. |
 | `HEADGREEN` grouping | Only the head of a group is checked; with one PR per merge it makes no difference, and `ALLGREEN` is the stricter rule. |
-| Group several PRs per merge (`max_entries_to_merge` above 1) | Saves little (builds already run in parallel) and puts several PRs in one production deploy. |
+| Group several PRs per merge (`max_entries_to_merge` above 1) | Saves little (builds already run in parallel) and puts several PRs in one production deploy. *Checked 17 November 2026 ([ADR-033](ADR-033-go-live-mode.md), "Merge group size", #1425): GitHub builds every entry on its own temporary branch whatever the group size ("Merge limits do not combine `merge_group` builds"), so a group runs the checks no fewer times; still 1.* |
 | A third-party merge bot | One more dependency and token for what GitHub does itself. |
 
 ## References
