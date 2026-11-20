@@ -102,7 +102,7 @@ Wait a few seconds after `am start` before dumping. Delete the file even when th
 
 | Needs the owner | Why |
 |---|---|
-| Logins and re-login (`railway login`, `gh auth`, Apple, Google, Sentry, PostHog, UptimeRobot, Brevo) | Accounts are the owner's |
+| Logins and re-login (`railway login`, `gh auth`, Apple, Google, Sentry, PostHog, UptimeRobot) | Accounts are the owner's |
 | Billing, plans, the spending alert | Money |
 | Account and dashboard settings: PR environments, base environment, domains, monitors, alerts | Not in `.railway/railway.ts` ([ENVIRONMENTS.md §3](../engineering/ENVIRONMENTS.md)) |
 | Variable values of `production` and `development`, and the check of the Postgres password in [ENVIRONMENTS.md §7](../engineering/ENVIRONMENTS.md) | Secrets. Agents never read them |
