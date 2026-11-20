@@ -11,7 +11,7 @@ final class ClientLinkUITests: SignInUITestCase {
     private let invitationLink = "https://fivvi.app/i/tok-4f9x"
 
     private func server() throws -> StubServer {
-        try StubServer(.status(404), signIn: StubServer.SignIn(email: "anna@example.com", name: "Anna de Vries"))
+        try StubServer(signIn: StubServer.SignIn(email: "anna@example.com", name: "Anna de Vries"))
     }
 
     /// *Openen in de browser* hands the same address to the system: the app records it instead of opening Safari, which
