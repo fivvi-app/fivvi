@@ -1,6 +1,8 @@
+import { trainerWordForms } from '@fivvi/i18n';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { catalogLocale } from '../../../../../../i18n/config';
 import { apiClient } from '../../../../../../server/api';
 import { workspaceOf } from '../../../../../../server/workspace-of';
 import { NoPermission } from '../settings/general/no-permission';
@@ -20,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * links), so the page shows what the API holds.
  */
 export default async function BookingLinksPage({ params }: PageProps<'/w/[slug]/booking-links'>) {
-  const { id, name, capabilities } = await workspaceOf((await params).slug);
+  const { id, name, capabilities, trainerWord } = await workspaceOf((await params).slug);
   if (!capabilities.includes('booking_link.copy')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
   const init = { headers: cookie ? { cookie } : {} };
@@ -62,6 +64,7 @@ export default async function BookingLinksPage({ params }: PageProps<'/w/[slug]/
       links={links.data.links}
       classes={classes?.data ?? []}
       canManage={canManage}
+      trainerWord={trainerWordForms(trainerWord, catalogLocale(await getLocale()))}
     />
   );
 }

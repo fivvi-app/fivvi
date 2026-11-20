@@ -86,7 +86,7 @@
       "inactive": "Inactive"
     },
     "title": "Booking links",
-    "trainerNote": "Trainers see the links, but can't change them."
+    "trainerNote": "{Words} see the links, but can't change them."
   },
   "classes": {
     "date": {

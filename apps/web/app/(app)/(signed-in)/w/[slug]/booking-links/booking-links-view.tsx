@@ -1,6 +1,7 @@
 'use client';
 
 import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
+import type { TrainerWordForms } from '@fivvi/i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,7 @@ export function BookingLinksView({
   links: initial,
   classes,
   canManage,
+  trainerWord,
 }: {
   workspaceId: string;
   /** The join-link card: given to a person with `join_link.view`. */
@@ -49,6 +51,8 @@ export function BookingLinksView({
   classes: readonly GroupClass[];
   /** The person has `booking_link.manage`. */
   canManage: boolean;
+  /** The workspace's word for the people who teach (F068), in the reader's language. */
+  trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('bookingLinks');
   const headingId = useId();
@@ -135,7 +139,9 @@ export function BookingLinksView({
         </CardHeader>
         <div className="grid gap-1 px-(--card-spacing)">
           <p>{t('body')}</p>
-          {canManage ? null : <p className="text-muted-foreground">{t('trainerNote')}</p>}
+          {canManage ? null : (
+            <p className="text-muted-foreground">{t('trainerNote', { ...trainerWord })}</p>
+          )}
         </div>
         <BookingLinksTable
           links={active}

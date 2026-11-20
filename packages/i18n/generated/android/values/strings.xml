@@ -63,7 +63,7 @@
     <string name="booking_links_status_active">Actief</string>
     <string name="booking_links_status_inactive">Niet actief</string>
     <string name="booking_links_title">Boekingslinks</string>
-    <string name="booking_links_trainer_note">Trainers zien de links, maar kunnen ze niet wijzigen.</string>
+    <string name="booking_links_trainer_note">%1$s zien de links, maar kunnen ze niet wijzigen.</string>
     <string name="classes_date_back">Alle lessen</string>
     <plurals name="classes_date_booked">
         <item quantity="one">%1$s/%2$s geboekt · %3$d plek vrij</item>

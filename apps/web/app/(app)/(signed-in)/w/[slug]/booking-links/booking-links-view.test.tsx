@@ -1,5 +1,5 @@
 import type { Schemas } from '@fivvi/contract';
-import { locales, messages } from '@fivvi/i18n';
+import { locales, messages, trainerWordForms } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { escapeHtml, render } from '../../../../../../test/render';
 import { BookingLinksView } from './booking-links-view';
@@ -84,6 +84,7 @@ describe.each(locales)('F037 TW-07 Boekingslinks in %s', (locale) => {
           },
         ]}
         canManage={canManage}
+        trainerWord={trainerWordForms('trainer', locale)}
       />,
     );
   const className = locale === 'en' ? 'Strength' : 'Kracht';
@@ -145,13 +146,17 @@ describe.each(locales)('F037 TW-07 Boekingslinks in %s', (locale) => {
 
     expect(html).toMatch(new RegExp(`<button[^>]*>[^<]*${escapeHtml(copy.new.open)}</button>`));
     expect(html.match(new RegExp(`>${escapeHtml(copy.deactivate)}<`, 'g'))).toHaveLength(4);
-    expect(html).not.toContain(escapeHtml(copy.trainerNote));
+    expect(html).not.toContain(
+      escapeHtml(copy.trainerNote.replace('{Words}', trainerWordForms('trainer', locale).Words)),
+    );
   });
 
   it('AC9: a Trainer sees the links with Link kopiëren, the note, and no Nieuwe boekingslink or Deactiveren', () => {
     const html = view(false);
 
-    expect(html).toContain(escapeHtml(copy.trainerNote));
+    expect(html).toContain(
+      escapeHtml(copy.trainerNote.replace('{Words}', trainerWordForms('trainer', locale).Words)),
+    );
     expect(html).not.toContain(escapeHtml(copy.new.open));
     expect(html).not.toContain(`>${escapeHtml(copy.deactivate)}<`);
     expect(html.match(new RegExp(`>${escapeHtml(copy.copy)}<`, 'g'))).toHaveLength(5);
@@ -168,6 +173,7 @@ describe.each(locales)('F037 TW-07 Boekingslinks in %s', (locale) => {
         links={[all]}
         classes={[]}
         canManage={false}
+        trainerWord={trainerWordForms('trainer', locale)}
       />,
     );
 

@@ -86,7 +86,7 @@
       "inactive": "Niet actief"
     },
     "title": "Boekingslinks",
-    "trainerNote": "Trainers zien de links, maar kunnen ze niet wijzigen."
+    "trainerNote": "{Words} zien de links, maar kunnen ze niet wijzigen."
   },
   "classes": {
     "date": {

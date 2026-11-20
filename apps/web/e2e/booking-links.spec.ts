@@ -1,4 +1,4 @@
-import { formattingLocales, type Locale, type Messages } from '@fivvi/i18n';
+import { formattingLocales, type Locale, type Messages, trainerWordForms } from '@fivvi/i18n';
 import type { APIRequestContext, Page } from '@playwright/test';
 import {
   cancelSession,
@@ -13,10 +13,11 @@ import {
 } from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
-// F037 (spec #473, tickets #966 and #968): TW-07 *Boekingslinks* (the join-link card and the booking links,
-// *Nieuwe boekingslink*, *Deactiveren*) and *Boekingslink kopiëren* on CO-01. Copy comes from the catalogs. Each spec has accounts and workspaces of its own: John is the Owner and Sarah a
-// Trainer of John's Gym; the class is Kracht (Strength in English) every Tuesday 18:00. The dates are
-// relative to the day the spec runs. The form's *Eén les op een datum* waits for an API that lists a
+// F037 (spec #473, tickets #966 and #968): TW-07 *Boekingslinks* (the join-link card and the booking
+// links, *Nieuwe boekingslink*, *Deactiveren*) and *Boekingslink kopiëren* on CO-01. Copy comes from
+// the catalogs. Each spec has accounts and workspaces of its own: John is the Owner and Sarah a
+// Trainer of John's Gym; the class is Kracht (Strength in English) every Tuesday 18:00. The dates
+// are relative to the day the spec runs. The form's *Eén les op een datum* waits for an API that lists a
 // class's upcoming dates, so the date links of this spec are made through CO-01 or the API.
 const GYM = "John's Gym";
 const PHONE = { width: 390, height: 844 };
@@ -356,7 +357,14 @@ test.describe('F037 booking links on the web', () => {
     await expect(
       page.getByRole('region', { name: copy.joinLink.title }).getByTestId('join-link-url'),
     ).toHaveText(new RegExp(`/j/${code}$`));
-    await expect(page.getByText(copy.bookingLinks.trainerNote)).toBeVisible();
+    await expect(
+      page.getByText(
+        copy.bookingLinks.trainerNote.replace(
+          '{Words}',
+          trainerWordForms('trainer', appLocale).Words,
+        ),
+      ),
+    ).toBeVisible();
     const rows = bookingCard(page, copy).getByRole('row');
     await expect(rows).toHaveCount(3);
     await expect(rows.nth(1)).toContainText(copy.bookingLinks.scope.all);

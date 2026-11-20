@@ -981,13 +981,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainers see the links, but can't change them."
+            "value" : "%1$@ see the links, but can't change them."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainers zien de links, maar kunnen ze niet wijzigen."
+            "value" : "%1$@ zien de links, maar kunnen ze niet wijzigen."
           }
         }
       }

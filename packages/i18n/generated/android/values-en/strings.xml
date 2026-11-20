@@ -58,7 +58,7 @@
     <string name="booking_links_status_active">Active</string>
     <string name="booking_links_status_inactive">Inactive</string>
     <string name="booking_links_title">Booking links</string>
-    <string name="booking_links_trainer_note">Trainers see the links, but can\'t change them.</string>
+    <string name="booking_links_trainer_note">%1$s see the links, but can\'t change them.</string>
     <string name="classes_date_back">All classes</string>
     <plurals name="classes_date_booked">
         <item quantity="one">%1$s/%2$s booked · %3$d spot free</item>
