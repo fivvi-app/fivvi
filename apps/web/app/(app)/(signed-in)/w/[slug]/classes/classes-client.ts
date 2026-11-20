@@ -1,5 +1,6 @@
 import type { Schemas } from '@fivvi/contract';
 import { GROUP_CLASS_LIMITS as LIMITS } from '@fivvi/domain/group-class-limits';
+import { type TrainerConflictRefusal, trainerConflict } from '../sessions/sessions-client';
 
 export type GroupClass = Schemas['GroupClass'];
 export type Session = Schemas['Session'];
@@ -41,6 +42,8 @@ export type EndErrorKey = 'endBeforeStart' | 'timeDoesNotExist' | 'invalidTime';
 
 /** The refusals every call shares. */
 type Refused =
+  /** The trainer already has something then (`409` `trainer_conflict`, PS-07): `Toch opslaan` resends. */
+  | TrainerConflictRefusal
   /** The person may not do this (any more). */
   | { ok: false; reason: 'forbidden' }
   /** Not signed in: the signed-in home knows where this person belongs. */
@@ -213,6 +216,8 @@ export interface ScheduleInput {
   /** The trainer of this date, or `''` for *Trainer nodig*. */
   trainerId: string;
   capacity: string;
+  /** *Toch opslaan* (PS-07): save although the trainer has something then. */
+  allowConflicts?: boolean;
 }
 
 /**
@@ -235,6 +240,7 @@ export async function scheduleClassDate(
     trainerId: input.trainerId === '' ? null : input.trainerId,
     capacity: whole(input.capacity),
   };
+  if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(
     'POST',
     `/api/v1/workspaces/${workspaceId}/group-classes/${classId}/dates`,
@@ -242,6 +248,7 @@ export async function scheduleClassDate(
     fetchFn,
   );
   if ('failed' in answered) return answered.failed;
+  if (answered.status === 409) return trainerConflict(answered.body);
   if (answered.status === 201) {
     const session = answered.body as Session | null;
     if (!session?.id) return { ok: false, reason: 'generic' };
@@ -268,6 +275,8 @@ export interface EditDateInput {
   localStart: string;
   localEnd: string;
   capacity: string;
+  /** *Toch opslaan* (PS-07): save although the trainer has something then. */
+  allowConflicts?: boolean;
 }
 
 /**
@@ -295,6 +304,7 @@ export async function editClassDate(
     localEnd: input.localEnd,
     capacity: whole(input.capacity),
   };
+  if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(
     'PATCH',
     `/api/v1/workspaces/${workspaceId}/sessions/${sessionId}`,
@@ -309,11 +319,9 @@ export async function editClassDate(
   }
   if (answered.status === 409) {
     const conflict = answered.body as Schemas['UpdateGroupClassDateRefusal'] | null;
-    // `trainer_conflict` lists overlapping sessions and is no changed date: the web PS-07
-    // warning is another ticket, so it is the generic error for now.
-    if (!conflict?.session || conflict.code === 'trainer_conflict') {
-      return { ok: false, reason: 'generic' };
-    }
+    // `trainer_conflict` lists overlapping sessions and is no changed date: it is PS-07's warning.
+    if (conflict?.code === 'trainer_conflict') return trainerConflict(conflict);
+    if (!conflict?.session) return { ok: false, reason: 'generic' };
     return { ok: false, reason: 'conflict', session: conflict.session };
   }
   if (answered.status === 400) {

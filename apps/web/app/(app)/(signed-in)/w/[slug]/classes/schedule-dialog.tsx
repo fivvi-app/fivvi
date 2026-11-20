@@ -18,6 +18,7 @@ import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { Field } from '@fivvi/ui/kit/field';
 import { useLocale, useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
+import { type DoubleBooking, DoubleBookingDialog } from '../sessions/double-booking';
 import { previewTimes } from '../sessions/session-time';
 import { useSessionFormat } from '../sessions/use-session-format';
 import {
@@ -78,6 +79,8 @@ export function ScheduleDialogContent({
   }>({});
   const [formError, setFormError] = useState<'noPermission' | 'notSaved' | null>(null);
   const [pending, setPending] = useState(false);
+  // PS-07: the sessions the trainer already has then; *Terug* closes it and keeps the form.
+  const [doubleBooking, setDoubleBooking] = useState<DoubleBooking | null>(null);
   const timeZone = loaded.status === 'ready' ? loaded.context.timeZone : 'Europe/Amsterdam';
   const { localDate: writtenDate } = useSessionFormat(timeZone);
 
@@ -131,16 +134,29 @@ export function ScheduleDialogContent({
     setApiErrors({});
     setFormError(null);
     if (!groupClass || missing.date || missing.start || preview.status !== 'placed') return;
+    await save(groupClass, loaded.context, false);
+  }
+
+  /** Puts the class on the date; `allowConflicts` is *Toch opslaan* of PS-07: the same request again. */
+  async function save(planned: GroupClass, context: ScheduleContext, allowConflicts: boolean) {
     setPending(true);
-    const result = await scheduleClassDate(workspaceId, groupClass.id, {
+    const result = await scheduleClassDate(workspaceId, planned.id, {
       localDate,
       localStart,
       trainerId,
       capacity,
+      ...(allowConflicts ? { allowConflicts } : {}),
     });
     if (result.ok) return scheduled(result.session);
     setPending(false);
+    setDoubleBooking(null);
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
+    if (result.reason === 'trainerConflict') {
+      return setDoubleBooking({
+        conflicts: result.conflicts,
+        trainerName: context.trainers.find(({ id }) => id === trainerId)?.name ?? null,
+      });
+    }
     if (result.reason === 'fields') {
       return setApiErrors({
         ...(result.date ? { date: result.date } : {}),
@@ -324,6 +340,15 @@ export function ScheduleDialogContent({
           </Button>
         </DialogFooter>
       </form>
+      <DoubleBookingDialog
+        doubleBooking={doubleBooking}
+        timeZone={timeZone}
+        pending={pending}
+        onBack={() => setDoubleBooking(null)}
+        onSaveAnyway={() => {
+          if (groupClass && loaded.status === 'ready') void save(groupClass, loaded.context, true);
+        }}
+      />
     </DialogContent>
   );
 }

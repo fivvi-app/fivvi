@@ -22,6 +22,7 @@ export function SessionView({
   client,
   defaultLocale,
   canMove,
+  ownSession,
   trainerWord,
 }: {
   workspaceId: string;
@@ -32,6 +33,8 @@ export function SessionView({
   defaultLocale: Locale;
   /** The person has `session.private.manage.own` or `.any`. */
   canMove: boolean;
+  /** The signed-in person is the session's trainer (PS-07 words the warning for themself). */
+  ownSession: boolean;
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('sessions.page');
@@ -78,6 +81,7 @@ export function SessionView({
               session={session}
               client={client}
               defaultLocale={defaultLocale}
+              ownSession={ownSession}
             />
           ) : null}
           <Button asChild variant="outline">

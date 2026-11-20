@@ -19,6 +19,7 @@ import { Toast } from '@fivvi/ui/kit/toast';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
+import { type DoubleBooking, DoubleBookingDialog } from '../sessions/double-booking';
 import { useSessionFormat } from '../sessions/use-session-format';
 import { type EditDateResult, editClassDate, type Session } from './classes-client';
 
@@ -51,6 +52,8 @@ export function EditClassDate({ workspaceId, session }: { workspaceId: string; s
   const [changed, setChanged] = useState(false);
   const [pending, setPending] = useState(false);
   const [saved, setSaved] = useState(false);
+  // PS-07: the sessions the date's trainer already has at the new time; *Terug* keeps the form.
+  const [doubleBooking, setDoubleBooking] = useState<DoubleBooking | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => setReady(true), []);
@@ -68,6 +71,7 @@ export function EditClassDate({ workspaceId, session }: { workspaceId: string; s
   function change(next: boolean) {
     setOpen(next);
     if (next) {
+      setDoubleBooking(null);
       show(session);
       setErrors(null);
       setFormError(null);
@@ -77,18 +81,34 @@ export function EditClassDate({ workspaceId, session }: { workspaceId: string; s
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await save(false);
+  }
+
+  /** Saves the date; `allowConflicts` is *Toch opslaan* of PS-07: the same change, on the same version. */
+  async function save(allowConflicts: boolean) {
     setErrors(null);
     setFormError(null);
     setChanged(false);
     setPending(true);
-    const result = await editClassDate(workspaceId, session.id, { version, ...value });
+    const result = await editClassDate(workspaceId, session.id, {
+      version,
+      ...value,
+      ...(allowConflicts ? { allowConflicts } : {}),
+    });
     setPending(false);
+    setDoubleBooking(null);
     if (result.ok) {
       setOpen(false);
       setSaved(true);
       return router.refresh();
     }
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
+    if (result.reason === 'trainerConflict') {
+      return setDoubleBooking({
+        conflicts: result.conflicts,
+        trainerName: session.trainer?.name ?? null,
+      });
+    }
     if (result.reason === 'fields') return setErrors(result);
     if (result.reason === 'conflict') {
       show(result.session);
@@ -177,6 +197,13 @@ export function EditClassDate({ workspaceId, session }: { workspaceId: string; s
                 </Button>
               </DialogFooter>
             </form>
+            <DoubleBookingDialog
+              doubleBooking={doubleBooking}
+              timeZone={session.timeZone}
+              pending={pending}
+              onBack={() => setDoubleBooking(null)}
+              onSaveAnyway={() => void save(true)}
+            />
           </DialogContent>
         ) : null}
       </Dialog>

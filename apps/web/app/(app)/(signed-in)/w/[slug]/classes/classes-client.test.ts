@@ -45,6 +45,15 @@ const session = {
   participants: [],
 };
 
+const conflict = {
+  sessionId: '00000000-0000-4000-8000-000000000001',
+  type: 'private' as const,
+  startsAt: '2026-12-01T09:00:00.000Z',
+  endsAt: '2026-12-01T10:00:00.000Z',
+  displayName: 'Sam Voorbeeld',
+  displayNameEn: null,
+};
+
 describe('F021 TW-03 classes client', () => {
   describe('validateClass', () => {
     it('AC2: refuses an empty Dutch name, a capacity of 0 or 101 and a duration of 7 minutes, each on its field', () => {
@@ -270,24 +279,35 @@ describe('F021 TW-03 classes client', () => {
       ).toEqual({ ok: false, reason });
     });
 
-    it('a trainer_conflict 409 is the generic error until the conflict warning exists (PS-07)', async () => {
-      const conflicts = [
-        {
-          sessionId: '00000000-0000-4000-8000-000000000001',
-          type: 'private',
-          startsAt: '2026-12-01T09:00:00.000Z',
-          endsAt: '2026-12-01T10:00:00.000Z',
-          displayName: 'Sam Voorbeeld',
-        },
-      ];
+    it('F023 AC5: a trainer_conflict 409 hands the overlapping sessions to the form (PS-07)', async () => {
       expect(
         await scheduleClassDate(
           'w1',
           'c1',
           { localDate: '2026-12-01', localStart: '10:00', trainerId: 't1', capacity: '8' },
-          reply(409, { code: 'trainer_conflict', conflicts }),
+          reply(409, { code: 'trainer_conflict', conflicts: [conflict] }),
         ),
-      ).toEqual({ ok: false, reason: 'generic' });
+      ).toEqual({ ok: false, reason: 'trainerConflict', conflicts: [conflict] });
+    });
+
+    it('F023 AC5: Toch opslaan sends the same date again with allowConflicts', async () => {
+      const fetchFn = reply(201, session);
+      const input = {
+        localDate: '2026-12-01',
+        localStart: '10:00',
+        trainerId: 't1',
+        capacity: '8',
+      };
+
+      await scheduleClassDate('w1', 'c1', { ...input, allowConflicts: true }, fetchFn);
+      await scheduleClassDate('w1', 'c1', input, fetchFn);
+
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toMatchObject({
+        allowConflicts: true,
+      });
+      expect(JSON.parse(String(fetchFn.mock.calls[1]?.[1]?.body))).not.toHaveProperty(
+        'allowConflicts',
+      );
     });
   });
 
@@ -364,29 +384,39 @@ describe('F021 TW-03 classes client', () => {
       ).toEqual({ ok: false, reason: 'conflict', session: current });
     });
 
-    it('a trainer_conflict 409 is the generic error until the conflict warning exists (PS-07)', async () => {
-      // The answer lists the overlapping sessions and carries no date to adopt; even one that
-      // did must not be taken for "someone changed the date first".
-      const conflicts = [
-        {
-          sessionId: '00000000-0000-4000-8000-000000000001',
-          type: 'private',
-          startsAt: '2026-12-01T09:00:00.000Z',
-          endsAt: '2026-12-01T10:00:00.000Z',
-          displayName: 'Sam Voorbeeld',
-        },
-      ];
-      expect(
-        await editClassDate('w1', 's1', input, reply(409, { code: 'trainer_conflict', conflicts })),
-      ).toEqual({ ok: false, reason: 'generic' });
+    it('F023 AC5: a trainer_conflict 409 hands the overlapping sessions to the form, never as a changed date', async () => {
+      // Even an answer that carried a date must not be taken for "someone changed the date first".
       expect(
         await editClassDate(
           'w1',
           's1',
           input,
-          reply(409, { code: 'trainer_conflict', conflicts, session: { ...session, version: 3 } }),
+          reply(409, { code: 'trainer_conflict', conflicts: [conflict] }),
         ),
-      ).toEqual({ ok: false, reason: 'generic' });
+      ).toEqual({ ok: false, reason: 'trainerConflict', conflicts: [conflict] });
+      expect(
+        await editClassDate(
+          'w1',
+          's1',
+          input,
+          reply(409, {
+            code: 'trainer_conflict',
+            conflicts: [conflict],
+            session: { ...session, version: 3 },
+          }),
+        ),
+      ).toEqual({ ok: false, reason: 'trainerConflict', conflicts: [conflict] });
+    });
+
+    it('F023 AC5: Toch opslaan sends the same change again with allowConflicts, on the same version', async () => {
+      const fetchFn = reply(200, { ...session, version: 2 });
+
+      await editClassDate('w1', 's1', { ...input, allowConflicts: true }, fetchFn);
+
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toMatchObject({
+        version: 1,
+        allowConflicts: true,
+      });
     });
 
     it('refuses a capacity outside 1 to 100 before any request', async () => {

@@ -474,6 +474,7 @@
     <string name="roles_trainer_label">%1$s</string>
     <string name="sessions_double_booking_back">Back</string>
     <string name="sessions_double_booking_item">%1$s, %4$s–%2$s: %3$s (%5$s)</string>
+    <string name="sessions_double_booking_note">This is a warning. You can save it anyway.</string>
     <string name="sessions_double_booking_save_anyway">Save anyway</string>
     <string name="sessions_double_booking_title">%1$s already has something then</string>
     <string name="sessions_double_booking_title_own">You already have something then</string>

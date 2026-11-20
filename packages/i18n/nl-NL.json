@@ -657,6 +657,7 @@
     "doubleBooking": {
       "back": "Terug",
       "item": "{date}, {start}–{end}: {name} ({type})",
+      "note": "Dit is een waarschuwing. Je kunt het toch opslaan.",
       "saveAnyway": "Toch opslaan",
       "title": "{trainer} heeft dan al iets",
       "titleOwn": "Je hebt dan al iets",

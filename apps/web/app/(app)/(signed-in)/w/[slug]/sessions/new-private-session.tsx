@@ -39,6 +39,7 @@ import {
 } from 'react';
 import type { Client } from '../clients/clients-client';
 import { ClientPicker } from './client-picker';
+import { type DoubleBooking, DoubleBookingDialog } from './double-booking';
 import { previewTimes } from './session-time';
 import {
   type DateErrorKey,
@@ -197,6 +198,8 @@ function NewSessionPanel({
   const [apiErrors, setApiErrors] = useState<{ date?: DateErrorKey; start?: StartErrorKey }>({});
   const [formError, setFormError] = useState<'noPermission' | 'notSaved' | null>(null);
   const [pending, setPending] = useState(false);
+  // PS-07: the sessions the trainer already has then; *Terug* closes it and keeps the form.
+  const [doubleBooking, setDoubleBooking] = useState<DoubleBooking | null>(null);
   const [discarding, setDiscarding] = useState(false);
   const timeZone = loaded.status === 'ready' ? loaded.context.timeZone : 'Europe/Amsterdam';
   const { day, time } = useSessionFormat(timeZone);
@@ -257,18 +260,24 @@ function NewSessionPanel({
     setFormError(null);
     setApiErrors({});
     if (!client || missing.trainer || missing.when || preview.status !== 'placed') return;
+    await save(client, loaded.context, false);
+  }
+
+  /** Plans the session; `allowConflicts` is *Toch opslaan* of PS-07, the same request sent again. */
+  async function save(planFor: Client, context: PlanningContext, allowConflicts: boolean) {
     setPending(true);
     const result = await planPrivateSession(workspaceId, {
-      clientId: client.id,
+      clientId: planFor.id,
       ...(forAnyTrainer ? { trainerId } : {}),
       ...when,
       notify,
+      ...(allowConflicts ? { allowConflicts } : {}),
     });
     if (result.ok) {
       router.refresh();
       return planned({
         message: t('saved', {
-          client: client.name,
+          client: planFor.name,
           date: day(result.session.startsAt),
           time: time(result.session.startsAt),
         }),
@@ -276,7 +285,18 @@ function NewSessionPanel({
       });
     }
     setPending(false);
+    setDoubleBooking(null);
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
+    if (result.reason === 'trainerConflict') {
+      // A trainer who plans for themself, or for the Owner's own profile, hears "Je hebt dan al iets".
+      const trainer = forAnyTrainer
+        ? context.trainers.find(({ id }) => id === trainerId)
+        : undefined;
+      return setDoubleBooking({
+        conflicts: result.conflicts,
+        trainerName: trainer && trainer.id !== context.myTrainerId ? trainer.name : null,
+      });
+    }
     if (result.reason === 'fields') {
       return setApiErrors({ date: result.date, start: result.start });
     }
@@ -457,6 +477,15 @@ function NewSessionPanel({
           </form>
         </DialogContent>
       </Dialog>
+      <DoubleBookingDialog
+        doubleBooking={doubleBooking}
+        timeZone={timeZone}
+        pending={pending}
+        onBack={() => setDoubleBooking(null)}
+        onSaveAnyway={() => {
+          if (client && loaded.status === 'ready') void save(client, loaded.context, true);
+        }}
+      />
       <AlertDialog open={discarding} onOpenChange={setDiscarding}>
         <AlertDialogContent>
           <AlertDialogHeader>
