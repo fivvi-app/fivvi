@@ -4,4 +4,5 @@
 // of its own) passes the profile of `app.fivvi`.
 #include "../../Config/Release.xcconfig"
 INFOPLIST_FILE = Config/Fivvi-Info.plist
+CODE_SIGN_ENTITLEMENTS = Config/Fivvi.entitlements
 CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*] = Config/Fivvi-Simulator.entitlements
