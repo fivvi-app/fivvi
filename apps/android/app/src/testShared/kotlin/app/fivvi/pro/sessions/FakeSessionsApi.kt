@@ -19,6 +19,8 @@ import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionTrainer
 import app.fivvi.api.models.TeamMember
 import app.fivvi.api.models.Trainer
+import app.fivvi.api.models.TrainerConflict
+import app.fivvi.api.models.TrainerConflictItem
 import app.fivvi.api.models.TrainerInvitation
 import app.fivvi.api.models.UpcomingSessions
 import app.fivvi.api.models.UpdateLocationRequest
@@ -82,8 +84,10 @@ fun sessionOf(
 /**
  * The generated client's own API interface for tests: it holds [sessions] and answers a read, a plan and a move from them
  * (the planning rules are the API's own and tested there; here a request is taken as it is, at the wall clock of
- * Amsterdam, with the version counted up). A queued answer replaces the answer of the next call; [failure] makes every
- * call fail with that exception (no connection).
+ * Amsterdam, with the version counted up). The one rule it models is the double booking of F023 AC7: a save that would
+ * overlap another scheduled session of the same trainer answers `409 trainer_conflict` with those sessions, unless the
+ * request says `allowConflicts`; back-to-back and cancelled sessions never overlap. A queued answer replaces the answer of
+ * the next call; [failure] makes every call fail with that exception (no connection).
  */
 class FakeSessionsApi : SessionsApi {
     val sessions = mutableMapOf<UUID, Session>()
@@ -136,6 +140,10 @@ class FakeSessionsApi : SessionsApi {
             minutes = planPrivateSessionRequest.durationMinutes,
             location = location,
         )
+        if (planPrivateSessionRequest.allowConflicts != true) {
+            overlapsOf(trainer.id, session, excluding = null).takeIf { it.isNotEmpty() }
+                ?.let { return trainerConflict(it) }
+        }
         sessions[session.id] = session
         return Response.success(
             201,
@@ -189,6 +197,10 @@ class FakeSessionsApi : SessionsApi {
             version = old.version + 1,
             location = old.location,
         )
+        if (reschedulePrivateSessionRequest.allowConflicts != true) {
+            old.trainer?.let { overlapsOf(it.id, session, excluding = sessionId) }?.takeIf { it.isNotEmpty() }
+                ?.let { return trainerConflict(it) }
+        }
         sessions[sessionId] = session
         return Response.success(
             ReschedulePrivateSessionResult(
@@ -214,9 +226,32 @@ class FakeSessionsApi : SessionsApi {
         return Response.error(409, """{"code":"$code","session":$sessionJson$who}""".toResponseBody(JSON))
     }
 
-    /** `409 trainer_conflict`: the trainer already has something at that time (PS-07 words it; no list is needed here). */
-    fun <T> trainerConflict(): Response<T> =
-        Response.error(409, """{"code":"trainer_conflict","conflicts":[]}""".toResponseBody(JSON))
+    /** `409 trainer_conflict`: the trainer already has these sessions at that time (PS-07 words them). */
+    fun <T> trainerConflict(conflicts: List<TrainerConflictItem> = emptyList()): Response<T> {
+        val body = app.fivvi.api.infrastructure.Serializer.kotlinxSerializationJson.encodeToString(
+            TrainerConflict.serializer(),
+            TrainerConflict(TrainerConflict.Code.TRAINER_CONFLICT, conflicts),
+        )
+        return Response.error(409, body.toResponseBody(JSON))
+    }
+
+    // The API's rule (F023 AC7), for the fake's own sessions: the trainer's scheduled sessions that overlap [session],
+    // soonest first; a session that starts when the other ends does not overlap, and a cancelled one never does.
+    private fun overlapsOf(trainerId: UUID, session: Session, excluding: UUID?): List<TrainerConflictItem> =
+        sessions.values
+            .filter { it.status == Session.Status.SCHEDULED && it.id != excluding && it.trainer?.id == trainerId }
+            .filter { it.startsAt < session.endsAt && session.startsAt < it.endsAt }
+            .sortedBy { it.startsAt }
+            .map {
+                TrainerConflictItem(
+                    it.id,
+                    TrainerConflictItem.Type.PRIVATE,
+                    it.startsAt,
+                    it.endsAt,
+                    it.participants.firstOrNull()?.name.orEmpty(),
+                    null,
+                )
+            }
 
     fun <T> status(code: Int): Response<T> = Response.error(code, "{}".toResponseBody(JSON))
 }

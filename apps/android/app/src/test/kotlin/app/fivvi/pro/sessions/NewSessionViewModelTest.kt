@@ -2,7 +2,9 @@ package app.fivvi.pro.sessions
 
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.PlanPrivateSessionRequest
+import app.fivvi.api.models.Session
 import app.fivvi.api.models.TeamMember
+import app.fivvi.api.models.Trainer
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.clients.clientOf
@@ -21,6 +23,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -199,8 +202,128 @@ class NewSessionViewModelTest {
         assertNull(viewModel.state().saved)
     }
 
+    // Thursday 24 September 2026, 09:00-10:00: the session of Anna with Sarah that a new one would overlap.
+    private fun plannedForNine(trainer: Trainer = sarah) {
+        val booked = sessionOf(client = anna, trainer = trainer)
+        sessions.sessions[booked.id] = booked
+    }
+
+    private fun NewSessionViewModel.fillIn(start: LocalTime = LocalTime.of(9, 30)) {
+        chooseClient(anna)
+        setDate(LocalDate.of(2026, 9, 24))
+        setStart(start)
+    }
+
     @Test
-    fun test_F020_AC1_aTrainerConflictOfThePlanSaysItWasNotSavedAndKeepsTheInput() {
+    fun test_F023_AC6_aTrainerWhoAlreadyHasSomethingThenGetsTheDoubleBookingWarningNamingNoOne() {
+        plannedForNine()
+        val viewModel = viewModel()
+        viewModel.fillIn()
+
+        viewModel.save()
+
+        val state = viewModel.state()
+        val booking = state.doubleBooking
+        assertNull(booking?.trainerName)
+        assertEquals(listOf("Anna de Vries"), booking?.conflicts?.map { it.displayName })
+        assertEquals(listOf(sessionIdOf("anna")), booking?.conflicts?.map { it.sessionId })
+        assertNull(state.saveFailure)
+        assertNull(state.saved)
+        assertFalse(state.saving)
+        assertEquals(anna, state.client)
+        assertEquals(LocalDateTime.of(2026, 9, 24, 9, 30), state.time.start)
+        assertEquals(1, sessions.sessions.size)
+        assertTrue(notAllowed.isEmpty())
+    }
+
+    @Test
+    fun test_F023_AC6_anOwnerPlanningForAnotherTrainerGetsTheWarningWithTheirName() {
+        plannedForNine(tom)
+        val viewModel = viewModel(forAnyTrainer = true, email = "owner@example.com", name = "John")
+        viewModel.fillIn()
+        viewModel.setTrainer(tom.id)
+
+        viewModel.save()
+
+        assertEquals("Tom", viewModel.state().doubleBooking?.trainerName)
+    }
+
+    @Test
+    fun test_F023_AC6_anOwnerPlanningForThemselfGetsTheWarningWithoutAName() {
+        plannedForNine(john)
+        val viewModel = viewModel(forAnyTrainer = true, email = "owner@example.com", name = "John")
+        viewModel.fillIn()
+
+        viewModel.save()
+
+        assertNull(viewModel.state().doubleBooking?.trainerName)
+        assertEquals(1, viewModel.state().doubleBooking?.conflicts?.size)
+    }
+
+    @Test
+    fun test_F023_AC6_saveAnywayPlansTheSameSessionAgainWithAllowConflictsAndOpensIt() {
+        plannedForNine()
+        val viewModel = viewModel()
+        viewModel.fillIn()
+        viewModel.save()
+
+        viewModel.save(allowConflicts = true)
+
+        val state = viewModel.state()
+        assertNull(state.doubleBooking)
+        assertNull(state.saveFailure)
+        assertEquals(2, sessions.created.size)
+        assertNull(sessions.created[0].second.allowConflicts)
+        assertEquals(true, sessions.created[1].second.allowConflicts)
+        assertEquals(sessions.created[0].second.copy(allowConflicts = true), sessions.created[1].second)
+        assertEquals(LocalDateTime.of(2026, 9, 24, 9, 30), state.saved?.startsAt?.toLocalDateTime())
+        assertEquals(2, sessions.sessions.size)
+    }
+
+    @Test
+    fun test_F023_AC6_backClosesTheWarningKeepsTheFormAndSendsNothing() {
+        plannedForNine()
+        val viewModel = viewModel()
+        viewModel.fillIn()
+        viewModel.save()
+
+        viewModel.dismissDoubleBooking()
+
+        val state = viewModel.state()
+        assertNull(state.doubleBooking)
+        assertEquals(anna, state.client)
+        assertEquals(LocalDateTime.of(2026, 9, 24, 9, 30), state.time.start)
+        assertTrue(state.canSave)
+        assertEquals(1, sessions.created.size)
+    }
+
+    @Test
+    fun test_F023_AC7_aSessionThatStartsWhenTheOtherEndsIsNotADoubleBooking() {
+        plannedForNine()
+        val viewModel = viewModel()
+        viewModel.fillIn(LocalTime.of(10, 0))
+
+        viewModel.save()
+
+        assertNull(viewModel.state().doubleBooking)
+        assertNotNull(viewModel.state().saved)
+    }
+
+    @Test
+    fun test_F023_AC7_aCancelledSessionIsNotADoubleBooking() {
+        val cancelled = sessionOf(client = anna, trainer = sarah, status = Session.Status.CANCELLED)
+        sessions.sessions[cancelled.id] = cancelled
+        val viewModel = viewModel()
+        viewModel.fillIn()
+
+        viewModel.save()
+
+        assertNull(viewModel.state().doubleBooking)
+        assertNotNull(viewModel.state().saved)
+    }
+
+    @Test
+    fun test_F020_AC1_aTrainerConflictWithoutSessionsSaysItWasNotSavedAndKeepsTheInput() {
         sessions.createAnswers += { sessions.trainerConflict() }
         val viewModel = viewModel()
         viewModel.chooseClient(anna)
@@ -208,6 +331,7 @@ class NewSessionViewModelTest {
         viewModel.save()
 
         assertEquals(SaveFailure.NotSaved, viewModel.state().saveFailure)
+        assertNull(viewModel.state().doubleBooking)
         assertEquals(anna, viewModel.state().client)
         assertNull(viewModel.state().saved)
         assertTrue(notAllowed.isEmpty())

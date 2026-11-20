@@ -196,7 +196,9 @@ fun NewSessionFlow(
                 },
                 actions = NewSessionActions(
                     onClose = ::leave,
-                    onSave = model::save,
+                    onSave = { model.save() },
+                    onSaveAnyway = { model.save(allowConflicts = true) },
+                    onDismissDoubleBooking = model::dismissDoubleBooking,
                     onRetry = model::start,
                     onPickClient = { step = Step.CLIENTS },
                     onNotify = model::setNotify,

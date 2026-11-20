@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import app.fivvi.api.models.Client
+import app.fivvi.api.models.TrainerConflictItem
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
@@ -18,6 +19,7 @@ import app.fivvi.pro.clients.clientOf
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.showAtLargestFontScale
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -45,6 +47,8 @@ class NewSessionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     private val durations = mutableListOf<Int>()
     private var discarded = 0
     private var kept = 0
+    private var savedAnyway = 0
+    private var wentBack = 0
 
     private fun string(id: Int, vararg args: Any) = localizedString(language, id, *args)
 
@@ -61,6 +65,7 @@ class NewSessionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
         failure: SaveFailure? = null,
         refusal: TimeRefusal? = null,
         clientMissing: Boolean = false,
+        doubleBooking: DoubleBooking? = null,
     ) = NewSessionState(
         load = load,
         client = client,
@@ -73,6 +78,7 @@ class NewSessionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
         sawOffline = sawOffline,
         saveFailure = failure,
         clientMissing = clientMissing,
+        doubleBooking = doubleBooking,
     )
 
     private fun show(state: NewSessionState, forAnyTrainer: Boolean = false, confirmingDiscard: Boolean = false) =
@@ -88,6 +94,8 @@ class NewSessionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
                 actions = NewSessionActions(
                     onClose = { closed++ },
                     onSave = { saved++ },
+                    onSaveAnyway = { savedAnyway++ },
+                    onDismissDoubleBooking = { wentBack++ },
                     onRetry = { retried++ },
                     onPickClient = { picked++ },
                     onNotify = { notify += it },
@@ -319,6 +327,40 @@ class NewSessionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
         compose.onNodeWithTag(NewSessionTags.DISCARD).performClick()
         assertEquals(1, kept)
         assertEquals(1, discarded)
+    }
+
+    @Test
+    fun test_F023_AC6_theDoubleBookingAlertOffersBackAndSaveAnywayToTheHost() {
+        val booking = DoubleBooking(
+            listOf(
+                TrainerConflictItem(
+                    sessionIdOf("anna"),
+                    TrainerConflictItem.Type.PRIVATE,
+                    OffsetDateTime.parse("2026-09-24T07:00:00Z"),
+                    OffsetDateTime.parse("2026-09-24T08:00:00Z"),
+                    "Anna de Vries",
+                    null,
+                ),
+            ),
+            trainerName = null,
+        )
+        show(ready(client = anna, doubleBooking = booking))
+
+        // The texts of a dialog are asserted through the app (PrivateSessionFlowTest), as for the discard dialog.
+        compose.onNodeWithTag(DoubleBookingTags.back(NewSessionTags.PREFIX)).assertIsDisplayed()
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(NewSessionTags.PREFIX)).assertIsDisplayed()
+        compose.onNodeWithTag(DoubleBookingTags.back(NewSessionTags.PREFIX)).performClick()
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(NewSessionTags.PREFIX)).performClick()
+        assertEquals(1, wentBack)
+        assertEquals(1, savedAnyway)
+        assertEquals(0, saved)
+    }
+
+    @Test
+    fun test_F023_AC6_withoutAWarningThereIsNoDoubleBookingAlert() {
+        show(ready(client = anna))
+
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(NewSessionTags.PREFIX)).assertDoesNotExist()
     }
 
     @Test

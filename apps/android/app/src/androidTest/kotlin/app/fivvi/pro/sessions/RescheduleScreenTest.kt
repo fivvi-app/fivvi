@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Locale
+import app.fivvi.api.models.TrainerConflictItem
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
@@ -15,6 +16,7 @@ import app.fivvi.pro.clients.clientOf
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.showAtLargestFontScale
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -33,6 +35,8 @@ class RescheduleScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     private val session = sessionOf(client = anna, trainer = trainerOf("Sarah"))
     private var submitted = 0
     private var closed = 0
+    private var savedAnyway = 0
+    private var wentBack = 0
     private val notify = mutableListOf<Boolean>()
 
     private fun string(id: Int, vararg args: Any) = localizedString(language, id, *args)
@@ -43,12 +47,14 @@ class RescheduleScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
         refusal: TimeRefusal? = null,
         minutes: Int = 60,
         saving: Boolean = false,
+        doubleBooking: DoubleBooking? = null,
     ) = RescheduleState(
         session,
         SessionTime(LocalDateTime.of(2026, 9, 24, 9, 0), minutes, refusal = refusal),
         notifyOn,
         failure,
         saving,
+        doubleBooking = doubleBooking,
     )
 
     private fun show(state: RescheduleState) = compose.showAtLargestFontScale(language) {
@@ -59,6 +65,8 @@ class RescheduleScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
             RescheduleActions(
                 onClose = { closed++ },
                 onSubmit = { submitted++ },
+                onSaveAnyway = { savedAnyway++ },
+                onDismissDoubleBooking = { wentBack++ },
                 onNotify = { notify += it },
                 time = SessionTimeActions({}, {}, {}, {}),
             ),
@@ -165,6 +173,41 @@ class RescheduleScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
 
         compose.onNodeWithTag(RescheduleTags.PENDING).assertIsDisplayed()
         compose.onNodeWithTag(RescheduleTags.SUBMIT).assertDoesNotExist()
+    }
+
+    @Test
+    fun test_F023_AC6_theDoubleBookingAlertOffersBackAndSaveAnywayToTheHost() {
+        val booking = DoubleBooking(
+            listOf(
+                TrainerConflictItem(
+                    sessionIdOf("bob"),
+                    TrainerConflictItem.Type.GROUP,
+                    OffsetDateTime.parse("2026-09-24T08:00:00Z"),
+                    OffsetDateTime.parse("2026-09-24T09:00:00Z"),
+                    "Yoga voor iedereen",
+                    "Yoga for everyone",
+                ),
+            ),
+            trainerName = "Sarah",
+        )
+        show(state(doubleBooking = booking))
+
+        // The texts of a dialog are asserted through the app (PrivateSessionFlowTest), as for the discard dialog.
+        compose.onNodeWithTag(DoubleBookingTags.back(RescheduleTags.PREFIX)).assertIsDisplayed()
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX)).assertIsDisplayed()
+        compose.onNodeWithTag(DoubleBookingTags.back(RescheduleTags.PREFIX)).performClick()
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX)).performClick()
+        assertEquals(1, wentBack)
+        assertEquals(1, savedAnyway)
+        assertEquals(0, submitted)
+    }
+
+    @Test
+    fun test_F023_AC13_withoutPermissionAnymoreTheFormSaysSo() {
+        show(state(failure = RescheduleFailure.NoPermission))
+
+        compose.onNodeWithTag(RescheduleTags.FAILED)
+            .assertTextEquals(string(R.string.sessions_reschedule_no_permission))
     }
 
     @Test

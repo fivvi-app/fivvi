@@ -55,6 +55,10 @@ object RescheduleTags {
 class RescheduleActions(
     val onClose: () -> Unit,
     val onSubmit: () -> Unit,
+    /** *Toch opslaan* of PS-07: the same move again, with `allowConflicts`. */
+    val onSaveAnyway: () -> Unit,
+    /** *Terug* of PS-07. */
+    val onDismissDoubleBooking: () -> Unit,
     val onNotify: (Boolean) -> Unit,
     val time: SessionTimeActions,
 )
@@ -172,6 +176,9 @@ fun RescheduleScreen(
                 }
             }
         }
+    }
+    state.doubleBooking?.let {
+        DoubleBookingDialog(it, state.zone, RescheduleTags.PREFIX, actions.onDismissDoubleBooking, actions.onSaveAnyway)
     }
 }
 
