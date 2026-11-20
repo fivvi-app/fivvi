@@ -32,6 +32,8 @@ final class AccountViewModel {
     /// Nil until `GET /api/v1/me` has answered with the account. The app holds no rule: the answer's workspaces and
     /// `canCreateWorkspace` decide.
     private(set) var destination: Destination?
+    /// The account's own name, once `GET /api/v1/me` has answered; nil while it has none.
+    private(set) var accountName: String?
     /// A sign-out is under way: the home shows it and ignores another tap.
     private(set) var isSigningOut = false
     /// The workspace the home shows (its ID, name and default communication language), or nil while there is none.
@@ -102,6 +104,7 @@ final class AccountViewModel {
         }
         let (destination, current) = try await destination(of: account)
         state = .loaded(email: account.email)
+        accountName = account.name
         self.destination = destination
         if let current { workspaces.open(current) } else { workspaces.close() }
         capabilities.replace(with: account.workspaces, current: current?.id)
@@ -134,7 +137,8 @@ final class AccountViewModel {
                     .workspace(name: workspace.name),
                     CurrentWorkspace(
                         id: workspace.id, name: workspace.name, defaultLocale: details.defaultLocale,
-                        timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone
+                        timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone,
+                        trainerWord: details.trainerWord
                     )
                 )
             case .notFound: continue
@@ -172,6 +176,8 @@ struct CurrentWorkspace: Equatable, Sendable {
     let defaultLocale: Components.Schemas.Locale
     /// The workspace's time zone: times the app shows for it (the age of an offline list) are in it.
     let timeZone: TimeZone
+    /// The workspace's word for the people who teach (F068): the session screens word them with it.
+    var trainerWord: Components.Schemas.TrainerWord = .trainer
 
     /// Europe/Amsterdam, the default of a workspace (`AGENTS.md`).
     static let defaultTimeZone = TimeZone(identifier: "Europe/Amsterdam") ?? .current

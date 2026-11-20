@@ -8122,6 +8122,24 @@
         }
       }
     },
+    "sessions.form.clientPlaceholder" : {
+      "comment" : "The client row of the new private session form of the native apps, before a client is chosen. Tapping it opens the client list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a client"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies een klant"
+          }
+        }
+      }
+    },
     "sessions.form.clientResults" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8725,6 +8743,24 @@
         }
       }
     },
+    "sessions.form.offline" : {
+      "comment" : "Shown on the new private session form of the native apps when the app can't reach the server; Save is off. Nothing is saved until the connection is back.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline. You can schedule once you're back online."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent offline. Plannen kan pas als je weer verbinding hebt."
+          }
+        }
+      }
+    },
     "sessions.form.open" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8948,6 +8984,24 @@
         }
       }
     },
+    "sessions.page.more" : {
+      "comment" : "Accessibility name of the ⋯ menu on the session screen of the native apps (Reschedule, Client profile).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meer"
+          }
+        }
+      }
+    },
     "sessions.page.moved" : {
       "comment" : "Message after a session was moved. {date} is a short date, {time} a 24-hour time.",
       "extractionState" : "manual",
@@ -8996,6 +9050,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verplaatsen"
+          }
+        }
+      }
+    },
+    "sessions.page.route" : {
+      "comment" : "Button on the session screen of the native apps, next to the location: opens the route to the location's address in the maps app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route"
           }
         }
       }
@@ -9064,6 +9136,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Locatie"
+          }
+        }
+      }
+    },
+    "sessions.page.you" : {
+      "comment" : "On the session screen, the trainer row when the person looking is the trainer: \"You\" (Dutch \"Jij\"), instead of their name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jij"
           }
         }
       }

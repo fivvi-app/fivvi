@@ -89,6 +89,8 @@ actor StubAPI: APIProtocol {
     private var updateMeAnswer = UpdateMeAnswer.accepted
     /// The clients of the workspace and what the client routes answer (F006).
     let clients = StubClients()
+    /// The session routes and what they answer (F020).
+    let sessions = StubSessions()
     private var goneWorkspaces: Set<String> = []
     private var workspaceStatus: Int?
     /// The bodies of every `requestSignIn`, `exchangeSignInCode` and the number of `getMe` calls so far.

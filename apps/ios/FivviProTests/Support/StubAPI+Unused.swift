@@ -24,10 +24,6 @@ extension StubAPI {
         fatalError("The app doesn't call recordWorkspaceSwitch yet")
     }
 
-    func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output {
-        fatalError("The app doesn't call listTeamMembers yet")
-    }
-
     func removeTeamMember(
         _ input: Operations.RemoveTeamMember.Input
     ) async throws -> Operations.RemoveTeamMember.Output {
@@ -38,14 +34,6 @@ extension StubAPI {
         _ input: Operations.ChangeTeamMemberRole.Input
     ) async throws -> Operations.ChangeTeamMemberRole.Output {
         fatalError("The app doesn't call changeTeamMemberRole yet")
-    }
-
-    func listTrainers(_ input: Operations.ListTrainers.Input) async throws -> Operations.ListTrainers.Output {
-        fatalError("The app doesn't call listTrainers yet")
-    }
-
-    func listLocations(_ input: Operations.ListLocations.Input) async throws -> Operations.ListLocations.Output {
-        fatalError("The app doesn't call listLocations yet")
     }
 
     func updateLocation(_ input: Operations.UpdateLocation.Input) async throws -> Operations.UpdateLocation.Output {
@@ -104,30 +92,6 @@ extension StubAPI {
         _ input: Operations.WithdrawTrainerInvitation.Input
     ) async throws -> Operations.WithdrawTrainerInvitation.Output {
         fatalError("The app doesn't call withdrawTrainerInvitation yet")
-    }
-
-    func createPrivateSession(
-        _ input: Operations.CreatePrivateSession.Input
-    ) async throws -> Operations.CreatePrivateSession.Output {
-        fatalError("The app doesn't call createPrivateSession yet")
-    }
-
-    func getSession(
-        _ input: Operations.GetSession.Input
-    ) async throws -> Operations.GetSession.Output {
-        fatalError("The app doesn't call getSession yet")
-    }
-
-    func reschedulePrivateSession(
-        _ input: Operations.ReschedulePrivateSession.Input
-    ) async throws -> Operations.ReschedulePrivateSession.Output {
-        fatalError("The app doesn't call reschedulePrivateSession yet")
-    }
-
-    func listClientUpcomingSessions(
-        _ input: Operations.ListClientUpcomingSessions.Input
-    ) async throws -> Operations.ListClientUpcomingSessions.Output {
-        fatalError("The app doesn't call listClientUpcomingSessions yet")
     }
 
     func listGroupClasses(
