@@ -41,4 +41,23 @@ class RoutesTest {
         assertEquals(emptyList<String>(), Routes.of(""))
         assertEquals("", Routes.pop(""))
     }
+
+    @Test
+    fun test_F021_AC6_aSavedClassReplacesTheFormSoBackIsTheHome() {
+        var stack = Routes.push("", Routes.NEW_CLASS)
+
+        stack = Routes.push(Routes.pop(stack), Routes.classDate(id, added = true))
+
+        assertEquals(listOf("classDateNew/$id"), Routes.of(stack))
+        assertEquals("", Routes.pop(stack))
+    }
+
+    @Test
+    fun test_F021_AC3_aClassDateRouteGivesBackItsIdAndWhetherItWasJustAdded() {
+        assertEquals(id to true, Routes.classDateOf(Routes.classDate(id, added = true)))
+        assertEquals(id to false, Routes.classDateOf(Routes.classDate(id, added = false)))
+        assertNull(Routes.classDateOf(Routes.NEW_CLASS))
+        assertNull(Routes.classDateOf(Routes.session(id)))
+        assertNull(Routes.sessionId(Routes.classDate(id, added = false)))
+    }
 }

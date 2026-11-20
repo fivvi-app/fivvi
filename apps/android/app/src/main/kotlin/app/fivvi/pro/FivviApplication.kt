@@ -3,6 +3,7 @@ package app.fivvi.pro
 import android.app.Application
 import android.content.Context
 import app.fivvi.api.apis.ClientsApi
+import app.fivvi.api.apis.GroupClassesApi
 import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SessionsApi
@@ -29,6 +30,7 @@ interface AppDependencies {
     val trainersApi: TrainersApi
     val sessionsApi: SessionsApi
     val locationsApi: LocationsApi
+    val groupClassesApi: GroupClassesApi
     val session: Session
     val languageSettings: LanguageSettings
 
@@ -57,6 +59,7 @@ class DefaultAppDependencies(context: Context) : AppDependencies {
     override val trainersApi: TrainersApi get() = services.trainersApi
     override val sessionsApi: SessionsApi get() = services.sessionsApi
     override val locationsApi: LocationsApi get() = services.locationsApi
+    override val groupClassesApi: GroupClassesApi get() = services.groupClassesApi
     override fun signOutApi(token: String): SignInApi = services.signOutApi(token)
     override val languageSettings: LanguageSettings = SystemLanguageSettings(context)
     override val languagePreference: LanguagePreference by lazy {

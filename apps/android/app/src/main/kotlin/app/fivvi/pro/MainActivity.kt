@@ -41,11 +41,15 @@ import app.fivvi.core.ui.Localized
 import app.fivvi.core.ui.OnForeground
 import app.fivvi.core.web.SiteLinks
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
+import app.fivvi.pro.classes.ClassApis
+import app.fivvi.pro.classes.ClassDateFlow
+import app.fivvi.pro.classes.NewGroupClassFlow
 import app.fivvi.pro.clients.ClientsFlow
 import app.fivvi.pro.home.HomeDestination
 import app.fivvi.pro.home.HomeScreen
 import app.fivvi.pro.home.HomeViewModel
 import app.fivvi.pro.home.MeState
+import app.fivvi.pro.home.NewMenuOptions
 import app.fivvi.pro.home.ProfileActions
 import app.fivvi.pro.home.ProfileScreen
 import app.fivvi.pro.home.ProfileViewModel
@@ -195,7 +199,7 @@ class MainActivity : ComponentActivity() {
         val signingOut by me.signingOut.collectAsStateWithLifecycle()
         var showsProfile by rememberSaveable { mutableStateOf(false) }
         // The screens above the home, the last one shown: *Klanten*, PS-04, a session's screen (TD-02) and a client's
-        // profile opened from it (F020). System back pops one.
+        // profile opened from it (F020), TD-05 and a class on a date (TD-03, F021). System back pops one.
         var stack by rememberSaveable { mutableStateOf("") }
         val routes = Routes.of(stack)
         val screens = rememberSaveableStateHolder()
@@ -203,16 +207,16 @@ class MainActivity : ComponentActivity() {
         val allowed by capabilities.capabilities.collectAsStateWithLifecycle()
         // Klanten (TM-02) of the workspace shown: only while the API lists `clients.view` there (F004 AC10).
         val mayViewClients = shown != null && allowed.mayShow(shown.id, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW)
-        // The **+** shows *Privésessie* for whoever the API lists `session.private.manage.own` or `.any` for there (F020).
-        val mayPlanSessions = shown != null &&
-            (
-                allowed.mayShow(shown.id, MeWorkspace.Capabilities.SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN) ||
-                    allowed.mayShow(shown.id, MeWorkspace.Capabilities.SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY)
-                )
+        // The **+** shows *Privésessie* for whoever the API lists `session.private.manage.own` or `.any` for there (F020)
+        // and *Groepsles* for whoever it lists `class.manage` (F021); nothing else decides.
+        val newMenu = shown?.let { workspace -> NewMenuOptions.of { allowed.mayShow(workspace.id, it) } }
         // Each opening of Profiel gets a new view model, so it reads the list again (F003 AC9).
         var profileOpenings by rememberSaveable { mutableIntStateOf(0) }
         // Each opening of PS-04 starts with an empty form.
         var newSessionOpenings by rememberSaveable { mutableIntStateOf(0) }
+        // Each opening of TD-05 starts with an empty form, and each opening of a class date reads it again.
+        var newClassOpenings by rememberSaveable { mutableIntStateOf(0) }
+        var classDateOpenings by rememberSaveable { mutableIntStateOf(0) }
         // Each opening of a session's screen reads the session again and shows no "moved" message of an earlier one.
         var sessionOpenings by rememberSaveable { mutableIntStateOf(0) }
         fun openSession(id: UUID, replacing: Boolean = false) {
@@ -225,6 +229,11 @@ class MainActivity : ComponentActivity() {
         // On foreground the stored language is read again: a change made elsewhere is adopted (F010 AC2).
         OnForeground(languages::refresh)
 
+        fun openClassDate(id: UUID, added: Boolean, replacing: Boolean = false) {
+            classDateOpenings++
+            stack = Routes.push(if (replacing) Routes.pop(stack) else stack, Routes.classDate(id, added))
+        }
+
         val route = routes.lastOrNull()
         val email = (meState as? MeState.Loaded)?.email.orEmpty()
         val apis = SessionApis(
@@ -234,10 +243,19 @@ class MainActivity : ComponentActivity() {
             dependencies.workspacesApi,
             dependencies.clientsApi,
         )
+        val classApis = ClassApis(
+            dependencies.groupClassesApi,
+            dependencies.sessionsApi,
+            dependencies.locationsApi,
+            dependencies.trainersApi,
+            dependencies.workspacesApi,
+        )
         if (route != null && shown != null) {
             // Each opening of PS-04 has state of its own: nothing of an earlier form comes back.
             val screenKey = when {
                 route == Routes.NEW_SESSION -> "$route-$newSessionOpenings"
+                route == Routes.NEW_CLASS -> "$route-$newClassOpenings"
+                Routes.classDateOf(route) != null -> "$route-$classDateOpenings"
                 Routes.sessionId(route) != null -> "$route-$sessionOpenings"
                 else -> route
             }
@@ -273,6 +291,34 @@ class MainActivity : ComponentActivity() {
                         onClose = { stack = Routes.pop(stack) },
                         // Saved: the session's screen replaces the form, so back from it is the home.
                         onSaved = { openSession(it, replacing = true) },
+                    )
+
+                    route == Routes.NEW_CLASS -> NewGroupClassFlow(
+                        classApis,
+                        capabilities,
+                        shown.id,
+                        shown.name,
+                        teamMemberId = shown.teamMemberId,
+                        email = email,
+                        accountName = accountName,
+                        sessionKey = key,
+                        opening = newClassOpenings,
+                        onClose = { stack = Routes.pop(stack) },
+                        // Saved: TD-03 of the new date replaces the form, so back from it is the home.
+                        onSaved = { openClassDate(it, added = true, replacing = true) },
+                    )
+
+                    Routes.classDateOf(route) != null -> ClassDateFlow(
+                        classApis,
+                        capabilities,
+                        shown.id,
+                        shown.name,
+                        Routes.classDateOf(route)!!.first,
+                        teamMemberId = shown.teamMemberId,
+                        added = Routes.classDateOf(route)!!.second,
+                        sessionKey = key,
+                        opening = classDateOpenings,
+                        onBack = { stack = Routes.pop(stack) },
                     )
 
                     Routes.sessionId(route) != null -> SessionFlow(
@@ -333,7 +379,7 @@ class MainActivity : ComponentActivity() {
                 showsProfile = true
             },
             onOpenClients = if (mayViewClients) ({ stack = Routes.push(stack, Routes.CLIENTS) }) else null,
-            onNewPrivateSession = if (mayPlanSessions) {
+            onNewPrivateSession = if (newMenu?.showsPrivateSession == true) {
                 {
                     newSessionOpenings++
                     stack = Routes.push(stack, Routes.NEW_SESSION)
@@ -341,19 +387,32 @@ class MainActivity : ComponentActivity() {
             } else {
                 null
             },
+            onNewGroupClass = if (newMenu?.showsGroupClass == true) {
+                {
+                    newClassOpenings++
+                    stack = Routes.push(stack, Routes.NEW_CLASS)
+                }
+            } else {
+                null
+            },
+            groupClassNoteWorkspace = shown?.name.takeIf { newMenu?.showsGroupClassNote == true },
         )
     }
 }
 
 /**
  * The screens above the home, as one string kept across a rotation: the routes joined by a comma, the last one shown. A
- * route is `clients`, `newSession`, `session/<id>` or `client/<id>` (F020).
+ * route is `clients`, `newSession`, `session/<id>` or `client/<id>` (F020), `newClass`, `classDate/<id>` or, for the date
+ * TD-05 has just created, `classDateNew/<id>` (F021).
  */
 internal object Routes {
     const val CLIENTS = "clients"
     const val NEW_SESSION = "newSession"
+    const val NEW_CLASS = "newClass"
     private const val SESSION = "session/"
     private const val CLIENT = "client/"
+    private const val CLASS_DATE = "classDate/"
+    private const val CLASS_DATE_ADDED = "classDateNew/"
 
     fun of(stack: String): List<String> = stack.split(",").filter { it.isNotEmpty() }
 
@@ -364,6 +423,16 @@ internal object Routes {
     fun session(id: UUID) = "$SESSION$id"
 
     fun client(id: UUID) = "$CLIENT$id"
+
+    /** A class on a date (TD-03); [added] is set for the date TD-05 has just created ("Groepsles toegevoegd" shows). */
+    fun classDate(id: UUID, added: Boolean) = "${if (added) CLASS_DATE_ADDED else CLASS_DATE}$id"
+
+    /** The date's ID of a class date route and whether it was just added, or `null` for any other route. */
+    fun classDateOf(route: String): Pair<UUID, Boolean>? = when {
+        route.startsWith(CLASS_DATE_ADDED) -> UUID.fromString(route.removePrefix(CLASS_DATE_ADDED)) to true
+        route.startsWith(CLASS_DATE) -> UUID.fromString(route.removePrefix(CLASS_DATE)) to false
+        else -> null
+    }
 
     fun sessionId(route: String): UUID? = route.removePrefix(SESSION).takeIf {
         route.startsWith(SESSION)
