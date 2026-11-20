@@ -65,7 +65,7 @@ class RescheduleViewModelTest {
             minutes,
             notify,
             version,
-            ReschedulePrivateSessionRequest.Surface.ANDROID,
+            surface = ReschedulePrivateSessionRequest.Surface.ANDROID,
         )
 
     @Test
@@ -157,6 +157,23 @@ class RescheduleViewModelTest {
 
         viewModel.save()
         assertEquals(1, sessions.moved.size)
+    }
+
+    @Test
+    fun test_F020_AC8_aTrainerConflictOfTheMoveSaysItWasNotSavedAndKeepsWhatWasEntered() {
+        sessions.rescheduleAnswers += { _, _ -> sessions.trainerConflict() }
+        val viewModel = viewModel()
+        viewModel.setStart(LocalTime.of(10, 0))
+
+        viewModel.save()
+
+        val state = viewModel.state.value
+        assertEquals(RescheduleFailure.NotSaved, state.failure)
+        assertEquals(session, state.session)
+        assertEquals(LocalDateTime.of(2026, 9, 24, 10, 0), state.time.start)
+        assertNull(state.moved)
+        assertFalse(state.saving)
+        assertTrue(notAllowed.isEmpty())
     }
 
     @Test

@@ -200,6 +200,20 @@ class NewSessionViewModelTest {
     }
 
     @Test
+    fun test_F020_AC1_aTrainerConflictOfThePlanSaysItWasNotSavedAndKeepsTheInput() {
+        sessions.createAnswers += { sessions.trainerConflict() }
+        val viewModel = viewModel()
+        viewModel.chooseClient(anna)
+
+        viewModel.save()
+
+        assertEquals(SaveFailure.NotSaved, viewModel.state().saveFailure)
+        assertEquals(anna, viewModel.state().client)
+        assertNull(viewModel.state().saved)
+        assertTrue(notAllowed.isEmpty())
+    }
+
+    @Test
     fun test_F020_AC1_theApisMessageAboutATimeTheClocksSkipIsShownUnderTheTime() {
         sessions.createAnswers += { sessions.refused("localStart" to "time_does_not_exist") }
         val viewModel = viewModel()

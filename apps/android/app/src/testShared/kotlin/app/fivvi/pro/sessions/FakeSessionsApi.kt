@@ -214,6 +214,10 @@ class FakeSessionsApi : SessionsApi {
         return Response.error(409, """{"code":"$code","session":$sessionJson$who}""".toResponseBody(JSON))
     }
 
+    /** `409 trainer_conflict`: the trainer already has something at that time (PS-07 words it; no list is needed here). */
+    fun <T> trainerConflict(): Response<T> =
+        Response.error(409, """{"code":"trainer_conflict","conflicts":[]}""".toResponseBody(JSON))
+
     fun <T> status(code: Int): Response<T> = Response.error(code, "{}".toResponseBody(JSON))
 }
 

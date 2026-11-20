@@ -5,9 +5,9 @@ import androidx.lifecycle.viewModelScope
 import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.infrastructure.Serializer
 import app.fivvi.api.models.Locale
+import app.fivvi.api.models.ReschedulePrivateSessionRefusal
 import app.fivvi.api.models.ReschedulePrivateSessionRequest
 import app.fivvi.api.models.Session
-import app.fivvi.api.models.SessionConflict
 import java.io.IOException
 import java.net.HttpURLConnection.HTTP_CONFLICT
 import java.net.HttpURLConnection.HTTP_FORBIDDEN
@@ -138,14 +138,16 @@ class RescheduleViewModel(
 
     private fun fail(failure: RescheduleFailure) = _state.update { it.copy(saving = false, failure = failure) }
 
-    // The session was changed first: the form shows it as it is now and the next save uses its version.
+    // The session was changed first: the form shows it as it is now and the next save uses its version. A trainer
+    // conflict (PS-07, #542) has no session to show: until that screen exists it says the move was not saved.
     private fun reload(response: Response<*>) {
-        val conflict = runCatching {
-            Serializer.kotlinxSerializationJson.decodeFromString<SessionConflict>(
+        val refusal = runCatching {
+            Serializer.kotlinxSerializationJson.decodeFromString<ReschedulePrivateSessionRefusal>(
                 response.errorBody()?.string().orEmpty(),
             )
         }.getOrNull() ?: return fail(RescheduleFailure.NotSaved)
-        val session = conflict.session
+        val session = refusal.session?.takeIf { refusal.code != ReschedulePrivateSessionRefusal.Code.TRAINER_CONFLICT }
+            ?: return fail(RescheduleFailure.NotSaved)
         val zone = ZoneId.of(session.timeZone)
         val minutes = SessionClock.minutes(session.startsAt, session.endsAt)
         _state.update {
@@ -153,10 +155,10 @@ class RescheduleViewModel(
                 session = session,
                 time = SessionTime(SessionClock.local(session.startsAt, zone), minutes),
                 saving = false,
-                failure = if (conflict.code == SessionConflict.Code.SESSION_CANCELLED) {
+                failure = if (refusal.code == ReschedulePrivateSessionRefusal.Code.SESSION_CANCELLED) {
                     RescheduleFailure.Cancelled
                 } else {
-                    RescheduleFailure.Changed(conflict.changedBy?.name)
+                    RescheduleFailure.Changed(refusal.changedBy?.name)
                 },
             )
         }
