@@ -1,6 +1,5 @@
 package app.fivvi.pro.sessions
 
-import app.fivvi.api.models.TeamMember
 import app.fivvi.api.models.Trainer
 import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.R
@@ -9,48 +8,27 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-// Who the person is among the trainers of the workspace (F020 AC2): the API has no "me" on a trainer.
+// Who the person is among the trainers of the workspace (F020 AC2): by the team-member ID of `GET /api/v1/me`, never by
+// address or name.
 class SessionTeamTest {
     private val john = Trainer(UUID.nameUUIDFromBytes("john".toByteArray()), "John")
     private val sarah = Trainer(UUID.nameUUIDFromBytes("sarah".toByteArray()), "Sarah")
-    private val members = listOf(
-        TeamMember(john.id, "John", "owner@example.com", TeamMember.Role.OWNER),
-        TeamMember(sarah.id, "Sarah", "trainer@example.com", TeamMember.Role.TRAINER),
-    )
+    private val otherSarah = Trainer(UUID.nameUUIDFromBytes("other sarah".toByteArray()), "Sarah")
 
     @Test
-    fun test_F020_AC2_theOwnerIsFoundByTheAddressTheySignInWith() {
-        val mine = SessionTeam.myTrainerId(listOf(john, sarah), members, true, "Owner@Example.com", null)
-
-        assertEquals(john.id, mine)
+    fun test_F020_AC2_thePersonIsTheTrainerWithTheirOwnTeamMemberId() {
+        assertEquals(john.id, SessionTeam.myTrainerId(listOf(john, sarah), john.id))
     }
 
     @Test
-    fun test_F020_AC2_aTrainerWhoCannotReadTheTeamIsFoundByNameWhenNoOtherTrainerHasIt() {
-        assertEquals(
-            sarah.id,
-            SessionTeam.myTrainerId(listOf(john, sarah), null, false, "trainer@example.com", "Sarah"),
-        )
-        assertNull(
-            SessionTeam.myTrainerId(
-                listOf(sarah, Trainer(UUID.randomUUID(), "Sarah")),
-                null,
-                false,
-                "trainer@example.com",
-                "Sarah",
-            ),
-        )
-    }
-
-    @Test
-    fun test_F020_AC2_aTeamReadThatFailedIsNotAnswerWithAnotherNamesake() {
-        assertNull(SessionTeam.myTrainerId(listOf(john, sarah), null, true, "owner@example.com", "John"))
+    fun test_F020_1414_AC2_twoTrainersWithTheSameNameAreToldApartByTheId() {
+        assertEquals(otherSarah.id, SessionTeam.myTrainerId(listOf(sarah, otherSarah), otherSarah.id))
+        assertEquals(sarah.id, SessionTeam.myTrainerId(listOf(sarah, otherSarah), sarah.id))
     }
 
     @Test
     fun test_F020_AC2_aPersonWithoutATrainerProfileIsNoTrainer() {
-        assertNull(SessionTeam.myTrainerId(listOf(sarah), members, true, "owner@example.com", "John"))
-        assertNull(SessionTeam.myTrainerId(listOf(sarah), null, false, "x@example.com", null))
+        assertNull(SessionTeam.myTrainerId(listOf(sarah), john.id))
     }
 
     @Test

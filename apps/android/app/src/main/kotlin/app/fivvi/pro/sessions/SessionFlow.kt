@@ -28,9 +28,7 @@ fun SessionFlow(
     workspaceId: UUID,
     workspaceName: String,
     sessionId: UUID,
-    mayReadTeam: Boolean,
-    email: String,
-    accountName: String?,
+    teamMemberId: UUID,
     sessionKey: String,
     opening: Int,
     onBack: () -> Unit,
@@ -44,9 +42,7 @@ fun SessionFlow(
             apis,
             workspaceId,
             sessionId,
-            mayReadTeam,
-            email,
-            accountName,
+            teamMemberId,
             onNotAllowed = { capabilities.onResponse(it, workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW) },
         )
     }
@@ -68,7 +64,7 @@ fun SessionFlow(
                 workspaceId,
                 session,
                 state.emailLocale,
-                state.myTrainerId,
+                state.myTeamMemberId,
                 onNotAllowed = { capabilities.onResponse(it, workspaceId, own) },
             )
         }

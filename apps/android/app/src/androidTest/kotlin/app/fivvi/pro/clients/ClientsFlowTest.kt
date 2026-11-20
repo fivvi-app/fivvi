@@ -129,6 +129,7 @@ class ClientsFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
                         "slug",
                         TrainerWord.TRAINER,
                         MeWorkspace.Role.OWNER,
+                        UUID.randomUUID(),
                         listOf(
                             MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW,
                             MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE,
@@ -262,6 +263,7 @@ class ClientsFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
                             "slug",
                             TrainerWord.TRAINER,
                             MeWorkspace.Role.OWNER,
+                            UUID.randomUUID(),
                             listOf(
                                 MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW,
                                 MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE,

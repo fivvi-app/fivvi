@@ -18,6 +18,9 @@ import retrofit2.Response
 /** The ID the fakes give the workspace of this name, so a test can name it without keeping it. */
 fun workspaceIdOf(name: String): UUID = UUID.nameUUIDFromBytes(name.toByteArray())
 
+/** The person's own team-member ID in the workspace [name] (synthetic): one per workspace, unless a test gives another. */
+fun teamMemberIdOf(name: String): UUID = UUID.nameUUIDFromBytes("member of $name".toByteArray())
+
 /** The generated client's own API interface, answering each call with the next queued answer. */
 class FakeMeApi : MeApi {
     /** The stored language of an account answered without one: the activity tests set the phone's, so it changes nothing. */
@@ -130,6 +133,7 @@ class FakeMeApi : MeApi {
                         slug,
                         TrainerWord.TRAINER,
                         role,
+                        teamMemberIdOf(name),
                         capabilities[name] ?: capabilitiesOf(role),
                         // A Trainer always trains; an Owner here has not switched it on (F005).
                         trainsHere = role == MyWorkspace.Role.TRAINER || name in trainingOwners,
@@ -157,6 +161,7 @@ class FakeMeApi : MeApi {
         capabilities: List<MeWorkspace.Capabilities> = MeWorkspace.Capabilities.values().toList(),
         capabilitiesByWorkspace: Map<String, List<MeWorkspace.Capabilities>> = emptyMap(),
         role: MeWorkspace.Role = MeWorkspace.Role.OWNER,
+        teamMemberId: UUID? = null,
     ) {
         answers += {
             Response.success(
@@ -174,6 +179,7 @@ class FakeMeApi : MeApi {
                             "slug",
                             TrainerWord.TRAINER,
                             role,
+                            teamMemberId ?: teamMemberIdOf(it),
                             capabilitiesByWorkspace[it] ?: capabilities,
                         )
                     },

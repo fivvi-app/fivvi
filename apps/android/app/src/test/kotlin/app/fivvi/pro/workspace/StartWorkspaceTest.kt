@@ -19,6 +19,7 @@ private fun workspace(id: UUID, name: String) = MeWorkspace(
     name.lowercase().replace(' ', '-'),
     TrainerWord.TRAINER,
     MeWorkspace.Role.OWNER,
+    UUID.randomUUID(),
     emptyList(),
 )
 

@@ -2,11 +2,8 @@ package app.fivvi.pro.sessions
 
 import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.SessionsApi
-import app.fivvi.api.apis.TeamApi
 import app.fivvi.api.models.AddressLookupResult
-import app.fivvi.api.models.ChangeTeamMemberRole
 import app.fivvi.api.models.Client
-import app.fivvi.api.models.CreateTrainerInvitationRequest
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.LocationAddress
 import app.fivvi.api.models.LocationType
@@ -17,11 +14,9 @@ import app.fivvi.api.models.ReschedulePrivateSessionResult
 import app.fivvi.api.models.Session
 import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionTrainer
-import app.fivvi.api.models.TeamMember
 import app.fivvi.api.models.Trainer
 import app.fivvi.api.models.TrainerConflict
 import app.fivvi.api.models.TrainerConflictItem
-import app.fivvi.api.models.TrainerInvitation
 import app.fivvi.api.models.UpcomingSessions
 import app.fivvi.api.models.UpdateLocationRequest
 import java.time.LocalDate
@@ -283,43 +278,4 @@ class FakeLocationsApi : LocationsApi {
         locationId: UUID,
         updateLocationRequest: UpdateLocationRequest,
     ): Response<Location> = error("FakeLocationsApi.updateLocation is not expected in this test")
-}
-
-/** The team of the workspace, for the Owner's own place among the trainers. */
-class FakeTeamApi : TeamApi {
-    var members = emptyList<TeamMember>()
-    var failure: Exception? = null
-    var status: Int? = null
-    var calls = 0
-        private set
-
-    override suspend fun listTeamMembers(workspaceId: UUID): Response<List<TeamMember>> {
-        calls++
-        failure?.let { throw it }
-        status?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
-        return Response.success(members)
-    }
-
-    override suspend fun changeTeamMemberRole(
-        workspaceId: UUID,
-        teamMemberId: UUID,
-        changeTeamMemberRole: ChangeTeamMemberRole,
-    ): Response<TeamMember> = error("FakeTeamApi.changeTeamMemberRole is not expected in this test")
-
-    override suspend fun createTrainerInvitation(
-        workspaceId: UUID,
-        createTrainerInvitationRequest: CreateTrainerInvitationRequest,
-    ): Response<TrainerInvitation> = error("FakeTeamApi.createTrainerInvitation is not expected in this test")
-
-    override suspend fun listTrainerInvitations(workspaceId: UUID): Response<List<TrainerInvitation>> =
-        error("FakeTeamApi.listTrainerInvitations is not expected in this test")
-
-    override suspend fun removeTeamMember(workspaceId: UUID, teamMemberId: UUID): Response<Unit> =
-        error("FakeTeamApi.removeTeamMember is not expected in this test")
-
-    override suspend fun resendTrainerInvitation(workspaceId: UUID, invitationId: UUID): Response<TrainerInvitation> =
-        error("FakeTeamApi.resendTrainerInvitation is not expected in this test")
-
-    override suspend fun withdrawTrainerInvitation(workspaceId: UUID, invitationId: UUID): Response<Unit> =
-        error("FakeTeamApi.withdrawTrainerInvitation is not expected in this test")
 }

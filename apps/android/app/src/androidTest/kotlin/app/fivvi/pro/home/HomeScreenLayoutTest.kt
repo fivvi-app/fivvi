@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
+import app.fivvi.core.me.teamMemberIdOf
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.assertButtonFits
 import app.fivvi.pro.assertWraps
@@ -32,7 +33,7 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     val compose = createComposeRule()
 
     private fun inWorkspace(email: String, name: String = "John's Gym") =
-        MeState.Loaded(email, HomeDestination.Workspace(name, workspaceIdOf(name)))
+        MeState.Loaded(email, HomeDestination.Workspace(name, workspaceIdOf(name), teamMemberIdOf(name)))
 
     private fun show(me: MeState, signingOut: Boolean = false, height: Dp = 640.dp) =
         compose.showAtLargestFontScale(language, height = height) {

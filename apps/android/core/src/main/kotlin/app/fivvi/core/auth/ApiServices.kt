@@ -5,7 +5,6 @@ import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.apis.SignInApi
-import app.fivvi.api.apis.TeamApi
 import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.infrastructure.ApiClient
@@ -32,7 +31,6 @@ class ApiServices(private val baseUrl: String, session: Session, private val net
     val trainersApi: TrainersApi by lazy { apiClient.createService(TrainersApi::class.java) }
     val sessionsApi: SessionsApi by lazy { apiClient.createService(SessionsApi::class.java) }
     val locationsApi: LocationsApi by lazy { apiClient.createService(LocationsApi::class.java) }
-    val teamApi: TeamApi by lazy { apiClient.createService(TeamApi::class.java) }
 
     /**
      * The sign-in API for one request that carries [token] instead of the session's: sign-out deletes the stored token

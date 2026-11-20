@@ -2,7 +2,7 @@ package app.fivvi.pro.sessions
 
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.LocationAddress
-import app.fivvi.api.models.TeamMember
+import app.fivvi.api.models.Trainer
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.clients.clientOf
@@ -10,6 +10,7 @@ import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.FakeWorkspacesApi
 import java.io.IOException
 import java.time.LocalDateTime
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -30,7 +31,6 @@ class SessionViewModelTest {
     private val workspace = workspaceIdOf("John's Gym")
     private val sessions = FakeSessionsApi()
     private val trainers = FakeTrainersApi()
-    private val team = FakeTeamApi()
     private val clients = FakeClientsApi()
     private val notAllowed = mutableListOf<Int>()
     private val anna = clientOf("Anna de Vries", "anna@example.com", Client.EmailLocale.NL_NL)
@@ -44,22 +44,19 @@ class SessionViewModelTest {
         sessions.sessions[session.id] = session
         clients.clients += anna
         trainers.trainers = listOf(sarah, tom)
-        team.members = listOf(TeamMember(sarah.id, "Sarah", "trainer@example.com", TeamMember.Role.TRAINER))
     }
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(readTeam: Boolean = false, email: String = "trainer@example.com", name: String? = "Sarah") =
-        SessionViewModel(
-            SessionApis(sessions, FakeLocationsApi(), trainers, team, FakeWorkspacesApi(), clients),
-            workspace,
-            session.id,
-            readTeam,
-            email,
-            name,
-            onNotAllowed = { notAllowed += it.code() },
-        )
+    // The person looking, by their team-member ID in the workspace: Sarah's unless given.
+    private fun viewModel(teamMemberId: UUID = sarah.id, sessionId: UUID = session.id) = SessionViewModel(
+        SessionApis(sessions, FakeLocationsApi(), trainers, FakeWorkspacesApi(), clients),
+        workspace,
+        sessionId,
+        teamMemberId,
+        onNotAllowed = { notAllowed += it.code() },
+    )
 
     @Test
     fun test_F020_AC10_theSessionOpensWithTheDataTheApiHas() {
@@ -72,21 +69,27 @@ class SessionViewModelTest {
     }
 
     @Test
-    fun test_F020_AC10_aTrainerSeesThemselvesAsYouWhenTheirNameIsTheOnlyOneAmongTheTrainers() {
-        val state = viewModel().state.value
+    fun test_F020_AC10_theTrainerOfTheSessionSeesThemselvesAsYouAndAnotherTrainerSeesTheName() {
+        assertTrue(viewModel(teamMemberId = sarah.id).state.value.trainerIsMe)
 
-        assertTrue(state.trainerIsMe)
-        assertEquals(sarah.id, state.myTrainerId)
+        assertFalse(viewModel(teamMemberId = tom.id).state.value.trainerIsMe)
     }
 
     @Test
-    fun test_F020_AC10_theOwnerFindsTheirPlaceByTheirAddressAndSeesAnotherTrainerByName() {
-        val viewModel = viewModel(readTeam = true, email = "trainer@example.com", name = null)
-        assertTrue(viewModel.state.value.trainerIsMe)
+    fun test_F020_1414_AC2_twoTrainersWithTheSameNameEachSeeYouOnlyOnTheirOwnSessions() {
+        // Two trainers called Sarah: only the team-member ID tells them apart.
+        val otherSarah = Trainer(UUID.nameUUIDFromBytes("the other Sarah".toByteArray()), "Sarah")
+        val hers = sessionOf(id = sessionIdOf("hers"), client = anna, trainer = otherSarah)
+        sessions.sessions[hers.id] = hers
 
-        val other = viewModel(readTeam = true, email = "owner@example.com", name = "John")
-        assertFalse(other.state.value.trainerIsMe)
-        assertEquals(2, team.calls)
+        val first = viewModel(teamMemberId = sarah.id, sessionId = session.id)
+        val second = viewModel(teamMemberId = otherSarah.id, sessionId = hers.id)
+        val firstOnSecondsSession = viewModel(teamMemberId = sarah.id, sessionId = hers.id)
+
+        assertTrue(first.state.value.trainerIsMe)
+        assertTrue(second.state.value.trainerIsMe)
+        assertFalse(firstOnSecondsSession.state.value.trainerIsMe)
+        assertEquals("Sarah", firstOnSecondsSession.state.value.session?.trainer?.name)
     }
 
     @Test
