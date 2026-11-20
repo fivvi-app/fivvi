@@ -704,6 +704,7 @@
       "notifyNote": "{email} · {language}",
       "offline": "Je bent offline. Plannen kan pas als je weer verbinding hebt.",
       "open": "Openen",
+      "pickerDone": "Klaar",
       "save": "Opslaan",
       "saved": "Sessie met {client} gepland op {date} om {time}.",
       "startLabel": "Begin",

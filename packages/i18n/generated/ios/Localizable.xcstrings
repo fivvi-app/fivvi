@@ -8778,6 +8778,24 @@
         }
       }
     },
+    "sessions.form.pickerDone" : {
+      "comment" : "Confirm button of the date and the time picker of the session forms in the Android app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klaar"
+          }
+        }
+      }
+    },
     "sessions.form.save" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -704,6 +704,7 @@
       "notifyNote": "{email} · {language}",
       "offline": "You're offline. You can schedule once you're back online.",
       "open": "Open",
+      "pickerDone": "Done",
       "save": "Save",
       "saved": "Session with {client} scheduled for {date} at {time}.",
       "startLabel": "Start",
