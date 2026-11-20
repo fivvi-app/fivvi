@@ -59,7 +59,7 @@ final class AccountViewModel {
         api: any APIProtocol,
         store: any SessionStore,
         clock: any Clock<Duration> = ContinuousClock(),
-        signOutTimeout: Duration = .seconds(10),
+        signOutTimeout: Duration = SignOutRequest.defaultTimeout,
         onAccount: @escaping (_ id: String) -> Void,
         onSignedOut: @escaping (_ afterRejection: Bool) -> Void,
         onPreferredLocale: @escaping () -> StoredLocaleHandler = { { _ in } },
@@ -160,29 +160,11 @@ final class AccountViewModel {
         let token = store.token
         store.deleteToken()
         var rejected = false
-        if let token { rejected = await sendSignOut(with: token) }
+        if let token {
+            rejected = await SignOutRequest.send(with: token, api: api, clock: clock, timeout: signOutTimeout)
+        }
         isSigningOut = false
         onSignedOut(rejected)
-    }
-
-    /// Whether the API refused `token`, or false when it said anything else, did not answer or the wait ran out.
-    private func sendSignOut(with token: String) async -> Bool {
-        let api = api
-        let clock = clock
-        let timeout = signOutTimeout
-        return await withCheckedContinuation { continuation in
-            let race = Race(continuation)
-            // Neither task is a child of the other: the first to finish ends the wait. An answer cancels the timer;
-            // a timer that wins leaves the request running.
-            Task {
-                let output = await AuthMiddleware.$requestToken.withValue(token) { try? await api.signOut() }
-                if case .unauthorized = output { race.finish(true) } else { race.finish(false) }
-            }
-            race.setTimer(Task {
-                guard (try? await clock.sleep(for: timeout)) != nil else { return }
-                race.finish(false)
-            })
-        }
     }
 }
 
@@ -199,33 +181,4 @@ struct CurrentWorkspace: Equatable, Sendable {
 
     /// Europe/Amsterdam, the default of a workspace (`AGENTS.md`).
     static let defaultTimeZone = TimeZone(identifier: "Europe/Amsterdam") ?? .current
-}
-
-/// Resumes its continuation with the first answer only and cancels the timer; the request, if it lost, goes on.
-private final class Race: @unchecked Sendable {
-    private let lock = NSLock()
-    private var continuation: CheckedContinuation<Bool, Never>?
-    private var timer: Task<Void, Never>?
-
-    init(_ continuation: CheckedContinuation<Bool, Never>) {
-        self.continuation = continuation
-    }
-
-    func finish(_ rejected: Bool) {
-        let (continuation, timer) = lock.withLock {
-            defer { self.continuation = nil }
-            return (self.continuation, self.timer)
-        }
-        timer?.cancel()
-        continuation?.resume(returning: rejected)
-    }
-
-    /// Hands over the timer; if the race is already over it is cancelled at once.
-    func setTimer(_ timer: Task<Void, Never>) {
-        let over = lock.withLock {
-            self.timer = timer
-            return continuation == nil
-        }
-        if over { timer.cancel() }
-    }
 }

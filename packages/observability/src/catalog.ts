@@ -56,6 +56,13 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F023: a scheduling save was refused because the trainer already has something at that time
+  // (`409 trainer_conflict`, PS-07). The workspace ID and the surface only (the account's UUID is
+  // the distinct ID): no session, client, class or trainer, no name, date or time.
+  double_booking_warned: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F021: an Owner created a class, or put one on a date. The workspace ID only (the account's
   // UUID is the distinct ID): no class or session ID, name, description, trainer, date or time.
   class_created: {
@@ -64,6 +71,24 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   },
   class_scheduled: {
     workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
+  // F022: an Owner made a weekly series (`repeat: weekly`), or changed one from a date on (`scope:
+  // following`). The workspace ID and the surface only (the Owner's account UUID is the distinct
+  // ID): no class, series or session ID, rule, weekday, time, date, trainer or capacity.
+  class_series_created: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
+  class_series_changed: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
+  // F052: an Owner created an offer. The workspace ID, the kind and the surface only (the Owner's
+  // account UUID is the distinct ID): no offer ID, name, description, price, VAT rate or class.
+  offer_created: {
+    workspace_id: property.uuid(),
+    kind: property.enum(['membership', 'credit_pack', 'credit_plan', 'single_class_pass']),
     surface: property.enum(['web', 'ios', 'android']),
   },
   // F029: an Owner renewed the workspace's join link. The workspace ID and the surface only (the

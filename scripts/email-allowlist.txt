@@ -14,6 +14,8 @@ example.com
 voorbeeld.nl
 *.test
 *.invalid
+# Not an address: the user part of a crafted link that the Android link router must ignore (#506, LinkRouterTest)
+evil.example@fivvi.app
 
 # Service endpoints that look like addresses
 *.ingest.sentry.io

@@ -82,6 +82,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
       'check.sh',
       '_lib.sh',
       '_shellcheck.sh',
+      '_slots.sh',
       'test-summary.sh',
       'test-summary.jq',
       'affected.mjs',

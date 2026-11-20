@@ -50,6 +50,16 @@ describe('#1363 AC1 the Quarantine (Android) job', () => {
     assert.match(job, /^ {4}if: github\.event_name != 'push'$/m);
   });
 
+  // ADR-034: both lists hold UI tests (the Compose UI tests and the Maestro flows). The job waits for nothing, so it reads the
+  // pipeline switch and the event itself in its first step (the behaviour is tested in ci-fast-pipeline.test.mjs).
+  it('ADR-034: reads the switch and the event itself to decide whether the UI lists run', () => {
+    const lists = steps(job).find((step) => step.includes('name: Read the quarantine lists'));
+    assert.match(lists, /^ {10}EVENT: \$\{\{ github\.event_name \}\}$/m);
+    assert.match(lists, /scripts\/pipeline\.sh ui-tests --event "\$EVENT"/);
+    assert.doesNotMatch(lists, /pipeline\.sh get ci/);
+    assert.doesNotMatch(job, /needs\.changes/);
+  });
+
   it('does nothing but read the lists while they are empty: every other step waits for a list that has entries', () => {
     const [checkout, lists, ...rest] = steps(job);
     assert.match(checkout, /actions\/checkout@/);

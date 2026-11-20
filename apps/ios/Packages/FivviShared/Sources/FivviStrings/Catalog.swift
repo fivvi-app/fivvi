@@ -91,6 +91,7 @@ extension StringKey {
     public static let signInErrorsNoConnection = StringKey("signIn.errors.noConnection")
     public static let signInErrorsGeneric = StringKey("signIn.errors.generic")
     public static let commonLoadingSlow = StringKey("common.loadingSlow")
+    public static let commonOffline = StringKey("common.offline")
 }
 
 extension Components.Schemas.Locale {

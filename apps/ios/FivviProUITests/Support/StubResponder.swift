@@ -7,9 +7,7 @@ final class Responder: @unchecked Sendable {
     let signIn: StubServer.SignIn
     let clientRoutes: StubClientRoutes
     let sessionRoutes: StubSessionRoutes
-    var currentAnswer: StubServer.Answer
     var received: [StubServer.Request] = []
-    var held: [(connection: NWConnection, locale: String?)] = []
     var offline = false
     var lost: Set<Int> = []
     var storedLocale: String?
@@ -25,8 +23,7 @@ final class Responder: @unchecked Sendable {
     var holdsAccountReads = false
     var heldAccountReads: [@Sendable () -> Void] = []
 
-    init(_ answer: StubServer.Answer, signIn: StubServer.SignIn) {
-        currentAnswer = answer
+    init(signIn: StubServer.SignIn) {
         self.signIn = signIn
         clientRoutes = StubClientRoutes(empty: signIn.hasNoClients)
         sessionRoutes = StubSessionRoutes(signIn: signIn, clients: clientRoutes)
@@ -116,10 +113,6 @@ final class Responder: @unchecked Sendable {
 
     var requests: [StubServer.Request] { lock.withLock { received } }
 
-    var requestedLocales: [String?] {
-        lock.withLock { received.filter { $0.path == "/api/v1/hello" }.map(\.locale) }
-    }
-
     func setOffline(_ value: Bool) {
         lock.withLock { offline = value }
     }
@@ -135,16 +128,6 @@ final class Responder: @unchecked Sendable {
             return hold ? [] : heldSignIn
         }
         waiting.forEach { send($0, status: 202, json: nil) }
-    }
-
-    func answer(with answer: StubServer.Answer) {
-        let waiting: [(connection: NWConnection, locale: String?)] = lock.withLock {
-            currentAnswer = answer
-            if case .hold = answer { return [] }
-            defer { held = [] }
-            return held
-        }
-        waiting.forEach { respond($0.connection, locale: $0.locale, with: answer) }
     }
 
     func accept(_ connection: NWConnection, on queue: DispatchQueue) {
@@ -184,7 +167,7 @@ final class Responder: @unchecked Sendable {
     }
 
     func handle(_ connection: NWConnection, head: String, body: Data) {
-        // Request line: GET /api/v1/hello?locale=en HTTP/1.1
+        // Request line: GET /api/v1/me HTTP/1.1
         let line = head.split(separator: "\r\n").first?.split(separator: " ").map(String.init) ?? []
         let method = line.first ?? ""
         let request = line.dropFirst().first.flatMap { URLComponents(string: $0) }
@@ -194,14 +177,13 @@ final class Responder: @unchecked Sendable {
         let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] ?? [:]
         let authorization = Self.header("authorization", in: head)
         let stringFields = json.compactMapValues { $0 as? String }
-        let (answer, isOffline, holdsSignInRequest) = lock.withLock {
+        let (isOffline, holdsSignInRequest) = lock.withLock {
             received.append(.init(
                 method: method, path: path, locale: locale, authorization: authorization, body: stringFields
             ))
-            if path == "/api/v1/hello", case .hold = currentAnswer { held.append((connection, locale)) }
             let holdsSignInRequest = path == "/api/v1/sign-in/request" && holdsSignIn
             if holdsSignInRequest { heldSignIn.append(connection) }
-            return (currentAnswer, offline, holdsSignInRequest)
+            return (offline, holdsSignInRequest)
         }
         if isOffline {
             connection.cancel()
@@ -209,8 +191,6 @@ final class Responder: @unchecked Sendable {
         }
         if holdsSignInRequest { return }
         switch (method, path) {
-        case ("GET", "/api/v1/hello"):
-            respond(connection, locale: locale, with: answer)
         case ("POST", "/api/v1/sign-in/request"):
             send(connection, status: 202, json: nil)
         case ("POST", "/api/v1/sign-in/token"):
@@ -255,17 +235,6 @@ final class Responder: @unchecked Sendable {
     ) -> (status: Int, json: [String: Any]?) {
         guard authorization == "Bearer \(signIn.token)" else { return (path.contains("/clients") ? 401 : 404, nil) }
         return clientRoutes.respond(method: method, path: path, query: query, body: body) ?? (404, nil)
-    }
-
-    func respond(_ connection: NWConnection, locale: String?, with answer: StubServer.Answer) {
-        switch answer {
-        case .hold:
-            return
-        case let .greeting(key):
-            send(connection, status: 200, json: ["greetingKey": key, "locale": locale ?? "en"])
-        case let .status(code):
-            send(connection, status: code, json: nil)
-        }
     }
 
     func send(_ connection: NWConnection, status: Int, json: [String: Any]?) {

@@ -14,6 +14,10 @@
 //   FAKE_RAILWAY_SOURCE_DB     the database the restore copies
 //   FAKE_RAILWAY_RESTORED_DB   the name of the restored database
 //   FAKE_RAILWAY_MODE          ok | restore-fails | never-healthy | wrong-point | extra-table | delete-fails
+//
+// It also times itself, for the timings the test prints (#1309): one JSON line per call in `<log>.times` with the
+// command, when the process started (node's start included) and ended in epoch milliseconds, and how long its
+// CREATE DATABASE took.
 import { appendFileSync, existsSync, rmSync, writeFileSync } from 'node:fs';
 import pg from 'pg';
 
@@ -38,6 +42,15 @@ async function connect(url) {
 }
 
 const command = args.slice(0, 3).join(' ');
+
+const startedAt = Math.round(performance.timeOrigin);
+let createDatabaseMs;
+process.on('exit', () => {
+  appendFileSync(
+    `${env.FAKE_RAILWAY_LOG}.times`,
+    `${JSON.stringify({ command, startedAt, endedAt: Date.now(), createDatabaseMs })}\n`,
+  );
+});
 
 // The real CLI may wait for a prompt on its input (a 2FA code, a confirmation) that nobody sees: the drill must
 // hand it a closed input, which ends at once. An open one (a pipe or a terminal) does not.
@@ -80,9 +93,11 @@ if (command === 'postgres pitr restore') {
   }
   const server = await connect(env.FAKE_RAILWAY_SERVER_URL);
   try {
+    const creating = performance.now();
     await server.query(
       `CREATE DATABASE ${quote(env.FAKE_RAILWAY_RESTORED_DB)} TEMPLATE ${quote(env.FAKE_RAILWAY_SOURCE_DB)} STRATEGY FILE_COPY`,
     );
+    createDatabaseMs = Math.round(performance.now() - creating);
   } finally {
     await server.end();
   }

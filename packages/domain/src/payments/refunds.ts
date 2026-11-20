@@ -1,3 +1,11 @@
+// Module: `requestRefund` (bounded by the refundable amount, refusal `refund_exceeds_payment`; our
+//        row first, its ID is the idempotency key and in the provider's metadata, the internal
+//        reason never reaches the provider), `submitRefund` (the retry: looks the refund up among
+//        the payment's provider refunds by our metadata before creating one),
+//        `applyProviderRefundStatus` (once, as a line), `recordReversal`, `refundableOf`. No route
+//        and no screen yet: F061, F065 and F058 build on these
+// Spec: F060 AC9, AC10, AC13
+
 import type { PaymentEngine } from './create-payment.ts';
 import type { StatusSource } from './ledger.ts';
 import type { ProviderAccess, ProviderRefund, ProviderRefundStatus } from './provider.ts';

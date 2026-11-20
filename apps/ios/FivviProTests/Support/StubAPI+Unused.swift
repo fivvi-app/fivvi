@@ -130,6 +130,12 @@ extension StubAPI {
         fatalError("The app doesn't call updateGroupClassDate yet")
     }
 
+    func listGroupClassSeries(
+        _ input: Operations.ListGroupClassSeries.Input
+    ) async throws -> Operations.ListGroupClassSeries.Output {
+        fatalError("The app doesn't call listGroupClassSeries yet")
+    }
+
     func getJoinLink(_ input: Operations.GetJoinLink.Input) async throws -> Operations.GetJoinLink.Output {
         fatalError("The app doesn't call getJoinLink yet")
     }
@@ -158,5 +164,29 @@ extension StubAPI {
         _ input: Operations.DeclineInvitation.Input
     ) async throws -> Operations.DeclineInvitation.Output {
         fatalError("The app doesn't call declineInvitation yet")
+    }
+
+    func listOffers(
+        _ input: Operations.ListOffers.Input
+    ) async throws -> Operations.ListOffers.Output {
+        fatalError("The app doesn't call listOffers yet")
+    }
+
+    func getOffer(
+        _ input: Operations.GetOffer.Input
+    ) async throws -> Operations.GetOffer.Output {
+        fatalError("The app doesn't call getOffer yet")
+    }
+
+    func createOffer(
+        _ input: Operations.CreateOffer.Input
+    ) async throws -> Operations.CreateOffer.Output {
+        fatalError("The app doesn't call createOffer yet")
+    }
+
+    func updateOffer(
+        _ input: Operations.UpdateOffer.Input
+    ) async throws -> Operations.UpdateOffer.Output {
+        fatalError("The app doesn't call updateOffer yet")
     }
 }

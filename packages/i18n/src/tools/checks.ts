@@ -4,8 +4,9 @@ import { type CatalogSet, readCatalogSet } from './catalog.ts';
 import { CatalogError, renderNativeCatalogs, staleNativeCatalogs } from './generate.ts';
 import { literalTrainerProblems } from './no-literal-trainer.ts';
 import { type TrainerAllowlist, trainerAllowlist } from './no-literal-trainer-allowlist.ts';
+import { unsortedCatalogProblems } from './sort.ts';
 
-export const checkNames = ['parity', 'icu', 'generated', 'no-literal-trainer'] as const;
+export const checkNames = ['parity', 'icu', 'generated', 'no-literal-trainer', 'sorted'] as const;
 export type CheckName = (typeof checkNames)[number];
 
 export interface CheckResult {
@@ -23,13 +24,16 @@ export interface CheckResult {
  * - `generated`: the committed native catalogs match the JSON.
  * - `no-literal-trainer`: no message says *trainer* literally unless the allowlist gives a
  *   reason (F068, spec #588): the UI uses the workspace's word.
+ * - `sorted`: `en.json`, `nl-NL.json` and `comments.json` keep their keys sorted at every
+ *   level, so parallel PRs that add keys don't conflict (E001 #1272).
  */
 export async function runChecks(
   root: string,
   names: readonly CheckName[] = checkNames,
   { set, allowlist = trainerAllowlist }: { set?: CatalogSet; allowlist?: TrainerAllowlist } = {},
 ): Promise<CheckResult[]> {
-  const analysis = analyze(set ?? (await readCatalogSet(root)));
+  const catalogs = set ?? (await readCatalogSet(root));
+  const analysis = analyze(catalogs);
   const results: CheckResult[] = [];
   for (const name of names) {
     switch (name) {
@@ -52,6 +56,13 @@ export async function runChecks(
           name,
           problems: literalTrainerProblems(analysis, allowlist),
           summary: `${allowlist.length} allowlist entries, each with a reason`,
+        });
+        break;
+      case 'sorted':
+        results.push({
+          name,
+          problems: unsortedCatalogProblems(catalogs),
+          summary: 'keys are sorted in en.json, nl-NL.json and comments.json',
         });
         break;
       case 'generated': {

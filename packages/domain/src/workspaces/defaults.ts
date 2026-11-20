@@ -1,3 +1,7 @@
+// Module: What a new workspace starts with (`nl-NL`, `Europe/Amsterdam`) and the 80-character name
+//        limit
+// Spec: F002 AC2, AC3
+
 import { CLIENT_NAME_MAX_LENGTH } from '../clients/new-client.ts';
 
 /** What a new workspace starts with; the owner is asked none of it (F002 AC2). */

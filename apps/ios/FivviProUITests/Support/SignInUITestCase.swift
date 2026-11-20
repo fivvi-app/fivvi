@@ -69,11 +69,13 @@ class SignInUITestCase: XCTestCase {
     /// and with the label colour; black on the glass is flagged too, so it measures the glass and not the text), so a
     /// contrast issue on them is not counted, nor is the Dynamic Type one (a bar item's text doesn't scale with the text
     /// size, which is the system's). The "may be clipped" one is not counted only for `systemBarTitle`, the title in the
-    /// bar. Any other issue fails, on those ids too. A contrast issue on a disabled control is not counted either (WCAG
-    /// 1.4.3 leaves inactive components out).
+    /// bar. `wrappingTextPrefixes` are the ids of texts, one long word, for which the audit's prediction that they may be
+    /// clipped at larger sizes is not counted because a test shows them wrapping at the largest size. Any other issue
+    /// fails, on those ids too. A contrast issue on a disabled control is not counted either (WCAG 1.4.3 leaves
+    /// inactive components out).
     func auditWithContrast(
         _ app: XCUIApplication, style: UIUserInterfaceStyle, _ context: String,
-        systemBarItems: Set<String> = [], systemBarTitle: String? = nil
+        systemBarItems: Set<String> = [], systemBarTitle: String? = nil, wrappingTextPrefixes: [String] = []
     ) throws {
         let secondary = RGB(Tokens.Colors.textSecondary, in: style)
         let bar = app.navigationBars.firstMatch
@@ -90,6 +92,11 @@ class SignInUITestCase: XCTestCase {
                 let isBarItem = systemBarItems.contains(element.identifier)
                 if isBarItem, [.contrast, .dynamicType].contains(issue.auditType) { return true }
                 if issue.auditType == .textClipped, element.identifier == systemBarTitle { return true }
+                // The audit predicts that a long single word (an email address) "may be clipped at larger Dynamic Type
+                // sizes"; a test of the screen at the largest size shows it wrapping (and the audit finding it whole).
+                if issue.auditType == .textClipped, wrappingTextPrefixes.contains(where: element.identifier.hasPrefix) {
+                    return true
+                }
                 // A control that is switched off (the code step's *Inloggen* until six digits are typed, drawn at
                 // 40 %) is an inactive component, which WCAG 1.4.3 leaves out of the contrast rule.
                 if issue.auditType == .contrast, !element.isEnabled { return true }

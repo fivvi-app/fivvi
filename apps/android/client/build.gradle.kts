@@ -26,6 +26,12 @@ android {
         versionCode = buildNumber
         versionName = appVersion
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Each Compose UI test gets this long (the runner's timeout_msec argument), so one that hangs fails by name and the
+        // run goes on (E002 #1442). UI_TEST_TIMEOUT_MS overrides fivvi.uiTestTimeoutMs of gradle.properties.
+        testInstrumentationRunnerArguments["timeout_msec"] =
+            providers.environmentVariable("UI_TEST_TIMEOUT_MS")
+                .orElse(providers.gradleProperty("fivvi.uiTestTimeoutMs"))
+                .get()
     }
 
     buildTypes {

@@ -12,7 +12,9 @@ import {
 } from '@fivvi/database';
 import {
   confirmationLanguage,
+  type DetachedField,
   PRIVATE_SESSION_DURATIONS,
+  parseWeeklyRule,
   planPrivateSession,
   reschedulePrivateSession,
   sendsChangeNotice,
@@ -30,6 +32,12 @@ import {
   validationErrorResponse,
 } from '../errors.ts';
 import { privateSessionEmailEvent } from '../sessions/email-event.ts';
+import {
+  allowConflictsField,
+  checkDoubleBooking,
+  TrainerConflictItemSchema,
+  trainerConflictResponse,
+} from '../sessions/trainer-conflicts.ts';
 import { LocationSchema } from './locations.ts';
 
 // The sessions of a workspace (F020, spec #425): a team member plans a private session, reads one,
@@ -89,6 +97,31 @@ const SessionGroupClassSchema = z
   })
   .openapi('SessionGroupClass', { description: 'The class a class date was scheduled from.' });
 
+const SessionSeriesSchema = z
+  .object({
+    id: z.uuid().openapi({ description: 'The series ID.' }),
+    weekday: z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']).openapi({
+      description: 'The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday.',
+    }),
+    localStartTime: z.string().openapi({
+      description: 'The series’ start on the wall clock of the workspace’s time zone: `HH:mm`.',
+    }),
+    occurrenceDate: z.string().openapi({
+      description: 'The local date in the series’ rule this date stands for: `YYYY-MM-DD`.',
+    }),
+    changedFields: z.array(z.enum(['time', 'trainer', 'capacity', 'location'])).openapi({
+      description:
+        'What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when ' +
+        'the date follows its series. A change of the series from an earlier date leaves these ' +
+        'dates as they are.',
+    }),
+  })
+  .openapi('SessionSeries', {
+    description:
+      'The weekly series a class date belongs to (F022): enough for “Part of: Kracht, every ' +
+      'Tuesday 18:00” and what differs. Every team member may read it.',
+  });
+
 export const SessionTrainerSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The trainer’s team-member ID, as in `GET …/trainers`.' }),
@@ -128,6 +161,9 @@ export const SessionSchema = z
     }),
     groupClass: SessionGroupClassSchema.optional().openapi({
       description: 'The class of a class date (F021); left out for the other kinds.',
+    }),
+    series: SessionSeriesSchema.optional().openapi({
+      description: 'The weekly series of a class date (F022); left out for a date on its own.',
     }),
     participants: z.array(SessionParticipantSchema).openapi({
       description:
@@ -190,6 +226,7 @@ const PlanPrivateSessionBodySchema = z
         'Whether to email the client the confirmation (EM-11). Not sent for a session that ' +
         'starts in the past, whatever this says.',
     }),
+    allowConflicts: allowConflictsField,
     surface: z
       .enum(['ios', 'android'])
       .optional()
@@ -236,6 +273,7 @@ const ReschedulePrivateSessionBodySchema = z
         'Whether to email the client the change (EM-04). Not sent when the new time is in the ' +
         'past, whatever this says.',
     }),
+    allowConflicts: allowConflictsField,
     version: z
       .number()
       .int()
@@ -282,14 +320,22 @@ const ReschedulePrivateSessionResultSchema = z
     description: 'The private session after it moved, with what the trainer should be told.',
   });
 
-const SessionConflictSchema = z
+// The `409` of a reschedule is one object, not a `oneOf` of the session's state and
+// `TrainerConflict`: the Kotlin generator merges a `oneOf` into one class with both bodies' fields
+// required (so neither body decodes) and does not link the members to a discriminator. `code`
+// tells the refusals apart; `session` and `changedBy` come with the session codes, `conflicts`
+// with `trainer_conflict`.
+const RescheduleRefusalSchema = z
   .object({
-    code: z.enum(['session_changed', 'session_cancelled']).openapi({
+    code: z.enum(['session_changed', 'session_cancelled', 'trainer_conflict']).openapi({
       description:
         '`session_changed`: someone changed the session after the `version` sent (AC8); ' +
-        '`session_cancelled`: the session was cancelled and stays as it is.',
+        '`session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: ' +
+        'the trainer already has something at the new time (PS-07).',
     }),
-    session: SessionSchema,
+    session: SessionSchema.optional().openapi({
+      description: 'The session as it is now, for `session_changed` and `session_cancelled`.',
+    }),
     changedBy: z
       .object({ name: z.string().openapi({ description: 'The account’s name.' }) })
       .optional()
@@ -298,11 +344,16 @@ const SessionConflictSchema = z
           'Who changed the session last, for `session_changed`; left out when that person has ' +
           'been removed or their account has no name.',
       }),
+    conflicts: z.array(TrainerConflictItemSchema).optional().openapi({
+      description:
+        'The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.',
+    }),
   })
-  .openapi('SessionConflict', {
+  .openapi('ReschedulePrivateSessionRefusal', {
     description:
-      'The change was refused because of the session’s state; nothing was stored. Holds the ' +
-      'session as it is now, so the form can show its values.',
+      'Why the reschedule was refused; nothing was stored. The session’s ' +
+      'state (`session_changed`, `session_cancelled`) and the body of `TrainerConflict` ' +
+      '(`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.',
   });
 
 const UpcomingSessionSchema = z
@@ -366,7 +417,10 @@ const planPrivateSessionRoute = defineRoute(
       'not train) answers `404`; an invalid duration, date or time, or a start the clocks skip ' +
       'answers `400` with the field in `issues`. When ' +
       '`notify` is on and the session is not in the past, EM-11 goes to the client after the ' +
-      'session is committed, in the client’s email language, else the workspace’s default.',
+      'session is committed, in the client’s email language, else the workspace’s default. When ' +
+      'the trainer already has a scheduled session of this workspace that overlaps (back-to-back ' +
+      'does not), the answer is `409` with the code `trainer_conflict` and those sessions, and ' +
+      'nothing is stored, unless `allowConflicts` is `true` (PS-07).',
     security: SIGNED_IN,
     request: {
       params: WorkspaceParamsSchema,
@@ -381,6 +435,7 @@ const planPrivateSessionRoute = defineRoute(
         content: { 'application/json': { schema: PlannedPrivateSessionSchema } },
       },
       400: validationErrorResponse,
+      409: trainerConflictResponse,
       500: internalServerErrorResponse,
     },
   },
@@ -426,6 +481,9 @@ const rescheduleRoute = defineRoute(
       'saw: if the session has been changed since, nothing is stored and the answer is `409` ' +
       'with the session as it is now and who changed it last. A cancelled session answers ' +
       '`409` too; a session that is not private or not in the workspace answers `404`. When ' +
+      'the trainer already has a scheduled session of this workspace at the new time (back-to-back ' +
+      'does not overlap), the answer is `409` with the code `trainer_conflict` and those sessions, ' +
+      'unless `allowConflicts` is `true` (PS-07); the version is checked first. When ' +
       '`notify` is on and the new time is not in the past, EM-04 goes to the client after the ' +
       'change is committed, in the client’s email language, else the workspace’s default.',
     security: SIGNED_IN,
@@ -444,8 +502,12 @@ const rescheduleRoute = defineRoute(
       400: validationErrorResponse,
       409: {
         description:
-          'The session was changed after the `version` sent, or it is cancelled. Nothing was stored.',
-        content: { 'application/json': { schema: SessionConflictSchema } },
+          'The session was changed after the `version` sent, or it is cancelled (`session_changed`, ' +
+          '`session_cancelled`), or the trainer already has something at the new time ' +
+          '(`trainer_conflict`). Nothing was stored.',
+        content: {
+          'application/json': { schema: RescheduleRefusalSchema },
+        },
       },
       500: internalServerErrorResponse,
     },
@@ -484,11 +546,31 @@ const listUpcomingRoute = defineRoute(
  * key without one, and not who changed it last (only a refused change names them).
  */
 export function shown(session: SessionView, timeZone: string) {
-  const { startsAt, endsAt, trainer, groupClass, lastChangedBy: _lastChangedBy, ...rest } = session;
+  const {
+    startsAt,
+    endsAt,
+    trainer,
+    groupClass,
+    series,
+    lastChangedBy: _lastChangedBy,
+    ...rest
+  } = session;
+  const rule = series ? parseWeeklyRule(series.rrule) : undefined;
   return {
     ...rest,
     ...(trainer ? { trainer } : {}),
     ...(groupClass ? { groupClass } : {}),
+    ...(series && rule
+      ? {
+          series: {
+            id: series.id,
+            weekday: rule.weekday,
+            localStartTime: series.localStartTime,
+            occurrenceDate: series.occurrenceDate,
+            changedFields: series.detachedFields as DetachedField[],
+          },
+        }
+      : {}),
     startsAt: startsAt.toISOString(),
     endsAt: endsAt.toISOString(),
     timeZone,
@@ -600,6 +682,18 @@ export function registerSessions(app: OpenAPIHono) {
     if (!client) return c.json(NOT_FOUND, 404);
     // `planPrivateSession` planned it only for a trainer who trains here.
     if (!trainer) throw new Error('The trainer of a planned session was not found.');
+    const doubleBooked = await checkDoubleBooking(c, {
+      allowConflicts: body.allowConflicts,
+      surface: body.surface,
+      slots: [
+        {
+          trainerProfileId: trainer.trainerProfileId,
+          startsAt: decision.startsAt,
+          endsAt: decision.endsAt,
+        },
+      ],
+    });
+    if (doubleBooked) return c.json(doubleBooked, 409);
 
     const session = await createPrivateSession(scope, {
       trainerProfileId: trainer.trainerProfileId,
@@ -684,6 +778,24 @@ export function registerSessions(app: OpenAPIHono) {
         }
       }
     }
+    // The save is the check: a form that was open a while warns too. The session's own old time
+    // never counts, and a session without a trainer has nobody to double-book.
+    const trainer = session.trainer ? await findTrainer(scope, session.trainer.id) : undefined;
+    const doubleBooked = await checkDoubleBooking(c, {
+      allowConflicts: body.allowConflicts,
+      surface: body.surface,
+      slots: trainer
+        ? [
+            {
+              trainerProfileId: trainer.trainerProfileId,
+              startsAt: decision.startsAt,
+              endsAt: decision.endsAt,
+              sessionId,
+            },
+          ]
+        : [],
+    });
+    if (doubleBooked) return c.json(doubleBooked, 409);
     // One statement that matches the version: of two saves from the same version, the second
     // finds nothing to change once the first has committed, and gets the session as it is now.
     const moved = await rescheduleSession(scope, {

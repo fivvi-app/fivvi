@@ -3,19 +3,10 @@ import Network
 
 /// A tiny HTTP server in the UI-test runner that stands in for the API. The app reaches it on the simulator's
 /// loopback interface (the Debug build allows plain HTTP), so UI tests can assert what the app requested. It answers
-/// the hello route as the test says (`Answer`), the sign-in routes, `POST /api/v1/sign-out`, `GET /api/v1/me` like the
-/// API does for one account (`SignIn`) and the client routes (`StubClientRoutes`). A test can also cut the connection
-/// (`setOffline`) or hold the sign-in email request to keep the loading state on screen (`holdSignInRequests`).
+/// the sign-in routes, `POST /api/v1/sign-out`, `GET /api/v1/me` like the API does for one account (`SignIn`) and the
+/// client routes (`StubClientRoutes`). A test can also cut the connection (`setOffline`) or hold the sign-in email
+/// request to keep the loading state on screen (`holdSignInRequests`).
 final class StubServer: Sendable {
-    enum Answer: Sendable {
-        /// `200` with this greeting key.
-        case greeting(key: String)
-        /// An error status without a body.
-        case status(Int)
-        /// No answer until `answer(with:)` gives one, so the loading state stays on screen.
-        case hold
-    }
-
     /// A request the app sent: its target, bearer token and JSON body (strings only).
     struct Request: Sendable, Equatable {
         let method: String
@@ -32,11 +23,11 @@ final class StubServer: Sendable {
     private let listener: NWListener
     private let responder: Responder
 
-    init(_ answer: Answer, signIn: SignIn = SignIn()) throws {
+    init(signIn: SignIn = SignIn()) throws {
         let parameters = NWParameters.tcp
         parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(.loopback), port: .any)
         let listener = try NWListener(using: parameters)
-        let responder = Responder(answer, signIn: signIn)
+        let responder = Responder(signIn: signIn)
         let queue = DispatchQueue(label: "app.fivvi.uitests.StubServer")
         let ready = DispatchSemaphore(value: 0)
         listener.stateUpdateHandler = { state in
@@ -61,9 +52,6 @@ final class StubServer: Sendable {
     deinit {
         listener.cancel()
     }
-
-    /// The `locale` query parameter of every `GET /api/v1/hello` so far.
-    var requestedLocales: [String?] { responder.requestedLocales }
 
     /// Every request so far, in order.
     var requests: [Request] { responder.requests }
@@ -145,10 +133,5 @@ final class StubServer: Sendable {
     /// false answers the requests held.
     func holdSignInRequests(_ hold: Bool) {
         responder.holdSignInRequests(hold)
-    }
-
-    /// Answers from now on, and answers the requests on hold (unless the new answer is `.hold` too).
-    func answer(with answer: Answer) {
-        responder.answer(with: answer)
     }
 }

@@ -1,5 +1,4 @@
-import { sql } from 'drizzle-orm';
-import type { Database, DatabaseExecutor } from './client.ts';
+import type pg from 'pg';
 import { SafeError } from './safe-error.ts';
 
 // The database side of the restore drill (E016, spec #479): markers that prove a restore went to
@@ -7,6 +6,17 @@ import { SafeError } from './safe-error.ts';
 // drill script reaches it through `src/scripts/restore.ts`, the one file on the privileged
 // allow-list for the reason `restore`. Nothing here selects a column of a business table: the
 // markers are the drill's own rows, the counts are `count(*)`, and the names come from the catalog.
+// It talks to `pg` directly, with no ORM: the helper starts five times per drill, and the ORM and
+// the schema of the app were most of its start-up (#1309, `restore-startup.test.ts`).
+
+/** A connection of `pg`: a pool or a client. */
+export type Queryable = Pick<pg.Pool, 'query'>;
+
+/** What `countTables` needs: a pool, from which it takes one connection for its transaction. */
+export type Countable = Pick<pg.Pool, 'connect'>;
+
+/** An identifier of the catalog, quoted for a statement. */
+const identifier = (name: string) => `"${name.replaceAll('"', '""')}"`;
 
 /** The drill table, owned by the privileged role. Created by the first marker, dropped by `removeDrill`. */
 export const DRILL_TABLE = 'restore_drill_markers';
@@ -29,28 +39,34 @@ export interface MarkerReport {
  * point in time the marker is for; the row also holds the database's own clock. Writing a kind
  * again replaces its row.
  */
-export async function writeMarker(db: Database, kind: MarkerKind, point: Date): Promise<void> {
+export async function writeMarker(db: Queryable, kind: MarkerKind, point: Date): Promise<void> {
   if (!MARKER_KINDS.includes(kind)) throw new Error('A marker is "before" or "after".');
-  await db.execute(sql`
-    create table if not exists ${sql.identifier(DRILL_TABLE)} (
+  await db.query(`
+    create table if not exists ${identifier(DRILL_TABLE)} (
       kind text primary key check (kind in ('before', 'after')),
       point timestamptz not null,
       written_at timestamptz not null default now()
     )`);
-  await db.execute(sql`
-    insert into ${sql.identifier(DRILL_TABLE)} (kind, point) values (${kind}, ${point.toISOString()}::timestamptz)
-    on conflict (kind) do update set point = excluded.point, written_at = now()`);
+  await db.query(
+    `insert into ${identifier(DRILL_TABLE)} (kind, point) values ($1, $2::timestamptz)
+    on conflict (kind) do update set point = excluded.point, written_at = now()`,
+    [kind, point.toISOString()],
+  );
+}
+
+/** Whether the drill table is there. */
+async function drillTableExists(db: Queryable): Promise<boolean> {
+  const { rows } = await db.query<{ found: boolean }>(
+    'select to_regclass($1) is not null as found',
+    [`public.${DRILL_TABLE}`],
+  );
+  return rows[0]?.found === true;
 }
 
 /** Which markers a database holds. A database without the drill table holds neither. */
-export async function checkMarkers(db: Database): Promise<MarkerReport> {
-  const exists = await db.execute<{ found: boolean }>(
-    sql`select to_regclass(${`public.${DRILL_TABLE}`}) is not null as found`,
-  );
-  if (!exists.rows[0]?.found) return { before: false, after: false, ok: false };
-  const { rows } = await db.execute<{ kind: string }>(
-    sql`select kind from ${sql.identifier(DRILL_TABLE)}`,
-  );
+export async function checkMarkers(db: Queryable): Promise<MarkerReport> {
+  if (!(await drillTableExists(db))) return { before: false, after: false, ok: false };
+  const { rows } = await db.query<{ kind: string }>(`select kind from ${identifier(DRILL_TABLE)}`);
   const kinds = new Set(rows.map((row) => row.kind));
   const before = kinds.has('before');
   const after = kinds.has('after');
@@ -58,12 +74,10 @@ export async function checkMarkers(db: Database): Promise<MarkerReport> {
 }
 
 /** Drops the drill table with its markers. Returns whether there was one. */
-export async function removeDrill(db: Database): Promise<boolean> {
-  const exists = await db.execute<{ found: boolean }>(
-    sql`select to_regclass(${`public.${DRILL_TABLE}`}) is not null as found`,
-  );
-  await db.execute(sql`drop table if exists ${sql.identifier(DRILL_TABLE)}`);
-  return exists.rows[0]?.found === true;
+export async function removeDrill(db: Queryable): Promise<boolean> {
+  const existed = await drillTableExists(db);
+  await db.query(`drop table if exists ${identifier(DRILL_TABLE)}`);
+  return existed;
 }
 
 export interface TableCount {
@@ -82,9 +96,9 @@ export interface TableCount {
  * force row-level security, so for any other role `count(*)` would silently count the rows the
  * policies allow (none), and a restore would look empty.
  */
-async function assertSeesEveryRow(db: DatabaseExecutor): Promise<void> {
-  const { rows } = await db.execute<{ sees_all: boolean }>(
-    sql`select (rolsuper or rolbypassrls) as sees_all from pg_roles where rolname = current_user`,
+async function assertSeesEveryRow(db: Queryable): Promise<void> {
+  const { rows } = await db.query<{ sees_all: boolean }>(
+    'select (rolsuper or rolbypassrls) as sees_all from pg_roles where rolname = current_user',
   );
   if (rows[0]?.sees_all !== true) {
     throw new SafeError(
@@ -98,52 +112,63 @@ async function assertSeesEveryRow(db: DatabaseExecutor): Promise<void> {
  * the drill table. `at` also counts the rows changed after that point. Reads in one
  * repeatable-read, read-only transaction, so the counts are of one moment.
  */
-export function countTables(db: Database, at?: Date): Promise<TableCount[]> {
-  return db.transaction(
-    async (tx) => {
-      await assertSeesEveryRow(tx);
-      const tables = await tx.execute<{ table_schema: string; table_name: string }>(sql`
-        select table_schema, table_name from information_schema.tables
-        where table_type = 'BASE TABLE'
-          and table_schema not in ('pg_catalog', 'information_schema')
-          and table_schema not like 'pg\\_toast%'
-          and not (table_schema = 'public' and table_name = ${DRILL_TABLE})
-        order by table_schema, table_name`);
-      const counts: TableCount[] = [];
-      for (const { table_schema: schema, table_name: name } of tables.rows) {
-        const target = sql`${sql.identifier(schema)}.${sql.identifier(name)}`;
-        const total = await tx.execute<{ n: string }>(
-          sql`select count(*)::text as n from ${target}`,
-        );
-        let changedAfter = 0;
-        if (at) {
-          const columns = await tx.execute<{ column_name: string }>(sql`
-            select column_name from information_schema.columns
-            where table_schema = ${schema} and table_name = ${name}
-              and column_name in ('created_at', 'updated_at')
-              and data_type = 'timestamp with time zone'`);
-          if (columns.rows.length > 0) {
-            const stamp = sql`${at.toISOString()}::timestamptz`;
-            const later = sql.join(
-              columns.rows.map((column) => sql`${sql.identifier(column.column_name)} > ${stamp}`),
-              sql` or `,
-            );
-            const changed = await tx.execute<{ n: string }>(
-              sql`select count(*)::text as n from ${target} where ${later}`,
-            );
-            changedAfter = Number(changed.rows[0]?.n ?? 0);
-          }
-        }
-        counts.push({
-          table: `${schema}.${name}`,
-          rows: Number(total.rows[0]?.n ?? 0),
-          changedAfter,
-        });
-      }
-      return counts;
-    },
-    { isolationLevel: 'repeatable read', accessMode: 'read only' },
+export async function countTables(pool: Countable, at?: Date): Promise<TableCount[]> {
+  const tx = await pool.connect();
+  try {
+    await tx.query('begin isolation level repeatable read read only');
+    const counts = await countInTransaction(tx, at);
+    await tx.query('commit');
+    return counts;
+  } catch (error) {
+    await tx.query('rollback').catch(() => {});
+    throw error;
+  } finally {
+    tx.release();
+  }
+}
+
+async function countInTransaction(tx: Queryable, at: Date | undefined): Promise<TableCount[]> {
+  await assertSeesEveryRow(tx);
+  const tables = await tx.query<{ table_schema: string; table_name: string }>(
+    `select table_schema, table_name from information_schema.tables
+      where table_type = 'BASE TABLE'
+        and table_schema not in ('pg_catalog', 'information_schema')
+        and table_schema not like 'pg\\_toast%'
+        and not (table_schema = 'public' and table_name = $1)
+      order by table_schema, table_name`,
+    [DRILL_TABLE],
   );
+  const counts: TableCount[] = [];
+  for (const { table_schema: schema, table_name: name } of tables.rows) {
+    const target = `${identifier(schema)}.${identifier(name)}`;
+    const total = await tx.query<{ n: string }>(`select count(*)::text as n from ${target}`);
+    let changedAfter = 0;
+    if (at) {
+      const columns = await tx.query<{ column_name: string }>(
+        `select column_name from information_schema.columns
+          where table_schema = $1 and table_name = $2
+            and column_name in ('created_at', 'updated_at')
+            and data_type = 'timestamp with time zone'`,
+        [schema, name],
+      );
+      if (columns.rows.length > 0) {
+        const later = columns.rows
+          .map((column) => `${identifier(column.column_name)} > $1::timestamptz`)
+          .join(' or ');
+        const changed = await tx.query<{ n: string }>(
+          `select count(*)::text as n from ${target} where ${later}`,
+          [at.toISOString()],
+        );
+        changedAfter = Number(changed.rows[0]?.n ?? 0);
+      }
+    }
+    counts.push({
+      table: `${schema}.${name}`,
+      rows: Number(total.rows[0]?.n ?? 0),
+      changedAfter,
+    });
+  }
+  return counts;
 }
 
 export type CountStatus =
