@@ -140,12 +140,26 @@ const github = ({
 
 describe('pr.sh merge', () => {
   const gh = fakeGh();
-  after(() => gh.cleanup());
+  const switchDir = mkdtempSync(join(tmpdir(), 'pr-merge-switch-'));
+  after(() => {
+    gh.cleanup();
+    rmSync(switchDir, { recursive: true, force: true });
+  });
 
-  const merge = (rules, args = []) => {
+  // The switch of these tests: the merge queue (ADR-018) unless a test says `merge: direct` (ADR-035), with the committed
+  // review setting, so the tests do not follow the setting of the repo.
+  const switchFile = (mergeSetting) => {
+    const file = join(switchDir, `pipeline-${mergeSetting}.json`);
+    writeFileSync(
+      file,
+      JSON.stringify({ ci: 'lean', review: 'split', builders: 1, merge: mergeSetting }),
+    );
+    return file;
+  };
+  const merge = (rules, args = [], env = {}) => {
     const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['merge', ...args], {
       encoding: 'utf8',
-      env: gh.env(rules),
+      env: { ...gh.env(rules), FIVVI_PIPELINE_FILE: switchFile('queue'), ...env },
     });
     const bodies = gh
       .calls()
@@ -228,6 +242,51 @@ describe('pr.sh merge', () => {
       !result.calls.some((call) => new RegExp(ENQUEUE).test(call)),
       result.calls.join('\n'),
     );
+  });
+
+  // ADR-034 decision 4: a standards-only review record merges only a low-risk PR while review is split.
+  describe('ADR-034: a standards-only review record', () => {
+    const STANDARDS = `Closes #57\n\n**Self-review:** standards reviewer clean on \`${HEAD}\` (standards only) ✅\n\n${NO_PREVIEW}`;
+    const MIGRATION = 'packages/database/migrations/0004.sql';
+    const settings = (review) => {
+      const dir = mkdtempSync(join(tmpdir(), 'pr-pipeline-'));
+      const file = join(dir, 'pipeline.json');
+      if (review !== undefined) writeFileSync(file, JSON.stringify({ ci: 'fast', review }));
+      return { FIVVI_PIPELINE_FILE: file };
+    };
+
+    it('queues a low-risk PR while review is split (the committed setting)', () => {
+      const result = merge(github({ body: STANDARDS }));
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /✓ self-review clean: .*standards axis only/);
+    });
+
+    it('refuses a high-risk PR, which needs both axes', () => {
+      const result = merge(github({ body: STANDARDS, files: [MIGRATION] }));
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /✗ self-review clean: .*both axes/);
+      assert.ok(!result.calls.some((call) => new RegExp(ENQUEUE).test(call)));
+    });
+
+    it('refuses when review is per-pr', () => {
+      const result = merge(github({ body: STANDARDS }), [], settings('per-pr'));
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /✗ self-review clean: .*per-pr/);
+      assert.ok(!result.calls.some((call) => new RegExp(ENQUEUE).test(call)));
+    });
+
+    it('refuses when the setting cannot be read (fail closed)', () => {
+      const result = merge(github({ body: STANDARDS }), [], settings(undefined));
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /✗ self-review clean/);
+    });
+
+    it('still queues a record of both axes whatever the setting', () => {
+      for (const review of ['per-pr', undefined]) {
+        const result = merge(github(), [], settings(review));
+        assert.equal(result.status, 0, `${review}: ${result.stderr}`);
+      }
+    });
   });
 
   describe('ADR-021: a high-risk PR', () => {
@@ -315,6 +374,130 @@ describe('pr.sh merge', () => {
     it('a low-risk PR gets no such record', () => {
       const result = merge(github());
       assert.ok(result.bodies.every((body) => !body.includes('High-risk agent merge')));
+    });
+  });
+
+  // ADR-035: with `merge: direct` there is no merge queue; pr.sh merge squash-merges the PR itself, after the whole gate.
+  describe('ADR-035: merge direct', () => {
+    const direct = { FIVVI_PIPELINE_FILE: switchFile('direct') };
+    const noQueue = () => github({ queue: queueFacts({ state: 'MERGED', queueEnabled: false }) });
+    const enqueued = (result) => result.calls.some((call) => new RegExp(ENQUEUE).test(call));
+    const squashed = (result) =>
+      result.calls.some((call) =>
+        new RegExp(`^pr merge 60 --repo [^ ]+ --squash --match-head-commit ${HEAD}$`).test(call),
+      );
+
+    it('runs the whole merge gate, then squash-merges with the head commit pinned, and enqueues nothing', () => {
+      const result = merge(noQueue(), [], direct);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /✓ not owner-only/);
+      assert.match(result.stdout, /✓ self-review clean/);
+      assert.match(result.stdout, /✅ PR #60 squash-merged/);
+      assert.ok(squashed(result), result.calls.join('\n'));
+      assert.ok(!enqueued(result), result.calls.join('\n'));
+      assert.doesNotMatch(result.stderr, /⚠/, 'no warning when the setting and GitHub agree');
+    });
+
+    it('merges nothing when a condition of the gate fails, and the PR stays for the owner', () => {
+      const result = merge(
+        github({ files: ['scripts/pr.sh'], body: '', queue: queueFacts({ queueEnabled: false }) }),
+        [],
+        direct,
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /PR #60 stays for the owner: not owner-only, self-review clean/);
+      assert.ok(!result.calls.some((call) => /^pr merge/.test(call)), result.calls.join('\n'));
+      assert.ok(!enqueued(result));
+    });
+
+    it('warns in one line when GitHub still has a merge queue (the ruleset is not applied yet), and goes by GitHub', () => {
+      const result = merge(github(), [], direct);
+      assert.equal(result.status, 0, result.stderr);
+      const warnings = result.stderr.split('\n').filter((line) => line.startsWith('⚠'));
+      assert.equal(warnings.length, 1, result.stderr);
+      assert.match(warnings[0], /merge: direct/);
+      assert.match(warnings[0], /merge queue/);
+      assert.match(warnings[0], /scripts\/github-settings\.sh apply/);
+      assert.ok(enqueued(result), 'went by what GitHub has: the queue');
+      assert.ok(!result.calls.some((call) => /^pr merge 60 .*--squash/.test(call)));
+    });
+
+    it('with merge: queue and a branch without a queue, warns the same way and squash-merges', () => {
+      const result = merge(noQueue());
+      assert.equal(result.status, 0, result.stderr);
+      const warnings = result.stderr.split('\n').filter((line) => line.startsWith('⚠'));
+      assert.equal(warnings.length, 1, result.stderr);
+      assert.match(warnings[0], /merge: queue/);
+      assert.match(warnings[0], /no merge queue/);
+      assert.ok(squashed(result));
+    });
+
+    it('with merge: queue and a queue, no warning', () => {
+      const result = merge(github());
+      assert.equal(result.status, 0, result.stderr);
+      assert.doesNotMatch(result.stderr, /⚠/);
+    });
+
+    it('a setting it cannot read gives no warning: it goes by GitHub', () => {
+      const result = merge(github(), [], {
+        FIVVI_PIPELINE_FILE: join(switchDir, 'missing.json'),
+      });
+      assert.doesNotMatch(result.stderr, /merge: (queue|direct)/);
+      assert.ok(enqueued(result));
+    });
+
+    it('refuses --after with a clear message, before anything is read or recorded: there is no queue to re-queue in', () => {
+      const result = merge(noQueue(), ['--after', '353'], direct);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /--after/);
+      assert.match(result.stderr, /merge: direct/);
+      assert.match(result.stderr, /no merge queue/);
+      assert.match(result.stderr, /fix.*push.*pr\.sh merge/i);
+      assert.deepEqual(result.bodies, []);
+      assert.ok(
+        !result.calls.some((call) => /^pr merge/.test(call) || new RegExp(ENQUEUE).test(call)),
+      );
+    });
+
+    it('with the merge queue, --after still works as before', () => {
+      // The existing --after tests run with merge: queue (the helper default); this one only pins the refusal is not general.
+      const result = merge(noQueue(), ['--after', '353']);
+      assert.doesNotMatch(result.stderr, /merge: direct/);
+    });
+
+    it('when GitHub refuses because the branch is behind main, says so and points to the Refresh steps', () => {
+      const result = merge(
+        [
+          { match: '^pr merge 60 ', out: 'Pull request is not mergeable', status: 1 },
+          { match: '^pr view 60 .*--json mergeStateStatus', out: { mergeStateStatus: 'BEHIND' } },
+          ...github({ queue: queueFacts({ queueEnabled: false }) }),
+        ],
+        [],
+        direct,
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /PR #60 is behind main/);
+      assert.match(result.stderr, /Refresh/);
+      assert.match(result.stderr, /merge origin\/main/);
+      assert.match(result.stderr, /CI/);
+      assert.match(result.stderr, /pr\.sh merge/);
+      assert.doesNotMatch(result.stderr, /merge failed/);
+      assert.deepEqual(result.bodies, []);
+    });
+
+    it('any other refusal keeps the plain "merge failed" message, with GitHub\'s words', () => {
+      const result = merge(
+        [
+          { match: '^pr merge 60 ', out: 'not allowed', status: 1 },
+          { match: '^pr view 60 .*--json mergeStateStatus', out: { mergeStateStatus: 'BLOCKED' } },
+          ...github({ queue: queueFacts({ queueEnabled: false }) }),
+        ],
+        [],
+        direct,
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /merge failed: not allowed/);
+      assert.doesNotMatch(result.stderr, /behind main/);
     });
   });
 
@@ -774,18 +957,21 @@ describe('pr.sh reviewed', () => {
   const reviewed = (
     prHead,
     body = { out: { body: `Closes #57\n\n${OLD_RECORD}` } },
-    { args = [], risk = [] } = {},
+    { args = [], risk = [], env = {} } = {},
   ) => {
     const result = spawnSync(join(repo, 'scripts/pr.sh'), ['reviewed', ...args], {
       cwd: repo,
       encoding: 'utf8',
-      env: gh.env([
-        ...risk,
-        { match: '^pr list ', out: [{ number: 60 }] },
-        { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: prHead } },
-        { match: '^pr view 60 .*--json body', ...body },
-        { match: '^pr edit 60 ', out: '' },
-      ]),
+      env: {
+        ...gh.env([
+          ...risk,
+          { match: '^pr list ', out: [{ number: 60 }] },
+          { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: prHead } },
+          { match: '^pr view 60 .*--json body', ...body },
+          { match: '^pr edit 60 ', out: '' },
+        ]),
+        ...env,
+      },
     });
     const edits = gh.calls().filter((call) => call.args[1] === 'edit');
     const bodies = edits.map((call) => call.args[call.args.indexOf('--body') + 1]);
@@ -896,6 +1082,108 @@ describe('pr.sh reviewed', () => {
         const result = reviewed(git('rev-parse', 'HEAD'), undefined, { args, risk: LOW });
         assert.equal(result.status, 1, args.join(' '));
         assert.match(result.stderr, /pr\.sh reviewed \[--should-fix <n>\]/);
+        assert.deepEqual(result.edits, []);
+      }
+    });
+  });
+
+  // ADR-034 decision 4: --axes standards records the standards axis only, for a low-risk PR while review is split.
+  describe('ADR-034: review axes', () => {
+    const LOW = riskRules([{ filename: 'apps/web/page.tsx' }]);
+    const HIGH = riskRules([
+      { filename: 'apps/web/page.tsx' },
+      { filename: 'packages/database/migrations/0004.sql' },
+    ]);
+    const setting = (review) => {
+      const file = join(mkdtempSync(join(tmpdir(), 'pr-pipeline-')), 'pipeline.json');
+      if (review !== undefined) writeFileSync(file, JSON.stringify({ ci: 'fast', review }));
+      return { FIVVI_PIPELINE_FILE: file };
+    };
+
+    it('records the standards axis only, naming it, for a low-risk PR while review is split', () => {
+      const head = git('rev-parse', 'HEAD');
+      const result = reviewed(head, undefined, {
+        args: ['--axes', 'standards'],
+        risk: LOW,
+        env: setting('split'),
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(result.bodies, [
+        `Closes #57\n\n**Self-review:** standards reviewer clean on \`${head}\` (standards only) ✅`,
+      ]);
+    });
+
+    it('combines with --should-fix', () => {
+      const head = git('rev-parse', 'HEAD');
+      const result = reviewed(head, undefined, {
+        args: ['--axes', 'standards', '--should-fix', '2'],
+        risk: LOW,
+        env: setting('split'),
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(
+        result.bodies[0],
+        /\(standards only\) ✅ \(low risk: 2 should-fix findings left as follow-ups, ADR-033\)$/,
+      );
+    });
+
+    it('--axes both is the default record', () => {
+      const head = git('rev-parse', 'HEAD');
+      for (const env of [setting('split'), setting('per-pr')]) {
+        const result = reviewed(head, undefined, { args: ['--axes', 'both'], risk: HIGH, env });
+        assert.equal(result.status, 0, result.stderr);
+        assert.deepEqual(result.bodies, [
+          `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${head}\` ✅`,
+        ]);
+      }
+    });
+
+    it('refuses a high-risk or owner-only PR: it needs both axes', () => {
+      const OWNER = riskRules([{ filename: 'scripts/pr.sh' }]);
+      for (const risk of [HIGH, OWNER]) {
+        const result = reviewed(git('rev-parse', 'HEAD'), undefined, {
+          args: ['--axes', 'standards'],
+          risk,
+          env: setting('split'),
+        });
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /standards axis only.*low-risk.*both axes/);
+        assert.deepEqual(result.edits, []);
+      }
+    });
+
+    it('refuses when review is per-pr or the setting cannot be read', () => {
+      for (const review of ['per-pr', undefined]) {
+        const result = reviewed(git('rev-parse', 'HEAD'), undefined, {
+          args: ['--axes', 'standards'],
+          risk: LOW,
+          env: setting(review),
+        });
+        assert.equal(result.status, 1, String(review));
+        assert.match(result.stderr, /standards axis only.*split/);
+        assert.deepEqual(result.edits, []);
+      }
+    });
+
+    it("refuses when the risk can't be read, never reading it as low", () => {
+      const result = reviewed(git('rev-parse', 'HEAD'), undefined, {
+        args: ['--axes', 'standards'],
+        risk: [{ match: '^api repos/[^ ]+/pulls/60/files', out: '', status: 1 }],
+        env: setting('split'),
+      });
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /could not decide the risk of PR #60/);
+      assert.deepEqual(result.edits, []);
+    });
+
+    it('rejects an unknown axes value', () => {
+      for (const args of [['--axes'], ['--axes', 'spec'], ['--axes', 'standards,spec']]) {
+        const result = reviewed(git('rev-parse', 'HEAD'), undefined, { args, risk: LOW });
+        assert.equal(result.status, 1, args.join(' '));
+        assert.match(
+          result.stderr,
+          /pr\.sh reviewed \[--should-fix <n>\] \[--axes standards\|both\]/,
+        );
         assert.deepEqual(result.edits, []);
       }
     });
@@ -1829,6 +2117,25 @@ describe('E002 #107 pr.sh ready', () => {
     const result = ready({ files: ['packages/database/migrations/0004.sql'] });
     assert.equal(result.status, 0, result.stderr);
   });
+
+  // ADR-034: ready reads the real risk when the review record covers the standards axis only.
+  describe('ADR-034: a standards-only review record', () => {
+    const STANDARDS = `**Self-review:** standards reviewer clean on \`${HEAD}\` (standards only) ✅`;
+    it('marks a low-risk draft ready while review is split', () => {
+      const result = ready({ body: `Closes #57\n\n${STANDARDS}\n\n${NO_PREVIEW}` });
+      assert.equal(result.status, 0, result.stderr);
+    });
+
+    it('refuses a high-risk draft, which needs both axes', () => {
+      refuses(
+        {
+          body: `Closes #57\n\n${STANDARDS}\n\n${NO_PREVIEW}`,
+          files: ['packages/database/migrations/0004.sql'],
+        },
+        /self-review clean \(.*both axes/,
+      );
+    });
+  });
 });
 
 describe('E002 #107 pr.sh ship', () => {
@@ -1932,25 +2239,25 @@ describe('E002 #107 pr.sh ship', () => {
     assert.ok(!result.calls.some((call) => /^pr ready/.test(call)));
   });
 
-  it('E002 #107 AC2: waits up to 165 minutes when iOS or Android run, 20 otherwise', () => {
+  it('E002 #107 AC2: waits up to 165 minutes when iOS or Android run, 40 otherwise', () => {
     const native = ship();
     assert.match(native.stdout, /up to 165 min/);
     const rollup = ['Detect changes', 'Checks (Linux)', 'E2E (Linux)'].map((name) =>
       checkRun(name),
     );
     const linux = ship({ ci: checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']), rollup });
-    assert.match(linux.stdout, /up to 20 min/);
+    assert.match(linux.stdout, /up to 40 min/);
     assert.doesNotMatch(linux.stdout, /up to 165 min/);
   });
 
-  it('E002 #107 AC2: keeps the 20-minute wait when the native jobs are skipped, as they are in most PRs', () => {
+  it('E002 #107 AC2: keeps the 40-minute wait when the native jobs are skipped, as they are in most PRs', () => {
     const ci = [
       ...checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']),
       ...checks(['iOS', 'Android'], 'skipping'),
     ];
     const result = ship({ ci });
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /up to 20 min/);
+    assert.match(result.stdout, /up to 40 min/);
     assert.doesNotMatch(result.stdout, /up to 165 min/);
   });
 
@@ -2099,7 +2406,7 @@ describe('E002 #107 pr.sh ship', () => {
     it('AC1: raises the limit when only a part such as iOS build is pending, before the gate is listed', () => {
       const result = ship({ ci: [...base, ...checks(['iOS build'], 'pending')] });
       assert.equal(result.status, 0, result.stderr);
-      assert.match(result.stdout, /waiting up to 20 min for CI on/);
+      assert.match(result.stdout, /waiting up to 40 min for CI on/);
       assert.ok(limit(result, 'iOS') > 20, result.stdout);
     });
 
@@ -2116,14 +2423,14 @@ describe('E002 #107 pr.sh ship', () => {
       assert.ok(limit(result, 'Android') > 20, result.stdout);
     });
 
-    it('AC2: keeps the 20-minute wait when every native part is skipping', () => {
+    it('AC2: keeps the 40-minute wait when every native part is skipping', () => {
       const ci = [
         ...base,
         ...checks(['iOS', 'iOS build', 'iOS tests (nl)', 'Android', 'Android Maestro'], 'skipping'),
       ];
       const result = ship({ ci });
       assert.equal(result.status, 0, result.stderr);
-      assert.match(result.stdout, /waiting up to 20 min for CI on/);
+      assert.match(result.stdout, /waiting up to 40 min for CI on/);
       assert.doesNotMatch(result.stdout, /iOS run|Android run/);
     });
 
@@ -2135,7 +2442,7 @@ describe('E002 #107 pr.sh ship', () => {
       const result = ship({ ci });
       assert.equal(result.status, 0, result.stderr);
       assert.doesNotMatch(result.stdout, /iOS run|Android run/);
-      assert.match(result.stdout, /waiting up to 20 min for CI on/);
+      assert.match(result.stdout, /waiting up to 40 min for CI on/);
     });
   });
 
@@ -2259,5 +2566,123 @@ describe('E002 #107 pr.sh ship', () => {
     assert.equal(result.status, 1);
     assert.match(result.stderr, /pr\.sh ship \[--timeout <minutes>\]/);
     assert.ok(!result.calls.some((call) => /^pr (checks|edit|ready)/.test(call)));
+  });
+});
+
+// #1274 (spec #1481): pr.sh refreshed records, in the PR body, that main was merged into the branch.
+describe('#1274 pr.sh refreshed', () => {
+  const gh = fakeGh();
+  let repo;
+  let mainSha;
+  const git = (...args) =>
+    execFileSync(
+      'git',
+      ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+      { encoding: 'utf8' },
+    ).trim();
+
+  before(() => {
+    repo = realpathSync(mkdtempSync(join(tmpdir(), 'pr-refreshed-')));
+    execFileSync('git', ['init', '--quiet', '--initial-branch=feature/57-hold-a-spot', repo]);
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'chore(E001): main');
+    mainSha = git('rev-parse', 'HEAD');
+    git('update-ref', 'refs/remotes/origin/main', mainSha);
+    git('remote', 'add', 'origin', 'https://github.com/example/fivvi.git');
+    // The branch's own work, then the merge of main (here a merge commit with main as its second parent).
+    writeFileSync(join(repo, 'work.txt'), 'work\n');
+    git('add', 'work.txt');
+    git('commit', '--quiet', '-m', 'feat(E001): the branch work');
+    git('merge', '--no-ff', '--quiet', '-m', 'Merge origin/main', 'origin/main');
+  });
+  after(() => {
+    gh.cleanup();
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  const REFRESHED = (sha) => `🔄 **Refreshed:** merged main at \`${sha}\``;
+  const refreshed = (prHead, body = 'Closes #57', env = {}) => {
+    const result = spawnSync(join(repo, 'scripts/pr.sh'), ['refreshed'], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: {
+        ...gh.env([
+          { match: '^pr list ', out: [{ number: 60 }] },
+          { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: prHead } },
+          { match: '^pr view 60 .*--json body', out: { body } },
+          { match: '^pr edit 60 ', out: '' },
+        ]),
+        ...env,
+      },
+    });
+    const edits = gh.calls().filter((call) => call.args[1] === 'edit');
+    return {
+      ...result,
+      edits,
+      bodies: edits.map((call) => call.args[call.args.indexOf('--body') + 1]),
+    };
+  };
+
+  it('AC2: records `🔄 **Refreshed:** merged main at <sha>` in the PR body, after the rest of it', () => {
+    const result = refreshed(git('rev-parse', 'HEAD'), 'Closes #57\n\n**Self-review:** old');
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.bodies, [
+      `Closes #57\n\n**Self-review:** old\n\n${REFRESHED(mainSha)}`,
+    ]);
+  });
+
+  it('keeps the records of earlier refreshes and does not write the same one twice', () => {
+    const head = git('rev-parse', 'HEAD');
+    const earlier = `Closes #57\n\n${REFRESHED('e'.repeat(40))}`;
+    assert.deepEqual(refreshed(head, earlier).bodies, [`${earlier}\n\n${REFRESHED(mainSha)}`]);
+    const again = refreshed(head, `Closes #57\n\n${REFRESHED(mainSha)}`);
+    assert.equal(again.status, 0, again.stderr);
+    assert.deepEqual(again.edits, []);
+  });
+
+  it('refuses when origin/main is not merged into the branch (merge again first)', () => {
+    git(
+      'update-ref',
+      'refs/remotes/origin/main',
+      git('commit-tree', '-p', mainSha, '-m', 'later', `${mainSha}^{tree}`),
+    );
+    try {
+      const result = refreshed(git('rev-parse', 'HEAD'));
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /origin\/main \([0-9a-f]{7}\) is not merged into this branch/);
+      assert.deepEqual(result.edits, []);
+    } finally {
+      git('update-ref', 'refs/remotes/origin/main', mainSha);
+    }
+  });
+
+  it('refuses when the local commit is not the PR head, or the tree is dirty', () => {
+    const result = refreshed('d'.repeat(40));
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /is not the PR head ddddddd/);
+    writeFileSync(join(repo, 'dirty.txt'), 'x');
+    try {
+      const dirty = refreshed(git('rev-parse', 'HEAD'));
+      assert.equal(dirty.status, 1);
+      assert.match(dirty.stderr, /uncommitted changes/);
+    } finally {
+      rmSync(join(repo, 'dirty.txt'));
+    }
+  });
+
+  it("leaves the body alone when it can't read it", () => {
+    const result = spawnSync(join(repo, 'scripts/pr.sh'), ['refreshed'], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: gh.env([
+        { match: '^pr list ', out: [{ number: 60 }] },
+        { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: git('rev-parse', 'HEAD') } },
+        { match: '^pr view 60 .*--json body', out: '', status: 1 },
+      ]),
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /could not read the body of PR #60/);
+    assert.equal(gh.calls().filter((call) => call.args[1] === 'edit').length, 0);
   });
 });

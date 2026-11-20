@@ -10,9 +10,7 @@ final class LanguageUITests: SignInUITestCase {
     private func apiLocale(_ language: String) -> String { TestCatalog(language).apiLocale }
 
     private func launchSignedIn(_ stored: String? = nil, device: String) throws -> (SignInScreen, StubServer) {
-        let server = try StubServer(
-            .greeting(key: "hello.title"), signIn: StubServer.SignIn(preferredLocale: stored)
-        )
+        let server = try StubServer(signIn: StubServer.SignIn(preferredLocale: stored))
         return (SignInScreen.launch(against: server, session: .signedIn, deviceLanguages: [device]), server)
     }
 
@@ -88,7 +86,7 @@ final class LanguageUITests: SignInUITestCase {
 
     func test_F010_AC4_signedOutChoiceKeptLocally() throws {
         let configured = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server, deviceLanguages: [other])
         XCTAssertTrue(screen.email.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.title.label, TestCatalog(other)["signIn.title"])

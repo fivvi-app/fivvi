@@ -18,8 +18,10 @@ export async function generateMetadata(): Promise<Metadata> {
  * sign-in: a visitor who is not signed in goes to TW-10 and comes back here (`returnTo`). Signed in
  * with the address the invitation is for, the person answers it; with another address they read the
  * masked address and can sign out. What is read of the invitation (`GET /v1/invitations/{token}`)
- * is the workspace's name, the inviter's name, the masked address and whether it is for the signed-in
- * account (`forYou`), and nothing else.
+ * is the workspace's name, the inviter's name, the address (`email`, which TW-10 uses to open with
+ * the address filled in), its masked form and whether it is for the signed-in account (`forYou`).
+ * This page passes only `maskedEmail` to the card; the plain address never reaches the page's
+ * markup.
  */
 export default async function InvitationPage({ params }: PageProps<'/invitations/[token]'>) {
   const { token } = await params;

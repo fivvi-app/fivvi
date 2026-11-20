@@ -5,7 +5,7 @@ import XCTest
 final class SignOutUITests: SignInUITestCase {
     func test_F001N_AC10_signOutShowsSignIn() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server, session: .signedIn)
         XCTAssertTrue(screen.signedInAs.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.signOut.label, catalog["signOut.label"])
@@ -29,7 +29,7 @@ final class SignOutUITests: SignInUITestCase {
     }
 
     func test_F001N_AC10_signOutOfflineStillShowsSignIn() throws {
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server, session: .signedIn)
         XCTAssertTrue(screen.signedInAs.waitUntilExists(timeout: timeout))
         server.setOffline(true)

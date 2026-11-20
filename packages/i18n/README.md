@@ -17,7 +17,7 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 
 ## Adding or changing a string
 
-1. Add the key to **both** `nl-NL.json` and `en.json`, following `GLOSSARY.md §6`. Add context to `comments.json` when the string is ambiguous.
+1. Add the key to **both** `nl-NL.json` and `en.json`, following `GLOSSARY.md §6`. Add context to `comments.json` when the string is ambiguous. The three files keep their keys **sorted** at every level (so two PRs that add a key don't conflict): after adding keys run `pnpm --filter @fivvi/i18n sort`, which writes them sorted and changes no text; the `sorted` check fails on an unsorted file and names that command.
 2. `pnpm --filter @fivvi/i18n generate` and commit the regenerated `generated/` files.
 3. `pnpm check` must pass.
 
@@ -100,11 +100,12 @@ The `no-hard-coded-jsx-text` Biome plugin (registered in `apps/web/biome.json`) 
 
 ## Checks
 
-`pnpm check` (turbo) runs `node src/cli.ts check` in this package. Run one check with `pnpm --filter @fivvi/i18n check:parity`, `check:icu`, `check:generated` or `check:no-literal-trainer`.
+`pnpm check` (turbo) runs `node src/cli.ts check` in this package. Run one check with `pnpm --filter @fivvi/i18n check:parity`, `check:icu`, `check:generated`, `check:no-literal-trainer` or `check:sorted`.
 
 | Check | Fails when |
 |---|---|
 | `parity` | A key exists in one locale only, the locales use different placeholders, a key name is invalid, two keys map to the same Android name, or `comments.json` names an unknown key |
 | `icu` | A message doesn't parse, or uses ICU the exporters can't convert (see above) |
 | `generated` | A file in `generated/` differs from what the generator writes, is missing, or shouldn't exist |
+| `sorted` | The keys of `en.json`, `nl-NL.json` or `comments.json` are not in sorted order at some object level (plain code-unit order, `Array.prototype.sort()`; `comments.json` is flat, with dot-path keys). The failure names the first key out of order per level and `pnpm --filter @fivvi/i18n sort` |
 | `no-literal-trainer` | A message says *trainer* literally (any case, so *trainers* and *Trainersnotities* too) and its key isn't on the allowlist in `src/tools/no-literal-trainer-allowlist.ts`; or an allowlist entry has no reason, is listed twice, names a ticket that isn't one of spec #588, or no message needs it any more. Only a message's text counts, not a placeholder called `{trainer}`; the `trainerWord.*` messages are the words themselves. An entry is **for good** (a screen with no workspace, the public website's copy: a key prefix), **for now** (one key, "moves with #<ticket>": that ticket takes the entry off) or **not the role** (`scope: 'not-the-role'`: one exact key whose text contains *trainer* but doesn't mean the role, like the equipment *crosstrainer* and *hometrainer*; a reason on each entry, and another key with the same text still fails) |

@@ -1,3 +1,7 @@
+// Module: A location's address: the Dutch postcode normalized to `1234 AB`, the house number of one
+//        to five digits, all or nothing
+// Spec: F015 AC15
+
 // The address of a location (F015, spec #424): Dutch only (no country field), all or nothing, the
 // postcode stored as `1234 AB`. Pure rules, no I/O: the route asks, the repository stores the
 // answer, and the database repeats the shape in check constraints.

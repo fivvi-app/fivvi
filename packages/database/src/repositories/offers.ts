@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
-import { type Offer, type OfferVersion, offers, offerVersions } from '../schema/index.ts';
+import {
+  groupClasses,
+  type Offer,
+  type OfferVersion,
+  offers,
+  offerVersions,
+} from '../schema/index.ts';
 import { executorOf, type WorkspaceScope } from '../tenant-scope.ts';
 
 // The offers of a workspace and their immutable versions (F052, spec #468, ticket #784). The rules
@@ -195,6 +201,45 @@ export function listOffers(scope: WorkspaceScope): Promise<OfferView[]> {
   return selectOffers(executorOf(scope), scope.workspaceId);
 }
 
+/** How a write of a new version ended. */
+type AppendOutcome = 'written' | 'not-found' | 'stale';
+
+/**
+ * Locks the offer row and writes the next version, which becomes the current one. With
+ * `expectedVersion`, nothing is written when the latest version is another one.
+ */
+async function writeNextVersion(
+  db: DatabaseExecutor,
+  organizationId: string,
+  offerId: string,
+  terms: OfferTerms,
+  expectedVersion?: number,
+): Promise<AppendOutcome> {
+  const [locked] = await db
+    .select({ id: offers.id })
+    .from(offers)
+    .where(and(eq(offers.organizationId, organizationId), eq(offers.id, offerId)))
+    .for('update');
+  if (!locked) return 'not-found';
+  const [latest] = await db
+    .select({ version: sql<number>`coalesce(max(${offerVersions.version}), 0)` })
+    .from(offerVersions)
+    .where(
+      and(eq(offerVersions.organizationId, organizationId), eq(offerVersions.offerId, offerId)),
+    );
+  const current = latest?.version ?? 0;
+  if (expectedVersion !== undefined && expectedVersion !== current) return 'stale';
+  const versionId = randomUUID();
+  await db
+    .insert(offerVersions)
+    .values(versionValues(organizationId, offerId, versionId, current + 1, terms));
+  await db
+    .update(offers)
+    .set({ currentVersionId: versionId })
+    .where(and(eq(offers.organizationId, organizationId), eq(offers.id, offerId)));
+  return 'written';
+}
+
 /**
  * Writes a new version of an offer, the next number, and makes it the offer's current one; the
  * versions before it stay as they were. The offer row is locked first, so two changes at once get
@@ -208,27 +253,7 @@ export async function appendOfferVersion(
   offerId: string,
   terms: OfferTerms,
 ): Promise<boolean> {
-  const [locked] = await db
-    .select({ id: offers.id })
-    .from(offers)
-    .where(and(eq(offers.organizationId, organizationId), eq(offers.id, offerId)))
-    .for('update');
-  if (!locked) return false;
-  const [latest] = await db
-    .select({ version: sql<number>`coalesce(max(${offerVersions.version}), 0)` })
-    .from(offerVersions)
-    .where(
-      and(eq(offerVersions.organizationId, organizationId), eq(offerVersions.offerId, offerId)),
-    );
-  const versionId = randomUUID();
-  await db
-    .insert(offerVersions)
-    .values(versionValues(organizationId, offerId, versionId, (latest?.version ?? 0) + 1, terms));
-  await db
-    .update(offers)
-    .set({ currentVersionId: versionId })
-    .where(and(eq(offers.organizationId, organizationId), eq(offers.id, offerId)));
-  return true;
+  return (await writeNextVersion(db, organizationId, offerId, terms)) === 'written';
 }
 
 /**
@@ -260,4 +285,105 @@ export async function listOfferVersions(
   return rows.map(
     ({ organizationId: _organizationId, updatedAt: _updatedAt, ...version }) => version,
   );
+}
+
+/** One offer of the scope's workspace with its current version; `undefined` when it has none such. */
+export async function findOffer(
+  scope: WorkspaceScope,
+  offerId: string,
+): Promise<OfferView | undefined> {
+  return (await selectOffers(executorOf(scope), scope.workspaceId, offerId))[0];
+}
+
+/** What a change of an offer needs: the version the caller read, the terms and a new credit kind. */
+export interface OfferChange {
+  /** The latest version the caller saw; a change from an older one stores nothing. */
+  readonly expectedVersion: number;
+  /** A credit offer's new credit kind; left out keeps it. The offer's kind never changes. */
+  readonly creditKind?: OfferCreditKind;
+  readonly terms: OfferTerms;
+}
+
+export type OfferChangeResult =
+  | { readonly outcome: 'changed'; readonly offer: OfferView }
+  /** The offer has a newer version than the caller read; `offer` is what it is now. */
+  | { readonly outcome: 'stale'; readonly offer: OfferView }
+  | { readonly outcome: 'not-found' };
+
+/**
+ * Saves a change as a new version of the offer (and a new credit kind, when it is given), but only
+ * from the latest version: the offer row is locked, so of two saves from the same version one wins
+ * and the other is `stale` and stores nothing. The caller has decided the terms are valid.
+ */
+export async function changeOffer(
+  scope: WorkspaceScope,
+  offerId: string,
+  change: OfferChange,
+): Promise<OfferChangeResult> {
+  const db = executorOf(scope);
+  const written = await writeNextVersion(
+    db,
+    scope.workspaceId,
+    offerId,
+    change.terms,
+    change.expectedVersion,
+  );
+  if (written === 'not-found') return { outcome: 'not-found' };
+  if (written === 'written' && change.creditKind !== undefined) {
+    await db
+      .update(offers)
+      .set({ creditKind: change.creditKind })
+      .where(and(eq(offers.organizationId, scope.workspaceId), eq(offers.id, offerId)));
+  }
+  const [offer] = await selectOffers(db, scope.workspaceId, offerId);
+  if (!offer) return { outcome: 'not-found' };
+  return { outcome: written === 'written' ? 'changed' : 'stale', offer };
+}
+
+/**
+ * A group class an offer version is limited to, as the offer shows it: the class's names and
+ * whether it is gone (archived) since the version was saved.
+ */
+export interface CoveredClass {
+  readonly id: string;
+  readonly nameNl: string;
+  readonly nameEn: string | null;
+  readonly deleted: boolean;
+}
+
+/**
+ * The classes of the scope's workspace among `classIds`, archived ones marked `deleted`. An ID of
+ * another workspace, or of no class, is left out: a class removed outright has no name to show.
+ */
+export async function listCoveredClasses(
+  scope: WorkspaceScope,
+  classIds: readonly string[],
+): Promise<CoveredClass[]> {
+  if (classIds.length === 0) return [];
+  const rows = await executorOf(scope)
+    .select({
+      id: groupClasses.id,
+      nameNl: groupClasses.nameNl,
+      nameEn: groupClasses.nameEn,
+      archived: sql<boolean>`${groupClasses.archivedAt} is not null`,
+    })
+    .from(groupClasses)
+    .where(
+      and(
+        eq(groupClasses.organizationId, scope.workspaceId),
+        inArray(groupClasses.id, [...classIds]),
+      ),
+    );
+  return rows.map(({ archived, ...found }) => ({ ...found, deleted: archived }));
+}
+
+/**
+ * How many agreements run on each of the offers (F057 fills this in: until agreements exist, none
+ * does). One function for every reader, so the list, the read and the delete (F052, #800) agree.
+ */
+export function runningAgreementCounts(
+  _scope: WorkspaceScope,
+  offerIds: readonly string[],
+): Promise<ReadonlyMap<string, number>> {
+  return Promise.resolve(new Map(offerIds.map((id) => [id, 0])));
 }

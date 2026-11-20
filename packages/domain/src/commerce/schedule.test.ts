@@ -24,6 +24,7 @@ const membership: MembershipOffer = {
   makeupsPerMonth: 2,
   cutoffMinutes: 720,
   renewalWindowDays: 30,
+  coveredClassIds: null,
 };
 
 const creditPlan: CreditPlanOffer = {
@@ -36,8 +37,11 @@ const creditPlan: CreditPlanOffer = {
   minimumTermMonths: 3,
   endOfTerm: 'continue',
   carryOverLimit: 4,
+  membersOnly: false,
+  returnsPerMonth: null,
   cutoffMinutes: 720,
   renewalWindowDays: 30,
+  coveredClassIds: null,
 };
 
 function clockOf(offer: ValidOffer, startsOn: string): AgreementClock {
@@ -110,8 +114,12 @@ describe('agreementClock', () => {
           creditKind: 'group',
           credits: 10,
           validity: { amount: 3, unit: 'month' },
+          oncePerClient: false,
+          membersOnly: false,
+          returnsPerMonth: null,
           cutoffMinutes: 720,
           renewalWindowDays: 30,
+          coveredClassIds: null,
         },
         '2027-02-01',
       ),
@@ -122,7 +130,9 @@ describe('agreementClock', () => {
           kind: 'single_class_pass',
           priceCents: 2000,
           vatRateBasisPoints: 2100,
+          membersOnly: false,
           cutoffMinutes: 720,
+          coveredClassIds: null,
         },
         '2027-02-01',
       ),

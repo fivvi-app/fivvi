@@ -23,26 +23,39 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.Offer
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+ * The offer changed since the version in the request; nothing was written. `offer` is the offer as it is now.
  *
- * @param name The account’s name.
+ * @param code 
+ * @param offer 
  */
 @Serializable
 
-data class SessionConflictChangedBy (
+data class OfferChanged (
 
-    /* The account’s name. */
-    @SerialName(value = "name")
-    val name: kotlin.String
+    @SerialName(value = "code")
+    val code: OfferChanged.Code,
+
+    @SerialName(value = "offer")
+    val offer: Offer
 
 ) {
 
+    /**
+     * 
+     *
+     * Values: OFFER_CHANGED
+     */
+    @Serializable
+    enum class Code(val value: kotlin.String) {
+        @SerialName(value = "offer_changed") OFFER_CHANGED("offer_changed");
+    }
 
 }
 

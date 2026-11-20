@@ -1,3 +1,7 @@
+// Module: The location types of `PRODUCT.md §12`, the 120-character name limit and
+//        `defaultLocation(workspace)`, the one location every session takes
+// Spec: F015, F016
+
 // The locations of a workspace (F015, F016, spec #424). At go-live a workspace has exactly one,
 // its own (`organization_location`), and it is the default every session takes (`PRODUCT.md §12`,
 // §13). The type list is complete now so that M7's types are additive; only the first is written.

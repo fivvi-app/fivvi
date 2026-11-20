@@ -225,7 +225,7 @@ Paths are proposals for the web routes. They're English and language-neutral; th
 | Klanten / Clients | `/w/{slug}/clients` | Owner, Trainer ⚑ | F006 | TW-01 |
 | Klantprofiel / Client profile | `/w/{slug}/clients/{id}/{tab}` | Owner, Trainer ⚑ | F006, F018, F045, F046 | TW-02 |
 | Lessen / Classes | `/w/{slug}/classes` | Owner | F021, F022 | TW-03 |
-| Les op datum / Class on date | `/w/{slug}/classes/{id}/{yyyy-mm-dd}` | Owner, assigned Trainer | F022–F026, F028 | CO-01 – CO-06 |
+| Les op datum / Class on date | `/w/{slug}/classes/{classId}/{sessionId}` (the date's own id, not `yyyy-mm-dd`: a class can have two dates on one day) | Owner, assigned Trainer | F022–F026, F028 | CO-01 – CO-06 |
 | Open Gym | `/w/{slug}/open-gym` | Owner | F034, F036 | TW-04 |
 | Trainingen / Workouts | `/w/{slug}/workouts/{exercises\|templates}` | Owner, Trainer | F039–F041 | TW-05 |
 | Trainers | `/w/{slug}/trainers` | Owner | F011, F017, F023 | TW-06 |

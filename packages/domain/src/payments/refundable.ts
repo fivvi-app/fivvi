@@ -1,3 +1,6 @@
+// Module: Part of the module described in `refund-status.ts` (same folder).
+// Spec: F060 AC9, AC13
+
 import { type RefundStatus, refundHoldsAmount } from './refund-status.ts';
 import type { PaymentStatus } from './status.ts';
 

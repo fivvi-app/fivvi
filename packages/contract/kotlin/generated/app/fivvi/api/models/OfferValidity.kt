@@ -23,38 +23,41 @@
 
 package app.fivvi.api.models
 
-import app.fivvi.api.models.Session
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text.
+ * How long a credit pack is good for.
  *
- * @param code 
- * @param session 
+ * @param amount How many units, at least 1.
+ * @param unit `day`, `week` or `month`.
  */
 @Serializable
 
-data class ClassDateChanged (
+data class OfferValidity (
 
-    @SerialName(value = "code")
-    val code: ClassDateChanged.Code,
+    /* How many units, at least 1. */
+    @SerialName(value = "amount")
+    val amount: kotlin.Int,
 
-    @SerialName(value = "session")
-    val session: Session
+    /* `day`, `week` or `month`. */
+    @SerialName(value = "unit")
+    val unit: OfferValidity.Unit
 
 ) {
 
     /**
-     * 
+     * `day`, `week` or `month`.
      *
-     * Values: CLASS_DATE_CHANGED
+     * Values: DAY,WEEK,MONTH
      */
     @Serializable
-    enum class Code(val value: kotlin.String) {
-        @SerialName(value = "class_date_changed") CLASS_DATE_CHANGED("class_date_changed");
+    enum class Unit(val value: kotlin.String) {
+        @SerialName(value = "day") DAY("day"),
+        @SerialName(value = "week") WEEK("week"),
+        @SerialName(value = "month") MONTH("month");
     }
 
 }
