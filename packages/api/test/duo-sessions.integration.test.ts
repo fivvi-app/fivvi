@@ -444,6 +444,121 @@ describe('F066 plan a duo session', () => {
     });
   });
 
+  describe('PS-07: a duo goes through the double-booking check of its trainer (F023, merged with F066)', () => {
+    /** Sarah's one-client session with Anna on 24 September 2026, 09:00 to 10:00. */
+    async function sarahIsBusy() {
+      const w = await world();
+      const ctx = setup();
+      const busy = await plan(
+        ctx.server,
+        w.gym.id,
+        w.sarah,
+        request({ clientId: w.anna.id, notify: false }),
+      );
+      expect(busy.status).toBe(201);
+      return { ...w, ...ctx };
+    }
+
+    it('planning a duo that overlaps the trainer’s session answers 409 trainer_conflict; nothing is stored or sent', async () => {
+      const { server, transport, gym, sarah, lisa, eva } = await sarahIsBusy();
+
+      const response = await plan(
+        server,
+        gym.id,
+        sarah,
+        request({ clientId: lisa.id, secondClientId: eva.id, localStart: '09:30' }),
+      );
+
+      expect(response.status).toBe(409);
+      const body = (await response.json()) as { code: string; conflicts: { type: string }[] };
+      expect(body.code).toBe('trainer_conflict');
+      expect(body.conflicts).toHaveLength(1);
+      expect(await storedSessions(gym.id)).toHaveLength(1);
+      expect(transport.sent).toEqual([]);
+    });
+
+    it('with allowConflicts the duo is planned: two participants and an EM-11 each', async () => {
+      const { server, transport, gym, sarah, lisa, eva } = await sarahIsBusy();
+
+      const response = await plan(
+        server,
+        gym.id,
+        sarah,
+        request({
+          clientId: lisa.id,
+          secondClientId: eva.id,
+          localStart: '09:30',
+          allowConflicts: true,
+        }),
+      );
+
+      expect(response.status).toBe(201);
+      const planned = (await response.json()) as PlannedBody;
+      expect(planned.session.capacity).toBe(2);
+      expect(planned.session.participants.map((p) => p.clientId)).toEqual([lisa.id, eva.id]);
+      expect(transport.sent).toHaveLength(2);
+    });
+
+    it('back-to-back is no overlap: a duo right after the trainer’s session is planned', async () => {
+      const { server, gym, sarah, lisa, eva } = await sarahIsBusy();
+
+      const response = await plan(
+        server,
+        gym.id,
+        sarah,
+        request({ clientId: lisa.id, secondClientId: eva.id, localStart: '10:00' }),
+      );
+
+      expect(response.status).toBe(201);
+    });
+
+    it('moving a duo onto the trainer’s session answers 409 and the duo stays; with allowConflicts it moves', async () => {
+      const { server, gym, sarah, lisa, eva } = await sarahIsBusy();
+      const planned = (await (
+        await plan(
+          server,
+          gym.id,
+          sarah,
+          request({
+            clientId: lisa.id,
+            secondClientId: eva.id,
+            localStart: '13:00',
+            notify: false,
+          }),
+        )
+      ).json()) as PlannedBody;
+      const move = (extra: Record<string, unknown>) =>
+        call(
+          server,
+          'POST',
+          `/v1/workspaces/${gym.id}/sessions/${planned.session.id}/reschedule`,
+          sarah,
+          {
+            localDate: '2026-09-24',
+            localStart: '09:30',
+            durationMinutes: 60,
+            notify: false,
+            version: 1,
+            ...extra,
+          },
+        );
+
+      const refused = await move({});
+      expect(refused.status).toBe(409);
+      expect(((await refused.json()) as { code: string }).code).toBe('trainer_conflict');
+      const [stayed] = await admin.db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, planned.session.id));
+      expect(stayed?.version).toBe(1);
+
+      const moved = await move({ allowConflicts: true });
+      expect(moved.status).toBe(200);
+      const after = (await moved.json()) as PlannedBody;
+      expect(after.session.participants.map((p) => p.clientId)).toEqual([lisa.id, eva.id]);
+    });
+  });
+
   describe('AC4: the reads return the duo once, with both participants', () => {
     /** Sarah's duo of Lisa and Eva on Thursday 24 September, and her one-client session of Anna at 11:00. */
     async function sarahsDay() {
