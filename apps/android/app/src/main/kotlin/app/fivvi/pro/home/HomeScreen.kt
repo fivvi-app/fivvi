@@ -1,6 +1,7 @@
 package app.fivvi.pro.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,12 +10,19 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -28,6 +36,8 @@ import app.fivvi.core.kit.ListRow
 import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStack
 import app.fivvi.core.kit.PillButtonStyle
+import app.fivvi.core.kit.RoundControl
+import app.fivvi.core.ui.testTagsAsIds
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
@@ -47,12 +57,17 @@ object HomeTags {
     const val NO_ACCESS = "home.noAccess"
     const val OPEN_PROFILE = "home.openProfile"
     const val OPEN_CLIENTS = "home.openClients"
+
+    /** The **+** and its menu's *Privésessie* (F020). */
+    const val NEW = "home.new"
+    const val NEW_PRIVATE_SESSION = "home.newPrivateSession"
 }
 
 /**
  * The signed-in home (a placeholder, in the look of *Vandaag (TD-01)*'s large title and grouped list): the workspace's
  * name, the address of the signed-in account, the rows to Klanten and Profiel and the sign-out button, which a progress
- * indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients.
+ * indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients. The **+** at the top
+ * has *Privésessie* (PS-04, F020) while [onNewPrivateSession] is given: the person plans private sessions in the workspace.
  */
 @Composable
 fun HomeScreen(
@@ -64,6 +79,7 @@ fun HomeScreen(
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenClients: (() -> Unit)? = null,
+    onNewPrivateSession: (() -> Unit)? = null,
 ) {
     // One scroll for the whole screen, so the account block can't squeeze what is above it at the largest font scale.
     Column(
@@ -71,6 +87,7 @@ fun HomeScreen(
             .padding(Spacing.space4),
         verticalArrangement = Arrangement.spacedBy(Spacing.space4),
     ) {
+        if (onNewPrivateSession != null && me is MeState.Loaded) NewMenu(onNewPrivateSession)
         Destination(me, onOpenWeb)
         when (me) {
             MeState.Loading -> {
@@ -129,6 +146,34 @@ fun HomeScreen(
             }
         }
         SignOut(signingOut, onSignOut)
+    }
+}
+
+// **+** (the prototype's round control), with *Privésessie*: the one thing it makes today (classes join it with their features).
+@Composable
+private fun NewMenu(onNewPrivateSession: () -> Unit) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+        RoundControl(
+            icon = painterResource(R.drawable.ic_add),
+            contentDescription = stringResource(R.string.workspace_nav_new),
+            onClick = { open = true },
+            modifier = Modifier.testTag(HomeTags.NEW),
+        )
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier.testTagsAsIds(),
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.workspace_nav_new_private_session)) },
+                onClick = {
+                    open = false
+                    onNewPrivateSession()
+                },
+                modifier = Modifier.testTag(HomeTags.NEW_PRIVATE_SESSION),
+            )
+        }
     }
 }
 

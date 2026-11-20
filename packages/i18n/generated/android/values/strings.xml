@@ -606,6 +606,8 @@
     <!-- Shown on the new private session form of the native apps when the app can't reach the server; Save is off. Nothing is saved until the connection is back. -->
     <string name="sessions_form_offline">Je bent offline. Plannen kan pas als je weer verbinding hebt.</string>
     <string name="sessions_form_open">Openen</string>
+    <!-- Confirm button of the date and the time picker of the session forms in the Android app. -->
+    <string name="sessions_form_picker_done">Klaar</string>
     <string name="sessions_form_save">Opslaan</string>
     <!-- Message after a private session was saved. {client} is the client's name, {date} a short date such as "do 24 sep", {time} a 24-hour time. -->
     <string name="sessions_form_saved">Sessie met %1$s gepland op %2$s om %3$s.</string>

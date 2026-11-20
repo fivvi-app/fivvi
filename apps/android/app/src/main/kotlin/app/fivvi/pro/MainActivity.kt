@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
@@ -49,6 +50,9 @@ import app.fivvi.pro.home.ProfileActions
 import app.fivvi.pro.home.ProfileScreen
 import app.fivvi.pro.home.ProfileViewModel
 import app.fivvi.pro.home.WebLinks
+import app.fivvi.pro.sessions.NewSessionFlow
+import app.fivvi.pro.sessions.SessionApis
+import app.fivvi.pro.sessions.SessionFlow
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
@@ -187,31 +191,120 @@ class MainActivity : ComponentActivity() {
             )
         }
         val meState by me.state.collectAsStateWithLifecycle()
+        val accountName by me.accountName.collectAsStateWithLifecycle()
         val signingOut by me.signingOut.collectAsStateWithLifecycle()
         var showsProfile by rememberSaveable { mutableStateOf(false) }
-        var showsClients by rememberSaveable { mutableStateOf(false) }
+        // The screens above the home, the last one shown: *Klanten*, PS-04, a session's screen (TD-02) and a client's
+        // profile opened from it (F020). System back pops one.
+        var stack by rememberSaveable { mutableStateOf("") }
+        val routes = Routes.of(stack)
+        val screens = rememberSaveableStateHolder()
         val shown = (meState as? MeState.Loaded)?.destination as? HomeDestination.Workspace
         val allowed by capabilities.capabilities.collectAsStateWithLifecycle()
         // Klanten (TM-02) of the workspace shown: only while the API lists `clients.view` there (F004 AC10).
         val mayViewClients = shown != null && allowed.mayShow(shown.id, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW)
+        // The **+** shows *Privésessie* for whoever the API lists `session.private.manage.own` or `.any` for there (F020).
+        val mayPlanSessions = shown != null &&
+            (
+                allowed.mayShow(shown.id, MeWorkspace.Capabilities.SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN) ||
+                    allowed.mayShow(shown.id, MeWorkspace.Capabilities.SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY)
+                )
         // Each opening of Profiel gets a new view model, so it reads the list again (F003 AC9).
         var profileOpenings by rememberSaveable { mutableIntStateOf(0) }
+        // Each opening of PS-04 starts with an empty form.
+        var newSessionOpenings by rememberSaveable { mutableIntStateOf(0) }
+        // Each opening of a session's screen reads the session again and shows no "moved" message of an earlier one.
+        var sessionOpenings by rememberSaveable { mutableIntStateOf(0) }
+        fun openSession(id: UUID, replacing: Boolean = false) {
+            sessionOpenings++
+            stack = Routes.push(if (replacing) Routes.pop(stack) else stack, Routes.session(id))
+        }
 
         // On foreground: is the workspace shown still the person's (F003 AC6)?
         OnForeground(me::refresh)
         // On foreground the stored language is read again: a change made elsewhere is adopted (F010 AC2).
         OnForeground(languages::refresh)
 
-        if (showsClients && shown != null) {
-            ClientsFlow(
-                dependencies.clientsApi,
-                dependencies.workspacesApi,
-                capabilities,
-                shown.id,
-                shown.name,
-                sessionKey = key,
-                onClose = { showsClients = false },
-            )
+        val route = routes.lastOrNull()
+        val email = (meState as? MeState.Loaded)?.email.orEmpty()
+        val apis = SessionApis(
+            dependencies.sessionsApi,
+            dependencies.locationsApi,
+            dependencies.trainersApi,
+            dependencies.teamApi,
+            dependencies.workspacesApi,
+            dependencies.clientsApi,
+        )
+        if (route != null && shown != null) {
+            // Each opening of PS-04 has state of its own: nothing of an earlier form comes back.
+            val screenKey = when {
+                route == Routes.NEW_SESSION -> "$route-$newSessionOpenings"
+                Routes.sessionId(route) != null -> "$route-$sessionOpenings"
+                else -> route
+            }
+            screens.SaveableStateProvider(screenKey) {
+                when {
+                    route == Routes.CLIENTS -> ClientsFlow(
+                        dependencies.clientsApi,
+                        dependencies.workspacesApi,
+                        capabilities,
+                        shown.id,
+                        shown.name,
+                        sessionKey = key,
+                        onClose = { stack = Routes.pop(stack) },
+                        sessionsApi = dependencies.sessionsApi,
+                        onOpenSession = ::openSession,
+                    )
+
+                    route == Routes.NEW_SESSION -> NewSessionFlow(
+                        apis,
+                        capabilities,
+                        shown.id,
+                        shown.name,
+                        forAnyTrainer = allowed.mayShow(
+                            shown.id,
+                            MeWorkspace.Capabilities.SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY,
+                        ),
+                        mayAddClients = allowed.mayShow(shown.id, MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE),
+                        email = email,
+                        accountName = accountName,
+                        sessionKey = key,
+                        opening = newSessionOpenings,
+                        onClose = { stack = Routes.pop(stack) },
+                        // Saved: the session's screen replaces the form, so back from it is the home.
+                        onSaved = { openSession(it, replacing = true) },
+                    )
+
+                    Routes.sessionId(route) != null -> SessionFlow(
+                        apis,
+                        capabilities,
+                        shown.id,
+                        shown.name,
+                        Routes.sessionId(route)!!,
+                        mayReadTeam = allowed.mayShow(shown.id, MeWorkspace.Capabilities.TEAM_PERIOD_VIEW),
+                        email = email,
+                        accountName = accountName,
+                        sessionKey = key,
+                        opening = sessionOpenings,
+                        onBack = { stack = Routes.pop(stack) },
+                        onOpenClient = { stack = Routes.push(stack, Routes.client(it)) },
+                        onRoute = ::openOnTheWeb,
+                    )
+
+                    Routes.clientId(route) != null -> ClientsFlow(
+                        dependencies.clientsApi,
+                        dependencies.workspacesApi,
+                        capabilities,
+                        shown.id,
+                        shown.name,
+                        sessionKey = key,
+                        onClose = { stack = Routes.pop(stack) },
+                        sessionsApi = dependencies.sessionsApi,
+                        onOpenSession = ::openSession,
+                        openClient = Routes.clientId(route),
+                    )
+                }
+            }
             return
         }
         if (showsProfile) {
@@ -225,7 +318,7 @@ class MainActivity : ComponentActivity() {
                 // A tap on another workspace switches to it; either way the app is back on the first tab (F012 AC6).
                 onSelectWorkspace = { id ->
                     showsProfile = false
-                    showsClients = false
+                    stack = ""
                     me.switchWorkspace(id)
                 },
             )
@@ -241,7 +334,44 @@ class MainActivity : ComponentActivity() {
                 profileOpenings++
                 showsProfile = true
             },
-            onOpenClients = if (mayViewClients) ({ showsClients = true }) else null,
+            onOpenClients = if (mayViewClients) ({ stack = Routes.push(stack, Routes.CLIENTS) }) else null,
+            onNewPrivateSession = if (mayPlanSessions) {
+                {
+                    newSessionOpenings++
+                    stack = Routes.push(stack, Routes.NEW_SESSION)
+                }
+            } else {
+                null
+            },
         )
     }
+}
+
+/**
+ * The screens above the home, as one string kept across a rotation: the routes joined by a comma, the last one shown. A
+ * route is `clients`, `newSession`, `session/<id>` or `client/<id>` (F020).
+ */
+internal object Routes {
+    const val CLIENTS = "clients"
+    const val NEW_SESSION = "newSession"
+    private const val SESSION = "session/"
+    private const val CLIENT = "client/"
+
+    fun of(stack: String): List<String> = stack.split(",").filter { it.isNotEmpty() }
+
+    fun push(stack: String, route: String) = (of(stack) + route).joinToString(",")
+
+    fun pop(stack: String) = of(stack).dropLast(1).joinToString(",")
+
+    fun session(id: UUID) = "$SESSION$id"
+
+    fun client(id: UUID) = "$CLIENT$id"
+
+    fun sessionId(route: String): UUID? = route.removePrefix(SESSION).takeIf {
+        route.startsWith(SESSION)
+    }?.let(UUID::fromString)
+
+    fun clientId(route: String): UUID? = route.removePrefix(CLIENT).takeIf {
+        route.startsWith(CLIENT)
+    }?.let(UUID::fromString)
 }

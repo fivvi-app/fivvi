@@ -3,8 +3,11 @@ package app.fivvi.pro
 import android.app.Application
 import android.content.Context
 import app.fivvi.api.apis.ClientsApi
+import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.MeApi
+import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.apis.SignInApi
+import app.fivvi.api.apis.TeamApi
 import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.core.LanguagePreference
@@ -25,6 +28,9 @@ interface AppDependencies {
     val workspacesApi: WorkspacesApi
     val clientsApi: ClientsApi
     val trainersApi: TrainersApi
+    val sessionsApi: SessionsApi
+    val locationsApi: LocationsApi
+    val teamApi: TeamApi
     val session: Session
     val languageSettings: LanguageSettings
 
@@ -51,6 +57,9 @@ class DefaultAppDependencies(context: Context) : AppDependencies {
     override val workspacesApi: WorkspacesApi get() = services.workspacesApi
     override val clientsApi: ClientsApi get() = services.clientsApi
     override val trainersApi: TrainersApi get() = services.trainersApi
+    override val sessionsApi: SessionsApi get() = services.sessionsApi
+    override val locationsApi: LocationsApi get() = services.locationsApi
+    override val teamApi: TeamApi get() = services.teamApi
     override fun signOutApi(token: String): SignInApi = services.signOutApi(token)
     override val languageSettings: LanguageSettings = SystemLanguageSettings(context)
     override val languagePreference: LanguagePreference by lazy {

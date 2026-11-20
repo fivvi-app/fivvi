@@ -6,8 +6,7 @@
 # Android testTag and the iOS accessibilityIdentifier, the same on both apps (home.new*, newSession.*, clientPicker.*,
 # session.*, reschedule.*, clientProfile.*). Texts differ by language, so the flow checks what both languages share (the
 # client's name, the workspace's name) and the ids. The date and the start are the form's own first values (the next full
-# hour), which the API accepts; no clock is read. The first of the two platform tickets (iOS #445) adds this flow, the
-# Android twin (#446) runs the same one.
+# hour), which the API accepts; no clock is read. The two platform tickets (iOS #445, Android #446) run this one flow.
 appId: ${APP_ID}
 name: AC1 AC2 AC6 AC9 AC10 Plan, open, move and find a private session
 env:
@@ -20,96 +19,87 @@ env:
     clearState: true
 - runFlow:
     file: shared/sign-in.yaml
-# The session screens are on iOS only until the Android twin (#446) adds the same ids, and no flow asks which platform
-# runs (scripts.test.mjs, F001): the steps below run when the app shows the + of the home (home.new). The + appears once
-# the clients and the capabilities are loaded, so the flow first waits for the home's clients button (home.openClients,
-# on both apps, with the same gate on iOS) and only then asks for the +; without the wait iOS could skip the flow. Android
-# shows no + yet, so its run ends here; #446 removes the condition (the steps then run as they are, on both). On iOS
-# PrivateSessionUITests asserts the + as well, so a missing + fails there.
+# The + appears once the clients and the capabilities are loaded, so the flow first waits for the home's clients button
+# (home.openClients, on both apps) and then asks for the +.
 - extendedWaitUntil:
     visible:
       id: home\.openClients
     timeout: 20000
-- runFlow:
-    when:
-      visible:
-        id: home\.new
-    commands:
-      # AC1: + shows Privésessie for a team member who trains.
-      - tapOn:
-          id: home\.new
-      - tapOn:
-          id: home\.newPrivateSession
-      - extendedWaitUntil:
-          visible:
-            id: newSession\.save
-          timeout: 20000
-      # AC2: the trainer is fixed for a Trainer: a line with their own name, no list.
-      - extendedWaitUntil:
-          visible:
-            id: newSession\.trainerFixed
-          timeout: 20000
-      - assertNotVisible:
-          id: newSession\.trainer
-      # The client: a searchable list.
-      - tapOn:
-          id: newSession\.client
-      - extendedWaitUntil:
-          visible:
-            id: clientPicker\.search
-          timeout: 20000
-      - tapOn:
-          id: clientPicker\.search
-      - inputText: Anna
-      - extendedWaitUntil:
-          visible: .*Anna de Vries.*
-          timeout: 20000
-      - tapOn: .*Anna de Vries.*
-      - extendedWaitUntil:
-          visible:
-            id: newSession\.clientName
-            text: Anna de Vries
-          timeout: 20000
-      - tapOn:
-          id: newSession\.save
-      # AC10: the session screen opens with the data of the form: the client, the location with Route, the workspace with the
-      # trainer.
-      - extendedWaitUntil:
-          visible:
-            id: session\.title
-            text: .*Anna de Vries.*
-          timeout: 20000
-      - assertVisible:
-          id: session\.location
-      - assertVisible:
-          id: session\.route
-      - assertVisible:
-          id: session\.workspace
-          text: John's Gym
-      - assertVisible:
-          id: session\.trainer
-          text: (Jij|You)
-      # AC6: moving it with the client notified (on by default for a session still to come).
-      - tapOn:
-          id: session\.menu
-      - tapOn:
-          id: session\.reschedule
-      - extendedWaitUntil:
-          visible:
-            id: reschedule\.submit
-          timeout: 20000
-      - tapOn:
-          id: reschedule\.submit
-      - extendedWaitUntil:
-          visible:
-            id: session\.moved
-          timeout: 20000
-      # AC9: Komende sessies on the profile of the client lists it.
-      - tapOn:
-          id: session\.menu
-      - tapOn:
-          id: session\.clientProfile
-      - extendedWaitUntil:
-          visible:
-            id: clientProfile\.upcomingTitle
-          timeout: 20000
+# AC1: + shows Privésessie for a team member who trains.
+- tapOn:
+    id: home\.new
+- tapOn:
+    id: home\.newPrivateSession
+- extendedWaitUntil:
+    visible:
+      id: newSession\.save
+    timeout: 20000
+# AC2: the trainer is fixed for a Trainer: a line with their own name, no list.
+- extendedWaitUntil:
+    visible:
+      id: newSession\.trainerFixed
+    timeout: 20000
+- assertNotVisible:
+    id: newSession\.trainer
+# The client: a searchable list.
+- tapOn:
+    id: newSession\.client
+- extendedWaitUntil:
+    visible:
+      id: clientPicker\.search
+    timeout: 20000
+- tapOn:
+    id: clientPicker\.search
+- inputText: Anna
+- extendedWaitUntil:
+    visible: .*Anna de Vries.*
+    timeout: 20000
+- tapOn: .*Anna de Vries.*
+- extendedWaitUntil:
+    visible:
+      id: newSession\.clientName
+      text: Anna de Vries
+    timeout: 20000
+- tapOn:
+    id: newSession\.save
+# AC10: the session screen opens with the data of the form: the client, the location with Route, the workspace with the
+# trainer.
+- extendedWaitUntil:
+    visible:
+      id: session\.title
+      text: .*Anna de Vries.*
+    timeout: 20000
+- assertVisible:
+    id: session\.location
+- assertVisible:
+    id: session\.route
+- assertVisible:
+    id: session\.workspace
+    text: John's Gym
+- assertVisible:
+    id: session\.trainer
+    text: (Jij|You)
+# AC6: moving it with the client notified (on by default for a session still to come).
+- tapOn:
+    id: session\.menu
+- tapOn:
+    id: session\.reschedule
+- extendedWaitUntil:
+    visible:
+      id: reschedule\.submit
+    timeout: 20000
+- tapOn:
+    id: reschedule\.submit
+- extendedWaitUntil:
+    visible:
+      id: session\.moved
+    timeout: 20000
+# AC9: Komende sessies on the profile of the client lists it.
+- tapOn:
+    id: session\.menu
+- tapOn:
+    id: session\.clientProfile
+- extendedWaitUntil:
+    visible:
+      id: clientProfile\.upcomingTitle
+    timeout: 20000

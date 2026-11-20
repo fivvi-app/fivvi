@@ -138,6 +138,7 @@
   "sessions.form.notes.repeatedTime": "Shown when the chosen time happens twice because the clocks go back at the end of summer time (e.g. 02:30 on 25 October 2026). The first one, in summer time, is used. {date} is a full date, {time} a 24-hour time.",
   "sessions.form.notifyNote": "Under the checkbox that sends the client a confirmation: the client's email address, then the language of the email, e.g. \"anna@example.com · in het Nederlands\".",
   "sessions.form.offline": "Shown on the new private session form of the native apps when the app can't reach the server; Save is off. Nothing is saved until the connection is back.",
+  "sessions.form.pickerDone": "Confirm button of the date and the time picker of the session forms in the Android app.",
   "sessions.form.saved": "Message after a private session was saved. {client} is the client's name, {date} a short date such as \"do 24 sep\", {time} a 24-hour time.",
   "sessions.form.workspaceLabel": "Label of the first field of the private session form when it is opened from the personal calendar: the workspace the session is planned in. A plain line with one workspace.",
   "sessions.page.more": "Accessibility name of the ⋯ menu on the session screen of the native apps (Reschedule, Client profile).",

@@ -48,6 +48,18 @@ class FakeTrainersApi : TrainersApi {
         return Response.success(Unit)
     }
 
-    override suspend fun listTrainers(workspaceId: UUID): Response<List<Trainer>> =
-        error("FakeTrainersApi.listTrainers is not expected in this test")
+    /** The trainers of the workspace, as `GET …/trainers` lists them. */
+    var trainers = emptyList<Trainer>()
+
+    /** While set, the list call fails with this exception (no connection). */
+    var listFailure: Exception? = null
+
+    /** While set, the list call answers with this status (403, 404). */
+    var listStatus: Int? = null
+
+    override suspend fun listTrainers(workspaceId: UUID): Response<List<Trainer>> {
+        listFailure?.let { throw it }
+        listStatus?.let { return Response.error(it, "{}".toResponseBody()) }
+        return Response.success(trainers)
+    }
 }

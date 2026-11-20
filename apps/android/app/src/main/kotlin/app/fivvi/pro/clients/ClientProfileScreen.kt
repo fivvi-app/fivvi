@@ -28,10 +28,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Locale
+import app.fivvi.api.models.UpcomingSessions
 import app.fivvi.core.R
 import app.fivvi.core.kit.AvatarSizeLarge
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.InsetGroupedList
+import app.fivvi.core.kit.ListRow
 import app.fivvi.core.kit.PersonAvatar
 import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStack
@@ -43,6 +45,9 @@ import app.fivvi.designtokens.body
 import app.fivvi.designtokens.subhead
 import app.fivvi.designtokens.title1
 import app.fivvi.designtokens.title2
+import app.fivvi.pro.sessions.rememberSessionFormat
+import java.time.ZoneId
+import java.util.UUID
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows; the edit form's are `clientProfile.edit.*`. */
 object ClientProfileTags {
@@ -66,6 +71,11 @@ object ClientProfileTags {
     const val EDIT_PENDING = "clientProfile.edit.pending"
     const val SNACKBAR = "clientProfile.snackbar"
 
+    /** *Komende sessies* (F020 AC9): the heading, the text of a client without sessions and, per session, `clientProfile.upcoming.<id>`. */
+    const val UPCOMING_TITLE = "clientProfile.upcomingTitle"
+    const val UPCOMING_EMPTY = "clientProfile.upcomingEmpty"
+    const val UPCOMING = "clientProfile.upcoming"
+
     /** The suffix of the whole row of an overview line: `clientProfile.email.row` holds the label and `clientProfile.email`. */
     const val ROW = ".row"
 }
@@ -81,6 +91,8 @@ data class ClientProfileActions(
     val onSavedShown: () -> Unit,
     val onAddedShown: () -> Unit,
     val fields: ClientFormActions,
+    /** A row of *Komende sessies*: the session's screen (TD-02). */
+    val onOpenSession: (UUID) -> Unit = {},
 )
 
 /**
@@ -97,6 +109,7 @@ fun ClientProfileScreen(
     workspaceName: String,
     justAdded: String?,
     actions: ClientProfileActions,
+    upcoming: UpcomingSessions? = null,
     modifier: Modifier = Modifier,
 ) {
     val edit = (state as? ClientProfileState.Loaded)?.edit
@@ -148,9 +161,15 @@ fun ClientProfileScreen(
                 Header(loaded?.client)
                 when (state) {
                     ClientProfileState.Loading -> Skeleton()
+
                     ClientProfileState.Failed -> Failed(actions.onRetry)
+
                     ClientProfileState.NoAccess -> NoPermission(workspaceName)
-                    is ClientProfileState.Loaded -> Overview(state.client, workspaceDefault)
+
+                    is ClientProfileState.Loaded -> {
+                        Overview(state.client, workspaceDefault)
+                        upcoming?.let { Upcoming(it, actions.onOpenSession) }
+                    }
                 }
             }
         }
@@ -269,6 +288,48 @@ private fun Overview(client: Client, workspaceDefault: Locale) {
             row { DetailRow(R.string.clients_profile_name_label, client.name, ClientProfileTags.NAME) }
             row { DetailRow(R.string.clients_profile_email_label, client.email, ClientProfileTags.EMAIL) }
             row { DetailRow(R.string.clients_profile_locale_label, language, ClientProfileTags.LANGUAGE) }
+        }
+    }
+}
+
+// *Komende sessies* (F020 AC9): the client's next private sessions, each opening its screen, or the empty text. The time is
+// the workspace's, in the language shown (ADR-012).
+@Composable
+private fun Upcoming(upcoming: UpcomingSessions, onOpen: (UUID) -> Unit) {
+    val format = rememberSessionFormat(ZoneId.of(upcoming.timeZone))
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.space2)) {
+        Text(
+            text = stringResource(R.string.clients_profile_upcoming_title),
+            modifier = Modifier.padding(start = Spacing.space4).testTag(ClientProfileTags.UPCOMING_TITLE)
+                .semantics { heading() },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.subhead,
+        )
+        if (upcoming.sessions.isEmpty()) {
+            Text(
+                text = stringResource(R.string.clients_profile_upcoming_empty),
+                modifier = Modifier.padding(horizontal = Spacing.space4).testTag(ClientProfileTags.UPCOMING_EMPTY),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.body,
+            )
+        } else {
+            InsetGroupedList {
+                upcoming.sessions.forEach { session ->
+                    row {
+                        ListRow(
+                            title = stringResource(
+                                R.string.clients_profile_upcoming_when,
+                                format.day(session.startsAt),
+                                format.time(session.startsAt),
+                            ),
+                            modifier = Modifier.testTag("${ClientProfileTags.UPCOMING}.${session.id}"),
+                            subtitle = session.trainer?.name?.takeIf { it.isNotEmpty() },
+                            onClick = { onOpen(session.id) },
+                            chevron = true,
+                        )
+                    }
+                }
+            }
         }
     }
 }

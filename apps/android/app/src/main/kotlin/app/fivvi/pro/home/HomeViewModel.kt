@@ -81,6 +81,10 @@ class HomeViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow<MeState>(MeState.Loading)
     val state: StateFlow<MeState> = _state.asStateFlow()
+    private val _accountName = MutableStateFlow<String?>(null)
+
+    /** The account's own name, once `GET /v1/me` has answered; `null` while it has none (F020: *Jij* on a session). */
+    val accountName: StateFlow<String?> = _accountName.asStateFlow()
     private val signOut = SignOut(session, signOutApi, viewModelScope, io, signOutTimeout)
 
     /** A sign-out is under way: the home shows it and ignores another tap. */
@@ -150,6 +154,7 @@ class HomeViewModel(
         val account = response.body()?.takeIf { response.isSuccessful }
         return account?.let {
             listed = it.workspaces
+            _accountName.value = it.name
             onWorkspaces(it.workspaces)
             if (stillSignedIn()) {
                 onAccount(it.id.toString())
