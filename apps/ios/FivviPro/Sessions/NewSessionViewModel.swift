@@ -43,6 +43,8 @@ final class NewSessionViewModel: Identifiable {
     private(set) var clientMissing = false
     private(set) var trainerMissing = false
     private(set) var saveFailure: SaveFailure?
+    /// PS-07: the API found something else of the trainer's at that time (`409` `trainer_conflict`); nothing was stored.
+    private(set) var doubleBooking: DoubleBooking?
     private(set) var isSaving = false
     private(set) var catalog: Catalog
     /// A request failed for lack of a connection. The app has no reachability check (nothing in it has), so a request
@@ -107,6 +109,14 @@ final class NewSessionViewModel: Identifiable {
         }
     }
 
+    var doubleBookingTitle: String { doubleBooking?.title(catalog) ?? "" }
+    var doubleBookingMessage: String { doubleBooking?.message(catalog, format: time.format) ?? "" }
+    var doubleBookingBackText: String { catalog[.doubleBookingBack] }
+    var doubleBookingSaveAnywayText: String { catalog[.doubleBookingSaveAnyway] }
+
+    /// *Terug*: the warning goes, the form stays as it is and nothing is sent.
+    func dismissDoubleBooking() { doubleBooking = nil }
+
     /// The Trainer's own line: their name, marked as them.
     var ownTrainerText: String { catalog.string(.sessionFormTrainerMe, accountName ?? email) }
 
@@ -164,9 +174,11 @@ final class NewSessionViewModel: Identifiable {
     // MARK: Saving
 
     /// Plans the session. Returns it when the API saved it; otherwise nil, with what went wrong in the form's state.
-    func save() async -> Session? {
+    /// `allowConflicts` is *Toch opslaan* of PS-07: the same request again, saved even when the trainer has something then.
+    func save(allowConflicts: Bool = false) async -> Session? {
         guard canSave else { return nil }
         saveFailure = nil
+        doubleBooking = nil
         time.clearRefusal()
         clientMissing = client == nil
         trainerMissing = forAnyTrainer && trainerID.isEmpty
@@ -175,7 +187,8 @@ final class NewSessionViewModel: Identifiable {
         defer { isSaving = false }
         let body = Components.Schemas.PlanPrivateSessionRequest(
             clientId: client.id, trainerId: forAnyTrainer ? trainerID : nil, localDate: time.localDate,
-            localStart: time.localStart, durationMinutes: time.durationMinutes, notify: notify, surface: .ios
+            localStart: time.localStart, durationMinutes: time.durationMinutes, notify: notify,
+            allowConflicts: allowConflicts ? true : nil, surface: .ios
         )
         do {
             let input = Operations.CreatePrivateSession.Input(path: .init(workspaceId: workspace.id), body: .json(body))
@@ -183,6 +196,10 @@ final class NewSessionViewModel: Identifiable {
             case let .created(created): return try created.body.json.session
             case let .badRequest(refused):
                 if !time.refuse(try refused.body.json.issues) { saveFailure = .notSaved }
+            case let .conflict(conflict):
+                doubleBooking = DoubleBooking(
+                    conflicts: try conflict.body.json.conflicts, trainerName: chosenTrainerName
+                )
             case .forbidden:
                 await onForbidden(.session_private_manage_own)
                 saveFailure = .noPermission
@@ -193,5 +210,11 @@ final class NewSessionViewModel: Identifiable {
             if ClientRequestError(thrown: error) == .offline { sawOffline = true } else { saveFailure = .notSaved }
         }
         return nil
+    }
+
+    /// The trainer the warning names: nil for the person themself (*Je hebt dan al iets*).
+    private var chosenTrainerName: String? {
+        guard forAnyTrainer, trainerID != myTrainerID else { return nil }
+        return trainers.first { $0.id == trainerID }?.name
     }
 }

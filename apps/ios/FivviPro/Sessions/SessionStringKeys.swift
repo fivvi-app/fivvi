@@ -70,6 +70,15 @@ extension StringKey {
     static let rescheduleCancelled = StringKey("sessions.reschedule.cancelled")
     static let rescheduleNoPermission = StringKey("sessions.reschedule.noPermission")
 
+    static let doubleBookingTitle = StringKey("sessions.doubleBooking.title")
+    static let doubleBookingTitleOwn = StringKey("sessions.doubleBooking.titleOwn")
+    static let doubleBookingItem = StringKey("sessions.doubleBooking.item")
+    static let doubleBookingBack = StringKey("sessions.doubleBooking.back")
+    static let doubleBookingSaveAnyway = StringKey("sessions.doubleBooking.saveAnyway")
+    static let doubleBookingTypePrivate = StringKey("sessions.doubleBooking.typePrivate")
+    static let doubleBookingTypeGroup = StringKey("sessions.doubleBooking.typeGroup")
+    static let doubleBookingTypeOpenGym = StringKey("sessions.doubleBooking.typeOpenGym")
+
     static let clientProfileUpcomingTitle = StringKey("clients.profile.upcomingTitle")
     static let clientProfileUpcomingEmpty = StringKey("clients.profile.upcomingEmpty")
     static let clientProfileUpcomingWhen = StringKey("clients.profile.upcomingWhen")

@@ -654,6 +654,16 @@
     "trainerLabel": "{Word}"
   },
   "sessions": {
+    "doubleBooking": {
+      "back": "Terug",
+      "item": "{date}, {start}–{end}: {name} ({type})",
+      "saveAnyway": "Toch opslaan",
+      "title": "{trainer} heeft dan al iets",
+      "titleOwn": "Je hebt dan al iets",
+      "typeGroup": "groepsles",
+      "typeOpenGym": "Open Gym",
+      "typePrivate": "privésessie"
+    },
     "form": {
       "cancel": "Annuleren",
       "clientChange": "Wijzigen",

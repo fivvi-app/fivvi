@@ -22,8 +22,6 @@ final class StubSessions: @unchecked Sendable {
         case badRequest(path: String, code: String)
         /// `409` for a move: `session_changed` by this person, or `session_cancelled`.
         case conflict(cancelled: Bool, changedBy: String?)
-        /// `409` `trainer_conflict` (PS-07), with the session as it is stored.
-        case trainerConflict
         /// `409` `session_changed` that carries no session.
         case conflictWithoutSession
     }
@@ -130,6 +128,13 @@ final class StubSessions: @unchecked Sendable {
             let trainerID = body.trainerId ?? Self.myMemberID
             let trainer = trainerList.first { $0.id == trainerID }
                 .map { Components.Schemas.SessionTrainer(id: $0.id, name: $0.name) }
+            let overlaps = conflicts(
+                trainerID: trainerID, start: start,
+                end: start.addingTimeInterval(TimeInterval(body.durationMinutes * 60)), excluding: nil
+            )
+            if !overlaps.isEmpty, body.allowConflicts != true {
+                return .conflict(.init(body: .json(.init(code: .trainerConflict, conflicts: overlaps))))
+            }
             let session = make(client: client, start: start, minutes: body.durationMinutes, trainer: trainer)
             stored.append(session)
             return .created(.init(body: .json(.init(
@@ -165,11 +170,6 @@ final class StubSessions: @unchecked Sendable {
                         changedBy: changedBy.map { .init(name: $0) }
                     ))))
                 }
-                if case .trainerConflict = failure {
-                    return .conflict(.init(body: .json(.init(
-                        code: .trainerConflict, session: try Self.refused(stored[index])
-                    ))))
-                }
                 if case .conflictWithoutSession = failure {
                     return .conflict(.init(body: .json(.init(code: .sessionChanged))))
                 }
@@ -184,8 +184,15 @@ final class StubSessions: @unchecked Sendable {
                     code: .validationFailed, issues: [.init(path: "localDate", code: "invalid")]
                 ))))
             }
+            let end = start.addingTimeInterval(TimeInterval(body.durationMinutes * 60))
+            let overlaps = stored[index].trainer.map {
+                conflicts(trainerID: $0.id, start: start, end: end, excluding: id)
+            } ?? []
+            if !overlaps.isEmpty, body.allowConflicts != true {
+                return .conflict(.init(body: .json(.init(code: .trainerConflict, conflicts: overlaps))))
+            }
             stored[index].startsAt = start
-            stored[index].endsAt = start.addingTimeInterval(TimeInterval(body.durationMinutes * 60))
+            stored[index].endsAt = end
             stored[index].version += 1
             return .ok(.init(body: .json(.init(
                 session: stored[index], past: start < Date(), repeatedStart: false, changeEmail: body.notify
@@ -211,6 +218,23 @@ final class StubSessions: @unchecked Sendable {
     }
 
     // MARK: Helpers
+
+    /// The API's rule (F023 AC7), for the stub's own sessions: the trainer's scheduled sessions that overlap
+    /// `[start, end)`, soonest first; back-to-back and cancelled sessions never do.
+    private func conflicts(
+        trainerID: String, start: Date, end: Date, excluding id: String?
+    ) -> [Components.Schemas.TrainerConflictItem] {
+        stored
+            .filter { $0.status == .scheduled && $0.id != id && $0.trainer?.id == trainerID }
+            .filter { $0.startsAt < end && start < $0.endsAt }
+            .sorted { $0.startsAt < $1.startsAt }
+            .map {
+                .init(
+                    sessionId: $0.id, _type: ._private, startsAt: $0.startsAt, endsAt: $0.endsAt,
+                    displayName: $0.participants.first?.name ?? "", displayNameEn: nil
+                )
+            }
+    }
 
     private func make(
         client: Components.Schemas.Client, start: Date, minutes: Int, trainer: Components.Schemas.SessionTrainer?
@@ -248,7 +272,7 @@ final class StubSessions: @unchecked Sendable {
         case .forbidden: return Output.forbidden()
         case .notFound: return Output.notFound()
         case let .badRequest(path, code): return Output.badRequest(path, code)
-        case .conflict, .trainerConflict, .conflictWithoutSession: return Output.undocumented(409)
+        case .conflict, .conflictWithoutSession: return Output.undocumented(409)
         }
     }
 }

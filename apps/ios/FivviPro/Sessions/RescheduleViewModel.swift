@@ -25,10 +25,15 @@ final class RescheduleViewModel: Identifiable {
     let time: SessionTimeFields
     private(set) var session: Session
     private(set) var failure: Failure?
+    /// PS-07: the trainer has something else at the new time (`409` `trainer_conflict`); nothing was stored.
+    private(set) var doubleBooking: DoubleBooking?
     private(set) var isSaving = false
     private(set) var catalog: Catalog
     let workspace: CurrentWorkspace
     let clientName: String
+    /// The team-member ID of the person among the trainers, when it is known: their own session reads *Je hebt dan al
+    /// iets*, another trainer's names them.
+    private let myTrainerID: String?
     /// The language the client's emails go out in: their own, else the workspace's default.
     private let emailLocale: Components.Schemas.Locale
     private let api: any APIProtocol
@@ -36,7 +41,7 @@ final class RescheduleViewModel: Identifiable {
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, session: Session, clientName: String,
-        clientLocale: Components.Schemas.Locale?, catalog: Catalog, now: Date = Date(),
+        clientLocale: Components.Schemas.Locale?, catalog: Catalog, now: Date = Date(), myTrainerID: String? = nil,
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
         self.api = api
@@ -45,6 +50,7 @@ final class RescheduleViewModel: Identifiable {
         self.clientName = clientName
         emailLocale = clientLocale ?? workspace.defaultLocale
         self.catalog = catalog
+        self.myTrainerID = myTrainerID
         self.onForbidden = onForbidden
         let timeZone = TimeZone(identifier: session.timeZone) ?? workspace.timeZone
         notify = session.startsAt > now
@@ -90,6 +96,14 @@ final class RescheduleViewModel: Identifiable {
         }
     }
 
+    var doubleBookingTitle: String { doubleBooking?.title(catalog) ?? "" }
+    var doubleBookingMessage: String { doubleBooking?.message(catalog, format: format) ?? "" }
+    var doubleBookingBackText: String { catalog[.doubleBookingBack] }
+    var doubleBookingSaveAnywayText: String { catalog[.doubleBookingSaveAnyway] }
+
+    /// *Terug*: the warning goes, the form stays as it is and nothing is sent.
+    func dismissDoubleBooking() { doubleBooking = nil }
+
     /// *Verplaatst naar donderdag 24 september om 09:00.*
     func movedText(_ moved: Session) -> String {
         catalog.string(.sessionPageMoved, format.day(moved.startsAt), format.time(moved.startsAt))
@@ -103,15 +117,17 @@ final class RescheduleViewModel: Identifiable {
     // MARK: Moving
 
     /// Moves the session. Returns it as the API stored it, or nil with what went wrong in the form's state.
-    func save() async -> Session? {
+    /// `allowConflicts` is *Toch opslaan* of PS-07: the same move again, saved even when the trainer has something then.
+    func save(allowConflicts: Bool = false) async -> Session? {
         guard !isSaving, session.status == .scheduled else { return nil }
         failure = nil
+        doubleBooking = nil
         time.clearRefusal()
         isSaving = true
         defer { isSaving = false }
         let body = Components.Schemas.ReschedulePrivateSessionRequest(
             localDate: time.localDate, localStart: time.localStart, durationMinutes: time.durationMinutes,
-            notify: notify, version: session.version, surface: .ios
+            notify: notify, allowConflicts: allowConflicts ? true : nil, version: session.version, surface: .ios
         )
         do {
             let input = Operations.ReschedulePrivateSession.Input(
@@ -135,10 +151,17 @@ final class RescheduleViewModel: Identifiable {
         return nil
     }
 
-    /// The session was changed first: the form shows it as it is now and the next save uses its version. A refusal
-    /// for a clash with the trainer's own calendar (`trainer_conflict`, PS-07) is not this ticket's: it says the save
-    /// failed, and nothing was stored.
+    /// The session was changed first: the form shows it as it is now and the next save uses its version. A clash with
+    /// the trainer's other sessions (`trainer_conflict`) is PS-07's soft warning: the form stays as it is and the
+    /// version stays, since nothing was stored.
     private func reload(from refusal: Components.Schemas.ReschedulePrivateSessionRefusal) throws {
+        if refusal.code == .trainerConflict, let conflicts = refusal.conflicts, !conflicts.isEmpty {
+            let trainer = session.trainer
+            doubleBooking = DoubleBooking(
+                conflicts: conflicts, trainerName: trainer == nil || trainer?.id == myTrainerID ? nil : trainer?.name
+            )
+            return
+        }
         guard refusal.code != .trainerConflict, let current = refusal.session?.value1 else {
             failure = .notSaved
             return
