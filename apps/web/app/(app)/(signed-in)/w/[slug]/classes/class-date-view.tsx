@@ -20,6 +20,7 @@ export function ClassDateView({
   slug,
   session,
   canManage,
+  ownDate,
   trainerWord,
 }: {
   workspaceId: string;
@@ -27,6 +28,8 @@ export function ClassDateView({
   session: Session;
   /** The person has `class.manage`. */
   canManage: boolean;
+  /** The date's trainer is the signed-in person: PS-07 says "Je hebt dan al iets". */
+  ownDate: boolean;
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('classes');
@@ -48,7 +51,9 @@ export function ClassDateView({
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="min-w-0 text-[22px] font-semibold tracking-tight">{name}</h1>
-        {canManage ? <EditClassDate workspaceId={workspaceId} session={session} /> : null}
+        {canManage ? (
+          <EditClassDate workspaceId={workspaceId} session={session} ownDate={ownDate} />
+        ) : null}
       </div>
       <Card>
         <CardContent>

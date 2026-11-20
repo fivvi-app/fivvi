@@ -101,6 +101,15 @@ test.describe('F023 PS-07 double booking on the web', () => {
     return ((await response.json()) as { session: SessionBody }).session;
   }
 
+  /** How many upcoming private sessions `clientId` has: what is stored. */
+  async function upcomingCount(request: APIRequestContext, workspaceId: string, clientId: string) {
+    const response = await request.get(
+      `/api/v1/workspaces/${workspaceId}/clients/${clientId}/upcoming-sessions`,
+    );
+    expect(response.status()).toBe(200);
+    return ((await response.json()) as { sessions: unknown[] }).sessions.length;
+  }
+
   async function storedSession(request: APIRequestContext, workspaceId: string, id: string) {
     const response = await request.get(`/api/v1/workspaces/${workspaceId}/sessions/${id}`);
     expect(response.status()).toBe(200);
@@ -170,7 +179,7 @@ test.describe('F023 PS-07 double booking on the web', () => {
       trainerId: tom,
       localStart: '09:00',
     });
-    await seedClient(page.request, workspaceId, 'Anna de Vries');
+    const anna = await seedClient(page.request, workspaceId, 'Anna de Vries');
     await page.reload();
 
     const panel = await openPanel(page, copy);
@@ -190,6 +199,7 @@ test.describe('F023 PS-07 double booking on the web', () => {
     await expect(warning).toHaveCount(0);
     await expect(panel.getByLabel(copy.sessions.form.startLabel)).toHaveValue('09:30');
     await expect(panel.getByText('Anna de Vries', { exact: true })).toBeVisible();
+    expect(await upcomingCount(page.request, workspaceId, anna.id)).toBe(0);
 
     // Toch opslaan: the same request again with allowConflicts; the snackbar names the session.
     await panel.getByRole('button', { name: copy.sessions.form.save }).click();
@@ -197,6 +207,8 @@ test.describe('F023 PS-07 double booking on the web', () => {
     await warning.getByRole('button', { name: copy.sessions.doubleBooking.saveAnyway }).click();
     await expect(page.getByRole('status')).toContainText('Anna de Vries');
     await expect(warning).toHaveCount(0);
+
+    expect(await upcomingCount(page.request, workspaceId, anna.id)).toBe(1);
 
     // The data path: both sessions are stored, Mark's untouched and Anna's with Tom at 09:30.
     const href = await page
@@ -275,6 +287,88 @@ test.describe('F023 PS-07 double booking on the web', () => {
     expect(planned.trainer?.name).toBe('Tom');
     expect(clockOf(planned.startsAt)).toBe('09:30');
     expect((await storedSession(page.request, workspaceId, markSession.id)).version).toBe(1);
+  });
+
+  test('AC6: John plans and moves his own session and hears "Je hebt dan al iets", not his name', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const mark = await seedClient(page.request, workspaceId, 'Mark Jansen');
+    const anna = await seedClient(page.request, workspaceId, 'Anna de Vries');
+    // Mark's session is John's own: the Owner trains, and the trainer field starts on him.
+    await seedSession(page.request, workspaceId, { clientId: mark.id, localStart: '09:00' });
+    const annaSession = await seedSession(page.request, workspaceId, {
+      clientId: anna.id,
+      localStart: '11:00',
+    });
+    await page.reload();
+
+    // PS-01 with the trainer field on John himself.
+    const panel = await openPanel(page, copy);
+    await fillPanel(panel, copy, appLocale, '09:30');
+    await panel.getByRole('button', { name: copy.sessions.form.save }).click();
+    const warning = page.getByRole('alertdialog', { name: copy.sessions.doubleBooking.titleOwn });
+    await expect(warning).toBeVisible();
+    await expect(warning.getByText(markLine(copy, appLocale), { exact: true })).toBeVisible();
+    await warning.getByRole('button', { name: copy.sessions.doubleBooking.back }).click();
+
+    // PS-05: John moves his own session onto Mark's hour.
+    await page.goto(`/w/${slug}/sessions/${annaSession.id}`);
+    await page.getByRole('button', { name: copy.sessions.page.reschedule }).click();
+    const dialog = page.getByRole('dialog', { name: copy.sessions.reschedule.title });
+    await dialog.getByLabel(copy.sessions.form.startLabel).fill('09:30');
+    await dialog.getByRole('button', { name: copy.sessions.reschedule.submitNotify }).click();
+    await expect(warning).toBeVisible();
+    await expect(warning.getByText(markLine(copy, appLocale), { exact: true })).toBeVisible();
+  });
+
+  test('AC6: John schedules a class and changes a date with himself as the trainer: "Je hebt dan al iets"', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const johnId = await trainerId(page.request, workspaceId, 'John');
+    const mark = await seedClient(page.request, workspaceId, 'Mark Jansen');
+    await seedSession(page.request, workspaceId, { clientId: mark.id, localStart: '09:00' });
+    const kracht = (await (
+      await page.request.post(`/api/v1/workspaces/${workspaceId}/group-classes`, {
+        data: { nameNl: 'Kracht', capacity: 8, durationMinutes: 60, trainerId: johnId },
+      })
+    ).json()) as { groupClass: { id: string } };
+    const classId = kracht.groupClass.id;
+
+    await page.goto(`/w/${slug}/classes/${classId}`);
+    await page.getByRole('button', { name: copy.classes.page.schedule }).click();
+    const schedule = page.getByRole('dialog', { name: copy.classes.schedule.title });
+    await schedule.getByLabel(copy.classes.schedule.dateLabel, { exact: true }).fill(thursday());
+    await schedule.getByLabel(copy.classes.schedule.startLabel, { exact: true }).fill('09:30');
+    await schedule.getByRole('button', { name: copy.classes.schedule.save }).click();
+    const warning = page.getByRole('alertdialog', { name: copy.sessions.doubleBooking.titleOwn });
+    await expect(warning).toBeVisible();
+    await expect(warning.getByText(markLine(copy, appLocale), { exact: true })).toBeVisible();
+    await warning.getByRole('button', { name: copy.sessions.doubleBooking.saveAnyway }).click();
+    await expect(page).toHaveURL(new RegExp(`/w/${slug}/classes/${classId}/[0-9a-f-]{36}$`), {
+      timeout: 15_000,
+    });
+
+    // CO-04 on that date, still John's.
+    await page.getByRole('button', { name: copy.classes.date.edit }).click();
+    const edit = page.getByRole('dialog', { name: copy.classes.edit.title });
+    await edit.getByLabel(copy.classes.edit.startLabel, { exact: true }).fill('09:45');
+    await edit.getByRole('button', { name: copy.classes.edit.save }).click();
+    await expect(warning).toBeVisible();
+    await expect(warning.getByText(markLine(copy, appLocale), { exact: true })).toBeVisible();
   });
 
   test('AC5: PS-05 moving onto Mark’s session warns; Terug keeps the form; Toch opslaan moves it on the same version', async ({

@@ -1,5 +1,6 @@
 import type { Schemas } from '@fivvi/contract';
 import type { Locale } from '@fivvi/i18n';
+import { myTeamMemberId } from './my-team-member';
 
 export type Session = Schemas['Session'];
 export type Trainer = Schemas['Trainer'];
@@ -134,7 +135,9 @@ export async function reschedulePrivateSession(
 }
 
 /** The refusal of a `409` that lists the overlapping sessions; one that lists none is a generic failure. */
-export function trainerConflict(body: unknown): Refused {
+export function trainerConflict(
+  body: unknown,
+): TrainerConflictRefusal | { ok: false; reason: 'generic' } {
   const { code, conflicts } = (body ?? {}) as Partial<Schemas['TrainerConflict']>;
   if (code !== 'trainer_conflict' || !conflicts?.length) return { ok: false, reason: 'generic' };
   return { ok: false, reason: 'trainerConflict', conflicts };
@@ -228,8 +231,8 @@ export async function loadPlanningContext(
       team?.status === 200
         ? ((await team.json()) as Schemas['TeamMember'][])
         : ([] as Schemas['TeamMember'][]);
-    const mine = members.find((member) => member.email.toLowerCase() === email.toLowerCase());
-    const myTrainerId = trainerList.find(({ id }) => id === mine?.id)?.id ?? null;
+    const mine = myTeamMemberId(members, email);
+    const myTrainerId = trainerList.find(({ id }) => id === mine)?.id ?? null;
     if (!timeZone || !location) return { ok: false, reason: 'failed' };
     return {
       ok: true,

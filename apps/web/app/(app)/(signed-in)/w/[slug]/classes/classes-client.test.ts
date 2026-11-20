@@ -459,25 +459,54 @@ describe('F021 TW-03 classes client', () => {
           return Promise.resolve(Response.json([{ id: 't1', name: 'Sarah' }]));
         }
         if (path.endsWith('/group-classes')) return Promise.resolve(Response.json([stored]));
+        if (path.endsWith('/team-members')) {
+          return Promise.resolve(
+            Response.json([
+              { id: 't1', email: 'sarah@example.com' },
+              { id: 't9', email: 'John@Example.com' },
+            ]),
+          );
+        }
         return Promise.resolve(Response.json({ timeZone: 'Europe/Amsterdam' }));
       });
 
     it('reads the time zone, the default location, the trainers and the classes', async () => {
-      expect(await loadScheduleContext('w1', answers())).toEqual({
+      expect(await loadScheduleContext('w1', 'nobody@example.com', answers())).toEqual({
         ok: true,
         context: {
           timeZone: 'Europe/Amsterdam',
           locationName: "John's Gym",
           trainers: [{ id: 't1', name: 'Sarah' }],
           classes: [stored],
+          myTrainerId: null,
         },
       });
+    });
+
+    it('F023 AC6: finds the signed-in trainer by the email on the team list, whatever its case', async () => {
+      const found = await loadScheduleContext('w1', 'sarah@example.com', answers());
+      expect(found).toMatchObject({ ok: true, context: { myTrainerId: 't1' } });
+    });
+
+    it('F023 AC6: a person on the team who is no trainer is no trainer here', async () => {
+      const found = await loadScheduleContext('w1', 'john@example.com', answers());
+      expect(found).toMatchObject({ ok: true, context: { myTrainerId: null } });
+    });
+
+    it('F023 AC6: a team list that does not answer leaves the person unfound, not the form failed', async () => {
+      const found = await loadScheduleContext(
+        'w1',
+        'sarah@example.com',
+        answers({ '/team-members': new Response('{}', { status: 500 }) }),
+      );
+      expect(found).toMatchObject({ ok: true, context: { myTrainerId: null } });
     });
 
     it('sends a person the API does not know to the signed-in home', async () => {
       expect(
         await loadScheduleContext(
           'w1',
+          'sarah@example.com',
           answers({ '/trainers': new Response('{}', { status: 403 }) }),
         ),
       ).toEqual({ ok: false, reason: 'home' });
@@ -487,6 +516,7 @@ describe('F021 TW-03 classes client', () => {
       expect(
         await loadScheduleContext(
           'w1',
+          'sarah@example.com',
           answers({ '/locations': new Response('{}', { status: 500 }) }),
         ),
       ).toEqual({ ok: false, reason: 'failed' });

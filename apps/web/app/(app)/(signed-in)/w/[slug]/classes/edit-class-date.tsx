@@ -38,7 +38,16 @@ function valuesOf(session: Session) {
  * says so under the end. A date someone else changed first is shown as it is now, with a line
  * about it, and saving again uses that version. After a save the page asks the server again.
  */
-export function EditClassDate({ workspaceId, session }: { workspaceId: string; session: Session }) {
+export function EditClassDate({
+  workspaceId,
+  session,
+  ownDate,
+}: {
+  workspaceId: string;
+  session: Session;
+  /** The date's trainer is the signed-in person: PS-07 says "Je hebt dan al iets". */
+  ownDate: boolean;
+}) {
   const t = useTranslations('classes.edit');
   const date = useTranslations('classes.date');
   const e = useTranslations('classes.edit.errors');
@@ -106,7 +115,7 @@ export function EditClassDate({ workspaceId, session }: { workspaceId: string; s
     if (result.reason === 'trainerConflict') {
       return setDoubleBooking({
         conflicts: result.conflicts,
-        trainerName: session.trainer?.name ?? null,
+        trainerName: ownDate ? null : (session.trainer?.name ?? null),
       });
     }
     if (result.reason === 'fields') return setErrors(result);

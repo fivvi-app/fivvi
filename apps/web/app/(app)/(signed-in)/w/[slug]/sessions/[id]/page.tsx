@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { catalogLocale } from '../../../../../../../i18n/config';
 import { apiClient } from '../../../../../../../server/api';
-import { currentMe } from '../../../../../../../server/signed-in';
+import { currentTeamMemberId } from '../../../../../../../server/my-team-member';
 import { workspaceOf } from '../../../../../../../server/workspace-of';
 import { NoPermission } from '../../settings/general/no-permission';
 import { SessionView } from '../session-view';
@@ -50,18 +50,10 @@ export default async function SessionPage({ params }: PageProps<'/w/[slug]/sessi
   });
   if (!workspace) throw new Error('GET /v1/workspaces/{workspaceId} did not answer.');
   // PS-07 words an overlap of the person's own session as "Je hebt dan al iets": a Trainer moves
-  // only their own, and for an Owner the session's trainer is found by the email on the team list.
-  let ownSession = !capabilities.includes('session.private.manage.any');
-  if (!ownSession && session.trainer) {
-    const { data: team } = await apiClient.GET('/v1/workspaces/{workspaceId}/team-members', {
-      params: { path: { workspaceId: id } },
-      headers: authorization,
-    });
-    const { email } = await currentMe();
-    ownSession =
-      team?.find((member) => member.email.toLowerCase() === email.toLowerCase())?.id ===
-      session.trainer.id;
-  }
+  // only their own, and for an Owner the session's trainer is found among the team members.
+  const ownSession =
+    !capabilities.includes('session.private.manage.any') ||
+    (session.trainer !== undefined && (await currentTeamMemberId(id)) === session.trainer.id);
   return (
     <SessionView
       workspaceId={id}

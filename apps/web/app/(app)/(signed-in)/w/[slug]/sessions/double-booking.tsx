@@ -62,21 +62,26 @@ export function DoubleBookingDialog({
               ? t('title', { trainer: doubleBooking.trainerName })
               : t('titleOwn')}
           </AlertDialogTitle>
-          <AlertDialogDescription>{t('note')}</AlertDialogDescription>
+          {/* The note and the lines are the description: a screen reader announces the overlaps. */}
+          <AlertDialogDescription asChild>
+            <div>
+              <p>{t('note')}</p>
+              <ul className="mt-3 grid gap-1 text-foreground">
+                {doubleBooking?.conflicts.map((item) => (
+                  <li key={item.sessionId}>
+                    {t('item', {
+                      date: day(item.startsAt),
+                      start: time(item.startsAt),
+                      end: time(item.endsAt),
+                      name: pickContentLanguage(locale, item.displayName, item.displayNameEn),
+                      type: t(typeKey[item.type]),
+                    })}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </AlertDialogDescription>
         </AlertDialogHeader>
-        <ul className="grid gap-1 text-sm">
-          {doubleBooking?.conflicts.map((item) => (
-            <li key={item.sessionId}>
-              {t('item', {
-                date: day(item.startsAt),
-                start: time(item.startsAt),
-                end: time(item.endsAt),
-                name: pickContentLanguage(locale, item.displayName, item.displayNameEn),
-                type: t(typeKey[item.type]),
-              })}
-            </li>
-          ))}
-        </ul>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>{t('back')}</AlertDialogCancel>
           <AlertDialogAction

@@ -47,12 +47,15 @@ type Loaded =
  */
 export function ScheduleDialogContent({
   workspaceId,
+  email,
   classId,
   trainerWord,
   newClass,
   scheduled,
 }: {
   workspaceId: string;
+  /** The signed-in person's email address: their own place among the trainers is found by it. */
+  email: string;
   classId?: string;
   trainerWord: TrainerWordForms;
   /** Closes this dialog and opens the form for a new class; absent where the class is fixed. */
@@ -92,7 +95,7 @@ export function ScheduleDialogContent({
 
   useEffect(() => {
     let current = true;
-    void loadScheduleContext(workspaceId).then((result) => {
+    void loadScheduleContext(workspaceId, email).then((result) => {
       if (!current) return;
       if (!result.ok) {
         if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
@@ -106,7 +109,7 @@ export function ScheduleDialogContent({
     return () => {
       current = false;
     };
-  }, [workspaceId, classId]);
+  }, [workspaceId, email, classId]);
 
   const groupClass =
     loaded.status === 'ready' ? loaded.context.classes.find(({ id }) => id === chosen) : undefined;
@@ -154,7 +157,11 @@ export function ScheduleDialogContent({
     if (result.reason === 'trainerConflict') {
       return setDoubleBooking({
         conflicts: result.conflicts,
-        trainerName: context.trainers.find(({ id }) => id === trainerId)?.name ?? null,
+        // A trainer plans themself: "Je hebt dan al iets", not their own name.
+        trainerName:
+          trainerId === context.myTrainerId
+            ? null
+            : (context.trainers.find(({ id }) => id === trainerId)?.name ?? null),
       });
     }
     if (result.reason === 'fields') {
