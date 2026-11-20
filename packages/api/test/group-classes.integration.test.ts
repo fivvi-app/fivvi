@@ -11,6 +11,7 @@ import {
   createErrorReporter,
   createProductEventCaptureTransport,
   createProductEvents,
+  whatFivviSent,
 } from '@fivvi/observability';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, sql } from 'drizzle-orm';
@@ -796,7 +797,7 @@ describe('F021 group classes through the API', () => {
         { workspace_id: gym.id, surface: 'ios' },
       ]);
       expect(posthog.events[0]?.distinct_id).toBe(john.id);
-      const sent = JSON.stringify([posthog.events, lines]);
+      const sent = JSON.stringify([whatFivviSent(posthog.events), lines]);
       for (const personal of [
         'Kracht',
         'Strength',

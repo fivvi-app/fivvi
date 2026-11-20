@@ -5,6 +5,7 @@ import { renderStringsXml } from './android.ts';
 import { CatalogError, renderNativeCatalogs } from './generate.ts';
 import { catalogSet } from './testing.ts';
 import {
+  clientInfoPlistKeys,
   renderInfoPlistXcstrings,
   renderStringCatalogsAccessor,
   renderStringCatalogsPackage,
@@ -292,8 +293,8 @@ describe('E005 iOS String Catalog exporter', () => {
 });
 
 describe('E008 iOS InfoPlist String Catalog exporter', () => {
-  const nl = { 'app.name': 'Sportapp', 'hello.title': 'Welkom' };
-  const en = { 'app.name': 'Sports app', 'hello.title': 'Welcome' };
+  const nl = { 'app.name': 'Sportapp', 'app.title': 'Sport', 'hello.title': 'Welkom' };
+  const en = { 'app.name': 'Sports app', 'app.title': 'Sport', 'hello.title': 'Welcome' };
 
   function infoPlist(comments = {}): XcCatalog {
     return JSON.parse(renderInfoPlistXcstrings(analysisOf(nl, en, comments)));
@@ -332,11 +333,27 @@ describe('E008 iOS InfoPlist String Catalog exporter', () => {
     expect(catalog.strings.CFBundleName?.comment).toBe('Name under the app icon');
   });
 
+  // E017 #503: the client app Fivvi has its own Info.plist strings, its name under the icon is app.title.
+  it('#503: the client app InfoPlist.xcstrings has CFBundleDisplayName and CFBundleName from app.title', () => {
+    const catalog: XcCatalog = JSON.parse(
+      renderInfoPlistXcstrings(analysisOf(nl, en), clientInfoPlistKeys),
+    );
+    const title = {
+      extractionState: 'manual',
+      localizations: {
+        en: { stringUnit: { state: 'translated', value: 'Sport' } },
+        nl: { stringUnit: { state: 'translated', value: 'Sport' } },
+      },
+    };
+    expect(catalog.strings).toEqual({ CFBundleDisplayName: title, CFBundleName: title });
+  });
+
   it('is written as generated/ios/InfoPlist.xcstrings next to the other native catalogs', () => {
     const files = renderNativeCatalogs(analysisOf(nl, en));
     expect([...files.keys()]).toEqual([
       'generated/ios/Localizable.xcstrings',
       'generated/ios/InfoPlist.xcstrings',
+      'generated/ios/client/InfoPlist.xcstrings',
       'generated/ios/FivviStringCatalogs.swift',
       'generated/ios/Package.swift',
       'generated/android/values/strings.xml',
@@ -369,16 +386,17 @@ describe('E008 iOS InfoPlist String Catalog exporter', () => {
       expect(manifest).toContain('path: "."');
       expect(manifest).toContain('sources: ["FivviStringCatalogs.swift"]');
       expect(manifest).toContain('resources: [.process("Localizable.xcstrings")]');
-      expect(manifest).toContain('exclude: ["InfoPlist.xcstrings"]');
+      expect(manifest).toContain('exclude: ["InfoPlist.xcstrings", "client"]');
     });
   });
 
-  it('refuses to render the native catalogs without app.name', () => {
+  it('refuses to render the native catalogs without app.name and app.title', () => {
     expect(() =>
       renderNativeCatalogs(analysisOf({ 'hello.title': 'Welkom' }, { 'hello.title': 'Welcome' })),
     ).toThrow(
       new CatalogError([
         '"app.name" is missing: it is the native app name (iOS CFBundleDisplayName and CFBundleName, Android app label)',
+        '"app.title" is missing: it is the native app name (iOS CFBundleDisplayName and CFBundleName, Android app label)',
       ]),
     );
   });
@@ -387,18 +405,20 @@ describe('E008 iOS InfoPlist String Catalog exporter', () => {
 describe('E006 server-only namespaces', () => {
   const nl = {
     'app.name': 'Fivvi',
+    'app.title': 'Fivvi',
     'hello.title': 'Welkom',
     'email.hello.subject': 'Testbericht',
   };
   const en = {
     'app.name': 'Fivvi',
+    'app.title': 'Fivvi',
     'hello.title': 'Welcome',
     'email.hello.subject': 'Test message',
   };
 
   it('leaves email keys out of the iOS and Android catalogs', () => {
     const files = renderNativeCatalogs(analysisOf(nl, en));
-    expect(files.size).toBe(6);
+    expect(files.size).toBe(7);
     for (const [file, content] of files) {
       if (!file.endsWith('InfoPlist.xcstrings') && !file.endsWith('.swift')) {
         expect(content, file).toContain('Wel');
@@ -409,7 +429,9 @@ describe('E006 server-only namespaces', () => {
   });
 
   it('still checks email keys for parity', () => {
-    const analysis = analyze(catalogSet(nl, { 'app.name': 'Fivvi', 'hello.title': 'Welcome' }));
+    const analysis = analyze(
+      catalogSet(nl, { 'app.name': 'Fivvi', 'app.title': 'Fivvi', 'hello.title': 'Welcome' }),
+    );
     expect(analysis.parity).toEqual([
       '"email.hello.subject" is in nl-NL.json but missing from en.json',
     ]);
@@ -417,8 +439,18 @@ describe('E006 server-only namespaces', () => {
 });
 
 describe('F064 the public website is server-only copy', () => {
-  const nl = { 'app.name': 'Fivvi', 'hello.title': 'Welkom', 'site.home.headline': 'Jij traint.' };
-  const en = { 'app.name': 'Fivvi', 'hello.title': 'Welcome', 'site.home.headline': 'You train.' };
+  const nl = {
+    'app.name': 'Fivvi',
+    'app.title': 'Fivvi',
+    'hello.title': 'Welkom',
+    'site.home.headline': 'Jij traint.',
+  };
+  const en = {
+    'app.name': 'Fivvi',
+    'app.title': 'Fivvi',
+    'hello.title': 'Welcome',
+    'site.home.headline': 'You train.',
+  };
 
   it('leaves site keys out of the iOS and Android catalogs', () => {
     const files = renderNativeCatalogs(analysisOf(nl, en));
@@ -430,7 +462,9 @@ describe('F064 the public website is server-only copy', () => {
   });
 
   it('still checks site keys for parity', () => {
-    const analysis = analyze(catalogSet(nl, { 'app.name': 'Fivvi', 'hello.title': 'Welcome' }));
+    const analysis = analyze(
+      catalogSet(nl, { 'app.name': 'Fivvi', 'app.title': 'Fivvi', 'hello.title': 'Welcome' }),
+    );
     expect(analysis.parity).toEqual([
       '"site.home.headline" is in nl-NL.json but missing from en.json',
     ]);

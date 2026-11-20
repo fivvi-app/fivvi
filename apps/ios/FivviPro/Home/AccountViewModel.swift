@@ -32,6 +32,8 @@ final class AccountViewModel {
     /// Nil until `GET /api/v1/me` has answered with the account. The app holds no rule: the answer's workspaces and
     /// `canCreateWorkspace` decide.
     private(set) var destination: Destination?
+    /// The account's own name, once `GET /api/v1/me` has answered; nil while it has none.
+    private(set) var accountName: String?
     /// A sign-out is under way: the home shows it and ignores another tap.
     private(set) var isSigningOut = false
     /// The workspace the home shows (its ID, name and default communication language), or nil while there is none.
@@ -57,7 +59,7 @@ final class AccountViewModel {
         api: any APIProtocol,
         store: any SessionStore,
         clock: any Clock<Duration> = ContinuousClock(),
-        signOutTimeout: Duration = .seconds(10),
+        signOutTimeout: Duration = SignOutRequest.defaultTimeout,
         onAccount: @escaping (_ id: String) -> Void,
         onSignedOut: @escaping (_ afterRejection: Bool) -> Void,
         onPreferredLocale: @escaping () -> StoredLocaleHandler = { { _ in } },
@@ -102,6 +104,7 @@ final class AccountViewModel {
         }
         let (destination, current) = try await destination(of: account)
         state = .loaded(email: account.email)
+        accountName = account.name
         self.destination = destination
         if let current { workspaces.open(current) } else { workspaces.close() }
         capabilities.replace(with: account.workspaces, current: current?.id)
@@ -134,7 +137,8 @@ final class AccountViewModel {
                     .workspace(name: workspace.name),
                     CurrentWorkspace(
                         id: workspace.id, name: workspace.name, defaultLocale: details.defaultLocale,
-                        timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone
+                        timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone,
+                        trainerWord: details.trainerWord
                     )
                 )
             case .notFound: continue
@@ -156,29 +160,11 @@ final class AccountViewModel {
         let token = store.token
         store.deleteToken()
         var rejected = false
-        if let token { rejected = await sendSignOut(with: token) }
+        if let token {
+            rejected = await SignOutRequest.send(with: token, api: api, clock: clock, timeout: signOutTimeout)
+        }
         isSigningOut = false
         onSignedOut(rejected)
-    }
-
-    /// Whether the API refused `token`, or false when it said anything else, did not answer or the wait ran out.
-    private func sendSignOut(with token: String) async -> Bool {
-        let api = api
-        let clock = clock
-        let timeout = signOutTimeout
-        return await withCheckedContinuation { continuation in
-            let race = Race(continuation)
-            // Neither task is a child of the other: the first to finish ends the wait. An answer cancels the timer;
-            // a timer that wins leaves the request running.
-            Task {
-                let output = await AuthMiddleware.$requestToken.withValue(token) { try? await api.signOut() }
-                if case .unauthorized = output { race.finish(true) } else { race.finish(false) }
-            }
-            race.setTimer(Task {
-                guard (try? await clock.sleep(for: timeout)) != nil else { return }
-                race.finish(false)
-            })
-        }
     }
 }
 
@@ -190,36 +176,9 @@ struct CurrentWorkspace: Equatable, Sendable {
     let defaultLocale: Components.Schemas.Locale
     /// The workspace's time zone: times the app shows for it (the age of an offline list) are in it.
     let timeZone: TimeZone
+    /// The workspace's word for the people who teach (F068): the session screens word them with it.
+    var trainerWord: Components.Schemas.TrainerWord = .trainer
 
     /// Europe/Amsterdam, the default of a workspace (`AGENTS.md`).
     static let defaultTimeZone = TimeZone(identifier: "Europe/Amsterdam") ?? .current
-}
-
-/// Resumes its continuation with the first answer only and cancels the timer; the request, if it lost, goes on.
-private final class Race: @unchecked Sendable {
-    private let lock = NSLock()
-    private var continuation: CheckedContinuation<Bool, Never>?
-    private var timer: Task<Void, Never>?
-
-    init(_ continuation: CheckedContinuation<Bool, Never>) {
-        self.continuation = continuation
-    }
-
-    func finish(_ rejected: Bool) {
-        let (continuation, timer) = lock.withLock {
-            defer { self.continuation = nil }
-            return (self.continuation, self.timer)
-        }
-        timer?.cancel()
-        continuation?.resume(returning: rejected)
-    }
-
-    /// Hands over the timer; if the race is already over it is cancelled at once.
-    func setTimer(_ timer: Task<Void, Never>) {
-        let over = lock.withLock {
-            self.timer = timer
-            return continuation == nil
-        }
-        if over { timer.cancel() }
-    }
 }

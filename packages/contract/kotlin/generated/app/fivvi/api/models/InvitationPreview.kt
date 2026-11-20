@@ -29,10 +29,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * What the link of a valid invitation shows to anyone who holds it, signed in or not. `forYou` is the one part that depends on who asks.
+ * What the link of a valid invitation shows to anyone who holds it, signed in or not: the address it is for, so sign-in opens with it filled in, and the same address masked. `forYou` is the one part that depends on who asks.
  *
  * @param workspaceName The name of the workspace that invites.
  * @param inviterName The name of the Owner who invited, `null` while they have given none. Never their address.
+ * @param email The address the invitation is for, lower-cased: the sign-in screen opens with it filled in (TW-10). Only a valid, open invitation tells it, to whoever presents its token; it is never part of a link.
  * @param maskedEmail The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
  * @param forYou Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in.
  */
@@ -47,6 +48,10 @@ data class InvitationPreview (
     /* The name of the Owner who invited, `null` while they have given none. Never their address. */
     @SerialName(value = "inviterName")
     val inviterName: kotlin.String?,
+
+    /* The address the invitation is for, lower-cased: the sign-in screen opens with it filled in (TW-10). Only a valid, open invitation tells it, to whoever presents its token; it is never part of a link. */
+    @SerialName(value = "email")
+    val email: kotlin.String,
 
     /* The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use. */
     @SerialName(value = "maskedEmail")

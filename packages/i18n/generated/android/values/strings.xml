@@ -7,8 +7,108 @@
     <string name="agreements_due_day_two">op de %1$se</string>
     <!-- Name of the native app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The name of the trainer app, Fivvi Pro, the same in both languages. -->
     <string name="app_name">Fivvi Pro</string>
-    <!-- Browser tab title (HTML <title>) of web pages that don't set their own. The product name, Fivvi, the same in both languages. -->
+    <!-- Browser tab title (HTML <title>) of web pages that don't set their own, and the name of the client app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The product name, Fivvi, the same in both languages. -->
     <string name="app_title">Fivvi</string>
+    <!-- Accessibility label of the back button on the opened-link screen of the client app: returns to the tabs. -->
+    <string name="app_link_back">Terug</string>
+    <!-- Button on appLink.soon, in the client app: opens the same link in the phone's browser. -->
+    <string name="app_link_open_in_browser">Openen in de browser</string>
+    <!-- Client app (Fivvi): the screen a join link (/j/...) or an invitation link (/i/...) opens until the join and invitation screens exist (F029, F032). Says the app will open the link itself soon. -->
+    <string name="app_link_soon">Deze link openen we binnenkort in de app.</string>
+    <string name="classes_date_back">Alle lessen</string>
+    <plurals name="classes_date_booked">
+        <item quantity="one">%1$s/%2$s geboekt · %3$d plek vrij</item>
+        <item quantity="other">%1$s/%2$s geboekt · %3$d plekken vrij</item>
+    </plurals>
+    <string name="classes_date_booked_label">Boekingen</string>
+    <string name="classes_date_edit">Wijzigen</string>
+    <string name="classes_date_no_bookings">Nog geen boekingen.</string>
+    <string name="classes_date_time_range">%1$s, %3$s–%2$s</string>
+    <string name="classes_date_trainer_label">%1$s</string>
+    <string name="classes_date_when_label">Wanneer</string>
+    <string name="classes_date_where_label">Locatie</string>
+    <string name="classes_duration_column">Duur</string>
+    <string name="classes_edit_cancel">Annuleren</string>
+    <string name="classes_edit_capacity_label">Capaciteit</string>
+    <string name="classes_edit_changed">Deze les is net gewijzigd. Je ziet nu de nieuwe gegevens.</string>
+    <string name="classes_edit_description">Je wijzigt alleen %1$s. De les zelf en de andere data blijven zoals ze zijn.</string>
+    <string name="classes_edit_end_label">Eind</string>
+    <string name="classes_edit_errors_capacity_invalid">Vul een capaciteit in van %2$s tot en met %1$s.</string>
+    <string name="classes_edit_errors_end_before_start">De eindtijd moet na de begintijd liggen.</string>
+    <string name="classes_edit_errors_invalid_time">Dit is geen geldige tijd.</string>
+    <string name="classes_edit_errors_no_permission">Je mag deze les niet meer wijzigen.</string>
+    <string name="classes_edit_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="classes_edit_errors_time_does_not_exist">Deze tijd bestaat niet op %1$s door de zomertijd.</string>
+    <string name="classes_edit_save">Opslaan</string>
+    <string name="classes_edit_saved">Les opgeslagen.</string>
+    <string name="classes_edit_start_label">Begin</string>
+    <string name="classes_edit_title">Les wijzigen</string>
+    <string name="classes_empty">Nog geen lessen. Maak je eerste les aan.</string>
+    <string name="classes_form_cancel">Annuleren</string>
+    <string name="classes_form_capacity_label">Capaciteit</string>
+    <string name="classes_form_class_section">De les</string>
+    <string name="classes_form_description">Geef de les een naam en stel in wie hem geeft, hoeveel plekken er zijn en hoe lang hij duurt.</string>
+    <string name="classes_form_description_en_label">Omschrijving (Engels, optioneel)</string>
+    <string name="classes_form_description_nl_label">Omschrijving (Nederlands, optioneel)</string>
+    <string name="classes_form_duration_label">Duur (minuten)</string>
+    <string name="classes_form_errors_capacity_invalid">Vul een capaciteit in van %2$s tot en met %1$s.</string>
+    <string name="classes_form_errors_description_too_long">De omschrijving mag maximaal %1$s tekens hebben.</string>
+    <string name="classes_form_errors_duration_invalid">Vul een duur in van %2$s tot en met %1$s minuten, in stappen van %3$s.</string>
+    <string name="classes_form_errors_name_required">Vul de naam in het Nederlands in.</string>
+    <string name="classes_form_errors_name_too_long">De naam mag maximaal %1$s tekens hebben.</string>
+    <string name="classes_form_errors_no_permission">Je mag geen lessen beheren.</string>
+    <string name="classes_form_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="classes_form_load_failed">De gegevens konden niet worden geladen.</string>
+    <string name="classes_form_name_en_label">Naam (Engels, optioneel)</string>
+    <string name="classes_form_name_nl_label">Naam (Nederlands)</string>
+    <string name="classes_form_name_section">Naam en omschrijving</string>
+    <string name="classes_form_save">Opslaan</string>
+    <string name="classes_form_saved">Les opgeslagen.</string>
+    <string name="classes_form_title">Nieuwe les</string>
+    <string name="classes_form_trainer_label">%1$s</string>
+    <string name="classes_minutes">%1$s min</string>
+    <string name="classes_name_column">Les</string>
+    <string name="classes_new">Nieuwe les</string>
+    <string name="classes_page_back">Alle lessen</string>
+    <string name="classes_page_description_title">Omschrijving</string>
+    <string name="classes_page_facts">%3$s · %2$s · %1$s</string>
+    <string name="classes_page_no_description">Nog geen omschrijving.</string>
+    <string name="classes_page_schedule">Op een datum plannen</string>
+    <string name="classes_schedule_cancel">Annuleren</string>
+    <string name="classes_schedule_capacity_label">Capaciteit</string>
+    <string name="classes_schedule_class_choose">Kies een les</string>
+    <string name="classes_schedule_class_label">Les</string>
+    <string name="classes_schedule_class_none">Je hebt nog geen lessen.</string>
+    <string name="classes_schedule_class_section">De les</string>
+    <string name="classes_schedule_date_label">Datum</string>
+    <string name="classes_schedule_description">Kies de datum en het begin. De duur, de locatie en de standaardwaarden komen van de les.</string>
+    <string name="classes_schedule_ends_at">Eindigt om %1$s</string>
+    <string name="classes_schedule_ends_at_next_day">Eindigt om %1$s (volgende dag)</string>
+    <string name="classes_schedule_errors_capacity_invalid">Vul een capaciteit in van %2$s tot en met %1$s.</string>
+    <string name="classes_schedule_errors_class_required">Kies een les.</string>
+    <string name="classes_schedule_errors_date_required">Kies een datum.</string>
+    <string name="classes_schedule_errors_invalid_date">Deze datum bestaat niet.</string>
+    <string name="classes_schedule_errors_invalid_time">Dit is geen geldige tijd.</string>
+    <string name="classes_schedule_errors_no_permission">Je mag geen lessen plannen.</string>
+    <string name="classes_schedule_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="classes_schedule_errors_start_required">Kies een begintijd.</string>
+    <string name="classes_schedule_errors_time_does_not_exist">Deze tijd bestaat niet op %1$s door de zomertijd.</string>
+    <string name="classes_schedule_load_failed">De gegevens konden niet worden geladen.</string>
+    <string name="classes_schedule_location">Locatie: %1$s</string>
+    <string name="classes_schedule_save">Plannen</string>
+    <string name="classes_schedule_saved">Groepsles toegevoegd</string>
+    <string name="classes_schedule_start_label">Begin</string>
+    <string name="classes_schedule_title">Op een datum plannen</string>
+    <string name="classes_schedule_trainer_label">%1$s</string>
+    <string name="classes_schedule_when_section">Wanneer</string>
+    <plurals name="classes_spots">
+        <item quantity="one">%1$d plek</item>
+        <item quantity="other">%1$d plekken</item>
+    </plurals>
+    <string name="classes_spots_column">Plekken</string>
+    <string name="classes_title">Lessen</string>
+    <string name="classes_trainer_column">%1$s</string>
+    <string name="classes_trainer_needed">%1$s nodig</string>
     <!-- Second tab of the client app: where a client books a class. A verb in the tab bar (GLOSSARY: Book / Boeken). -->
     <string name="client_nav_book">Boeken</string>
     <!-- First tab of the client app. The same word in both languages (GLOSSARY: Home). -->
@@ -223,8 +323,6 @@
     <string name="exercises_types_reps_only">Alleen herhalingen</string>
     <string name="exercises_types_time">Tijd</string>
     <string name="exercises_types_weight_reps">Gewicht × herhalingen</string>
-    <!-- Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button. -->
-    <string name="hello_error">We konden de begroeting niet laden. Probeer het opnieuw.</string>
     <!-- Greeting above the home screen. {name} is the user's first name. -->
     <string name="hello_greeting">Hoi %1$s,</string>
     <!-- {date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone. -->
@@ -266,6 +364,53 @@
     <string name="join_link_renew_dialog_title">Aanmeldlink vernieuwen?</string>
     <string name="join_link_renewed">De aanmeldlink is vernieuwd.</string>
     <string name="join_link_title">Aanmeldlink</string>
+    <!-- The first line of a calendar block and the start of its spoken name: the session type in words, a dot, then the client or class name, e.g. 'Privé · Anna' or 'Groep · Kracht'. The type always comes first (colour is never the only signal). -->
+    <string name="my_calendar_block">%2$s · %1$s</string>
+    <!-- Places taken and capacity of a group class on its block, e.g. '3/8'. -->
+    <string name="my_calendar_block_booked">%1$s/%2$s</string>
+    <string name="my_calendar_cancelled">Geannuleerd</string>
+    <string name="my_calendar_clear_filters">Filters wissen</string>
+    <!-- Tooltip and screen-reader note on the day header of the day the clocks go back (autumn). -->
+    <string name="my_calendar_clock_back">Wintertijd: de klok gaat 1 uur terug</string>
+    <!-- Tooltip and screen-reader note on the day header of the day the clocks go forward (spring). -->
+    <string name="my_calendar_clock_forward">Zomertijd: de klok gaat 1 uur vooruit</string>
+    <string name="my_calendar_column_day">Dag</string>
+    <string name="my_calendar_column_session">Sessie</string>
+    <string name="my_calendar_column_status">Status</string>
+    <string name="my_calendar_column_time">Tijd</string>
+    <string name="my_calendar_column_type">Soort</string>
+    <string name="my_calendar_column_workspace">Werkruimte</string>
+    <string name="my_calendar_empty_day">Geen sessies op deze dag.</string>
+    <string name="my_calendar_empty_week">Geen sessies in deze week.</string>
+    <string name="my_calendar_filter_type">Soort</string>
+    <string name="my_calendar_filter_workspace">Werkruimte</string>
+    <string name="my_calendar_grid_day">Agenda van %1$s</string>
+    <string name="my_calendar_grid_week">Agenda van %1$s</string>
+    <string name="my_calendar_legend">Soorten sessies</string>
+    <string name="my_calendar_list_caption">Sessies van %1$s</string>
+    <string name="my_calendar_next">Volgende</string>
+    <string name="my_calendar_no_results">Geen resultaten met deze filters.</string>
+    <!-- Checkbox in the Type filter: show group classes. -->
+    <string name="my_calendar_option_group">Groepsles</string>
+    <!-- Checkbox in the Type filter: show private sessions. -->
+    <string name="my_calendar_option_private">Privé</string>
+    <string name="my_calendar_previous">Vorige</string>
+    <!-- A range of dates, such as '21 sep – 27 sep 2026' (day and short month, the end with the year). {start} and {end} are formatted in code. -->
+    <string name="my_calendar_range">%2$s – %1$s</string>
+    <!-- Checkbox in the Type filter: show cancelled sessions (on by default). -->
+    <string name="my_calendar_show_cancelled">Geannuleerde tonen</string>
+    <string name="my_calendar_spoken_join">%1$s, %2$s</string>
+    <string name="my_calendar_spoken_time">%2$s tot %1$s</string>
+    <!-- Start and end of a session as 24-hour times without spaces, '09:00–10:00'. -->
+    <string name="my_calendar_time_range">%2$s–%1$s</string>
+    <string name="my_calendar_title">Mijn agenda</string>
+    <string name="my_calendar_today">Vandaag</string>
+    <string name="my_calendar_type_group">Groep</string>
+    <string name="my_calendar_type_private">Privé</string>
+    <string name="my_calendar_view_day">Dag</string>
+    <string name="my_calendar_view_list">Lijst</string>
+    <string name="my_calendar_view_week">Week</string>
+    <string name="my_calendar_views">Weergave</string>
     <string name="my_day_booked">%1$s/%2$s geboekt</string>
     <string name="my_day_cancelled">Geannuleerd</string>
     <string name="my_day_empty_never">Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland.</string>
@@ -347,6 +492,10 @@
         <item quantity="one">%1$d dag</item>
         <item quantity="other">%1$d dagen</item>
     </plurals>
+    <!-- A class an offer is limited to that was deleted later, still named on the offer's version. {name} is the class's name. -->
+    <string name="offers_summary_deleted_class">%1$s (verwijderd)</string>
+    <!-- A class an offer is limited to that was deleted with its name; the class is listed without a name. -->
+    <string name="offers_summary_deleted_class_unnamed">Verwijderde les</string>
     <!-- Part of an offer summary: a number of group credits. -->
     <plurals name="offers_summary_group_credits">
         <item quantity="one">%1$d groepscredit</item>
@@ -377,6 +526,8 @@
         <item quantity="one">%1$d week</item>
         <item quantity="other">%1$d weken</item>
     </plurals>
+    <!-- Shown on the personal pages when the browser is not in Dutch time: the times on the page are Dutch time. -->
+    <string name="personal_time_zone_hint">Tijden in Nederlandse tijd</string>
     <string name="profile_error">Je werkruimtes konden niet worden geladen.</string>
     <string name="profile_language">Taal</string>
     <!-- Row on the native Profile (iOS and Android, F064 AC17) that opens the privacy policy of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.privacy). -->
@@ -465,6 +616,8 @@
     <string name="sessions_form_trainer_choose">Kies %1$s</string>
     <string name="sessions_form_trainer_label">%1$s</string>
     <string name="sessions_form_trainer_me">%1$s (ik)</string>
+    <!-- Label of the first field of the private session form when it is opened from the personal calendar: the workspace the session is planned in. A plain line with one workspace. -->
+    <string name="sessions_form_workspace_label">Werkruimte</string>
     <string name="sessions_page_cancelled">Deze sessie is geannuleerd.</string>
     <string name="sessions_page_client_label">Klant</string>
     <string name="sessions_page_client_profile">Klantprofiel</string>
@@ -793,6 +946,7 @@
     <string name="welcome_workspace_name_label">Naam van je sportschool of bedrijf</string>
     <!-- Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive. -->
     <string name="workspace_home_description">Hier komt binnenkort het overzicht van je sportschool of bedrijf.</string>
+    <string name="workspace_nav_classes">Lessen</string>
     <string name="workspace_nav_clients">Klanten</string>
     <string name="workspace_nav_join_link">Aanmeldlink</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->
@@ -801,6 +955,7 @@
     <string name="workspace_nav_my_day">Mijn dag</string>
     <string name="workspace_nav_new">Nieuw</string>
     <string name="workspace_nav_new_client">Klant</string>
+    <string name="workspace_nav_new_group_class">Groepsles</string>
     <string name="workspace_nav_new_menu">Nieuw maken</string>
     <string name="workspace_nav_new_private_session">Privésessie</string>
     <string name="workspace_nav_personal">Persoonlijk</string>

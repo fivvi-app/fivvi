@@ -29,6 +29,11 @@ const status = (context, state) => ({ __typename: 'StatusContext', context, stat
 
 const reviewed = (sha = HEAD) =>
   `**Self-review:** standards and spec reviewers clean on \`${sha}\` ✅`;
+const reviewedWithFollowUps = (sha = HEAD, n = 2) =>
+  `**Self-review:** standards and spec reviewers clean on \`${sha}\` ✅ (low risk: ${n} should-fix findings left as follow-ups, ADR-033)`;
+// ADR-034: pr.sh reviewed --axes standards records the standards axis only.
+const reviewedStandards = (sha = HEAD) =>
+  `**Self-review:** standards reviewer clean on \`${sha}\` (standards only) ✅`;
 const noPreview = (sha = HEAD) =>
   `**Railway preview smoke check:** on \`${sha}\`: no preview for this PR (it touches no Railway watch pattern).`;
 const smoked = (sha = HEAD) =>
@@ -80,6 +85,117 @@ describe('merge gate', () => {
         'not removed from the queue',
       ],
     );
+  });
+
+  // #1423 AC7, ADR-033 item 5: a low-risk PR merges with should-fix findings left as follow-ups; a high-risk one does not.
+  describe('#1423: review by risk', () => {
+    const withFollowUps = (risk, record = reviewedWithFollowUps()) =>
+      facts({
+        risk,
+        pr: { ...facts().pr, body: `Closes #57\n\n${record}\n\n${noPreview()}` },
+      });
+
+    it('AC7: merges a low-risk PR whose review left should-fix findings as follow-ups', () => {
+      const decision = gate(withFollowUps({ risk: 'low', reasons: [] }));
+      assert.equal(decision.merge, true);
+      assert.deepEqual(failed(decision), []);
+    });
+
+    it('AC7: refuses a high-risk PR with the same record, naming why', () => {
+      const decision = gate(
+        withFollowUps({
+          risk: 'high',
+          reasons: ['packages/database/migrations/0004.sql: tenant-data'],
+        }),
+      );
+      assert.equal(decision.merge, false);
+      assert.deepEqual(failed(decision), ['self-review clean']);
+      const review = decision.conditions.find((c) => c.name === 'self-review clean');
+      assert.match(review.detail, /should-fix findings.*only a low-risk PR.*high-risk/);
+    });
+
+    it('refuses an unknown risk with the same record', () => {
+      const decision = gate(withFollowUps({ risk: 'unknown', reasons: [] }));
+      assert.equal(decision.merge, false);
+      assert.ok(failed(decision).includes('self-review clean'));
+    });
+
+    it('still merges a high-risk PR whose review left nothing', () => {
+      const decision = gate(
+        facts({ risk: { risk: 'high', reasons: ['packages/database/migrations/0004.sql: x'] } }),
+      );
+      assert.equal(decision.merge, true);
+    });
+
+    it('still needs the record to name the head commit', () => {
+      const decision = gate(
+        withFollowUps({ risk: 'low', reasons: [] }, reviewedWithFollowUps(OLD)),
+      );
+      assert.deepEqual(failed(decision), ['self-review clean']);
+    });
+  });
+
+  // ADR-034 decision 4: with review split, a low-risk PR needs the standards axis only; every other PR needs both.
+  describe('ADR-034: review axes', () => {
+    const withRecord = (record, risk = { risk: 'low', reasons: [] }, review_setting = 'split') =>
+      facts({
+        risk,
+        review_setting,
+        pr: { ...facts().pr, body: `Closes #57\n\n${record}\n\n${noPreview()}` },
+      });
+    const review = (decision) => decision.conditions.find((c) => c.name === 'self-review clean');
+
+    it('merges a low-risk PR with a standards-only record while review is split', () => {
+      const decision = gate(withRecord(reviewedStandards()));
+      assert.equal(decision.merge, true);
+      assert.deepEqual(failed(decision), []);
+      assert.match(review(decision).detail, /standards axis only/);
+    });
+
+    it('refuses a standards-only record when review is per-pr, naming why', () => {
+      const decision = gate(withRecord(reviewedStandards(), undefined, 'per-pr'));
+      assert.equal(decision.merge, false);
+      assert.deepEqual(failed(decision), ['self-review clean']);
+      assert.match(review(decision).detail, /standards axis only.*per-pr/);
+    });
+
+    it('refuses a standards-only record when the review setting is missing or unknown', () => {
+      for (const setting of [null, '', 'Split', 'none']) {
+        const decision = gate(withRecord(reviewedStandards(), undefined, setting));
+        assert.deepEqual(failed(decision), ['self-review clean'], String(setting));
+      }
+      const missing = withRecord(reviewedStandards());
+      delete missing.review_setting;
+      assert.deepEqual(failed(gate(missing)), ['self-review clean']);
+    });
+
+    it('refuses a standards-only record for a high-risk, owner-only or unknown-risk PR', () => {
+      for (const risk of ['high', 'owner', 'unknown']) {
+        const decision = gate(withRecord(reviewedStandards(), { risk, reasons: ['x'] }));
+        assert.ok(failed(decision).includes('self-review clean'), risk);
+        assert.match(review(decision).detail, /both axes/, risk);
+      }
+    });
+
+    it('still needs the standards-only record to name the head commit', () => {
+      const decision = gate(withRecord(reviewedStandards(OLD)));
+      assert.deepEqual(failed(decision), ['self-review clean']);
+      assert.match(review(decision).detail, /not the head/);
+    });
+
+    it('a record of both axes passes whatever the setting and risk', () => {
+      for (const setting of ['split', 'per-pr', null]) {
+        for (const risk of ['low', 'high']) {
+          const decision = gate(withRecord(reviewed(), { risk, reasons: ['x'] }, setting));
+          assert.equal(decision.merge, true, `${setting} ${risk}`);
+        }
+      }
+    });
+
+    it('a standards-only record with follow-ups on a low-risk PR merges while split', () => {
+      const record = `${reviewedStandards()} (low risk: 1 should-fix finding left as a follow-up, ADR-033)`;
+      assert.equal(gate(withRecord(record)).merge, true);
+    });
   });
 
   it('keeps an owner-only PR for the owner, with the reasons', () => {
@@ -178,6 +294,61 @@ describe('merge gate', () => {
 
     const railway = facts({ checks: [...facts().checks, status('fivvi - cron', 'ERROR')] });
     assert.match(gate(railway).conditions[1].detail, /failing: fivvi - cron/);
+  });
+
+  describe('E008 #1384: a cancelled job whose retry job passed (ci.yml, #1268)', () => {
+    const withCancelled = (cancelled, ...rest) =>
+      facts({ checks: [...facts().checks, run(cancelled, 'CANCELLED'), ...rest] });
+
+    it('passes when the retry passed, also for a test pass and its retry', () => {
+      for (const name of ['iOS build', 'iOS tests (nl)']) {
+        const decision = gate(withCancelled(name, run(`${name} (retry)`)));
+        assert.equal(decision.merge, true, JSON.stringify(decision.conditions));
+      }
+    });
+
+    it('waits, as pending, while the retry runs', () => {
+      const decision = gate(
+        withCancelled('iOS build', run('iOS build (retry)', '', 'IN_PROGRESS')),
+      );
+      assert.deepEqual(failed(decision), ['checks passed']);
+      assert.match(decision.conditions[1].detail, /pending: iOS build, iOS build \(retry\)/);
+      assert.doesNotMatch(decision.conditions[1].detail, /failing/);
+    });
+
+    it('refuses when the retry failed or was cancelled, naming both', () => {
+      for (const conclusion of ['FAILURE', 'CANCELLED', 'TIMED_OUT']) {
+        const decision = gate(withCancelled('iOS build', run('iOS build (retry)', conclusion)));
+        assert.deepEqual(failed(decision), ['checks passed'], conclusion);
+        assert.match(decision.conditions[1].detail, /failing: iOS build, iOS build \(retry\)/);
+      }
+    });
+
+    it('refuses a cancelled job without a retry, and the retry of another job does not count', () => {
+      for (const decision of [
+        gate(withCancelled('iOS build')),
+        gate(withCancelled('Android Maestro', run('iOS build (retry)'))),
+      ]) {
+        assert.deepEqual(failed(decision), ['checks passed']);
+        assert.match(decision.conditions[1].detail, /failing: (iOS build|Android Maestro)$/);
+      }
+    });
+
+    it('still refuses any other failed check next to it', () => {
+      const decision = gate(
+        withCancelled(
+          'iOS build',
+          run('iOS build (retry)'),
+          run('GitGuardian Security Checks', 'FAILURE'),
+        ),
+      );
+      assert.match(decision.conditions[1].detail, /failing: GitGuardian Security Checks$/);
+    });
+
+    it('a skipped retry does not make up for a cancelled job', () => {
+      const decision = gate(withCancelled('iOS build', run('iOS build (retry)', 'SKIPPED')));
+      assert.deepEqual(failed(decision), ['checks passed']);
+    });
   });
 
   it('requires a self-review record for the head commit, and rejects a stale one', () => {

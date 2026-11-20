@@ -95,8 +95,8 @@ describe('E005 i18n checks', () => {
     beforeEach(async () => {
       root = await mkdtemp(path.join(tmpdir(), 'i18n-check-'));
       const set = catalogSet(
-        { 'app.name': 'Fivvi', 'hello.title': 'Welkom' },
-        { 'app.name': 'Fivvi', 'hello.title': 'Welcome' },
+        { 'app.name': 'Fivvi', 'app.title': 'Fivvi', 'hello.title': 'Welkom' },
+        { 'app.name': 'Fivvi', 'app.title': 'Fivvi', 'hello.title': 'Welcome' },
       );
       await writeFile(path.join(root, 'nl-NL.json'), JSON.stringify(set.messages['nl-NL']));
       await writeFile(path.join(root, 'en.json'), JSON.stringify(set.messages.en));
@@ -118,11 +118,12 @@ describe('E005 i18n checks', () => {
         ['icu', []],
         ['generated', []],
         ['no-literal-trainer', []],
+        ['sorted', []],
       ]);
     });
 
     it('fails when the JSON changed but the native catalogs were not regenerated', async () => {
-      await writeEn({ app: { name: 'Fivvi' }, hello: { title: 'Hello' } });
+      await writeEn({ app: { name: 'Fivvi', title: 'Fivvi' }, hello: { title: 'Hello' } });
       const [generated] = await runChecks(root, ['generated']);
       expect(generated?.problems).toEqual([
         'generated/ios/Localizable.xcstrings is out of date',
@@ -132,7 +133,10 @@ describe('E005 i18n checks', () => {
     });
 
     it('E008 AC8: fails when app.name changed but InfoPlist.xcstrings was not regenerated', async () => {
-      await writeEn({ app: { name: 'Fivvi Pro app' }, hello: { title: 'Welcome' } });
+      await writeEn({
+        app: { name: 'Fivvi Pro app', title: 'Fivvi' },
+        hello: { title: 'Welcome' },
+      });
       const [generated] = await runChecks(root, ['generated']);
       expect(generated?.problems).toEqual([
         'generated/ios/Localizable.xcstrings is out of date',
@@ -148,7 +152,24 @@ describe('E005 i18n checks', () => {
       expect(generated?.problems).toContain('generated/ios/InfoPlist.xcstrings is missing');
     });
 
-    it('E008 AC8: names app.name when it is missing from both locales', async () => {
+    it('E017 #503: fails when app.title changed but the client app InfoPlist.xcstrings was not regenerated', async () => {
+      await writeEn({ app: { name: 'Fivvi', title: 'Fivvi app' }, hello: { title: 'Welcome' } });
+      const [generated] = await runChecks(root, ['generated']);
+      expect(generated?.problems).toEqual([
+        'generated/ios/Localizable.xcstrings is out of date',
+        'generated/ios/client/InfoPlist.xcstrings is out of date',
+        'generated/android/values-en/strings.xml is out of date',
+        'Run `pnpm --filter @fivvi/i18n generate` and commit the result.',
+      ]);
+    });
+
+    it('E017 #503: fails when the client app InfoPlist.xcstrings is missing', async () => {
+      await rm(path.join(root, 'generated/ios/client/InfoPlist.xcstrings'));
+      const [generated] = await runChecks(root, ['generated']);
+      expect(generated?.problems).toContain('generated/ios/client/InfoPlist.xcstrings is missing');
+    });
+
+    it('E008 AC8: names app.name and app.title when they are missing from both locales', async () => {
       await writeFile(
         path.join(root, 'nl-NL.json'),
         JSON.stringify({ hello: { title: 'Welkom' } }),
@@ -157,6 +178,7 @@ describe('E005 i18n checks', () => {
       const [generated] = await runChecks(root, ['generated']);
       expect(generated?.problems).toEqual([
         '"app.name" is missing: it is the native app name (iOS CFBundleDisplayName and CFBundleName, Android app label)',
+        '"app.title" is missing: it is the native app name (iOS CFBundleDisplayName and CFBundleName, Android app label)',
       ]);
     });
 
@@ -206,6 +228,7 @@ describe('E005 i18n checks', () => {
       expect(output).toContain('✓ i18n icu');
       expect(output).toContain('✓ i18n generated');
       expect(output).toContain('✓ i18n no-literal-trainer');
+      expect(output).toContain('✓ i18n sorted');
       expect(code).toBe(0);
     });
 
@@ -245,7 +268,7 @@ describe('E005 i18n checks', () => {
 });
 
 describe('E008 hello-screen strings in the committed native catalogs', () => {
-  const keys = ['hello.error', 'common.retry', 'common.loading', 'app.name'];
+  const keys = ['hello.title', 'common.retry', 'common.loading', 'app.name'];
   const read = (file: string) => readFile(path.join(packageRoot, file), 'utf8');
   const source = async (locale: Locale, key: string) => {
     const set = await readCatalogSet(packageRoot);
@@ -266,6 +289,24 @@ describe('E008 hello-screen strings in the committed native catalogs', () => {
       expect(await read(file), file).toContain(`<string name="${androidName(key)}">`);
     }
   });
+
+  it.each(['CFBundleDisplayName', 'CFBundleName'])(
+    'E017 #503: the client app InfoPlist.xcstrings gives %s the app.title of each language',
+    async (infoPlistKey) => {
+      const { extractionState, localizations } = JSON.parse(
+        await read('generated/ios/client/InfoPlist.xcstrings'),
+      ).strings[infoPlistKey];
+      expect(extractionState).toBe('manual');
+      expect(localizations.nl.stringUnit).toEqual({
+        state: 'translated',
+        value: await source('nl-NL', 'app.title'),
+      });
+      expect(localizations.en.stringUnit).toEqual({
+        state: 'translated',
+        value: await source('en', 'app.title'),
+      });
+    },
+  );
 
   it.each(['CFBundleDisplayName', 'CFBundleName'])(
     'AC8, #95: InfoPlist.xcstrings gives %s the app.name of each language',

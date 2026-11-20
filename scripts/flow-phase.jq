@@ -3,9 +3,13 @@
 #         parent: null|{number, title, state, labels, open, total}, blockers: [{number, title}],
 #         fixed_blockers: [{number, title, closed_at}],
 #         children: [{number, title, state, labels, assignees, blocked}],
+#         merge: "queue"|"direct" (scripts/pipeline.sh get merge, ADR-035; absent means queue: only the next-step texts change,
+#         the phases queued and queue-removed just do not occur with direct),
+#         review: "split"|"per-pr" (scripts/pipeline.sh get review; absent means per-pr, read only for a spec whose tickets are
+#         all closed), spec_review: null|{covered, detail} (scripts/spec-review.sh status, read only while review is split),
 #         branches: [{name, local, worktree, dirty,
 #                     pr: null|{number, state, draft, review, failing, threads, age_days, risk, risk_reasons,
-#                               head, refusal: null|{sha, reasons},
+#                               head, refusal: null|{sha, reasons}, held: null|string (the reason a refresh left it with the owner),
 #                               queue: null|{state: null|"queued"|"removed", position, reason, removed_at, requeued}}}]}
 # risk is "low", "high", "owner" or null (unknown) for an open PR (scripts/risk.sh, ADR-021): an agent merges low and
 # high; owner (owner-only) and unknown wait for the owner. refusal is the last refusal of the merge
@@ -18,6 +22,9 @@
 # and with an open blocker waits for its fix (waiting-fix); once a blocker was closed as completed after the removal, it
 # is re-queued once (requeue). An owner-only or unknown-risk PR stays queue-removed, a refused one is merge-refused. answered is true
 # when there is a comment and the newest is not a triage note, i.e. someone replied to the needs-info question.
+# ADR-034: with review split, a spec whose tickets are all closed is in the phase spec-review, not complete, until a final
+# spec review covers it (spec_review.covered); a bug ticket under the spec reopens it (it is building, as with any open
+# sub-issue). Any review setting but per-pr asks for the review, so an unknown one is never read as "skip it".
 # Output: {phase, next, hint}, and bug (the number of the fixed blocker to re-queue after) in the phase requeue.
 # A spec closes through its tickets (complete, then scripts/issue.sh close), not through a PR (#509): an issue that is
 # labelled spec or has sub-issues, and is not built as its own ticket (no sub-issues, ready-for-agent). For it a branch
@@ -35,6 +42,11 @@ def open: .state == "OPEN";
 def unapproved_spec: has("spec") and (has("spec-approved") | not);
 
 def refused: .refusal != null and .refusal.sha != null and .refusal.sha == .head;
+# A refresh (#1274) of a PR that stayed with the owner (open findings, no clean review of its head, a refusal) left a hold
+# in the notes (`refresh-held`, scripts/flow.sh); the push of the merge commit makes a refusal stale, but not the hold. It
+# ends only with a clean review recorded after it of the PR's current head (a different commit than the held one), never
+# with a clean line of an older commit. A non-empty string is the reason.
+def held: (.held // "") != "";
 def queue_state: .queue.state? // null;
 
 # The blocker closed as completed last, after the removal at $at, or null: the bug whose fix the removed PR waited for.
@@ -67,7 +79,7 @@ def code_phase($f):
   elif (.pr | queue_state) == "queued" then {phase: "queued", rank: 4}
   elif .pr.failing > 0 or .pr.review == "CHANGES_REQUESTED" or .pr.threads > 0 then {phase: "changes-requested", rank: 1}
   elif (.pr | queue_state) == "removed" then (.pr | removed_phase($f))
-  elif (.pr.risk | IN("low", "high")) and (.pr | refused) then {phase: "merge-refused", rank: 3}
+  elif (.pr.risk | IN("low", "high")) and ((.pr | refused) or (.pr | held)) then {phase: "merge-refused", rank: 3}
   elif .pr.risk | IN("low", "high") then {phase: "ready-to-merge", rank: 4}
   elif .pr.review == "APPROVED" then {phase: "approved", rank: 4}
   else {phase: "in-review", rank: 3}
@@ -77,12 +89,17 @@ def owner_review:
   if .risk == "owner" then "Owner-only (\(.risk_reasons // [] | join("; "))): the owner reviews"
   else "Risk unknown: the owner reviews" end;
 
+def direct_merge: (.merge // "queue") == "direct";
+
 def merge_next($n):
-  (if .pr.risk == "high" then "High-risk (\(.pr.risk_reasons // [] | join("; "))): scripts/pr.sh merge in the worktree. It records the high-risk merge in the PR body and adds the PR to the merge queue"
+  (if direct_merge then
+     (if .pr.risk == "high" then "High-risk (\(.pr.risk_reasons // [] | join("; "))): scripts/pr.sh merge in the worktree. It records the high-risk merge in the PR body and squash-merges the PR"
+      else "Low-risk: scripts/pr.sh merge in the worktree. It squash-merges the PR" end)
+   elif .pr.risk == "high" then "High-risk (\(.pr.risk_reasons // [] | join("; "))): scripts/pr.sh merge in the worktree. It records the high-risk merge in the PR body and adds the PR to the merge queue"
    else "Low-risk: scripts/pr.sh merge in the worktree. It adds the PR to the merge queue" end)
   + " only when the whole merge gate holds; otherwise the PR stays for the owner. Then scripts/flow.sh status \($n) until GitHub has merged it, and scripts/flow.sh finish \($n).";
 
-# Input: {phase, pr, blockers, bug} of the least advanced branch (blockers: the open ones, bug: the one closed last, as
+# Input: {phase, pr, blockers, bug, merge} of the least advanced branch (blockers: the open ones, bug: the one closed last, as
 # a number, for a removed PR).
 def code_next($n):
   {
@@ -101,9 +118,14 @@ def code_next($n):
       end),
     "waiting-fix": "Wait for \([(.blockers // [])[] | "#\(.)"] | join(", ")), which fixes the check that removed it from the merge queue (\(.pr.queue.reason // "no reason given")). Nothing to do on this PR: build the bug (it is ready work), then scripts/flow.sh status \($n) shows the next step. Never queue the same commit again yourself.",
     "requeue": "scripts/pr.sh merge \(.pr.number) --after \(.bug): #\(.bug) was closed as completed after the queue removed \(.pr.head[:7]) (\(.pr.queue.reason // "no reason given")). It queues the same commit once more, with no push and no merge of main, when the whole merge gate holds; the queue tests it on the latest main, which has the fix. Then scripts/flow.sh status \($n) until GitHub has merged it, and scripts/flow.sh finish \($n). If the queue removes it again, report it and stop: the owner decides.",
-    "merge-refused": "The merge gate refused it on \(.pr.head[:7]): \(.pr.refusal.reasons). The owner decides, or fix it and push (scripts/pr.sh create), which makes the refusal stale. Report and stop; never retry the merge on this commit.",
-    "in-review": "\(.pr | owner_review) and adds it to the merge queue. Nothing to do.",
-    "approved": "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner adds it to the merge queue on GitHub; then scripts/flow.sh finish \($n).",
+    "merge-refused": (
+      if .pr | refused then
+        "The merge gate refused it on \(.pr.head[:7]): \(.pr.refusal.reasons). The owner decides, or fix it and push (scripts/pr.sh create), which makes the refusal stale. Report and stop; never retry the merge on this commit."
+      else
+        "A refresh of main was merged into it and it stays with the owner: \(.pr.held). The owner decides, or fix it, push (scripts/pr.sh create) and have a clean review of the fix recorded (`reviewed <sha> (...): clean` in the notes), which ends the hold; the push of the merge commit does not. Report and stop; never run scripts/pr.sh merge on it before."
+      end),
+    "in-review": (if direct_merge then "\(.pr | owner_review) and merges it on GitHub. Nothing to do." else "\(.pr | owner_review) and adds it to the merge queue. Nothing to do." end),
+    "approved": (if direct_merge then "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner merges it on GitHub; then scripts/flow.sh finish \($n)." else "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner adds it to the merge queue on GitHub; then scripts/flow.sh finish \($n)." end),
     "merged": "scripts/flow.sh finish \($n)",
     "abandoned": "The PR was closed without merging. Ask the user what to do."
   }[.phase];
@@ -155,14 +177,19 @@ def ticket_phase($n):
      else {phase: "waiting", next: "Waiting for the owner to answer the question on the issue (needs-info). Report and stop."} end
    elif ($code | length) > 0
       and (($f | open) or any($code[]; .local or .worktree != null) or any($code[]; .pr.state == "OPEN"))
-   then {phase: $code[0].phase, next: ($code[0] | code_next($n))}
+   then {phase: $code[0].phase, next: ($code[0] + {merge: ($f.merge // "queue")} | code_next($n))}
         + (if $code[0].bug != null then {bug: $code[0].bug} else {} end)
    elif ($f | open | not) then {phase: "done", next: "Nothing to do."}
    elif ($f.blockers | length) > 0 and ($f | awaiting_tickets | not) then
      {phase: "blocked", next: "Wait for \([$f.blockers[] | "#\(.number)"] | join(", ")) to be done."}
    elif ($f | has("spec")) or ($f.children | length) > 0 then
      if ($f.children | length) > 0 and ([$f.children[] | select(open)] | length) == 0 then
-       {phase: "complete", next: "All \($f.children | length) tickets are done. Check FEATURES.md shows it IMPLEMENTED, then scripts/issue.sh close \($n)."}
+       if ($f.review // "per-pr") != "per-pr" and ($f.spec_review.covered? // false | not) then
+         {phase: "spec-review",
+          next: ("All \($f.children | length) tickets are done, but no final spec review covers the spec yet (\($f.spec_review.detail? // "no review status read")). Run the final spec review (docs/agents/build.md, Spec review): a fresh reviewer checks every acceptance criterion of the spec and its tickets at that SHA, the origin/main SHA named in the brief (the work skill fetches it first), from scripts/spec-review.sh map \($n), and the parity of iOS and Android. A finding becomes a bug ticket under the spec (scripts/issue.sh create bug --parent \($n) --label ready-for-agent), which reopens it; record the verdict with scripts/spec-review.sh record \($n) --final clean|not-clean --sha <the origin/main SHA named in the brief>. Once it is clean, the phase is complete.")}
+       else
+         {phase: "complete", next: "All \($f.children | length) tickets are done. Check FEATURES.md shows it IMPLEMENTED, then scripts/issue.sh close \($n)."}
+       end
      elif ($f.children | length) == 0 and ($f | has("ready-for-agent") | not)
        and (($f | has("needs-triage")) or ($f.described | not)) then
        {phase: "needs-spec", next: "Grill the owner (grill-with-docs), then rewrite it with to-spec: scripts/issue.sh update \($n) --body-file -."}

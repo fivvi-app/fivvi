@@ -27,11 +27,25 @@ export function renderXcstrings(analysis: Analysis): string {
 export const infoPlistKeys = { CFBundleDisplayName: 'app.name', CFBundleName: 'app.name' } as const;
 
 /**
- * Renders the iOS `InfoPlist.xcstrings`: the localized Info.plist values, so the name under
- * the app icon comes from the catalog in nl and en.
+ * The same Info.plist keys for the client app Fivvi (E017 #503): its name under the icon is `app.title`, *Fivvi*, in
+ * both languages. Its catalog is `generated/ios/client/InfoPlist.xcstrings`, because Xcode takes the table by the file's
+ * name, `InfoPlist.xcstrings`.
  */
-export function renderInfoPlistXcstrings(analysis: Analysis): string {
-  return renderCatalog(analysis, new Map(Object.entries(infoPlistKeys)));
+export const clientInfoPlistKeys = {
+  CFBundleDisplayName: 'app.title',
+  CFBundleName: 'app.title',
+} as const;
+
+/**
+ * Renders the iOS `InfoPlist.xcstrings`: the localized Info.plist values, so the name under
+ * the app icon comes from the catalog in nl and en. `keys` are the Info.plist keys of Fivvi Pro
+ * (the default) or of the client app, `clientInfoPlistKeys`.
+ */
+export function renderInfoPlistXcstrings(
+  analysis: Analysis,
+  keys: Record<string, string> = infoPlistKeys,
+): string {
+  return renderCatalog(analysis, new Map(Object.entries(keys)));
 }
 
 /**
@@ -55,8 +69,9 @@ export function renderStringCatalogsAccessor(): string {
 
 /**
  * Renders `generated/ios/Package.swift`: the generated catalog as the Swift package `FivviStringCatalogs` (E017 #500),
- * the one source of both iOS apps' strings. `Localizable.xcstrings` is its resource; `InfoPlist.xcstrings` is not,
- * because it localizes an app's Info.plist (the name under the icon), so each app target takes it by reference.
+ * the one source of both iOS apps' strings. `Localizable.xcstrings` is its resource; `InfoPlist.xcstrings` and the
+ * client app's `client/InfoPlist.xcstrings` are not, because they localize an app's Info.plist (the name under the
+ * icon), so each app target takes its own by reference.
  */
 export function renderStringCatalogsPackage(): string {
   return [
@@ -75,7 +90,7 @@ export function renderStringCatalogsPackage(): string {
     '        .target(',
     '            name: "FivviStringCatalogs",',
     '            path: ".",',
-    '            exclude: ["InfoPlist.xcstrings"],',
+    '            exclude: ["InfoPlist.xcstrings", "client"],',
     '            sources: ["FivviStringCatalogs.swift"],',
     '            resources: [.process("Localizable.xcstrings")]',
     '        )',

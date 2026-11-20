@@ -5,7 +5,6 @@ import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
-import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.home.HomeTags
 import org.junit.Rule
 import org.junit.Test
@@ -28,7 +27,7 @@ class AppLanguageUiTest(
 
     @Test
     fun E008_AC3_screenFollowsTheAppLanguage() {
-        app.launch(FakeHelloApi(), device = device, perApp = perApp)
+        app.launch(device = device, perApp = perApp)
 
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
             .assertTextEquals(localizedString(expected, R.string.home_signed_in_as, "owner@example.com"))

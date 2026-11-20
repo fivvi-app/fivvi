@@ -36,10 +36,23 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- The workspace's join link and the client invitation link open Fivvi when it is installed (verified App
+                 Links, E017 #506; the web serves /.well-known/assetlinks.json for app.fivvi, #502). Only /j/* and /i/*:
+                 LinkRouter answers the same two paths. Fivvi Pro declares no filter. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="fivvi.app" />
+                <data android:pathPrefix="/j/" />
+                <data android:pathPrefix="/i/" />
             </intent-filter>
         </activity>
     </application>

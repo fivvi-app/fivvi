@@ -21,7 +21,6 @@ import app.fivvi.core.me.FakeMeApi
 import app.fivvi.designtokens.DarkColorScheme
 import app.fivvi.designtokens.LightColorScheme
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.hello.FakeHelloApi
 import java.io.IOException
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -58,7 +57,6 @@ class HomeThemeTest(
     fun E008_AC6_usesTokenColorSchemeInLightAndDark() {
         uiModeManager.setApplicationNightMode(nightMode)
         app.launch(
-            FakeHelloApi(),
             device = listOf("nl-NL"),
             meApi = FakeMeApi().apply { answers += { throw IOException("offline") } },
         )

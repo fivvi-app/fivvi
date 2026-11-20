@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
@@ -55,14 +56,16 @@ describe('the versioned GitHub settings', () => {
         'Quarantine',
         'iOS build',
         'iOS build (retry)',
-        'iOS tests (${{ matrix.locale }})',
+        'iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2)',
         'iOS tests (retry plan)',
-        'iOS tests (${{ matrix.locale }}) (retry)',
+        'iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2) (retry)',
         'Android build',
         'Android tests',
         'Android Maestro',
         // Not required, and never to be: the listed flaky Android tests run here (E002 #1363, TESTING.md §8).
         'Quarantine (Android)',
+        // ADR-034: opens the issue of a failed nightly run; runs only on the schedule, and is not required.
+        'Nightly report',
       ],
     );
   });
@@ -92,6 +95,8 @@ describe('the versioned GitHub settings', () => {
     assert.equal(checks.parameters.strict_required_status_checks_policy, false);
   });
 
+  // #1425: one PR per merge stays: GitHub builds every queued entry on its own, so a group of 3 runs no fewer
+  // checks (ADR-033, "Merge group size"); HEADGREEN would not change that either.
   it('E002 #119: require the merge queue, squash, one PR per merge, sized for a cold iOS run (~25 min)', () => {
     const queue = RULESET.rules.find((rule) => rule.type === 'merge_queue');
     assert.deepEqual(queue.parameters, {
@@ -116,7 +121,7 @@ describe('the versioned GitHub settings', () => {
     // ios-tests matrix, so the slower of the wait and the other language's full run, the plan, the retry's wait and the
     // retry), then the gate.
     const NOT_ACQUIRED_WAIT = 15;
-    const longestNative = Math.max(
+    const longestChain = Math.max(
       timeout('ios-build') + timeout('ios-tests') + timeout('ios'),
       2 * NOT_ACQUIRED_WAIT +
         timeout('ios-build-retry') +
@@ -127,9 +132,11 @@ describe('the versioned GitHub settings', () => {
         timeout('ios'),
       timeout('android-tests') + timeout('android'),
       timeout('android-build') + timeout('android-maestro') + timeout('android'),
+      // Checks (Linux) needs no other job and runs beside the native chain (#1490: 25 minutes).
+      timeout('checks'),
     );
     assert.ok(
-      queue.parameters.check_response_timeout_minutes > timeout('changes') + longestNative,
+      queue.parameters.check_response_timeout_minutes > timeout('changes') + longestChain,
       'the queue should time out after Detect changes plus the longest native chain, gate included',
     );
   });
@@ -137,23 +144,37 @@ describe('the versioned GitHub settings', () => {
 
 describe('github-settings.sh apply', () => {
   const gh = fakeGh();
-  after(() => gh.cleanup());
+  const dir = mkdtempSync(join(tmpdir(), 'github-settings-'));
+  after(() => {
+    gh.cleanup();
+    rmSync(dir, { recursive: true, force: true });
+  });
 
   const OWNER_ID = 4242;
-  const apply = (existing, policies = []) => {
+  // The pipeline switch of the run (ADR-035, `merge`): the ruleset applied is the file's form for it.
+  const pipelineFile = (merge) => {
+    const file = join(dir, `pipeline-${merge}.json`);
+    writeFileSync(file, JSON.stringify({ ci: 'lean', review: 'split', builders: 1, merge }));
+    return file;
+  };
+  const apply = (existing, policies = [], merge = 'queue', extraEnv = {}) => {
     const result = spawnSync(join(ROOT, 'scripts/github-settings.sh'), ['apply'], {
       encoding: 'utf8',
-      env: gh.env([
-        { match: '^api repos/[^ ]+/rulesets$', out: existing },
-        { match: '^api users/', out: { id: OWNER_ID } },
-        {
-          match: '^api repos/[^ ]+/environments/release/deployment-branch-policies( --jq|$)',
-          out: { branch_policies: policies },
-        },
-        { match: '^api --method DELETE ', out: '' },
-        { match: '^api --method (POST|PUT|PATCH) ', out: {} },
-        { match: '^label create ', out: '' },
-      ]),
+      env: {
+        ...gh.env([
+          { match: '^api repos/[^ ]+/rulesets$', out: existing },
+          { match: '^api users/', out: { id: OWNER_ID } },
+          {
+            match: '^api repos/[^ ]+/environments/release/deployment-branch-policies( --jq|$)',
+            out: { branch_policies: policies },
+          },
+          { match: '^api --method DELETE ', out: '' },
+          { match: '^api --method (POST|PUT|PATCH) ', out: {} },
+          { match: '^label create ', out: '' },
+        ]),
+        ...extraEnv,
+        FIVVI_PIPELINE_FILE: pipelineFile(merge),
+      },
     });
     assert.equal(result.status, 0, result.stderr);
     return gh.calls();
@@ -164,6 +185,79 @@ describe('github-settings.sh apply', () => {
     const [ruleset] = writes(apply([{ id: 3, name: 'other' }]));
     assert.match(ruleset.args.join(' '), /^api --method POST repos\/[^ ]+\/rulesets /);
     assert.deepEqual(JSON.parse(ruleset.input), RULESET);
+  });
+
+  describe('ADR-035: the form of the ruleset follows `merge` in .github/pipeline.json', () => {
+    const applied = (merge) => {
+      const [ruleset] = writes(apply([{ id: 7, name: 'main' }], [], merge));
+      return JSON.parse(ruleset.input);
+    };
+    const rule = (ruleset, type) => ruleset.rules.find((r) => r.type === type);
+
+    it('merge queue: exactly the file as it is, with the merge queue and the loose status policy', () => {
+      assert.deepEqual(applied('queue'), RULESET);
+      assert.equal(
+        rule(RULESET, 'required_status_checks').parameters.strict_required_status_checks_policy,
+        false,
+      );
+    });
+
+    it('merge direct: the same file without the merge_queue rule and with the strict status policy', () => {
+      const direct = applied('direct');
+      assert.deepEqual(
+        direct.rules.map((r) => r.type),
+        RULESET.rules.map((r) => r.type).filter((type) => type !== 'merge_queue'),
+      );
+      const checks = rule(direct, 'required_status_checks').parameters;
+      assert.equal(checks.strict_required_status_checks_policy, true);
+      assert.deepEqual(
+        checks.required_status_checks,
+        rule(RULESET, 'required_status_checks').parameters.required_status_checks,
+      );
+      assert.deepEqual(
+        checks.required_status_checks.map((c) => c.context),
+        ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'],
+      );
+    });
+
+    it('merge direct keeps everything else: squash only, a PR, no force-push or deletion, no bypass, the same name and target', () => {
+      const direct = applied('direct');
+      assert.deepEqual(rule(direct, 'pull_request'), rule(RULESET, 'pull_request'));
+      assert.deepEqual(rule(direct, 'pull_request').parameters.allowed_merge_methods, ['squash']);
+      for (const type of ['deletion', 'non_fast_forward']) assert.ok(rule(direct, type), type);
+      assert.deepEqual(direct.bypass_actors, []);
+      for (const key of ['name', 'target', 'enforcement', 'conditions'])
+        assert.deepEqual(direct[key], RULESET[key], key);
+    });
+
+    it('does not change the file: the direct form is derived at apply time, so there is one source', () => {
+      applied('direct');
+      assert.ok(RULESET.rules.some((r) => r.type === 'merge_queue'));
+      assert.equal(
+        JSON.parse(readFileSync(join(ROOT, '.github/rulesets/main.json'), 'utf8')).rules.length,
+        RULESET.rules.length,
+      );
+    });
+
+    it('creates the direct form too when main has no ruleset yet', () => {
+      const [ruleset] = writes(apply([], [], 'direct'));
+      assert.match(ruleset.args.join(' '), /^api --method POST repos\/[^ ]+\/rulesets /);
+      assert.equal(
+        rule(JSON.parse(ruleset.input), 'required_status_checks').parameters
+          .strict_required_status_checks_policy,
+        true,
+      );
+    });
+
+    it('applies nothing when the switch cannot be read: it fails closed, with the reason', () => {
+      const result = spawnSync(join(ROOT, 'scripts/github-settings.sh'), ['apply'], {
+        encoding: 'utf8',
+        env: { ...gh.env([]), FIVVI_PIPELINE_FILE: join(dir, 'missing.json') },
+      });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /merge/);
+      assert.equal(writes(gh.calls()).length, 0);
+    });
   });
 
   it('updates the existing ruleset in place, so running it again changes nothing else', () => {

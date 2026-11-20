@@ -1,3 +1,4 @@
+import pg from 'pg';
 import { inject } from 'vitest';
 import {
   appRoleUrl,
@@ -73,6 +74,40 @@ export async function cloneTemplateDatabase(): Promise<TestDatabase> {
     `CREATE DATABASE ${identifier(name)} TEMPLATE ${identifier(run.templateName)} STRATEGY FILE_COPY`,
   );
   return testDatabase(name);
+}
+
+export interface TestPool extends pg.Pool {
+  /** Ends the pool and waits until every connection is closed, then it is safe to drop the database. */
+  close(): Promise<void>;
+}
+
+/**
+ * A pool for a test file's own connections (the logging pool of a query test, a pool as another
+ * role). Use it instead of a bare `new pg.Pool(...)`, which breaks the run when its database is
+ * dropped (#1443): `pool.end()` resolves before the sockets are closed, and the pool of an idle
+ * client re-emits a backend ended by `DROP DATABASE ... WITH (FORCE)` or `pg_terminate_backend`
+ * (`57P01`) as an `error` event with no listener, which Vitest reports as an unhandled error
+ * while every test passes. This pool ignores that one error (the pool replaces the connection on
+ * the next query) and rethrows any other, and `close()` resolves only after every connection has ended.
+ */
+export function createTestPool(
+  connectionString: string,
+  options: Omit<pg.PoolConfig, 'connectionString'> = {},
+): TestPool {
+  const pool = new pg.Pool({ ...options, connectionString }) as TestPool;
+  const ended: Promise<void>[] = [];
+  pool.on('error', (error: Error & { code?: string }) => {
+    // Only the end of a backend is expected; any other idle-client error must still surface.
+    if (error.code !== '57P01') throw error;
+  });
+  pool.on('connect', (client) => {
+    ended.push(new Promise((resolve) => client.once('end', () => resolve())));
+  });
+  pool.close = async () => {
+    await pool.end();
+    await Promise.all(ended);
+  };
+  return pool;
 }
 
 /** Anything with a Drizzle-style `transaction(callback)`. */

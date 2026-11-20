@@ -24,10 +24,6 @@ extension StubAPI {
         fatalError("The app doesn't call recordWorkspaceSwitch yet")
     }
 
-    func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output {
-        fatalError("The app doesn't call listTeamMembers yet")
-    }
-
     func removeTeamMember(
         _ input: Operations.RemoveTeamMember.Input
     ) async throws -> Operations.RemoveTeamMember.Output {
@@ -38,14 +34,6 @@ extension StubAPI {
         _ input: Operations.ChangeTeamMemberRole.Input
     ) async throws -> Operations.ChangeTeamMemberRole.Output {
         fatalError("The app doesn't call changeTeamMemberRole yet")
-    }
-
-    func listTrainers(_ input: Operations.ListTrainers.Input) async throws -> Operations.ListTrainers.Output {
-        fatalError("The app doesn't call listTrainers yet")
-    }
-
-    func listLocations(_ input: Operations.ListLocations.Input) async throws -> Operations.ListLocations.Output {
-        fatalError("The app doesn't call listLocations yet")
     }
 
     func updateLocation(_ input: Operations.UpdateLocation.Input) async throws -> Operations.UpdateLocation.Output {
@@ -106,30 +94,6 @@ extension StubAPI {
         fatalError("The app doesn't call withdrawTrainerInvitation yet")
     }
 
-    func createPrivateSession(
-        _ input: Operations.CreatePrivateSession.Input
-    ) async throws -> Operations.CreatePrivateSession.Output {
-        fatalError("The app doesn't call createPrivateSession yet")
-    }
-
-    func getSession(
-        _ input: Operations.GetSession.Input
-    ) async throws -> Operations.GetSession.Output {
-        fatalError("The app doesn't call getSession yet")
-    }
-
-    func reschedulePrivateSession(
-        _ input: Operations.ReschedulePrivateSession.Input
-    ) async throws -> Operations.ReschedulePrivateSession.Output {
-        fatalError("The app doesn't call reschedulePrivateSession yet")
-    }
-
-    func listClientUpcomingSessions(
-        _ input: Operations.ListClientUpcomingSessions.Input
-    ) async throws -> Operations.ListClientUpcomingSessions.Output {
-        fatalError("The app doesn't call listClientUpcomingSessions yet")
-    }
-
     func listGroupClasses(
         _ input: Operations.ListGroupClasses.Input
     ) async throws -> Operations.ListGroupClasses.Output {
@@ -166,6 +130,12 @@ extension StubAPI {
         fatalError("The app doesn't call updateGroupClassDate yet")
     }
 
+    func listGroupClassSeries(
+        _ input: Operations.ListGroupClassSeries.Input
+    ) async throws -> Operations.ListGroupClassSeries.Output {
+        fatalError("The app doesn't call listGroupClassSeries yet")
+    }
+
     func getJoinLink(_ input: Operations.GetJoinLink.Input) async throws -> Operations.GetJoinLink.Output {
         fatalError("The app doesn't call getJoinLink yet")
     }
@@ -194,5 +164,29 @@ extension StubAPI {
         _ input: Operations.DeclineInvitation.Input
     ) async throws -> Operations.DeclineInvitation.Output {
         fatalError("The app doesn't call declineInvitation yet")
+    }
+
+    func listOffers(
+        _ input: Operations.ListOffers.Input
+    ) async throws -> Operations.ListOffers.Output {
+        fatalError("The app doesn't call listOffers yet")
+    }
+
+    func getOffer(
+        _ input: Operations.GetOffer.Input
+    ) async throws -> Operations.GetOffer.Output {
+        fatalError("The app doesn't call getOffer yet")
+    }
+
+    func createOffer(
+        _ input: Operations.CreateOffer.Input
+    ) async throws -> Operations.CreateOffer.Output {
+        fatalError("The app doesn't call createOffer yet")
+    }
+
+    func updateOffer(
+        _ input: Operations.UpdateOffer.Input
+    ) async throws -> Operations.UpdateOffer.Output {
+        fatalError("The app doesn't call updateOffer yet")
     }
 }

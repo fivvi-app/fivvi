@@ -22,7 +22,6 @@ import app.fivvi.pro.UI_TIMEOUT_MILLIS
 import app.fivvi.pro.clients.ClientProfileTags
 import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.clients.clientOf
-import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.FakeWorkspacesApi
 import app.fivvi.pro.home.HomeTags
@@ -46,7 +45,6 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
     @get:Rule
     val app = AppRule()
 
-    private val hello = FakeHelloApi().apply { answerGreeting() }
     private val me = FakeMeApi()
     private val clients = FakeClientsApi()
     private val sessions = FakeSessionsApi()
@@ -94,7 +92,6 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
             TeamMember(sarah.id, "Sarah", "trainer@example.com", TeamMember.Role.TRAINER),
         )
         app.launch(
-            hello,
             device = listOf(language.tag),
             meApi = me,
             workspacesApi = FakeWorkspacesApi(),

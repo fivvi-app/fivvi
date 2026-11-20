@@ -1,3 +1,6 @@
+// Module: The join link of a workspace, `{app address}/j/{code}`: the code alphabet and length, and the link built from a code.
+// Spec: F029
+
 /**
  * The join link of a workspace (F029, spec #484): `{app address}/j/{code}`. The code is made in
  * the database (`new_join_code()`, migration `0026`) from its CSPRNG; this is the format it

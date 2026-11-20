@@ -10,6 +10,7 @@
     "./database/server": "./src/database-server.ts",
     "./database/setup": "./src/database-setup.ts",
     "./import-sample": "./src/import-sample.ts",
+    "./mollie-settlements": "./src/mollie-settlements.ts",
     "./vitest": "./src/vitest.ts"
   },
   "scripts": {
