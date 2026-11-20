@@ -19,6 +19,75 @@
     "openInBrowser": "Open in the browser",
     "soon": "We'll open this link in the app soon."
   },
+  "bookingLinks": {
+    "body": "Only work for clients you have approved.",
+    "columns": {
+      "actions": "Actions",
+      "language": "Page language",
+      "link": "Link",
+      "status": "Status",
+      "what": "What"
+    },
+    "copied": "Link copied",
+    "copy": "Copy link",
+    "copyBooking": "Copy booking link",
+    "deactivate": "Deactivate",
+    "deactivateDialog": {
+      "body": "This link stops working, also through a QR code. This can't be undone.",
+      "cancel": "Go back",
+      "confirm": "Deactivate",
+      "title": "Deactivate this booking link?"
+    },
+    "deactivated": "Booking link deactivated.",
+    "errors": {
+      "copy": "Copying didn't work. Select the link and copy it yourself.",
+      "generic": "Something went wrong. Try again.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "noPermission": "You can't do this."
+    },
+    "inactiveHeading": "Inactive",
+    "language": {
+      "en": "Always English",
+      "nl": "Always Dutch",
+      "visitor": "Visitor's language"
+    },
+    "new": {
+      "classChoose": "Choose a class",
+      "classLabel": "Class",
+      "classNone": "You don't have any classes yet.",
+      "classRequired": "Choose a class.",
+      "create": "Create link",
+      "created": "Booking link created.",
+      "done": "Done",
+      "languageHint": "The visitor can always switch language themselves.",
+      "languageLabel": "Page language",
+      "languageOptions": {
+        "en": "Always English",
+        "nl": "Always Dutch",
+        "visitor": "Visitor's language (recommended)"
+      },
+      "open": "New booking link",
+      "title": "New booking link",
+      "what": {
+        "all": "All bookings",
+        "class": "One class",
+        "group": "Group classes"
+      },
+      "whatLabel": "What"
+    },
+    "scope": {
+      "all": "All bookings",
+      "class": "Class: {class}",
+      "group": "Group classes",
+      "session": "Class on {date}: {class}"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "title": "Booking links",
+    "trainerNote": "Trainers see the links, but can't change them."
+  },
   "classes": {
     "date": {
       "back": "All classes",
@@ -1685,9 +1754,9 @@
     "description": "The overview of your gym or business will appear here soon."
   },
   "workspaceNav": {
+    "bookingLinks": "Booking links",
     "classes": "Classes",
     "clients": "Clients",
-    "joinLink": "Join link",
     "label": "Main navigation",
     "myCalendar": "My calendar",
     "myDay": "My day",

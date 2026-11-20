@@ -120,7 +120,7 @@ test.describe('@permission F004 roles on the web', () => {
       copy.workspaceNav.myDay,
       copy.workspaceNav.myCalendar,
       copy.workspaceNav.clients,
-      copy.workspaceNav.joinLink,
+      copy.workspaceNav.bookingLinks,
     ]);
     await expectNoAxeViolations(page, `the Trainer's navigation in ${appLocale}`);
 
@@ -236,7 +236,7 @@ test.describe('@permission F004 roles on the web', () => {
         copy.workspaceNav.myDay,
         copy.workspaceNav.myCalendar,
         copy.workspaceNav.clients,
-        copy.workspaceNav.joinLink,
+        copy.workspaceNav.bookingLinks,
       ]);
       await sarahsPage.goto(`/w/${slug}/trainers`);
       await expect(
@@ -291,7 +291,7 @@ test.describe('@permission F004 roles on the web', () => {
       copy.workspaceNav.myDay,
       copy.workspaceNav.myCalendar,
       copy.workspaceNav.clients,
-      copy.workspaceNav.joinLink,
+      copy.workspaceNav.bookingLinks,
     ]);
     await expect(page).toHaveTitle(copy.team.title);
     await expectNoAxeViolations(page, `the no-permission page after stepping down in ${appLocale}`);
@@ -358,7 +358,7 @@ test.describe('@permission F004 roles on the web', () => {
       copy.workspaceNav.myDay,
       copy.workspaceNav.myCalendar,
       copy.workspaceNav.clients,
-      copy.workspaceNav.joinLink,
+      copy.workspaceNav.bookingLinks,
     ]);
 
     await page.goto(`/w/${personalSlug}`);

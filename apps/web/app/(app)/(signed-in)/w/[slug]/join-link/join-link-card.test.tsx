@@ -8,25 +8,33 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }))
 const URL_OF_THE_LINK = 'https://fivvi.app/j/7KQ2M9XA';
 
 // Expected copy is read from the catalogs, never hard-coded (TESTING.md §5.4).
-describe.each(locales)('F029 the Aanmeldlink page in %s', (locale) => {
+describe.each(locales)('F029 the Aanmeldlink card in %s', (locale) => {
   const copy = messages[locale];
   const card = (canRenew: boolean) =>
-    render(locale, <JoinLinkCard workspaceId="w1" url={URL_OF_THE_LINK} canRenew={canRenew} />);
+    render(
+      locale,
+      <JoinLinkCard
+        workspaceId="w1"
+        url={URL_OF_THE_LINK}
+        canRenew={canRenew}
+        onNotice={() => {}}
+      />,
+    );
 
   it('AC7: shows the title, the explanation, the URL and Link kopiëren', () => {
     const html = card(false);
 
-    expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.joinLink.title)}</h1>`));
+    expect(html).toMatch(new RegExp(`<h2[^>]*>${escapeHtml(copy.joinLink.title)}</h2>`));
     expect(html).toContain(escapeHtml(copy.joinLink.body));
     expect(html).toMatch(new RegExp(`<code[^>]*>${URL_OF_THE_LINK}</code>`));
     expect(html).toMatch(new RegExp(`<button[^>]*>${escapeHtml(copy.joinLink.copy)}</button>`));
   });
 
-  it('AC7: the card carries the title as an h2 under the one h1', () => {
+  it('F037: the card is one section of the Boekingslinks page: its title is an h2 and the card has no h1', () => {
     const html = card(false);
 
-    expect(html.match(/<h1[ >]/g)).toHaveLength(1);
-    expect(html).toMatch(new RegExp(`<h2[^>]*>${escapeHtml(copy.joinLink.title)}</h2>`));
+    expect(html).not.toMatch(/<h1[ >]/);
+    expect(html.match(/<h2[ >]/g)).toHaveLength(1);
   });
 
   it('AC7: a Trainer (no join_link.renew) has no Vernieuwen', () => {
