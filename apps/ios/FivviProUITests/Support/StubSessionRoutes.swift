@@ -4,7 +4,9 @@ import Foundation
 /// `GET …/sessions/{id}`, `POST …/sessions/{id}/reschedule` and `GET …/clients/{id}/upcoming-sessions`. The workspace
 /// starts with one session, Anna's tomorrow at 09:00 with the signed-in person. It follows the API's rules the screens
 /// depend on: a session starts at the local date and time in Europe/Amsterdam, a move with a stale version answers `409`
-/// with the session as it is and who changed it, and a start can be refused as a time the clocks skip (`refuseNextStart`).
+/// with the session as it is and who changed it, a start can be refused as a time the clocks skip (`refuseNextStart`),
+/// and a plan or move that overlaps another scheduled session of the same trainer answers `409` `trainer_conflict`
+/// (PS-07, F023) unless the request has `allowConflicts: true`; back-to-back sessions are no overlap.
 final class StubSessionRoutes: @unchecked Sendable {
     static let seededSessionID = "8a0b1c2e-8a54-4b51-9a42-000000000001"
     static let annaID = "3f0b1c2e-8a54-4b51-9a42-000000000001"
@@ -152,9 +154,14 @@ final class StubSessionRoutes: @unchecked Sendable {
         let trainerID = body["trainerId"] as? String ?? Self.myMemberID
         let trainer = trainers.first { $0["id"] as? String == trainerID }
         guard let trainer else { return (404, ["code": "not_found"]) }
+        let minutes = body["durationMinutes"] as? Int ?? 60
+        let overlaps = conflicts(trainerID: trainerID, start: start, minutes: minutes, excluding: nil)
+        if !overlaps.isEmpty, body["allowConflicts"] as? Bool != true {
+            return (409, ["code": "trainer_conflict", "conflicts": overlaps])
+        }
         let made = session(
             id: String(format: "8a0b1c2e-8a54-4b51-9a42-%012d", nextNumber), start: start,
-            minutes: body["durationMinutes"] as? Int ?? 60, client: (clientID, name),
+            minutes: minutes, client: (clientID, name),
             trainer: (trainerID, trainer["name"] as? String ?? "")
         )
         nextNumber += 1
@@ -176,14 +183,40 @@ final class StubSessionRoutes: @unchecked Sendable {
         guard let start = Self.date(body["localDate"] as? String ?? "", body["localStart"] as? String ?? "") else {
             return (400, ["code": "validation_failed", "issues": [["path": "localDate", "code": "invalid"]]])
         }
+        let minutes = body["durationMinutes"] as? Int ?? 60
+        let trainerID = (current["trainer"] as? [String: Any])?["id"] as? String ?? ""
+        let overlaps = conflicts(trainerID: trainerID, start: start, minutes: minutes, excluding: id)
+        if !overlaps.isEmpty, body["allowConflicts"] as? Bool != true {
+            return (409, ["code": "trainer_conflict", "conflicts": overlaps])
+        }
         var next = current
         next["startsAt"] = Self.iso().string(from: start)
-        let minutes = body["durationMinutes"] as? Int ?? 60
         next["endsAt"] = Self.iso().string(from: start.addingTimeInterval(TimeInterval(minutes * 60)))
         next["version"] = (current["version"] as? Int ?? 1) + 1
         sessions[index] = next
         return (200, ["session": next, "past": start < Date(), "repeatedStart": false,
                       "changeEmail": body["notify"] as? Bool == true])
+    }
+
+    /// The trainer's scheduled sessions that overlap `[start, start + minutes)`, soonest first, as the API lists them.
+    private func conflicts(trainerID: String, start: Date, minutes: Int, excluding id: String?) -> [[String: Any]] {
+        let end = start.addingTimeInterval(TimeInterval(minutes * 60))
+        return sessions
+            .compactMap { session -> (start: Date, item: [String: Any])? in
+                guard session["id"] as? String != id, session["status"] as? String == "scheduled",
+                      (session["trainer"] as? [String: Any])?["id"] as? String == trainerID,
+                      let from = Self.iso().date(from: session["startsAt"] as? String ?? ""),
+                      let until = Self.iso().date(from: session["endsAt"] as? String ?? ""), from < end, start < until
+                else { return nil }
+                let name = (session["participants"] as? [[String: Any]])?.first?["name"] as? String ?? ""
+                return (from, [
+                    "sessionId": session["id"] as? String ?? "", "type": "private",
+                    "startsAt": session["startsAt"] ?? "", "endsAt": session["endsAt"] ?? "",
+                    "displayName": name, "displayNameEn": NSNull()
+                ])
+            }
+            .sorted { $0.start < $1.start }
+            .map(\.item)
     }
 
     private func upcoming(_ clientID: String) -> (Int, [String: Any]) {

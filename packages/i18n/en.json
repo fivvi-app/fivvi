@@ -654,6 +654,16 @@
     "trainerLabel": "{Word}"
   },
   "sessions": {
+    "doubleBooking": {
+      "back": "Back",
+      "item": "{date}, {start}–{end}: {name} ({type})",
+      "saveAnyway": "Save anyway",
+      "title": "{trainer} already has something then",
+      "titleOwn": "You already have something then",
+      "typeGroup": "group class",
+      "typeOpenGym": "Open Gym",
+      "typePrivate": "private session"
+    },
     "form": {
       "cancel": "Cancel",
       "clientChange": "Change",

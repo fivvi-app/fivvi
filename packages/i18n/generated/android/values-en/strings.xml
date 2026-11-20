@@ -472,6 +472,14 @@
     <string name="roles_owner">Owner</string>
     <string name="roles_trainer">Trainer</string>
     <string name="roles_trainer_label">%1$s</string>
+    <string name="sessions_double_booking_back">Back</string>
+    <string name="sessions_double_booking_item">%1$s, %4$s–%2$s: %3$s (%5$s)</string>
+    <string name="sessions_double_booking_save_anyway">Save anyway</string>
+    <string name="sessions_double_booking_title">%1$s already has something then</string>
+    <string name="sessions_double_booking_title_own">You already have something then</string>
+    <string name="sessions_double_booking_type_group">group class</string>
+    <string name="sessions_double_booking_type_open_gym">Open Gym</string>
+    <string name="sessions_double_booking_type_private">private session</string>
     <string name="sessions_form_cancel">Cancel</string>
     <string name="sessions_form_client_change">Change</string>
     <string name="sessions_form_client_exists">There\'s already a client with this email: %1$s.</string>

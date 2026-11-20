@@ -551,6 +551,14 @@
     <string name="roles_trainer">Trainer</string>
     <!-- Role label of a Trainer of a workspace, shown as a plain label, in the workspace's word (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor. The role itself stays Trainer. -->
     <string name="roles_trainer_label">%1$s</string>
+    <string name="sessions_double_booking_back">Terug</string>
+    <string name="sessions_double_booking_item">%1$s, %4$s–%2$s: %3$s (%5$s)</string>
+    <string name="sessions_double_booking_save_anyway">Toch opslaan</string>
+    <string name="sessions_double_booking_title">%1$s heeft dan al iets</string>
+    <string name="sessions_double_booking_title_own">Je hebt dan al iets</string>
+    <string name="sessions_double_booking_type_group">groepsles</string>
+    <string name="sessions_double_booking_type_open_gym">Open Gym</string>
+    <string name="sessions_double_booking_type_private">privésessie</string>
     <string name="sessions_form_cancel">Annuleren</string>
     <string name="sessions_form_client_change">Wijzigen</string>
     <string name="sessions_form_client_exists">Er is al een klant met dit e-mailadres: %1$s.</string>

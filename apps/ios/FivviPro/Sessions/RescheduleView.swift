@@ -62,6 +62,21 @@ struct RescheduleView: View {
                     .accessibilityIdentifier("reschedule.cancel")
             }
         }
+        .alert(
+            model.doubleBookingTitle,
+            isPresented: Binding(
+                get: { model.doubleBooking != nil }, set: { if !$0 { model.dismissDoubleBooking() } }
+            )
+        ) {
+            Button(model.doubleBookingBackText, role: .cancel) {}
+                .accessibilityIdentifier("reschedule.doubleBooking.back")
+            Button(model.doubleBookingSaveAnywayText) {
+                Task { if let moved = await model.save(allowConflicts: true) { onMoved(moved) } }
+            }
+            .accessibilityIdentifier("reschedule.doubleBooking.saveAnyway")
+        } message: {
+            Text(model.doubleBookingMessage)
+        }
         .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
         .environment(\.locale, catalog.formattingLocale)
         .environment(\.timeZone, model.time.timeZone)

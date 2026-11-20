@@ -51,11 +51,29 @@ struct NewSessionView: View {
             } message: {
                 Text(catalog[.sessionFormDiscardDescription])
             }
+            .alert(
+                model.doubleBookingTitle,
+                isPresented: Binding(
+                    get: { model.doubleBooking != nil }, set: { if !$0 { model.dismissDoubleBooking() } }
+                )
+            ) {
+                Button(model.doubleBookingBackText, role: .cancel) {}
+                    .accessibilityIdentifier("newSession.doubleBooking.back")
+                Button(model.doubleBookingSaveAnywayText) { Task { await saveAnyway() } }
+                    .accessibilityIdentifier("newSession.doubleBooking.saveAnyway")
+            } message: {
+                Text(model.doubleBookingMessage)
+            }
             .task { await model.start() }
             .onReturnToForeground { if model.isOffline { await model.start() } }
             .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
             .environment(\.locale, catalog.formattingLocale)
             .environment(\.timeZone, model.workspace.timeZone)
+    }
+
+    /// *Toch opslaan* of PS-07: the same request again, saved whatever the trainer has then.
+    private func saveAnyway() async {
+        if let session = await model.save(allowConflicts: true) { onSaved(session) }
     }
 
     private func cancel() {
