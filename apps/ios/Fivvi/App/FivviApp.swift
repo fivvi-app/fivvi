@@ -8,12 +8,13 @@ import FivviUI
 import FivviObservability
 
 /// The client app Fivvi (`app.fivvi`, E017 #503, spec #469): the sign-in with the emailed code, then the tabs *Home ·
-/// Boeken · Profiel*. It is built on the same shared packages as Fivvi Pro (`Packages/FivviShared`) and has its own
-/// Keychain service, icon and name.
+/// Boeken · Profiel*; a join or invitation link of fivvi.app opens it (Universal Links, `Config/Fivvi.entitlements`). It is
+/// built on the same shared packages as Fivvi Pro (`Packages/FivviShared`) and has its own Keychain service, icon and name.
 @main
 struct FivviApp: App {
     @State private var session: Session
     @State private var connectivity: Connectivity
+    @State private var links = LinkInbox.forLaunch()
     private let api: Client
     private let store: KeychainSessionStore
     private let language: AppLanguage
@@ -37,9 +38,15 @@ struct FivviApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(session: session, api: api, store: store, language: language, connectivity: connectivity)
+            RootView(
+                session: session, api: api, store: store, language: language, connectivity: connectivity, links: links
+            )
+                .onOpenURL { links.open($0) }
                 .tint(Tokens.Colors.actionPrimaryBg)
                 .preferredColorScheme(LaunchAppearance.colorScheme())
+            #if DEBUG
+                .recordingOpenedLinks()
+            #endif
         }
     }
 }
