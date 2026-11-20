@@ -286,10 +286,10 @@
       "intro": "A private session has been planned for you at {workspace}.",
       "preview": "Your private session is planned for {date} at {time}.",
       "subject": "New appointment: {date} at {time}",
+      "togetherWith": "Together with: {name}",
       "trainer": "{Word}: {trainer}",
       "when": "When: {date}, {start} to {end}",
-      "where": "Where: {location}",
-      "togetherWith": "Together with: {name}"
+      "where": "Where: {location}"
     },
     "privateSessionMoved": {
       "dateTime": "{date} at {time}",

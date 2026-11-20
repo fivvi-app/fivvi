@@ -286,10 +286,10 @@
       "intro": "Er is een privésessie voor je gepland bij {workspace}.",
       "preview": "Je privésessie is gepland op {date} om {time}.",
       "subject": "Nieuwe afspraak: {date} om {time}",
+      "togetherWith": "Samen met: {name}",
       "trainer": "{Word}: {trainer}",
       "when": "Wanneer: {date}, {start} tot {end}",
-      "where": "Waar: {location}",
-      "togetherWith": "Samen met: {name}"
+      "where": "Waar: {location}"
     },
     "privateSessionMoved": {
       "dateTime": "{date} om {time}",
