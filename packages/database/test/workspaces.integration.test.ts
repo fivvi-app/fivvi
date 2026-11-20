@@ -201,7 +201,11 @@ describe('F002 creating a workspace', () => {
     const clientOf = await createWorkspace(admin.db);
     const stranger = await createWorkspace(admin.db);
     const account = await createAccount(admin.db, { label: 'lister' });
-    await addTeamRole(admin.db, { workspaceId: owned.id, accountId: account.id, role: 'owner' });
+    const member = await addTeamRole(admin.db, {
+      workspaceId: owned.id,
+      accountId: account.id,
+      role: 'owner',
+    });
     await addClient(admin.db, { workspaceId: clientOf.id, accountId: account.id });
 
     const listed = await scopes().inAccountScope(
@@ -222,6 +226,7 @@ describe('F002 creating a workspace', () => {
         slug: row?.slug,
         trainerWord: 'trainer',
         role: 'owner',
+        teamMemberId: member.id,
         trainsHere: false,
       },
     ]);

@@ -110,8 +110,7 @@ class NewSessionViewModel(
     private val apis: SessionApis,
     private val workspaceId: UUID,
     private val forAnyTrainer: Boolean,
-    private val email: String,
-    private val accountName: String?,
+    private val teamMemberId: UUID,
     private val onNotAllowed: (Response<*>) -> Unit = {},
     private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
@@ -141,21 +140,15 @@ class NewSessionViewModel(
             }
             val place = places.firstOrNull { it.isDefault } ?: places.firstOrNull()
                 ?: return finish { it.copy(load = NewSessionLoad.Failed) }
-            val team = if (forAnyTrainer) {
-                SessionTeam.read(apis.trainers, apis.team, workspaceId, readTeam = true)
-            } else {
-                null
-            }
-            val mine = team?.let {
-                SessionTeam.myTrainerId(it.trainers, it.members, it.teamRequested, email, accountName)
-            }
+            val trainers = if (forAnyTrainer) SessionTeam.read(apis.trainers, workspaceId) else null
+            val mine = trainers?.let { SessionTeam.myTrainerId(it, teamMemberId) }
             val first = SessionClock.nextFullHour(now(), workspace.zone)
             finish {
                 it.copy(
                     load = NewSessionLoad.Ready,
                     workspace = workspace,
                     locationName = place.name,
-                    trainers = team?.trainers.orEmpty(),
+                    trainers = trainers.orEmpty(),
                     myTrainerId = mine,
                     trainerId = it.trainerId ?: mine,
                     // What was entered before a read again stays; a first read sets the first start.

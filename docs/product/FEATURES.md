@@ -67,7 +67,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F020 | Private Sessions | IN PROGRESS | Must | M4 (+ iOS/Android) | F005, F006, F015 | ⬜ | ⬜ | §17 |
+| F020 | Private Sessions: plan a private session for a client (the Owner for any trainer, a Trainer for themself), open it and move it with an optional email to the client, on web, iOS and Android; the person's own sessions read *Jij* / *You* by the team-member ID `GET /api/v1/me` returns | IMPLEMENTED | Must | M4 (+ iOS/Android) | F005, F006, F015 | ✅ | ✅ | §17 |
 | F021 | Group Class Templates | IN PROGRESS | Must | M4 (+ iOS/Android: create a class) | F005, F015 | ⬜ | ⬜ | §15, §18, §19 |
 | F022 | Recurring Classes | IN PROGRESS | Must | M4 (+ iOS/Android: weekly repeat) | F021, E012 | ⬜ | ⬜ | §15, §20 |
 | F023 | Trainer Assignment | IN PROGRESS | Must | M4 (+ iOS/Android: double-booking check) | F020, F021 | ⬜ | ⬜ | §17, §19 |

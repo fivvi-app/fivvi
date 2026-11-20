@@ -1,6 +1,5 @@
 import type { Schemas } from '@fivvi/contract';
 import type { Locale } from '@fivvi/i18n';
-import { myTeamMemberId } from './my-team-member';
 
 export type Session = Schemas['Session'];
 export type Trainer = Schemas['Trainer'];
@@ -200,22 +199,20 @@ export type PlanningContextResult =
 /**
  * Reads what PS-01 shows around its fields: the time zone (`GET …/workspaces/{id}`), the default
  * location (`GET …/locations`) and, for a person who plans for any trainer, the trainers
- * (`GET …/trainers`) with their own place among them. That place is found by the email address on
- * `GET …/team-members`, so the field can default to *{name} (ik)*; the API gives no "me" on a
- * trainer.
+ * (`GET …/trainers`) with their own place among them: the trainer whose ID is the person's own
+ * team-member ID (`teamMemberId` of `GET /v1/me`), so the field can default to *{name} (ik)*.
  */
 export async function loadPlanningContext(
   workspaceId: string,
-  { forAnyTrainer, email }: { forAnyTrainer: boolean; email: string },
+  { forAnyTrainer, teamMemberId }: { forAnyTrainer: boolean; teamMemberId: string },
   fetchFn: typeof fetch = fetch,
 ): Promise<PlanningContextResult> {
   const base = `/api/v1/workspaces/${workspaceId}`;
   try {
-    const [workspace, locations, trainers, team] = await Promise.all([
+    const [workspace, locations, trainers] = await Promise.all([
       fetchFn(base),
       fetchFn(`${base}/locations`),
       forAnyTrainer ? fetchFn(`${base}/trainers`) : Promise.resolve(null),
-      forAnyTrainer ? fetchFn(`${base}/team-members`) : Promise.resolve(null),
     ]);
     const answers = [workspace, locations, trainers].filter((answer) => answer !== null);
     if (answers.some(({ status }) => [401, 403, 404].includes(status))) {
@@ -226,13 +223,8 @@ export async function loadPlanningContext(
     const places = (await locations.json()) as Schemas['Location'][];
     const location = places.find(({ isDefault }) => isDefault) ?? places[0];
     const trainerList = trainers ? ((await trainers.json()) as Trainer[]) : [];
-    // The team list is a courtesy for the default; without it the field starts empty.
-    const members =
-      team?.status === 200
-        ? ((await team.json()) as Schemas['TeamMember'][])
-        : ([] as Schemas['TeamMember'][]);
-    const mine = myTeamMemberId(members, email);
-    const myTrainerId = trainerList.find(({ id }) => id === mine)?.id ?? null;
+    // An Owner who does not train is among the team but not among the trainers.
+    const myTrainerId = trainerList.find(({ id }) => id === teamMemberId)?.id ?? null;
     if (!timeZone || !location) return { ok: false, reason: 'failed' };
     return {
       ok: true,

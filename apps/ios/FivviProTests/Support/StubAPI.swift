@@ -52,6 +52,9 @@ actor StubAPI: APIProtocol {
         var trainsHere: Bool?
     }
 
+    /// The person's own team-member ID in a workspace (synthetic): one per workspace.
+    static func memberID(of workspaceID: String) -> String { "member-of-\(workspaceID)" }
+
     /// What `listMyWorkspaces` answers.
     enum MyWorkspacesAnswer: Sendable {
         case workspaces([Membership])
@@ -313,6 +316,7 @@ extension StubAPI {
             return .ok(.init(body: .json(memberships.map {
                 .init(
                     workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, trainerWord: .trainer, role: $0.role,
+                    teamMemberId: Self.memberID(of: $0.workspaceID),
                     capabilities: $0.capabilities ?? Self.capabilities(of: $0.role),
                     trainsHere: $0.trainsHere ?? ($0.role == .trainer)
                 )

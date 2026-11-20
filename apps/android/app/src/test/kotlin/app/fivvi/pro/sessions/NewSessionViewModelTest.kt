@@ -3,7 +3,6 @@ package app.fivvi.pro.sessions
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.PlanPrivateSessionRequest
 import app.fivvi.api.models.Session
-import app.fivvi.api.models.TeamMember
 import app.fivvi.api.models.Trainer
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.clients.FakeClientsApi
@@ -15,6 +14,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -36,7 +36,6 @@ class NewSessionViewModelTest {
     private val sessions = FakeSessionsApi()
     private val locations = FakeLocationsApi()
     private val trainers = FakeTrainersApi()
-    private val team = FakeTeamApi()
     private val clients = FakeClientsApi()
     private val notAllowed = mutableListOf<Int>()
     private val anna = clientOf("Anna de Vries", "anna@example.com", Client.EmailLocale.NL_NL)
@@ -53,25 +52,17 @@ class NewSessionViewModelTest {
         sessions.clients[anna.id] = anna
         trainers.trainers = listOf(john, sarah, tom)
         sessions.trainers += listOf(john, sarah, tom).associateBy { it.id }
-        team.members = listOf(
-            TeamMember(john.id, "John", "owner@example.com", TeamMember.Role.OWNER),
-            TeamMember(sarah.id, "Sarah", "trainer@example.com", TeamMember.Role.TRAINER),
-        )
     }
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(
-        forAnyTrainer: Boolean = false,
-        email: String = "trainer@example.com",
-        name: String? = "Sarah",
-    ) = NewSessionViewModel(
-        SessionApis(sessions, locations, trainers, team, FakeWorkspacesApi(), clients),
+    // The person, by their team-member ID in the workspace: Sarah's unless given.
+    private fun viewModel(forAnyTrainer: Boolean = false, teamMemberId: UUID = sarah.id) = NewSessionViewModel(
+        SessionApis(sessions, locations, trainers, FakeWorkspacesApi(), clients),
         workspace,
         forAnyTrainer,
-        email,
-        name,
+        teamMemberId,
         onNotAllowed = { notAllowed += it.code() },
         now = { now },
     )
@@ -156,13 +147,12 @@ class NewSessionViewModelTest {
         viewModel.save()
 
         assertNull(sessions.created.single().second.trainerId)
-        assertEquals(0, team.calls)
         assertTrue(viewModel.state().trainers.isEmpty())
     }
 
     @Test
     fun test_F020_AC2_theOwnerChoosesAmongAllTrainersAndStartsOnThemselves() {
-        val viewModel = viewModel(forAnyTrainer = true, email = "owner@example.com", name = "John")
+        val viewModel = viewModel(forAnyTrainer = true, teamMemberId = john.id)
 
         val state = viewModel.state()
         assertEquals(listOf("John", "Sarah", "Tom"), state.trainers.map { it.name })
@@ -178,9 +168,21 @@ class NewSessionViewModelTest {
     }
 
     @Test
+    fun test_F020_1414_AC2_twoTrainersWithTheSameNameAreToldApartByTheirTeamMemberId() {
+        val otherSarah = Trainer(UUID.nameUUIDFromBytes("the other Sarah".toByteArray()), "Sarah")
+        trainers.trainers = listOf(sarah, otherSarah)
+        sessions.trainers[otherSarah.id] = otherSarah
+
+        val state = viewModel(forAnyTrainer = true, teamMemberId = otherSarah.id).state()
+
+        assertEquals(otherSarah.id, state.myTrainerId)
+        assertEquals(otherSarah.id, state.trainerId)
+    }
+
+    @Test
     fun test_F020_AC2_anOwnerWhoDoesNotTrainStartsWithoutATrainerAndMustChooseOne() {
         trainers.trainers = listOf(sarah, tom)
-        val viewModel = viewModel(forAnyTrainer = true, email = "owner@example.com", name = "John")
+        val viewModel = viewModel(forAnyTrainer = true, teamMemberId = john.id)
         viewModel.chooseClient(anna)
 
         viewModel.save()
@@ -239,7 +241,7 @@ class NewSessionViewModelTest {
     @Test
     fun test_F023_AC6_anOwnerPlanningForAnotherTrainerGetsTheWarningWithTheirName() {
         plannedForNine(tom)
-        val viewModel = viewModel(forAnyTrainer = true, email = "owner@example.com", name = "John")
+        val viewModel = viewModel(forAnyTrainer = true, teamMemberId = john.id)
         viewModel.fillIn()
         viewModel.setTrainer(tom.id)
 
@@ -251,7 +253,7 @@ class NewSessionViewModelTest {
     @Test
     fun test_F023_AC6_anOwnerPlanningForThemselfGetsTheWarningWithoutAName() {
         plannedForNine(john)
-        val viewModel = viewModel(forAnyTrainer = true, email = "owner@example.com", name = "John")
+        val viewModel = viewModel(forAnyTrainer = true, teamMemberId = john.id)
         viewModel.fillIn()
 
         viewModel.save()

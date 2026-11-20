@@ -16,6 +16,7 @@ import app.fivvi.pro.localizedString
 import app.fivvi.pro.showAtLargestFontScale
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -43,9 +44,9 @@ class SessionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         trainerIsMe: Boolean = true,
         moved: Session? = null,
     ) = SessionState(
-        SessionLoad.Loaded,
-        session,
-        myTrainerId = sarah.id.takeIf { trainerIsMe },
+        myTeamMemberId = if (trainerIsMe) sarah.id else UUID.randomUUID(),
+        load = SessionLoad.Loaded,
+        session = session,
         moved = moved,
     )
 
@@ -177,13 +178,13 @@ class SessionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     @Test
     fun test_F020_AC10_theStatesOfALoadAreTheWebs() {
-        show(SessionState(SessionLoad.Loading))
+        show(SessionState(UUID.randomUUID(), SessionLoad.Loading))
         compose.onNodeWithTag(SessionTags.LOADING).assertIsDisplayed()
     }
 
     @Test
     fun test_F020_AC10_aFailedLoadOffersARetry() {
-        show(SessionState(SessionLoad.Failed))
+        show(SessionState(UUID.randomUUID(), SessionLoad.Failed))
 
         compose.onNodeWithTag(SessionTags.ERROR).assertTextEquals(string(R.string.sessions_form_load_failed))
         compose.onNodeWithTag(SessionTags.RETRY).assertTextEquals(string(R.string.common_retry))
@@ -191,7 +192,7 @@ class SessionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     @Test
     fun test_F020_AC10_aSessionTheApiRefusesSaysThereIsNoAccess() {
-        show(SessionState(SessionLoad.NoPermission))
+        show(SessionState(UUID.randomUUID(), SessionLoad.NoPermission))
 
         compose.onNodeWithTag(SessionTags.NO_PERMISSION).assertIsDisplayed()
         assertTrue(routes.isEmpty())

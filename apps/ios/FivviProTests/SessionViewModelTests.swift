@@ -10,12 +10,11 @@ import XCTest
 final class SessionViewModelTests: XCTestCase {
     private let language = InterfaceLanguage.resolve(.system())
 
-    private func model(
-        _ api: StubAPI, id: String, email: String = "owner@example.com", name: String? = "Owner", readTeam: Bool = true
-    ) -> SessionViewModel {
+    /// `memberID`: the person looking, by their team-member ID in the workspace (the Owner's unless given).
+    private func model(_ api: StubAPI, id: String, memberID: String = StubSessions.myMemberID) -> SessionViewModel {
         SessionViewModel(
-            api: api, workspace: SessionFixtures.workspace, sessionID: id, catalog: Catalog(locale: language),
-            email: email, accountName: name, readTeam: readTeam
+            api: api, workspace: SessionFixtures.workspace(as: memberID), sessionID: id,
+            catalog: Catalog(locale: language)
         )
     }
 
@@ -60,26 +59,32 @@ final class SessionViewModelTests: XCTestCase {
 
         let own = model(api, id: mine.id)
         await own.load()
-        XCTAssertEqual(own.trainerText, catalog["sessions.page.you"], "Jij / You, found by the address on the team")
+        XCTAssertEqual(own.trainerText, catalog["sessions.page.you"], "Jij / You, by the team-member ID")
 
         let other = model(api, id: theirs.id)
         await other.load()
         XCTAssertEqual(other.trainerText, "Sarah Visser")
     }
 
-    func test_F020_AC10_aTrainerWhoCannotReadTheTeamIsFoundByNameAmongTheTrainers() async {
+    func test_F020_1414_AC2_twoTrainersWithTheSameNameEachSeeYouOnlyOnTheirOwnSessions() async {
         let api = SessionFixtures.api()
-        api.sessions.fail(.team, with: .forbidden)
-        let session = planned(api, trainer: .init(id: StubSessions.otherMemberID, name: "Sarah Visser"))
+        let firstID = "5b1c2d3e-0000-4000-8000-0000000000c1"
+        let secondID = "5b1c2d3e-0000-4000-8000-0000000000c2"
+        let first = planned(api, trainer: .init(id: firstID, name: "Sarah Visser"))
+        let second = planned(api, trainer: .init(id: secondID, name: "Sarah Visser"))
         let catalog = TestCatalog(language)
 
-        let sarah = model(api, id: session.id, email: "sarah@example.com", name: "Sarah Visser", readTeam: false)
-        await sarah.load()
-        XCTAssertEqual(sarah.trainerText, catalog["sessions.page.you"])
+        // A Trainer can't read the team: the ID from `GET /me` is all they have, and it is enough.
+        let asFirst = model(api, id: first.id, memberID: firstID)
+        await asFirst.load()
+        XCTAssertEqual(asFirst.trainerText, catalog["sessions.page.you"])
+        let firstOnSecond = model(api, id: second.id, memberID: firstID)
+        await firstOnSecond.load()
+        XCTAssertEqual(firstOnSecond.trainerText, "Sarah Visser", "the namesake's session is not theirs")
 
-        let nameless = model(api, id: session.id, email: "sarah@example.com", name: nil, readTeam: false)
-        await nameless.load()
-        XCTAssertEqual(nameless.trainerText, "Sarah Visser", "without a name they can't be told: the name shows")
+        let asSecond = model(api, id: second.id, memberID: secondID)
+        await asSecond.load()
+        XCTAssertEqual(asSecond.trainerText, catalog["sessions.page.you"])
     }
 
     func test_F020_AC10_aSessionWithoutATrainerSaysNoTrainerInTheWorkspacesWord() async {

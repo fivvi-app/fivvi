@@ -19,6 +19,7 @@ import app.fivvi.pro.kit.isFilled
 import app.fivvi.pro.kit.near
 import app.fivvi.pro.kit.pixels
 import app.fivvi.pro.kit.showKit
+import java.util.UUID
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -47,7 +48,10 @@ class ScreenLookTest(
 
     private fun showHome() = compose.showKit(mode, language) {
         HomeScreen(
-            MeState.Loaded("john@example.com", HomeDestination.Workspace("John's Gym", workspace.id)),
+            MeState.Loaded(
+                "john@example.com",
+                HomeDestination.Workspace("John's Gym", workspace.id, UUID.randomUUID()),
+            ),
             signingOut = false,
             onRetryMe = {},
             onSignOut = {},

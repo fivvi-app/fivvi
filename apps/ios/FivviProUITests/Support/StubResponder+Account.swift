@@ -23,12 +23,18 @@ extension Responder {
 
     static func workspaceID(_ index: Int) -> String { "7c1d2e3f-0000-4000-8000-00000000000\(index)" }
 
+    /// The person's own team-member ID in a workspace: in the first it is the trainer the session stubs call the signed-in
+    /// person (`StubSessionRoutes.myMemberID`), in the others a member of their own.
+    static func teamMemberID(_ index: Int) -> String {
+        index == 0 ? StubSessionRoutes.myMemberID : "5b1c2d3e-0000-4000-8000-0000000000b\(index)"
+    }
+
     /// `GET /api/v1/me/workspaces`: the list.
     var teamWorkspaces: [[String: Any]] {
         teamWorkspaceEntries.map {
             [
                 "workspaceId": Self.workspaceID($0.index), "name": $0.workspace.name, "slug": "workspace-\($0.index)",
-                "trainerWord": "trainer",
+                "trainerWord": "trainer", "teamMemberId": Self.teamMemberID($0.index),
                 "role": $0.workspace.role, "capabilities": capabilities(ofWorkspace: $0.index, role: $0.workspace.role),
                 // F005: a Trainer always trains; an Owner trains once the switch was put on
                 "trainsHere": trainsOverride(at: $0.index) ?? ($0.workspace.role != "owner")
@@ -63,6 +69,7 @@ extension Responder {
             "workspaces": teamWorkspaces.map { entry in
                 ["id": entry["workspaceId"] as Any, "name": entry["name"] as Any, "slug": entry["slug"] as Any,
                  "trainerWord": entry["trainerWord"] as Any, "role": entry["role"] as Any,
+                 "teamMemberId": entry["teamMemberId"] as Any,
                  "capabilities": entry["capabilities"] as Any]
             },
             "clientWorkspaces": [Any]()

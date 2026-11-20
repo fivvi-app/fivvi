@@ -7,6 +7,7 @@ const gym = {
   slug: 'johns-gym',
   trainerWord: 'trainer',
   role: 'owner',
+  teamMemberId: '0197c0de-0000-7000-8000-0000000000b1',
   capabilities: [] as never[],
 } as const;
 const studio = {
@@ -15,6 +16,7 @@ const studio = {
   slug: 'studio-zuid',
   trainerWord: 'trainer',
   role: 'trainer',
+  teamMemberId: '0197c0de-0000-7000-8000-0000000000b2',
   capabilities: [] as never[],
 } as const;
 

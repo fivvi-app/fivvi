@@ -19,7 +19,8 @@ enum Accounts {
     static func sarah() -> String {
         me(email: "trainer@example.com", name: "Sarah", preferredLocale: nil, workspaces: [
             ["id": "7c1d2e3f-0000-4000-8000-000000000000", "name": "John's Gym", "slug": "johns-gym",
-             "trainerWord": "trainer", "role": "trainer", "capabilities": ["clients.view"]]
+             "trainerWord": "trainer", "role": "trainer", "teamMemberId": "5b1c2d3e-0000-4000-8000-0000000000a2",
+             "capabilities": ["clients.view"]]
         ])
     }
 

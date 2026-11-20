@@ -12,7 +12,7 @@ final class ClientProfileViewModelTests: XCTestCase {
     private let language = InterfaceLanguage.resolve(.system())
     private let workspace = CurrentWorkspace(
         id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", defaultLocale: .nlNL,
-        timeZone: TimeZone(identifier: "Europe/Amsterdam") ?? .current
+        timeZone: TimeZone(identifier: "Europe/Amsterdam") ?? .current, teamMemberId: "member-1"
     )
 
     private func johnsGym() -> StubAPI {

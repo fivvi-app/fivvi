@@ -13,7 +13,7 @@ import XCTest
 final class ClientsListPagingTests: XCTestCase {
     private let workspace = CurrentWorkspace(
         id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", defaultLocale: .nlNL,
-        timeZone: TimeZone(identifier: "Europe/Amsterdam") ?? .current
+        timeZone: TimeZone(identifier: "Europe/Amsterdam") ?? .current, teamMemberId: "member-1"
     )
 
     /// Laid out in a phone-sized window, with 200 synthetic clients, 40 to a page.

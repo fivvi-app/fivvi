@@ -14,8 +14,8 @@ import { ScheduleDialogContent } from './schedule-dialog';
 export interface ClassesProps {
   workspaceId: string;
   slug: string;
-  /** The signed-in person's email address: their own place among the trainers is found by it. */
-  email: string;
+  /** The signed-in person's own team-member ID in the workspace: their place among the trainers. */
+  teamMemberId: string;
   /** The workspace's word for the people who teach (F068), in the reader's language. */
   trainerWord: TrainerWordForms;
 }
@@ -47,7 +47,7 @@ export function ClassesProvider({
   children,
   workspaceId,
   slug,
-  email,
+  teamMemberId,
   trainerWord,
 }: ClassesProps & { children: ReactNode }) {
   const t = useTranslations('classes');
@@ -87,7 +87,7 @@ export function ClassesProvider({
             // A new dialog for each class, so the form starts from that class.
             key={open.classId ?? 'ask'}
             workspaceId={workspaceId}
-            email={email}
+            teamMemberId={teamMemberId}
             {...(open.classId ? { classId: open.classId } : {})}
             trainerWord={trainerWord}
             {...(open.classId

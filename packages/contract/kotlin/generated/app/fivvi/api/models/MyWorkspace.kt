@@ -37,6 +37,7 @@ import kotlinx.serialization.Contextual
  * @param slug The URL name: `/w/{slug}` on the web.
  * @param trainerWord 
  * @param role What the account is on the team; shown as a label, never decided on.
+ * @param teamMemberId The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
  * @param capabilities What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
  * @param trainsHere Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
  */
@@ -62,6 +63,10 @@ data class MyWorkspace (
     /* What the account is on the team; shown as a label, never decided on. */
     @SerialName(value = "role")
     val role: MyWorkspace.Role,
+
+    /* The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email. */
+    @Contextual @SerialName(value = "teamMemberId")
+    val teamMemberId: java.util.UUID,
 
     /* What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
     @SerialName(value = "capabilities")

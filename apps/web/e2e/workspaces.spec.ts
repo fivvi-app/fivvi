@@ -25,7 +25,7 @@ const TOO_LONG = 'x'.repeat(81);
 interface Me {
   name: string | null;
   canCreateWorkspace: boolean;
-  workspaces: { id: string; name: string; slug: string; role: string }[];
+  workspaces: { id: string; name: string; slug: string; teamMemberId: string; role: string }[];
 }
 
 test.describe('F002 first run and the signed-in home', () => {
@@ -71,6 +71,7 @@ test.describe('F002 first run and the signed-in home', () => {
         name: "John's Gym",
         slug: expect.stringMatching(/^johns-gym-\d+$/),
         trainerWord: 'trainer',
+        teamMemberId: expect.any(String),
         role: 'owner',
         capabilities: expect.arrayContaining(['workspace.manage', 'team.manage']),
       },
@@ -180,6 +181,7 @@ test.describe('F002 first run and the signed-in home', () => {
         name: "John's Gym",
         slug: SEEDED_SLUG,
         trainerWord: 'trainer',
+        teamMemberId: expect.any(String),
         role: 'owner',
         capabilities: expect.arrayContaining(['workspace.manage']),
       },
@@ -304,6 +306,7 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
         name: "John's Gym Utrecht",
         slug,
         trainerWord: 'trainer',
+        teamMemberId: expect.any(String),
         role: 'owner',
         capabilities: expect.arrayContaining(['workspace.manage']),
       },

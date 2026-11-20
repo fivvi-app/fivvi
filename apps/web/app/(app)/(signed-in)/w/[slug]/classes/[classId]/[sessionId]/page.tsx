@@ -5,7 +5,6 @@ import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { catalogLocale } from '../../../../../../../../i18n/config';
 import { apiClient } from '../../../../../../../../server/api';
-import { currentTeamMemberId } from '../../../../../../../../server/my-team-member';
 import { workspaceOf } from '../../../../../../../../server/workspace-of';
 import { NoPermission } from '../../../settings/general/no-permission';
 import { ClassDateView } from '../../class-date-view';
@@ -26,7 +25,7 @@ export default async function ClassDatePage({
   params,
 }: PageProps<'/w/[slug]/classes/[classId]/[sessionId]'>) {
   const { slug: slugParam, classId, sessionId } = await params;
-  const { id, name, slug, capabilities, trainerWord } = await workspaceOf(slugParam);
+  const { id, name, slug, capabilities, trainerWord, teamMemberId } = await workspaceOf(slugParam);
   if (!capabilities.includes('class.read')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
   const { data: session, response } = await apiClient.GET(
@@ -40,10 +39,7 @@ export default async function ClassDatePage({
   if (session.type !== 'group' || session.groupClass?.id !== classId) notFound();
   const canManage = capabilities.includes('class.manage');
   // PS-07 on CO-04 (only the Owner changes a date): the date of the person's own, as a trainer, is "Je hebt dan al iets".
-  const ownDate =
-    canManage &&
-    session.trainer !== undefined &&
-    (await currentTeamMemberId(id)) === session.trainer.id;
+  const ownDate = canManage && session.trainer !== undefined && teamMemberId === session.trainer.id;
   return (
     <ClassDateView
       workspaceId={id}

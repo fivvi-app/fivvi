@@ -138,7 +138,7 @@ final class AccountViewModel {
                     CurrentWorkspace(
                         id: workspace.id, name: workspace.name, defaultLocale: details.defaultLocale,
                         timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone,
-                        trainerWord: details.trainerWord
+                        teamMemberId: workspace.teamMemberId, trainerWord: details.trainerWord
                     )
                 )
             case .notFound: continue
@@ -176,6 +176,9 @@ struct CurrentWorkspace: Equatable, Sendable {
     let defaultLocale: Components.Schemas.Locale
     /// The workspace's time zone: times the app shows for it (the age of an offline list) are in it.
     let timeZone: TimeZone
+    /// The person's own team-member ID in the workspace (`teamMemberId` of `GET /api/v1/me`): the session whose trainer
+    /// has this ID is theirs, which reads *Jij* / *You*. Never found by name or email address.
+    let teamMemberId: String
     /// The workspace's word for the people who teach (F068): the session screens word them with it.
     var trainerWord: Components.Schemas.TrainerWord = .trainer
 
