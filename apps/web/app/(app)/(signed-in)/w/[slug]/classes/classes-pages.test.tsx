@@ -225,7 +225,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
   });
 
   describe('CO-01 the class on a date', () => {
-    const view = (session: Session = date, canManage = true) =>
+    const view = (session: Session = date, canManage = true, canCopyLink = false) =>
       render(
         locale,
         <ClassDateView
@@ -233,6 +233,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
           slug="johns-gym"
           session={session}
           canManage={canManage}
+          canCopyLink={canCopyLink}
           ownDate={false}
           trainerWord={word}
         />,
@@ -288,6 +289,44 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
       expect(html).toContain(`>${locale === 'en' ? 'Strength' : 'Kracht'}</h1>`);
       expect(html).not.toContain(escapeHtml(copy.classes.date.edit));
       expect(html).not.toContain('<button');
+    });
+  });
+
+  describe('CO-01 Boekingslink kopiëren (F037)', () => {
+    const view = (session: Session, canManage: boolean, canCopyLink: boolean) =>
+      render(
+        locale,
+        <ClassDateView
+          workspaceId="w1"
+          slug="johns-gym"
+          session={session}
+          canManage={canManage}
+          canCopyLink={canCopyLink}
+          ownDate={false}
+          trainerWord={word}
+        />,
+      );
+    const copyLink = new RegExp(
+      `<button[^>]*>${escapeHtml(copy.bookingLinks.copyBooking)}</button>`,
+    );
+
+    it('AC8: the Owner has Boekingslink kopiëren beside Wijzigen', () => {
+      const html = view(date, true, true);
+
+      expect(html).toMatch(copyLink);
+      expect(html).toContain(escapeHtml(copy.classes.date.edit));
+    });
+
+    it('AC9: the assigned Trainer, who sees no other actions, sees this one', () => {
+      const html = view(date, false, true);
+
+      expect(html).toMatch(copyLink);
+      expect(html).not.toContain(escapeHtml(copy.classes.date.edit));
+      expect(html.match(/<button/g)).toHaveLength(1);
+    });
+
+    it('a date that offers no link (cancelled, past) has no Boekingslink kopiëren', () => {
+      expect(view(date, true, false)).not.toContain(escapeHtml(copy.bookingLinks.copyBooking));
     });
   });
 

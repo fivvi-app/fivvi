@@ -519,7 +519,7 @@ test.describe('F021 classes on the web', () => {
     await expectNoAxeViolations(page, `TW-03 with Trainer nodig in ${appLocale}`);
   });
 
-  test('AC7: Trainer has no Classes page and sees CO-01 without actions', async ({
+  test('AC7: Trainer has no Classes page and sees CO-01 with no action but Boekingslink kopiëren', async ({
     page,
     context,
     browser,
@@ -583,11 +583,14 @@ test.describe('F021 classes on the web', () => {
       ).status(),
     ).toBe(403);
 
-    // She reads CO-01 of any class date, with no actions.
+    // She reads CO-01 of any class date, with no action but Boekingslink kopiëren (F037, #968).
     await page.goto(`/w/${slug}/classes/${kracht.id}/${date.id}`);
     await expect(page.getByRole('heading', { level: 1, name: 'Kracht' })).toBeVisible();
     await expect(page.getByRole('main').getByText('18:00–19:00')).toBeVisible();
-    await expect(page.getByRole('main').getByRole('button')).toHaveCount(0);
+    await expect(page.getByRole('main').getByRole('button')).toHaveCount(1);
+    await expect(
+      page.getByRole('main').getByRole('button', { name: copy.bookingLinks.copyBooking }),
+    ).toBeVisible();
     await expect(page.getByRole('main').getByRole('link')).toHaveCount(0);
     await expectNoAxeViolations(page, `CO-01 as a Trainer in ${appLocale}`);
   });

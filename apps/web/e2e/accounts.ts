@@ -273,3 +273,16 @@ export async function cancelSession(sessionId: string): Promise<void> {
     pool.query(`update sessions set status = 'cancelled' where id = $1`, [sessionId]),
   );
 }
+
+/**
+ * Moves the session `sessionId` two months back, on the e2e app server's database: the date has
+ * passed. The API plans no date in the past, so a spec that needs one sets the time itself.
+ */
+export async function passSession(sessionId: string): Promise<void> {
+  await withPool((pool) =>
+    pool.query(
+      `update sessions set starts_at = starts_at - interval '60 days', ends_at = ends_at - interval '60 days' where id = $1`,
+      [sessionId],
+    ),
+  );
+}
