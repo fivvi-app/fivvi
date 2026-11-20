@@ -37,6 +37,7 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   locations: ALL,
   trainer_invitations: ALL,
   group_classes: ALL,
+  booking_links: ALL,
   class_series: ALL,
   sessions: ALL,
   session_participants: ALL,

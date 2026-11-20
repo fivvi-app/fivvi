@@ -1,6 +1,7 @@
 export * from './access-log.ts';
 export * from './auth.ts';
 export * from './billing-details.ts';
+export * from './booking-links.ts';
 export * from './business-table.ts';
 export * from './class-series.ts';
 export * from './deletion-log.ts';

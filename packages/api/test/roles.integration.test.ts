@@ -191,6 +191,7 @@ describe('@permission F004 roles on every workspace route', () => {
       'createGroupClass',
       'createOffer',
       'createTrainerInvitation',
+      'deactivateBookingLink',
       'deleteTrainerProfile',
       'getClientBillingDetails',
       'getInvoiceDetails',
@@ -244,15 +245,19 @@ describe('@permission F004 roles on every workspace route', () => {
     // and reading of sessions (F020: `session.private.manage.own`, and `clients.view`), the
     // reschedule (`session.private.manage.own`; the handler asks whether it is theirs), a client's
     // upcoming sessions (`clients.view`), reading the classes (F021: `class.read`) and the join link
-    // (F029: `join_link.view`; only the Owner renews it).
+    // (F029: `join_link.view`; only the Owner renews it), and listing and making booking links
+    // (F037: `booking_link.copy`; the handler allows a Trainer only the link of a class date, and
+    // only the Owner deactivates).
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
+      'createBookingLink',
       'createPrivateSession',
       'getClient',
       'getGroupClass',
       'getJoinLink',
       'getSession',
       'getWorkspace',
+      'listBookingLinks',
       'listClientUpcomingSessions',
       'listClients',
       'listGroupClasses',
@@ -284,6 +289,9 @@ describe('@permission F004 roles on every workspace route', () => {
       listGroupClasses: 200,
       getGroupClass: 404,
       getJoinLink: 200,
+      listBookingLinks: 200,
+      // The probe body names no scope.
+      createBookingLink: 400,
     });
   });
 
@@ -315,9 +323,13 @@ describe('@permission F004 roles on every workspace route', () => {
                 201,
                 204,
                 400,
-                ...(['getSession', 'getGroupClass', 'getOffer', 'listGroupClassSeries'].includes(
-                  route.name,
-                )
+                ...([
+                  'getSession',
+                  'getGroupClass',
+                  'getOffer',
+                  'listGroupClassSeries',
+                  'deactivateBookingLink',
+                ].includes(route.name)
                   ? [404]
                   : []),
                 ...(['createOffer', 'updateOffer'].includes(route.name) ? [422] : []),

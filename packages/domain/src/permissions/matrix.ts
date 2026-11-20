@@ -28,6 +28,8 @@ export const CAPABILITIES = [
   'class.read',
   'join_link.view',
   'join_link.renew',
+  'booking_link.manage',
+  'booking_link.copy',
   'access_log.read',
   'invoices.manage',
   'commerce.offers.manage',
@@ -44,6 +46,7 @@ const MATRIX: Readonly<Record<Role, readonly Capability[]>> = {
     'session.private.manage.own',
     'class.read',
     'join_link.view',
+    'booking_link.copy',
   ],
 };
 
