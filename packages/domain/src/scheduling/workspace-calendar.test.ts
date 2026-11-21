@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ATTENTION_DAYS,
   attentionWindow,
+  busiestMoment,
   filterWorkspaceCalendar,
   sessionsOfDay,
   sessionsWithoutTrainer,
@@ -18,8 +19,11 @@ const ZONE = 'Europe/Amsterdam';
 function session(
   id: string,
   local: string,
-  options: Partial<Omit<WorkspaceCalendarSession, 'sessionId' | 'startsAt' | 'endsAt'>> = {},
+  options: Partial<Omit<WorkspaceCalendarSession, 'sessionId' | 'startsAt'>> & {
+    minutes?: number;
+  } = {},
 ): WorkspaceCalendarSession {
+  const { minutes = 60, ...rest } = options;
   const startsAt = zonedTime(local);
   return {
     sessionId: id,
@@ -27,8 +31,8 @@ function session(
     status: 'scheduled',
     trainerId: 'sarah',
     startsAt,
-    endsAt: new Date(startsAt.getTime() + 3_600_000),
-    ...options,
+    endsAt: new Date(startsAt.getTime() + minutes * 60_000),
+    ...rest,
   };
 }
 
@@ -216,5 +220,139 @@ describe('F014 AC10 (API): sessions without a trainer, the next 14 days', () => 
     const lastDay = session('last-day', '2026-11-02T23:30', { type: 'group', trainerId: null });
     const after = session('after', '2026-11-03T00:00', { type: 'group', trainerId: null });
     expect(sessionsWithoutTrainer([after, lastDay], crossing, ZONE)).toEqual([lastDay]);
+  });
+});
+
+describe('F014 #1538: the busiest moment of a day', () => {
+  const span = (from: string, to: string, atOnce: number) => ({
+    startsAt: zonedTime(from),
+    endsAt: zonedTime(to),
+    atOnce,
+  });
+
+  it('names the hour two sessions share, with how many are at once', () => {
+    expect(
+      busiestMoment([
+        session('sven', '2026-09-22T18:00', { trainerId: 'sven', type: 'group' }),
+        session('noor', '2026-09-22T18:00', { trainerId: 'noor', type: 'group' }),
+      ]),
+    ).toEqual(span('2026-09-22T18:00', '2026-09-22T19:00', 2));
+  });
+
+  it('names only the part that overlaps, not the whole of either session', () => {
+    expect(
+      busiestMoment([
+        session('a', '2026-09-22T17:00', { minutes: 120 }),
+        session('b', '2026-09-22T18:00', { minutes: 120 }),
+      ]),
+    ).toEqual(span('2026-09-22T18:00', '2026-09-22T19:00', 2));
+  });
+
+  it('names nothing without an overlap: one session, none, or back to back', () => {
+    expect(busiestMoment([])).toBeUndefined();
+    expect(busiestMoment([session('a', '2026-09-22T18:00')])).toBeUndefined();
+    expect(
+      busiestMoment([session('a', '2026-09-22T18:00'), session('b', '2026-09-22T19:00')]),
+    ).toBeUndefined();
+  });
+
+  it('does not count a cancelled session', () => {
+    expect(
+      busiestMoment([
+        session('a', '2026-09-22T18:00'),
+        session('b', '2026-09-22T18:00', { status: 'cancelled' }),
+      ]),
+    ).toBeUndefined();
+  });
+
+  it('counts every kind of session, Open Gym and class dates too, and one with no trainer', () => {
+    expect(
+      busiestMoment([
+        session('open', '2026-09-22T18:00', { type: 'open_gym', trainerId: null }),
+        session('class', '2026-09-22T18:30', { type: 'group', trainerId: null }),
+      ]),
+    ).toEqual(span('2026-09-22T18:30', '2026-09-22T19:00', 2));
+  });
+
+  it('names the most sessions at once when the day has several overlaps', () => {
+    expect(
+      busiestMoment([
+        session('a', '2026-09-22T07:00', { minutes: 120 }),
+        session('b', '2026-09-22T08:00'),
+        session('c', '2026-09-22T17:00', { minutes: 180 }),
+        session('d', '2026-09-22T18:00', { minutes: 90 }),
+        session('e', '2026-09-22T18:30', { minutes: 30 }),
+      ]),
+    ).toEqual(span('2026-09-22T18:30', '2026-09-22T19:00', 3));
+  });
+
+  it('names the first of equally busy moments', () => {
+    expect(
+      busiestMoment([
+        session('late-a', '2026-09-22T19:00'),
+        session('late-b', '2026-09-22T19:00'),
+        session('early-a', '2026-09-22T09:00'),
+        session('early-b', '2026-09-22T09:00'),
+      ]),
+    ).toEqual(span('2026-09-22T09:00', '2026-09-22T10:00', 2));
+  });
+
+  it('joins moments that follow each other with the same number at once', () => {
+    // 18:00-20:00 always has two sessions running, though one ends as the next begins at 19:00.
+    expect(
+      busiestMoment([
+        session('long', '2026-09-22T18:00', { minutes: 120 }),
+        session('first', '2026-09-22T18:00'),
+        session('second', '2026-09-22T19:00'),
+      ]),
+    ).toEqual(span('2026-09-22T18:00', '2026-09-22T20:00', 2));
+  });
+
+  it('does not join moments with a gap between them', () => {
+    expect(
+      busiestMoment([
+        session('long', '2026-09-22T18:00', { minutes: 180 }),
+        session('first', '2026-09-22T18:00'),
+        session('second', '2026-09-22T20:00'),
+      ]),
+    ).toEqual(span('2026-09-22T18:00', '2026-09-22T19:00', 2));
+  });
+
+  it('is asked in time order or not: the order of the sessions does not matter', () => {
+    const a = session('a', '2026-09-22T18:00');
+    const b = session('b', '2026-09-22T18:30');
+    expect(busiestMoment([b, a])).toEqual(busiestMoment([a, b]));
+  });
+
+  it('works in UTC instants: it holds across the clock change of 29 March', () => {
+    // Winter time becomes summer time at 01:00 UTC: on the wall clock 01:30 + 1h30 ends at 04:00,
+    // but the overlap is the hour between 01:00 and 02:00 UTC.
+    const instants = (id: string, from: string, to: string): WorkspaceCalendarSession => ({
+      sessionId: id,
+      type: 'private',
+      status: 'scheduled',
+      trainerId: null,
+      startsAt: new Date(from),
+      endsAt: new Date(to),
+    });
+    expect(
+      busiestMoment([
+        instants('a', '2026-03-29T00:30:00Z', '2026-03-29T02:00:00Z'),
+        instants('b', '2026-03-29T01:00:00Z', '2026-03-29T03:00:00Z'),
+      ]),
+    ).toEqual({
+      startsAt: new Date('2026-03-29T01:00:00Z'),
+      endsAt: new Date('2026-03-29T02:00:00Z'),
+      atOnce: 2,
+    });
+  });
+
+  it('ignores a session that ends when it begins or before', () => {
+    expect(
+      busiestMoment([
+        session('a', '2026-09-22T18:00'),
+        session('empty', '2026-09-22T18:00', { minutes: 0 }),
+      ]),
+    ).toBeUndefined();
   });
 });

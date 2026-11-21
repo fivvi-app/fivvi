@@ -3411,6 +3411,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceDay/items`.
             public var items: [Components.Schemas.WorkspaceCalendarSession]
+            /// - Remark: Generated from `#/components/schemas/WorkspaceDay/busiest`.
+            public var busiest: Components.Schemas.WorkspaceBusiestMoment?
             /// *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: "{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items.
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceDay/attention`.
@@ -3421,23 +3423,72 @@ extension Components {
             ///   - date: The day shown: `YYYY-MM-DD`, in `timeZone`.
             ///   - timeZone: The workspace’s IANA time zone: the day starts and ends on its wall clock.
             ///   - items: The sessions that start on the day, in time order, cancelled ones included (struck through): the rows of the dashboard and of *Mijn dag | {workspace}*.
+            ///   - busiest:
             ///   - attention: *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: "{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items.
             public init(
                 date: Swift.String,
                 timeZone: Swift.String,
                 items: [Components.Schemas.WorkspaceCalendarSession],
+                busiest: Components.Schemas.WorkspaceBusiestMoment? = nil,
                 attention: [Components.Schemas.WorkspaceCalendarSession]
             ) {
                 self.date = date
                 self.timeZone = timeZone
                 self.items = items
+                self.busiest = busiest
                 self.attention = attention
             }
             public enum CodingKeys: String, CodingKey {
                 case date
                 case timeZone
                 case items
+                case busiest
                 case attention
+            }
+        }
+        /// The busiest moment of the day: the time in which the most sessions run at once and how many, from the sessions of `items` that take place (cancelled ones do not count; class dates, private sessions and Open Gym do). Left out when no two sessions run at once (*Geen overlap*). The first of equally busy moments; sessions that end as another begins do not overlap.
+        ///
+        /// - Remark: Generated from `#/components/schemas/WorkspaceBusiestMoment`.
+        public struct WorkspaceBusiestMoment: Codable, Hashable, Sendable {
+            /// The start of the busiest moment, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceBusiestMoment/startsAt`.
+            public var startsAt: Foundation.Date
+            /// The end of the busiest moment, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceBusiestMoment/endsAt`.
+            public var endsAt: Foundation.Date
+            /// The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceBusiestMoment/timeZone`.
+            public var timeZone: Swift.String
+            /// How many sessions run at once in that time: 2 or more.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceBusiestMoment/atOnce`.
+            public var atOnce: Swift.Int
+            /// Creates a new `WorkspaceBusiestMoment`.
+            ///
+            /// - Parameters:
+            ///   - startsAt: The start of the busiest moment, a UTC instant.
+            ///   - endsAt: The end of the busiest moment, a UTC instant.
+            ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///   - atOnce: How many sessions run at once in that time: 2 or more.
+            public init(
+                startsAt: Foundation.Date,
+                endsAt: Foundation.Date,
+                timeZone: Swift.String,
+                atOnce: Swift.Int
+            ) {
+                self.startsAt = startsAt
+                self.endsAt = endsAt
+                self.timeZone = timeZone
+                self.atOnce = atOnce
+            }
+            public enum CodingKeys: String, CodingKey {
+                case startsAt
+                case endsAt
+                case timeZone
+                case atOnce
             }
         }
         /// A class of the workspace: what it is called, who usually teaches it, how many people fit and how long it lasts. It is not a point in time; a class on a date is a `group` session.

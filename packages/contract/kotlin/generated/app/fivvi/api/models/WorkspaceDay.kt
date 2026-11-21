@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.WorkspaceBusiestMoment
 import app.fivvi.api.models.WorkspaceCalendarSession
 
 import kotlinx.serialization.Serializable
@@ -36,6 +37,7 @@ import kotlinx.serialization.Contextual
  * @param timeZone The workspace’s IANA time zone: the day starts and ends on its wall clock.
  * @param items The sessions that start on the day, in time order, cancelled ones included (struck through): the rows of the dashboard and of *Mijn dag | {workspace}*.
  * @param attention *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: \"{class}, {date} {time}: nog geen trainer\", \"Privé · {client}, {date} {time}: nog geen trainer\". Empty when nothing needs attention. Later features add their own open items.
+ * @param busiest 
  */
 @Serializable
 
@@ -55,7 +57,10 @@ data class WorkspaceDay (
 
     /* *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: \"{class}, {date} {time}: nog geen trainer\", \"Privé · {client}, {date} {time}: nog geen trainer\". Empty when nothing needs attention. Later features add their own open items. */
     @SerialName(value = "attention")
-    val attention: kotlin.collections.List<WorkspaceCalendarSession>
+    val attention: kotlin.collections.List<WorkspaceCalendarSession>,
+
+    @SerialName(value = "busiest")
+    val busiest: WorkspaceBusiestMoment? = null
 
 ) {
 
