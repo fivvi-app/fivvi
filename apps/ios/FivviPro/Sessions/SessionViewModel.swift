@@ -74,16 +74,7 @@ final class SessionViewModel {
     }
 
     /// The address as one line, for the maps app; nil when the location has none.
-    var routeURL: URL? {
-        guard let address = session?.location.address else { return nil }
-        let number = [address.houseNumber, address.houseNumberAddition].compactMap { $0 }.joined(separator: " ")
-        var parts = URLComponents(string: "https://maps.apple.com/")
-        parts?.queryItems = [
-            URLQueryItem(name: "daddr", value: "\(address.street) \(number), \(address.postcode) \(address.city)"),
-            URLQueryItem(name: "dirflg", value: "d")
-        ]
-        return parts?.url
-    }
+    var routeURL: URL? { LocationRoute.url(session?.location.address) }
 
     /// The model of PS-05 for this session, or nil while there is none or when it is cancelled (a cancelled session is
     /// not moved).

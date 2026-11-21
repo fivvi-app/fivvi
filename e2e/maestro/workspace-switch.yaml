@@ -36,6 +36,7 @@ env:
     visible: .*Anna de Vries.*
     timeout: 20000
 - launchApp
+- runFlow: shared/open-home.yaml
 # AC6: Profiel lists both workspaces with the check on John's Gym.
 - extendedWaitUntil:
     visible:
@@ -75,6 +76,7 @@ env:
 # AC7: closing the app and opening it again opens Sarah Personal Training (no clearState: the session and the preference
 # stay).
 - launchApp
+- runFlow: shared/open-home.yaml
 - extendedWaitUntil:
     visible:
       id: home\.workspaceName
@@ -92,6 +94,7 @@ env:
     id: profile\.workspace\.johns-gym
     selected: false
 - launchApp
+- runFlow: shared/open-home.yaml
 # AC7: also after a sign-out and sign-in on this device.
 - extendedWaitUntil:
     visible:

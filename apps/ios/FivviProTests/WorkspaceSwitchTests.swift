@@ -50,6 +50,22 @@ final class WorkspaceSwitchTests: XCTestCase {
         XCTAssertEqual(model.workspace?.id, johnsGym, "the list from the API decides")
     }
 
+    func test_F013_AC4_anotherWorkspaceOpensWithoutChangingTheCurrentOne() async throws {
+        let api = StubAPI()
+        await answerAsSarah(api)
+        let model = account(api, defaults: try emptyDefaults())
+        await model.load()
+
+        guard case let .found(other) = await model.workspace(id: sarahTraining) else { return XCTFail("not found") }
+
+        XCTAssertEqual(other.id, sarahTraining)
+        XCTAssertEqual(other.name, "Sarah Personal Training")
+        XCTAssertEqual(other.teamMemberId, StubAPI.memberID(of: sarahTraining), "her own team-member ID there")
+        XCTAssertEqual(model.workspace?.id, johnsGym, "F012's current workspace is not changed")
+        let missing = await model.workspace(id: "7c1d2e3f-0000-4000-8000-000000000009")
+        XCTAssertEqual(missing, .unavailable, "a workspace the person is not on does not open")
+    }
+
     func test_F012_AC7_appOpensLastWorkspace() async throws {
         let defaults = try emptyDefaults()
         let api = StubAPI()

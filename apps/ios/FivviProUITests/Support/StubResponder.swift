@@ -7,6 +7,7 @@ final class Responder: @unchecked Sendable {
     let signIn: StubServer.SignIn
     let clientRoutes: StubClientRoutes
     let sessionRoutes: StubSessionRoutes
+    let personalRoutes = StubPersonalRoutes()
     var received: [StubServer.Request] = []
     var offline = false
     var lost: Set<Int> = []
@@ -199,6 +200,11 @@ final class Responder: @unchecked Sendable {
         case ("POST", "/api/v1/sign-out"):
             let works = authorization == "Bearer \(signIn.token)"
             send(connection, status: works ? 204 : 401, json: works ? nil : Self.unauthorized)
+        case ("GET", "/api/v1/me/day"):
+            let date = query["date"] ?? ""
+            let works = authorization == "Bearer \(signIn.token)"
+            let reply = works ? personalRoutes.respond(date: date) : (401, Self.notSignedIn)
+            send(connection, status: reply.0, json: reply.1)
         case (_, _) where Self.isAccountRoute(method: method, path: path):
             respondToAccountRoute(
                 connection, method: method, path: path, authorization: authorization, fields: stringFields

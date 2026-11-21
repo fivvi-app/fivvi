@@ -428,6 +428,8 @@
     <string name="home_set_up_on_web">Maak je werkruimte aan op het web.</string>
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
+    <!-- Label of the tab that holds the workspace home (Klanten, Profiel and the account) in Fivvi Pro. -->
+    <string name="home_tab">Home</string>
     <string name="invitation_accept">Accepteren</string>
     <string name="invitation_decline">Afwijzen</string>
     <string name="invitation_declined">Je hebt de uitnodiging afgewezen.</string>
@@ -452,6 +454,9 @@
     <string name="join_link_renew_dialog_title">Aanmeldlink vernieuwen?</string>
     <string name="join_link_renewed">De aanmeldlink is vernieuwd.</string>
     <string name="join_link_title">Aanmeldlink</string>
+    <!-- Label of the second tab of Fivvi Pro: the trainer's calendar across workspaces. -->
+    <string name="my_calendar_app_tab">Agenda</string>
+    <string name="my_calendar_app_title">Agenda</string>
     <!-- The first line of a calendar block and the start of its spoken name: the session type in words, a dot, then the client or class name, e.g. 'Privé · Anna' or 'Groep · Kracht'. The type always comes first (colour is never the only signal). -->
     <string name="my_calendar_block">%2$s · %1$s</string>
     <!-- Places taken and capacity of a group class on its block, e.g. '3/8'. -->
@@ -499,6 +504,32 @@
     <string name="my_calendar_view_list">Lijst</string>
     <string name="my_calendar_view_week">Week</string>
     <string name="my_calendar_views">Weergave</string>
+    <string name="my_day_app_dismiss">Sluiten</string>
+    <string name="my_day_app_failed">Vandaag kon niet worden bijgewerkt.</string>
+    <string name="my_day_app_free_gap">Vrij %1$s–%2$s</string>
+    <!-- Length of the free gap in hours, {hours} is a number such as 1,5 or 2. -->
+    <string name="my_day_app_free_gap_length">%1$s uur</string>
+    <!-- Pill on a group class row that has no places left. -->
+    <string name="my_day_app_full">Vol</string>
+    <string name="my_day_app_no_free_time">Geen vrije tijd meer vandaag</string>
+    <string name="my_day_app_offline">Je bent offline. Laatst bijgewerkt om %1$s.</string>
+    <string name="my_day_app_open">Openen</string>
+    <!-- Accessibility label of the arrow that opens the maps app for a session's location. -->
+    <string name="my_day_app_open_route">Route</string>
+    <string name="my_day_app_plan">Plannen</string>
+    <!-- Notice, shown once, after the person lost access to a workspace. -->
+    <string name="my_day_app_removed">Je hebt geen toegang meer tot %1$s.</string>
+    <string name="my_day_app_retry">Opnieuw</string>
+    <string name="my_day_app_route">Route vandaag</string>
+    <plurals name="my_day_app_summary">
+        <item quantity="one">%1$d sessie · %3$s–%4$s · %2$s klaar</item>
+        <item quantity="other">%1$d sessies · %3$s–%4$s · %2$s klaar</item>
+    </plurals>
+    <string name="my_day_app_summary_empty">Geen sessies vandaag</string>
+    <!-- Label of the first tab of Fivvi Pro: the trainer's day across workspaces. -->
+    <string name="my_day_app_tab">Vandaag</string>
+    <string name="my_day_app_title">Vandaag</string>
+    <string name="my_day_app_tomorrow_hint">Opent de agenda</string>
     <string name="my_day_booked">%1$s/%2$s geboekt</string>
     <string name="my_day_cancelled">Geannuleerd</string>
     <string name="my_day_empty_never">Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland.</string>

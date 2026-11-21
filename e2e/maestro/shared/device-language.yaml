@@ -25,6 +25,7 @@ appId: ${APP_ID}
           id: profile\.language\.${DEVICE_LANGUAGE}
       # Reopen the app (the session stays, no clearState): `back` exists on Android only, and this flow is one file for both.
       - launchApp
+      - runFlow: open-home.yaml
       - extendedWaitUntil:
           visible:
             text: ${SIGN_OUT_LABEL}

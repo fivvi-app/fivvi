@@ -32,6 +32,12 @@ struct HomeView: View {
     /// The clients of the workspace on screen, kept while the home lives so the list stays at hand (F006).
     @State var clients: ClientsViewModel?
     @State var path: [Route] = []
+    /// The tabs (F013): Vandaag first, then Agenda, then the home of the current workspace.
+    @State var tab = ProTab.initial()
+    @State var today: TodayViewModel
+    @State var todayPath: [PersonalRoute] = []
+    /// The tab a sheet was opened from: where the person lands once it saved something.
+    @State var sheetOrigin = ProTab.home
     /// PS-04, while its sheet is open (F020).
     @State var newSession: NewSessionViewModel?
     /// TD-05, while its sheet is open (F021).
@@ -49,29 +55,76 @@ struct HomeView: View {
     init(
         api: any APIProtocol, store: any SessionStore, language: AppLanguage, welcomeURL: URL,
         onAccount: @escaping (String) -> Void,
-        onSignedOut: @escaping (Bool) -> Void
+        onSignedOut: @escaping (Bool) -> Void,
+        personal: any PersonalStore = FilePersonalStore.shared
     ) {
-        _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
-        _account = State(initialValue: AccountViewModel(
+        let account = AccountViewModel(
             api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
             onPreferredLocale: { language.startRead() }, workspaces: .persistent()
+        )
+        _today = State(initialValue: TodayViewModel(
+            api: api, catalog: language.catalog, store: personal, now: UITestClock.provider(),
+            refreshAccount: { [account] in await account.refreshedMemberships() }
         ))
+        _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
+        _account = State(initialValue: account)
         self.api = api
         self.language = language
         self.welcomeURL = welcomeURL
     }
 
     var body: some View {
+        TabView(selection: $tab) {
+            SwiftUI.Tab(catalog[.tabToday], systemImage: "sun.max", value: ProTab.today) { todayStack }
+                .accessibilityIdentifier("tab.today")
+            SwiftUI.Tab(catalog[.tabCalendar], systemImage: "calendar", value: ProTab.calendar) { calendarStack }
+                .accessibilityIdentifier("tab.calendar")
+            SwiftUI.Tab(catalog[.tabHome], systemImage: "house", value: ProTab.home) { homeStack }
+                .accessibilityIdentifier("tab.home")
+        }
+        .fivviTabBar()
+        // A language chosen before signing in, or in iOS Settings, is saved first; then the account's stored language is
+        // read, so an older stored one can't override it (F010).
+        .task {
+            await language.save()
+            await account.load()
+        }
+        // Coming back to the app asks again: a workspace the person lost access to meanwhile is noticed (F003 AC6), and
+        // a language changed on the web is adopted (F010 AC2); Vandaag reads the day again.
+        .onReturnToForeground {
+            await language.save()
+            await account.refresh()
+            await today.load()
+        }
+        // The clients' model follows the workspace the account shows: a new workspace is a new list, none is no list.
+        .onChange(of: account.workspace, initial: true) { _, workspace in useWorkspace(workspace) }
+        .onChange(of: account.memberships) { _, listed in listed.map(today.workspacesListed) }
+        .sheet(item: $newSession) { form in newSessionSheet(form) }
+        .sheet(item: $newClass) { form in newClassSheet(form) }
+        .onChange(of: language.catalog) { _, catalog in
+            profile.use(catalog)
+            clients?.use(catalog)
+            today.use(catalog)
+        }
+    }
+
+    /// The home of the current workspace: its name, *Klanten*, *Profiel* and the account.
+    private var homeStack: some View {
         NavigationStack(path: $path) {
             screen
                 .navigationDestination(for: Route.self) { route in
-                    switch route {
-                    case .clients: clientsScreen
-                    case .profile: profileScreen
-                    case let .client(route): clientProfileScreen(route)
-                    case let .session(id): sessionScreen(id)
-                    case let .classDate(id, added): classDateScreen(id, added: added)
+                    Group {
+                        switch route {
+                        case .clients: clientsScreen
+                        case .profile: profileScreen
+                        case let .client(route): clientProfileScreen(route)
+                        case let .session(id): sessionScreen(id)
+                        case let .classDate(id, added): classDateScreen(id, added: added)
+                        }
                     }
+                    // The screens below the home are second-level screens with forms and long lists: the glass bar would
+                    // float over their last rows and over their sheets, so they hide it, as the system's own apps do.
+                    .toolbarVisibility(.hidden, for: .tabBar)
                 }
         }
     }
@@ -96,28 +149,8 @@ struct HomeView: View {
             rows
             accountCard
         }
-        // A language chosen before signing in, or in iOS Settings, is saved first; then the account's stored language is
-        // read, so an older stored one can't override it (F010).
-        .task {
-            await language.save()
-            await account.load()
-        }
-        // Coming back to the app asks again: a workspace the person lost access to meanwhile is noticed (F003 AC6), and
-        // a language changed on the web is adopted (F010 AC2).
-        .onReturnToForeground {
-            await language.save()
-            await account.refresh()
-        }
-        // The clients' model follows the workspace the account shows: a new workspace is a new list, none is no list.
-        .onChange(of: account.workspace, initial: true) { _, workspace in useWorkspace(workspace) }
-        .toolbar { newMenu }
+        .toolbar { newMenu(from: .home) }
         .openingClassDateForUITest(path: $path, ready: accountIsReady)
-        .sheet(item: $newSession) { form in newSessionSheet(form) }
-        .sheet(item: $newClass) { form in newClassSheet(form) }
-        .onChange(of: language.catalog) { _, catalog in
-            profile.use(catalog)
-            clients?.use(catalog)
-        }
     }
 
     /// What `GET /api/v1/me` says besides the workspace's name (the title): the text to set one up on the web, or the

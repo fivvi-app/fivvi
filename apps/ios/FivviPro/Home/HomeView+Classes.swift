@@ -13,9 +13,10 @@ extension HomeView {
         return true
     }
 
-    func openNewClass() {
+    func openNewClass(from origin: ProTab) {
         guard let workspace = account.workspace, case let .loaded(email) = account.state else { return }
         let capabilities = account.capabilities
+        sheetOrigin = origin
         newClass = NewGroupClassViewModel(
             api: api, workspace: workspace, catalog: catalog, email: email, accountName: account.accountName,
             onForbidden: { await capabilities.forbidden($0) }
@@ -29,7 +30,11 @@ extension HomeView {
                 model: form, language: language,
                 onSaved: { date, datesAdded in
                     newClass = nil
-                    path.append(.classDate(date.id, added: datesAdded))
+                    if sheetOrigin == .home {
+                        path.append(.classDate(date.id, added: datesAdded))
+                    } else if let workspace = account.workspace {
+                        todayPath.append(.classDate(workspaceID: workspace.id, id: date.id))
+                    }
                 },
                 onCancel: { newClass = nil }
             )
@@ -60,8 +65,8 @@ struct ClassDateScreen: View {
     ) {
         _model = State(initialValue: ClassDateViewModel(
             api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog,
-            canManage: capabilities.allows(.class_manage), added: added,
-            onForbidden: { await capabilities.forbidden($0) }
+            canManage: capabilities.allows(.class_manage, in: workspace.id), added: added,
+            onForbidden: { await capabilities.forbidden($0, in: workspace.id) }
         ))
         self.language = language
     }
