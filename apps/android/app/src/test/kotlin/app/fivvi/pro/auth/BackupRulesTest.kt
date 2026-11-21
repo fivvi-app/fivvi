@@ -1,6 +1,7 @@
 package app.fivvi.pro.auth
 
 import app.fivvi.core.auth.KeystoreSessionStore
+import app.fivvi.pro.personal.PersonalStore
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -35,6 +36,25 @@ class BackupRulesTest {
             assertTrue(
                 "$section has no exclusion of the session store",
                 body != null && exclude.containsMatchIn(body.value),
+            )
+        }
+    }
+
+    // F013 AC7: what Vandaag keeps for its offline view holds client names, so it is kept out of every backup too.
+    private val excludePersonal = Regex(
+        """<exclude\s+domain="file"\s+path="${PersonalStore.DIRECTORY}/?"\s*/>""",
+    )
+
+    @Test
+    fun test_F013_AC7_everyBackupLeavesOutWhatVandaagKeeps() {
+        assertTrue(excludePersonal.containsMatchIn(source("main/res/xml/backup_rules.xml")))
+        val rules = source("main/res/xml/data_extraction_rules.xml")
+
+        for (section in listOf("cloud-backup", "device-transfer")) {
+            val body = Regex("""<$section[^>]*>(.*?)</$section>""", RegexOption.DOT_MATCHES_ALL).find(rules)
+            assertTrue(
+                "$section has no exclusion of what Vandaag keeps",
+                body != null && excludePersonal.containsMatchIn(body.value),
             )
         }
     }

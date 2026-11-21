@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import app.fivvi.core.R
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.InsetGroupedList
@@ -159,16 +160,30 @@ fun HomeScreen(
     }
 }
 
-// **+** (the prototype's round control), with *Privésessie* and *Groepsles*, or the line that the owner plans the classes.
+/**
+ * **+** (the prototype's round control), with *Privésessie* and *Groepsles*, or the line that the owner plans the classes: at
+ * the top of the home and of Vandaag (F013). It has what the callbacks give; none given, it has nothing. [enabled] is off while
+ * the phone is offline on Vandaag (creating needs the server), with [disabledReason] as its state for TalkBack.
+ */
 @Composable
-private fun NewMenu(onNewPrivateSession: (() -> Unit)?, onNewGroupClass: (() -> Unit)?, noteWorkspace: String?) {
+fun NewMenu(
+    onNewPrivateSession: (() -> Unit)?,
+    onNewGroupClass: (() -> Unit)?,
+    noteWorkspace: String?,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    enabled: Boolean = true,
+    disabledReason: String? = null,
+) {
     var open by rememberSaveable { mutableStateOf(false) }
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+    Box(modifier, contentAlignment = Alignment.CenterEnd) {
         RoundControl(
             icon = painterResource(R.drawable.ic_add),
             contentDescription = stringResource(R.string.workspace_nav_new),
             onClick = { open = true },
-            modifier = Modifier.testTag(HomeTags.NEW),
+            modifier = Modifier.testTag(HomeTags.NEW).semantics {
+                if (!enabled && disabledReason != null) stateDescription = disabledReason
+            },
+            enabled = enabled,
         )
         DropdownMenu(
             expanded = open,

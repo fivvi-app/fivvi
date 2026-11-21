@@ -95,6 +95,9 @@ class FakeSessionsApi : SessionsApi {
     val created = mutableListOf<Pair<UUID, PlanPrivateSessionRequest>>()
     val moved = mutableListOf<Triple<UUID, UUID, ReschedulePrivateSessionRequest>>()
     val read = mutableListOf<UUID>()
+
+    /** The workspace and the ID of every session read: a screen of Vandaag asks in the workspace of its item (F013 AC4). */
+    val readIn = mutableListOf<Pair<UUID, UUID>>()
     val createAnswers = ArrayDeque<suspend (PlanPrivateSessionRequest) -> Response<PlannedPrivateSession>>()
     val rescheduleAnswers = ArrayDeque<
         suspend (
@@ -153,6 +156,7 @@ class FakeSessionsApi : SessionsApi {
 
     override suspend fun getSession(workspaceId: UUID, sessionId: UUID): Response<Session> {
         read += sessionId
+        readIn += workspaceId to sessionId
         failure?.let { throw it }
         getStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
         return sessions[sessionId]?.let { Response.success(it) } ?: Response.error(404, "{}".toResponseBody(JSON))

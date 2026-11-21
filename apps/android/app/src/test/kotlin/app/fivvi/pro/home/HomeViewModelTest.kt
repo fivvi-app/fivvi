@@ -18,10 +18,12 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.serialization.SerializationException
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -208,6 +210,83 @@ class HomeViewModelTest {
 
         assertEquals(listOf("John's Gym", "Sarah Personal Training"), listed.single().map { it.name })
         assertEquals(MeWorkspace.Capabilities.entries, listed.single().first().capabilities)
+    }
+
+    // F013 AC8: Vandaag reads the account again (a pull, *Opnieuw*, the foreground). It says what came of it, replaces the
+    // capabilities with what the API lists now, and changes the home only when the workspace it shows is gone.
+    @Test
+    fun test_F013_AC8_refreshWorkspacesAnswersTheListAndReplacesTheCapabilities() {
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        api.answerAccount(
+            workspaces = listOf("John's Gym", "Sarah Personal Training"),
+            capabilitiesByWorkspace = mapOf("Sarah Personal Training" to emptyList()),
+        )
+        val viewModel = viewModel()
+
+        val read = runBlocking { viewModel.refreshWorkspaces() }
+
+        assertEquals(
+            listOf("John's Gym", "Sarah Personal Training"),
+            (read as WorkspacesRead.Listed).workspaces.map {
+                it.name
+            },
+        )
+        assertEquals("the capabilities helper is told again", 2, listed.size)
+        assertEquals(emptyList<MeWorkspace.Capabilities>(), listed.last().last().capabilities)
+        assertEquals(listed.last(), viewModel.workspaces.value)
+        assertEquals("the home stays as it is", OWNER_IN_WORKSPACE, viewModel.state.value)
+    }
+
+    @Test
+    fun test_F013_AC8_refreshWorkspacesWithoutAConnectionIsOfflineAndChangesNothing() {
+        api.answerAccount(workspaces = listOf("John's Gym"))
+        api.answers += { throw IOException("offline") }
+        val viewModel = viewModel()
+
+        val read = runBlocking { viewModel.refreshWorkspaces() }
+
+        assertEquals(WorkspacesRead.Offline, read)
+        assertEquals(1, listed.size)
+        assertEquals(OWNER_IN_WORKSPACE, viewModel.state.value)
+    }
+
+    @Test
+    fun test_F013_AC8_refreshWorkspacesWithAnAnswerThatIsNotTheAccountIsFailed() {
+        api.answerAccount(workspaces = listOf("John's Gym"))
+        api.answers += { Response.error(500, "{}".toResponseBody()) }
+        api.answers += { throw SerializationException("not the account") }
+        val viewModel = viewModel()
+
+        assertEquals(WorkspacesRead.Failed, runBlocking { viewModel.refreshWorkspaces() })
+        assertEquals(
+            "a body that doesn't parse is not a connection problem",
+            WorkspacesRead.Failed,
+            runBlocking {
+                viewModel.refreshWorkspaces()
+            },
+        )
+
+        assertEquals(1, listed.size)
+        assertEquals(OWNER_IN_WORKSPACE, viewModel.state.value)
+    }
+
+    @Test
+    fun test_F013_AC8_refreshWorkspacesReloadsTheHomeWhenTheWorkspaceItShowsIsGone() {
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("Sarah Personal Training"))
+        val viewModel = viewModel()
+        assertEquals("John's Gym", shown(viewModel))
+
+        val read = runBlocking { viewModel.refreshWorkspaces() }
+
+        assertEquals(listOf("Sarah Personal Training"), (read as WorkspacesRead.Listed).workspaces.map { it.name })
+        assertEquals(
+            "the account is read as on opening, which shows the next workspace",
+            "Sarah Personal Training",
+            shown(viewModel),
+        )
+        assertEquals(3, api.calls)
     }
 
     private fun shown(viewModel: HomeViewModel) =

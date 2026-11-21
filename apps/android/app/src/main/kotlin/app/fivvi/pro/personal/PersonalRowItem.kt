@@ -1,0 +1,195 @@
+package app.fivvi.pro.personal
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.testTag as semanticsTestTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import app.fivvi.core.R
+import app.fivvi.core.kit.AvatarSize
+import app.fivvi.core.kit.ListRowMinHeight
+import app.fivvi.core.kit.PillTone
+import app.fivvi.core.kit.SessionAvatar
+import app.fivvi.core.kit.SessionType
+import app.fivvi.core.kit.StatusPill
+import app.fivvi.core.kit.initialsOf
+import app.fivvi.core.theme.numeric
+import app.fivvi.core.theme.tokens
+import app.fivvi.designtokens.Spacing
+import app.fivvi.designtokens.footnote
+import app.fivvi.designtokens.headline
+import app.fivvi.designtokens.subhead
+import app.fivvi.designtokens.workspaceColor
+
+/** How much of its colour a row of the past, or a cancelled one, keeps. */
+private const val DIMMED = 0.55f
+
+/** The dot beside a workspace's name (`Tokens.workspaceColor(for:)` of iOS): the colour comes from the workspace's ID. */
+private val DotSize: Dp = 8.dp
+
+/** The word for the kind of a row: *Privésessie* or *Groepsles*. */
+@Composable
+fun kindLabel(row: PersonalRow): String =
+    stringResource(if (row.isGroup) R.string.my_day_type_group else R.string.my_day_type_private)
+
+/**
+ * "09:00 tot 10:00, Anna de Vries, privésessie, John's Gym, Sarah Personal Training, Geannuleerd": the one name a row has for
+ * TalkBack. It always names the type, whether or not the row writes it.
+ */
+@Composable
+private fun spokenLabel(row: PersonalRow): String {
+    val join = stringResource(R.string.my_day_spoken_join)
+    val parts = listOfNotNull(
+        stringResource(R.string.my_day_spoken_time, row.endText, row.startText),
+        row.title,
+        kindLabel(row).lowercase(),
+        row.location,
+        row.workspaceName.takeIf { row.showsWorkspace },
+        stringResource(R.string.my_day_cancelled).takeIf { row.isCancelled },
+    )
+    return parts.reduce { all, next -> join.format(all, next) }
+}
+
+/**
+ * A row of Vandaag and Agenda, Calendar-style on Android (`DECISIONS.md` §3): the shaped avatar of the session type, the
+ * name, what only fits when there is more than one kind or team, the time on the right and, for a class, the pill. It is
+ * one element for TalkBack, named with the type; the arrow to the maps app is an action of it, and a button for everyone else.
+ */
+@Composable
+fun PersonalRowItem(row: PersonalRow, onOpen: () -> Unit, onRoute: (String) -> Unit, modifier: Modifier = Modifier) {
+    val spoken = spokenLabel(row)
+    val routeLabel = stringResource(R.string.my_day_app_open_route)
+    val route = row.routeUrl
+    Row(
+        modifier.fillMaxWidth().defaultMinSize(minHeight = ListRowMinHeight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onOpen)
+                .alpha(if (row.isPast || row.isCancelled) DIMMED else 1f)
+                .padding(start = Spacing.space4, top = Spacing.space3, bottom = Spacing.space3, end = Spacing.space2)
+                .clearAndSetSemantics {
+                    semanticsTestTag = TodayTags.row(row.id)
+                    contentDescription = spoken
+                    role = Role.Button
+                    if (route !=
+                        null
+                    ) {
+                        customActions = listOf(
+                            CustomAccessibilityAction(routeLabel) {
+                                onRoute(route)
+                                true
+                            },
+                        )
+                    }
+                },
+            horizontalArrangement = Arrangement.spacedBy(Spacing.space3 + Spacing.space0_5),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SessionAvatar(if (row.isGroup) SessionType.Group else SessionType.Private, initialsOf(row.title))
+            Details(row, Modifier.weight(1f))
+            Times(row)
+        }
+        if (route != null) {
+            // The arrow is a target for a finger; TalkBack has it as the row's action instead.
+            IconButton(
+                onClick = { onRoute(route) },
+                modifier = Modifier.testTag(TodayTags.route(row.id)).clearAndSetSemantics { },
+            ) {
+                Icon(painterResource(R.drawable.ic_arrow_up_right), contentDescription = null)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Details(row: PersonalRow, modifier: Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.space0_5)) {
+        Text(
+            row.title,
+            style = MaterialTheme.typography.headline,
+            textDecoration = if (row.isCancelled) TextDecoration.LineThrough else null,
+        )
+        if (row.namesKind) Secondary(kindLabel(row))
+        row.location?.let { Secondary(it) }
+        if (row.showsWorkspace) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.space1),
+            ) {
+                Box(
+                    Modifier.size(
+                        DotSize,
+                    ).background(MaterialTheme.tokens.workspaceColor(row.workspaceId.toString()), CircleShape),
+                )
+                Secondary(row.workspaceName)
+            }
+        }
+        if (row.isCancelled) Secondary(stringResource(R.string.my_day_cancelled))
+    }
+}
+
+@Composable
+private fun Times(row: PersonalRow) {
+    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.space1)) {
+        Text(
+            row.startText,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.subhead.numeric().copy(fontWeight = FontWeight.SemiBold),
+            textAlign = TextAlign.End,
+        )
+        Text(
+            row.endText,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.footnote.numeric(),
+            textAlign = TextAlign.End,
+        )
+        when (val pill = row.pill) {
+            null -> Unit
+
+            PersonalPill.Full -> StatusPill(stringResource(R.string.my_day_app_full), PillTone.Warning)
+
+            is PersonalPill.Booked ->
+                StatusPill(
+                    stringResource(R.string.my_calendar_block_booked, pill.booked.toString(), pill.capacity.toString()),
+                    PillTone.Neutral,
+                )
+        }
+    }
+}
+
+@Composable
+private fun Secondary(text: String) {
+    Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.subhead)
+}

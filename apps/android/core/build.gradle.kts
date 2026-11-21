@@ -46,6 +46,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.sentry.android.core)
+    // The generated client's own converters, which ApiServices lists again with the one for enum query values in front.
+    implementation(libs.retrofit.converter.kotlinx.serialization)
+    implementation(libs.retrofit.converter.scalars)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
