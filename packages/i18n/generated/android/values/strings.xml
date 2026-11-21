@@ -64,6 +64,8 @@
     <string name="booking_links_status_active">Actief</string>
     <string name="booking_links_title">Boekingslinks</string>
     <string name="booking_links_trainer_note">%1$s zien de links, maar kunnen ze niet wijzigen.</string>
+    <string name="classes_app_capacity_less">Capaciteit verlagen</string>
+    <string name="classes_app_capacity_more">Capaciteit verhogen</string>
     <string name="classes_app_description_in_dutch">In het Nederlands</string>
     <string name="classes_app_description_less">Minder</string>
     <string name="classes_app_description_more">Meer</string>

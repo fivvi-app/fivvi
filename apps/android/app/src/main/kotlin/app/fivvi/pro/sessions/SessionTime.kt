@@ -2,6 +2,7 @@ package app.fivvi.pro.sessions
 
 import app.fivvi.api.infrastructure.Serializer
 import app.fivvi.api.models.ValidationError
+import app.fivvi.api.models.ValidationErrorIssuesInner
 import java.net.HttpURLConnection.HTTP_BAD_REQUEST
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -38,6 +39,12 @@ data class SessionTime(
 
     fun cleared() = copy(refusal = null)
 
+    /** The end moved to [end] on the day of the start: the length is the time between them (not above zero: the API refuses it). */
+    fun withEnd(end: LocalTime) = copy(
+        durationMinutes = end.hour * MINUTES_PER_HOUR + end.minute - (start.hour * MINUTES_PER_HOUR + start.minute),
+        otherChosen = true,
+    )
+
     /** The `400` of the API: the refusal of the date or the start in [response], or `null` when it is about something else. */
     fun refusedBy(response: Response<*>): SessionTime? {
         if (response.code() != HTTP_BAD_REQUEST) return null
@@ -47,11 +54,19 @@ data class SessionTime(
             )
                 .issues
         }.getOrNull() ?: return null
+        return refusedBy(issues)
+    }
+
+    /**
+     * The refusal of the date or the start among the [issues] of a `400`, or `null` when they are about something else. A
+     * class form's quick create nests the date (`firstDate.localDate`), so the end of the path decides.
+     */
+    fun refusedBy(issues: List<ValidationErrorIssuesInner>): SessionTime? {
         var refusal: TimeRefusal? = null
         for (issue in issues) {
-            if (issue.path == "localDate") {
+            if (issue.path.endsWithField("localDate")) {
                 refusal = TimeRefusal.InvalidDate
-            } else if (issue.path == "localStart") {
+            } else if (issue.path.endsWithField("localStart")) {
                 refusal =
                     if (issue.code == "time_does_not_exist") TimeRefusal.TimeDoesNotExist else TimeRefusal.InvalidTime
             }
@@ -68,5 +83,10 @@ data class SessionTime(
 
         /** The segmented control's value for *Andere duur*. */
         const val OTHER = 0
+
+        private const val MINUTES_PER_HOUR = 60
     }
 }
+
+/** Whether the path of an issue names [field] itself or a field of that name nested in another (`firstDate.localDate`). */
+private fun String.endsWithField(field: String) = this == field || endsWith(".$field")

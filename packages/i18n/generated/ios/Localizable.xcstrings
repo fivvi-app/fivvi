@@ -992,6 +992,40 @@
         }
       }
     },
+    "classes.app.capacityLess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decrease capacity"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capaciteit verlagen"
+          }
+        }
+      }
+    },
+    "classes.app.capacityMore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Increase capacity"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capaciteit verhogen"
+          }
+        }
+      }
+    },
     "classes.app.descriptionInDutch" : {
       "extractionState" : "manual",
       "localizations" : {

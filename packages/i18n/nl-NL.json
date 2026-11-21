@@ -90,6 +90,8 @@
   },
   "classes": {
     "app": {
+      "capacityLess": "Capaciteit verlagen",
+      "capacityMore": "Capaciteit verhogen",
       "descriptionInDutch": "In het Nederlands",
       "descriptionLess": "Minder",
       "descriptionMore": "Meer",
