@@ -397,6 +397,15 @@ export {
   type TrainerBusySession,
 } from './scheduling/trainer-conflicts.ts';
 export {
+  ATTENTION_DAYS,
+  attentionWindow,
+  classDatesWithoutTrainer,
+  filterWorkspaceCalendar,
+  sessionsOfDay,
+  type WorkspaceCalendarFilters,
+  type WorkspaceCalendarSession,
+} from './scheduling/workspace-calendar.ts';
+export {
   addDays,
   instantToWallClock,
   localDateOf,

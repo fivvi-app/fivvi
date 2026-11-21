@@ -460,6 +460,8 @@ describe('@permission E011 route access', () => {
       'post /v1/sign-out': 'public',
       'get /v1/workspaces/{workspaceId}': 'workspace',
       'get /v1/workspaces/{workspaceId}/access-log': 'workspace',
+      'get /v1/workspaces/{workspaceId}/calendar': 'workspace',
+      'get /v1/workspaces/{workspaceId}/day': 'workspace',
       'get /v1/workspaces/{workspaceId}/offers': 'workspace',
       'post /v1/workspaces/{workspaceId}/offers': 'workspace',
       'get /v1/workspaces/{workspaceId}/offers/{offerId}': 'workspace',

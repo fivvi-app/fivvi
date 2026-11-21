@@ -98,7 +98,7 @@ const SessionGroupClassSchema = z
   })
   .openapi('SessionGroupClass', { description: 'The class a class date was scheduled from.' });
 
-const SessionSeriesSchema = z
+export const SessionSeriesSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The series ID.' }),
     weekday: z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']).openapi({

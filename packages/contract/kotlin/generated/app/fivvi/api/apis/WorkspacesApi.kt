@@ -14,6 +14,8 @@ import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.UpdateWorkspaceRequest
 import app.fivvi.api.models.ValidationError
 import app.fivvi.api.models.Workspace
+import app.fivvi.api.models.WorkspaceCalendar
+import app.fivvi.api.models.WorkspaceDay
 import app.fivvi.api.models.WorkspaceSwitchedRequest
 
 interface WorkspacesApi {
@@ -51,6 +53,69 @@ interface WorkspacesApi {
      */
     @GET("v1/workspaces/{workspaceId}")
     suspend fun getWorkspace(@Path("workspaceId") workspaceId: java.util.UUID): Response<Workspace>
+
+
+    /**
+    * enum for parameter types
+    */
+    @Serializable
+    enum class TypesGetWorkspaceCalendar(val value: kotlin.String) {
+        @SerialName(value = "private") PRIVATE("private"),
+        @SerialName(value = "group") GROUP("group")
+    }
+
+
+    /**
+    * enum for parameter surface
+    */
+    @Serializable
+    enum class SurfaceGetWorkspaceCalendar(val value: kotlin.String) {
+        @SerialName(value = "ios") IOS("ios"),
+        @SerialName(value = "android") ANDROID("android")
+    }
+
+    /**
+     * GET v1/workspaces/{workspaceId}/calendar
+     * The workspace calendar: the sessions of a range of days
+     * Every session of the workspace that starts from the start of &#x60;from&#x60; to the end of &#x60;to&#x60; (at most 42 days, on the workspace&#39;s wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. &#x60;trainerIds&#x60;, &#x60;types&#x60; and &#x60;includeCancelled&#x60; narrow it. Notes are never in it. Every team member may read.
+     * Responses:
+     *  - 200: The sessions.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param from The first day: &#x60;YYYY-MM-DD&#x60;, on the workspace’s wall clock. A date that is none (30 February) answers &#x60;400&#x60; on &#x60;from&#x60;.
+     * @param to The last day, included: &#x60;YYYY-MM-DD&#x60;. Before &#x60;from&#x60; answers &#x60;400&#x60; on &#x60;to&#x60; with &#x60;before_from&#x60;; more than 42 days from &#x60;from&#x60; answers &#x60;400&#x60; with &#x60;range_too_long&#x60;.
+     * @param trainerIds Only the sessions of these trainers (team-member IDs, as in &#x60;GET …/trainers&#x60;); repeat the parameter for each. A session without a trainer matches none. Left out: every trainer. (optional)
+     * @param types Only these kinds of session: &#x60;private&#x60; (*Privé*) and &#x60;group&#x60; (*Groep*); repeat the parameter for each. Left out: every kind. (optional)
+     * @param includeCancelled *Geannuleerde tonen*: &#x60;true&#x60; (the default) keeps the cancelled sessions, &#x60;false&#x60; leaves them out. (optional)
+     * @param surface The app that sends the request: &#x60;ios&#x60; or &#x60;android&#x60;. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. (optional)
+     * @return [WorkspaceCalendar]
+     */
+    @GET("v1/workspaces/{workspaceId}/calendar")
+    suspend fun getWorkspaceCalendar(@Path("workspaceId") workspaceId: java.util.UUID, @Query("from") from: kotlin.String, @Query("to") to: kotlin.String, @Query("trainerIds") trainerIds: @JvmSuppressWildcards kotlin.collections.List<java.util.UUID>? = null, @Query("types") types: @JvmSuppressWildcards kotlin.collections.List<kotlin.String>? = null, @Query("includeCancelled") includeCancelled: kotlin.Boolean? = null, @Query("surface") surface: SurfaceGetWorkspaceCalendar? = null): Response<WorkspaceCalendar>
+
+    /**
+     * GET v1/workspaces/{workspaceId}/day
+     * The workspace today: the rows of one day and what needs attention
+     * The sessions of the workspace on one day (today unless &#x60;date&#x60; says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates in the next 14 days that have no trainer. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (&#x60;calendar.manage&#x60;).
+     * Responses:
+     *  - 200: The day.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param date The day to show: &#x60;YYYY-MM-DD&#x60;, on the workspace’s wall clock; today when left out. A date that is none (30 February) answers &#x60;400&#x60; on &#x60;date&#x60;. (optional)
+     * @return [WorkspaceDay]
+     */
+    @GET("v1/workspaces/{workspaceId}/day")
+    suspend fun getWorkspaceDay(@Path("workspaceId") workspaceId: java.util.UUID, @Query("date") date: kotlin.String? = null): Response<WorkspaceDay>
 
     /**
      * POST v1/workspaces/{workspaceId}/switched

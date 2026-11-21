@@ -161,6 +161,20 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     surface: property.enum(['web', 'ios', 'android']),
     workspace_count: property.number(),
   },
+  // F014: a team member opened the workspace calendar (`GET /v1/workspaces/{workspaceId}/calendar`).
+  // The workspace ID and the platform only (the team member's account UUID is the distinct ID): no
+  // client, class or trainer, no session, date, time or filter.
+  workspace_calendar_viewed: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+  },
+  // F014: an Owner moved a session by dragging it on the web calendar. The same two properties: no
+  // session, client, class or trainer, and not the old or the new time. The drag itself is a
+  // reschedule of F020 or F022; the web's drag ticket records this event.
+  session_moved_by_drag: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+  },
   // F005 (spec #610): a trainer or owner changed their own email address with a code. The surface
   // only (the account's UUID is the distinct ID): never the old or the new address, the code or
   // the name.

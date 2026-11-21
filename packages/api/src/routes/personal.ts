@@ -107,7 +107,7 @@ const PersonalWorkspaceSchema = z
     description: 'The workspace an item of the personal view is in.',
   });
 
-const PersonalSessionClientSchema = z
+export const PersonalSessionClientSchema = z
   .object({
     clientId: z.uuid().openapi({ description: 'The client ID.' }),
     name: z.string().openapi({ description: 'The client’s display name.' }),

@@ -91,7 +91,7 @@ data class MyWorkspace (
     /**
      * What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
      *
-     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE,LOCATION_PERIOD_READ,SETTINGS_PERIOD_MANAGE,TEAM_PERIOD_INVITE,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY,CLASS_PERIOD_MANAGE,CLASS_PERIOD_READ,JOIN_LINK_PERIOD_VIEW,JOIN_LINK_PERIOD_RENEW,BOOKING_LINK_PERIOD_MANAGE,BOOKING_LINK_PERIOD_COPY,ACCESS_LOG_PERIOD_READ,INVOICES_PERIOD_MANAGE,COMMERCE_PERIOD_OFFERS_PERIOD_MANAGE
+     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE,LOCATION_PERIOD_READ,SETTINGS_PERIOD_MANAGE,TEAM_PERIOD_INVITE,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY,CLASS_PERIOD_MANAGE,CLASS_PERIOD_READ,JOIN_LINK_PERIOD_VIEW,JOIN_LINK_PERIOD_RENEW,BOOKING_LINK_PERIOD_MANAGE,BOOKING_LINK_PERIOD_COPY,ACCESS_LOG_PERIOD_READ,INVOICES_PERIOD_MANAGE,COMMERCE_PERIOD_OFFERS_PERIOD_MANAGE,CALENDAR_PERIOD_READ,CALENDAR_PERIOD_MANAGE
      */
     @Serializable
     enum class Capabilities(val value: kotlin.String) {
@@ -114,7 +114,9 @@ data class MyWorkspace (
         @SerialName(value = "booking_link.copy") BOOKING_LINK_PERIOD_COPY("booking_link.copy"),
         @SerialName(value = "access_log.read") ACCESS_LOG_PERIOD_READ("access_log.read"),
         @SerialName(value = "invoices.manage") INVOICES_PERIOD_MANAGE("invoices.manage"),
-        @SerialName(value = "commerce.offers.manage") COMMERCE_PERIOD_OFFERS_PERIOD_MANAGE("commerce.offers.manage");
+        @SerialName(value = "commerce.offers.manage") COMMERCE_PERIOD_OFFERS_PERIOD_MANAGE("commerce.offers.manage"),
+        @SerialName(value = "calendar.read") CALENDAR_PERIOD_READ("calendar.read"),
+        @SerialName(value = "calendar.manage") CALENDAR_PERIOD_MANAGE("calendar.manage");
     }
 
 }

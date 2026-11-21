@@ -11,7 +11,7 @@ import {
 } from '../schema/index.ts';
 import { executorOf, type TenantScope, type WorkspaceScope } from '../tenant-scope.ts';
 import { type LocationView, locationColumns, toLocationView } from './locations.ts';
-import type { SessionStatus, SessionType } from './sessions.ts';
+import type { AttendanceStatus, SessionStatus, SessionType } from './sessions.ts';
 
 // The personal read model of a trainer (F013, spec #457): the sessions whose current trainer is
 // the signed-in account, in the workspaces it trains in. No new tables. The queries here are
@@ -161,11 +161,40 @@ export async function listMySessions(
     )
     .orderBy(asc(sessions.startsAt), asc(sessions.endsAt), asc(sessions.id));
   if (rows.length === 0) return [];
-  const participants = await db
+  const places = await listSessionPlaces(
+    scope,
+    rows.map((row) => row.id),
+  );
+  return rows.map(({ location, ...row }) => ({
+    ...row,
+    ...placesShown(row.type, places.get(row.id) ?? []),
+    location: toLocationView(location),
+  }));
+}
+
+/** A client's place in a session, as the calendars read it. */
+export interface SessionPlace {
+  readonly clientId: string;
+  readonly name: string;
+  readonly attendanceStatus: AttendanceStatus;
+}
+
+/**
+ * The places of the sessions of the scope's workspace, by session ID, in the order they were added.
+ * Shared by the personal read model (F013) and the workspace calendar (F014): both name the clients
+ * of a private session and count the places of a class the same way.
+ */
+export async function listSessionPlaces(
+  scope: WorkspaceScope,
+  sessionIds: readonly string[],
+): Promise<Map<string, SessionPlace[]>> {
+  const bySession = new Map<string, SessionPlace[]>();
+  if (sessionIds.length === 0) return bySession;
+  const participants = await executorOf(scope)
     .select({
       sessionId: sessionParticipants.sessionId,
       clientId: clients.id,
-      clientName: clients.name,
+      name: clients.name,
       attendanceStatus: sessionParticipants.attendanceStatus,
     })
     .from(sessionParticipants)
@@ -179,26 +208,33 @@ export async function listMySessions(
     .where(
       and(
         eq(sessionParticipants.organizationId, scope.workspaceId),
-        inArray(
-          sessionParticipants.sessionId,
-          rows.map((row) => row.id),
-        ),
+        inArray(sessionParticipants.sessionId, [...sessionIds]),
       ),
     )
     .orderBy(asc(sessionParticipants.createdAt), asc(sessionParticipants.id));
-  return rows.map(({ location, ...row }) => {
-    const places = participants.filter((place) => place.sessionId === row.id);
-    const active = places.filter((place) => place.attendanceStatus !== 'cancelled');
-    // A duo that lost one client reads as the one-client session it has become (F066, AC7).
-    const shown = row.type === 'private' ? (active.length > 0 ? active : places) : [];
-    return {
-      ...row,
-      booked: active.length,
-      location: toLocationView(location),
-      clients: shown.map((place) => ({ clientId: place.clientId, name: place.clientName })),
-      clientName: shown.length > 0 ? shown.map((place) => place.clientName).join(' & ') : null,
-    };
-  });
+  for (const { sessionId, ...place } of participants) {
+    bySession.set(sessionId, [...(bySession.get(sessionId) ?? []), place]);
+  }
+  return bySession;
+}
+
+/**
+ * What a session shows of its places: the places taken (not cancelled) and, for a private session,
+ * its clients: the ones whose place is not cancelled, else all of them, so a duo that lost one
+ * client reads as the one-client session it has become (F066, AC7) and a cancelled session keeps
+ * its names. A class names no client.
+ */
+export function placesShown(
+  type: SessionType,
+  places: readonly SessionPlace[],
+): Pick<PersonalSessionRow, 'booked' | 'clients' | 'clientName'> {
+  const active = places.filter((place) => place.attendanceStatus !== 'cancelled');
+  const shown = type === 'private' ? (active.length > 0 ? active : places) : [];
+  return {
+    booked: active.length,
+    clients: shown.map((place) => ({ clientId: place.clientId, name: place.name })),
+    clientName: shown.length > 0 ? shown.map((place) => place.name).join(' & ') : null,
+  };
 }
 
 /**

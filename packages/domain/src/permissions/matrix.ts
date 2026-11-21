@@ -33,6 +33,8 @@ export const CAPABILITIES = [
   'access_log.read',
   'invoices.manage',
   'commerce.offers.manage',
+  'calendar.read',
+  'calendar.manage',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
@@ -47,6 +49,7 @@ const MATRIX: Readonly<Record<Role, readonly Capability[]>> = {
     'class.read',
     'join_link.view',
     'booking_link.copy',
+    'calendar.read',
   ],
 };
 
