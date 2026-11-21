@@ -7,7 +7,7 @@
 # home tab. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on both apps
 # (tab.*, today.*, home.*, newSession.*, session.*). Texts differ by language, so the flow checks what both languages share
 # (the workspace's name) and the ids. The two platform tickets (iOS #524, Android #525) run this one flow. Past 23:00 the
-# planned session is tomorrow's, so Vandaag has no item to open: the flow then ends after AC1, as the day is empty.
+# planned session is tomorrow's, so Vandaag has no item to open: the flow then ends after AC1 (the day is empty).
 appId: ${APP_ID}
 name: AC1 AC4 Vandaag shows the day across workspaces and opens an item in its own workspace
 env:
@@ -112,26 +112,29 @@ env:
     visible:
       id: today\.title
     timeout: 20000
+# Past 23:00 in Amsterdam the planned session is tomorrow's and Vandaag has no item to open, so AC4 is skipped then, and only
+# then: the host's UTC hour, 21 or later, is that time in summer and a little early in winter (the clock the flow reads is
+# the host's, which the emulator's time follows). Before that the planned session is today's next item, so each check below
+# fails the flow when it doesn't hold, and none of them is a branch that can pass by not looking.
+- evalScript: ${output.lateInTheDay = new Date().getUTCHours() >= 21}
 - runFlow:
     when:
-      visible:
-        id: today\.next\.open
+      true: ${!output.lateInTheDay}
     commands:
+      - extendedWaitUntil:
+          visible:
+            id: today\.next\.open
+          timeout: 20000
       - tapOn:
           id: today\.next\.open
       # TD-02 of the item, in its own workspace: John's Gym, not the current Sarah Personal Training.
       - extendedWaitUntil:
           visible:
-            id: (session\.title|classDate\.title)
+            id: session\.title
           timeout: 20000
-      - runFlow:
-          when:
-            visible:
-              id: session\.workspace
-          commands:
-            - assertVisible:
-                id: session\.workspace
-                text: John's Gym
+      - assertVisible:
+          id: session\.workspace
+          text: John's Gym
       # Reopened (the back button of a pushed screen has no id the two apps share): the current workspace is the one chosen.
       - launchApp
       - extendedWaitUntil:

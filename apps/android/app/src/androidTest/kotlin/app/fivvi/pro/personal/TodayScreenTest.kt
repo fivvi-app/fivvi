@@ -401,11 +401,45 @@ class TodayScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
 
     @Test
     fun test_F013_design_theTitleKeepsItsWidthBesideThePlus() {
-        val plus = TodayActions({}, {}, {}, null, {}, {}, menu = { NewMenu({}, {}, null, Modifier) })
+        val plus = TodayActions({}, {}, {}, null, {}, {}, menu = { NewMenu({}, {}, null, Modifier, enabled = !it) })
         show(loaded(), plus)
 
         tag(TodayTags.TITLE).assertIsDisplayed().assertWidthIsAtLeast(48.dp)
         tag("home.new").assertIsDisplayed()
+    }
+
+    @Test
+    fun test_F013_AC7_thePlusIsOffWhileOfflineWithTheReasonAsItsState() {
+        val reason = string(R.string.common_offline)
+        val plus = TodayActions(
+            {},
+            {},
+            {},
+            null,
+            {},
+            {},
+            menu = { offline ->
+                NewMenu({}, {}, null, Modifier, enabled = !offline, disabledReason = if (offline) reason else null)
+            },
+        )
+        show(loaded(offline = true), plus)
+
+        tag("home.new").assertIsNotEnabled()
+        assertEquals(
+            reason,
+            tag("home.new").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription),
+        )
+    }
+
+    @Test
+    fun test_F013_AC7_thePlusStaysOnWhileOnline() {
+        show(
+            loaded(),
+            TodayActions({
+            }, {}, {}, null, {}, {}, menu = { NewMenu({}, {}, null, Modifier, enabled = !it) }),
+        )
+
+        tag("home.new").assertIsEnabled()
     }
 
     @Test

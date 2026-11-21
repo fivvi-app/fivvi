@@ -88,7 +88,7 @@ object TodayTags {
 
 /**
  * What TD-01 asks of its host. [onPlan] gets the start of the free gap (*Plannen*, PS-04 of F020) and is `null` where the
- * person may not plan sessions here; [menu] is the **+** with its entries.
+ * person may not plan sessions here; [menu] is the **+** with its entries, told whether the phone is offline (it is off then).
  */
 class TodayActions(
     val onRefresh: () -> Unit,
@@ -97,7 +97,7 @@ class TodayActions(
     val onPlan: ((OffsetDateTime) -> Unit)?,
     val onOpenTomorrow: (String) -> Unit,
     val onDismissNotices: () -> Unit,
-    val menu: @Composable () -> Unit = {},
+    val menu: @Composable (offline: Boolean) -> Unit = {},
 )
 
 /**
@@ -131,7 +131,14 @@ fun TodayScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.space4),
         ) {
             item {
-                Header(title, TodayContent.eyebrow(state.now, format.locale), content, state.day != null, actions.menu)
+                Header(
+                    title,
+                    TodayContent.eyebrow(state.now, format.locale),
+                    content,
+                    state.day != null,
+                    actions.menu,
+                    state.isOffline,
+                )
             }
             item { Banners(state, actions, deviceZone, now) }
             when (state.load) {
@@ -150,7 +157,8 @@ private fun Header(
     eyebrow: String,
     content: TodayContent?,
     loaded: Boolean,
-    menu: @Composable () -> Unit,
+    menu: @Composable (offline: Boolean) -> Unit,
+    offline: Boolean,
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.space1)) {
@@ -188,7 +196,7 @@ private fun Header(
                 )
             }
         }
-        menu()
+        menu(offline)
     }
 }
 

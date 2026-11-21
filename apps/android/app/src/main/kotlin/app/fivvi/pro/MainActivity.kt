@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -475,9 +476,17 @@ class MainActivity : ComponentActivity() {
                     },
                     // The Agenda tab on tomorrow comes with TD-04 (#527); until then it opens its placeholder.
                     onOpenTomorrow = { tab = ProTab.CALENDAR },
-                    menu = {
+                    // Creating needs the server: offline the + is off, and says why (as *Plannen* does).
+                    menu = { offline ->
                         if ((onNewPrivateSession != null || onNewGroupClass != null) && meState is MeState.Loaded) {
-                            NewMenu(onNewPrivateSession, onNewGroupClass, groupClassNoteWorkspace, Modifier)
+                            NewMenu(
+                                onNewPrivateSession,
+                                onNewGroupClass,
+                                groupClassNoteWorkspace,
+                                Modifier,
+                                enabled = !offline,
+                                disabledReason = if (offline) stringResource(CoreR.string.common_offline) else null,
+                            )
                         }
                     },
                 )

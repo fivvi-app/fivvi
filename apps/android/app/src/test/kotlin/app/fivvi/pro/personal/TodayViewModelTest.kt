@@ -8,8 +8,12 @@ import app.fivvi.pro.sessions.SessionFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -37,10 +41,16 @@ class TodayViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
+    private var signedIn = true
+
     private fun model(
         store: PersonalStore = MemoryPersonalStore(),
         refreshAccount: suspend () -> List<PersonalCache.Workspace>? = { null },
-    ) = TodayViewModel(me, store, { clock }, refreshAccount, io = Dispatchers.Main)
+        io: CoroutineDispatcher = Dispatchers.Main,
+    ) = TodayViewModel(me, store, { clock }, refreshAccount, io, stillSignedIn = { signedIn })
+
+    private fun sarahAndJohns() = PersonalCache.Workspace(PersonalFixtures.sarahPT.id, PersonalFixtures.sarahPT.name) to
+        PersonalCache.Workspace(PersonalFixtures.johns.id, PersonalFixtures.johns.name)
 
     private fun TodayViewModel.content() = TodayContent(requireNotNull(state.value.day), state.value.now, format)
 
@@ -313,17 +323,17 @@ class TodayViewModelTest {
         val today = model(store)
         val sarah = PersonalCache.Workspace(PersonalFixtures.sarahPT.id, PersonalFixtures.sarahPT.name)
         val johns = PersonalCache.Workspace(PersonalFixtures.johns.id, PersonalFixtures.johns.name)
-        today.workspacesListed(listOf(sarah, johns))
+        runBlocking { today.workspacesListed(listOf(sarah, johns)) }
         assertTrue("the first list has nothing to lose", today.state.value.notices.isEmpty())
 
-        today.workspacesListed(listOf(sarah))
+        runBlocking { today.workspacesListed(listOf(sarah)) }
         assertEquals(listOf("John's Gym"), today.state.value.notices)
 
         today.dismissNotices()
-        today.workspacesListed(listOf(sarah))
+        runBlocking { today.workspacesListed(listOf(sarah)) }
         assertTrue("it shows once", today.state.value.notices.isEmpty())
         val another = model(store)
-        another.workspacesListed(listOf(sarah))
+        runBlocking { another.workspacesListed(listOf(sarah)) }
         assertTrue("also after the app starts again", another.state.value.notices.isEmpty())
     }
 
@@ -357,6 +367,95 @@ class TodayViewModelTest {
 
         assertTrue(today.state.value.notices.isEmpty())
         assertEquals(TodayLoad.Loaded, today.state.value.load)
+    }
+
+    // This view model outlives the sign-out in the activity's store: what arrives after it must change neither the screen nor
+    // what the next account would find on the phone.
+    @Test
+    fun test_F013_AC7_aDayThatArrivesAfterTheSignOutChangesNeitherTheStateNorTheCache() {
+        val store = MemoryPersonalStore()
+        serve(PersonalFixtures.sarah())
+        me.dayGate = CompletableDeferred()
+        val today = model(store)
+        today.load()
+
+        signedIn = false
+        store.clear()
+        me.dayGate?.complete(Unit)
+
+        assertEquals(TodayLoad.Loading, today.state.value.load)
+        assertNull(today.state.value.day)
+        assertNull("nothing is kept for the next account", store.read("day.json"))
+    }
+
+    @Test
+    fun test_F013_AC7_aFailureThatArrivesAfterTheSignOutChangesNeitherTheStateNorTheCache() {
+        val store = MemoryPersonalStore()
+        me.failDayOffline()
+        me.dayGate = CompletableDeferred()
+        val today = model(store)
+        today.load()
+
+        signedIn = false
+        me.dayGate?.complete(Unit)
+
+        assertEquals(TodayLoad.Loading, today.state.value.load)
+        assertFalse(today.state.value.isOffline)
+        assertNull(store.read("day.json"))
+    }
+
+    @Test
+    fun test_F013_AC7_aSignOutWhileTheDayIsBeingKeptLeavesNothingBehind() {
+        val store = MemoryPersonalStore()
+        serve(PersonalFixtures.sarah())
+        // The sign-out comes between the check and the write: it is seen when the write is about to start.
+        val signsOutFirst = object : CoroutineDispatcher() {
+            override fun dispatch(context: CoroutineContext, block: Runnable) {
+                signedIn = false
+                block.run()
+            }
+        }
+
+        model(store, io = signsOutFirst).load()
+
+        assertNull(store.read("day.json"))
+    }
+
+    @Test
+    fun test_F013_AC8_aListThatArrivesAfterTheSignOutChangesNeitherTheNoticesNorTheCache() {
+        val store = MemoryPersonalStore()
+        val (sarah, johns) = sarahAndJohns()
+        val today = model(store)
+        runBlocking { today.workspacesListed(listOf(sarah, johns)) }
+        val kept = store.read("workspaces.json")
+
+        signedIn = false
+        runBlocking { today.workspacesListed(listOf(sarah)) }
+
+        assertTrue(today.state.value.notices.isEmpty())
+        assertEquals(
+            "the files are as they were",
+            kept?.decodeToString(),
+            store.read("workspaces.json")?.decodeToString(),
+        )
+    }
+
+    @Test
+    fun test_F013_AC8_theListIsKeptOnTheIoDispatcher() {
+        val (sarah, _) = sarahAndJohns()
+        val store = MemoryPersonalStore()
+        var onIo = 0
+        val counting = object : CoroutineDispatcher() {
+            override fun dispatch(context: CoroutineContext, block: Runnable) {
+                onIo++
+                block.run()
+            }
+        }
+
+        runBlocking { model(store, io = counting).workspacesListed(listOf(sarah)) }
+
+        assertEquals("the files are read and written in one step on io", 1, onIo)
+        assertTrue(store.read("workspaces.json") != null)
     }
 
     @Test

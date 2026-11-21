@@ -17,10 +17,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.fivvi.core.ui.OnForeground
+import java.time.DateTimeException
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.util.TimeZone
+
+/**
+ * The zone a time-zone broadcast names. An ID the app can't read (the OS may send one the runtime's list lacks) is not worth a
+ * crash: the phone's own zone is used, as for a broadcast without one.
+ */
+internal fun zoneOf(id: String?): ZoneId = try {
+    id?.let { ZoneId.of(it, ZoneId.SHORT_IDS) }
+} catch (_: DateTimeException) {
+    null
+} ?: TimeZone.getDefault().toZoneId()
 
 /**
  * The phone's own time zone, as it changes (a trip, the clock set by the network): Vandaag shows the hint that times are
@@ -36,8 +47,7 @@ fun rememberDeviceZone(onTimeChanged: () -> Unit): ZoneId {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 if (intent.action == Intent.ACTION_TIMEZONE_CHANGED) {
-                    zone = intent.getStringExtra(Intent.EXTRA_TIMEZONE)?.let { ZoneId.of(it, ZoneId.SHORT_IDS) }
-                        ?: TimeZone.getDefault().toZoneId()
+                    zone = zoneOf(intent.getStringExtra(Intent.EXTRA_TIMEZONE))
                 }
                 changed()
             }
@@ -66,7 +76,7 @@ fun TodayTab(
     onRoute: (String) -> Unit,
     onPlan: ((OffsetDateTime) -> Unit)?,
     onOpenTomorrow: (String) -> Unit,
-    menu: @Composable () -> Unit,
+    menu: @Composable (offline: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by model.state.collectAsStateWithLifecycle()

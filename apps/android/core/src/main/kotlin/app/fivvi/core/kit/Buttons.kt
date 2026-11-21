@@ -104,11 +104,25 @@ fun RoundControl(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     style: RoundControlStyle = RoundControlStyle.Primary,
+    enabled: Boolean = true,
 ) {
     val sized = modifier.size(PillButtonHeight)
     val glyph: @Composable () -> Unit = { Icon(icon, contentDescription) }
     when (style) {
-        RoundControlStyle.Primary -> FilledIconButton(onClick, sized, shape = CircleShape, content = { glyph() })
-        RoundControlStyle.Tonal -> FilledTonalIconButton(onClick, sized, shape = CircleShape, content = { glyph() })
+        RoundControlStyle.Primary -> FilledIconButton(
+            onClick,
+            sized,
+            enabled = enabled,
+            shape = CircleShape,
+            content = { glyph() },
+        )
+
+        RoundControlStyle.Tonal -> FilledTonalIconButton(
+            onClick,
+            sized,
+            enabled = enabled,
+            shape = CircleShape,
+            content = { glyph() },
+        )
     }
 }

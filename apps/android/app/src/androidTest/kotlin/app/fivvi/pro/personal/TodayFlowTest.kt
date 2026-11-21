@@ -1,5 +1,6 @@
 package app.fivvi.pro.personal
 
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
@@ -180,10 +181,12 @@ class TodayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
         compose.waitUntilTagExists(TodayTags.OFFLINE)
         compose.onNodeWithTag(TodayTags.OFFLINE).assertTextEquals(string(R.string.my_day_app_offline, "08:35"))
         compose.onNodeWithTag(TodayTags.CARD_PLAN).assertIsNotEnabled()
+        compose.onNodeWithTag(HomeTags.NEW).assertIsNotEnabled()
 
         me.recoverDay()
         app.backgroundAndForeground()
         waitUntilGone(TodayTags.OFFLINE)
+        compose.onNodeWithTag(HomeTags.NEW).assertIsEnabled()
     }
 
     @Test

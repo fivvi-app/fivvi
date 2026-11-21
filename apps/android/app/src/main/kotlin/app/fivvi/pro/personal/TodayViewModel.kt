@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 
@@ -66,7 +68,7 @@ data class TodayState(
  */
 class TodayViewModel(
     private val api: MeApi,
-    store: PersonalStore,
+    private val store: PersonalStore,
     private val clock: () -> Instant = Instant::now,
     private val refreshAccount: suspend () -> List<PersonalCache.Workspace>? = { null },
     private val io: CoroutineDispatcher = Dispatchers.IO,
@@ -76,6 +78,7 @@ class TodayViewModel(
     private val _state = MutableStateFlow(TodayState(now = clock()))
     val state: StateFlow<TodayState> = _state.asStateFlow()
     private var loading: Job? = null
+    private val listing = Mutex()
 
     /** The time now on the model's clock, for the countdown on the next card. */
     fun now(): Instant = clock()
@@ -95,7 +98,7 @@ class TodayViewModel(
                 coroutineScope {
                     val listed = async { refreshAccount() }
                     read()
-                    listed.await()?.let(::workspacesListed)
+                    listed.await()?.let { workspacesListed(it) }
                 }
             } finally {
                 _state.update { it.copy(refreshing = false) }
@@ -125,7 +128,7 @@ class TodayViewModel(
                 updatedAt = at,
             )
         }
-        withContext(io) { cache.day = PersonalCache.Day(fresh, at) }
+        withContext(io) { whileSignedIn { cache.day = PersonalCache.Day(fresh, at) } }
     }
 
     private suspend fun failed(offline: Boolean, date: String) {
@@ -155,16 +158,31 @@ class TodayViewModel(
         }
     }
 
+    // A write checks the sign-in under the store's own lock, which the sign-out's clear takes too: the check and the write
+    // are one step as far as the clear is concerned, so a sign-out between them can't leave this account's files behind.
+    private inline fun <T> whileSignedIn(block: () -> T): T? =
+        synchronized(store) { if (stillSignedIn()) block() else null }
+
     /**
      * The account's workspaces after `GET /v1/me`: one the phone knew and the list lacks says so once (F013 AC8). The first
      * list has nothing to lose; the list is kept for the next one, also after the app starts again.
      */
-    @Synchronized
-    fun workspacesListed(listed: List<PersonalCache.Workspace>) {
-        if (!stillSignedIn()) return
-        val gone = cache.workspaces.orEmpty().filter { known -> listed.none { it.id == known.id } }
-        if (gone.isNotEmpty()) _state.update { it.copy(notices = it.notices + gone.map(PersonalCache.Workspace::name)) }
-        if (cache.workspaces != listed) cache.workspaces = listed
+    suspend fun workspacesListed(listed: List<PersonalCache.Workspace>) = listing.withLock {
+        val gone = withContext(io) {
+            whileSignedIn {
+                val known = cache.workspaces.orEmpty()
+                if (cache.workspaces != listed) cache.workspaces = listed
+                known.filter { k -> listed.none { it.id == k.id } }
+            }
+        }
+        if (!gone.isNullOrEmpty()) {
+            _state.update {
+                it.copy(
+                    notices =
+                        it.notices + gone.map(PersonalCache.Workspace::name),
+                )
+            }
+        }
     }
 
     fun dismissNotices() = _state.update { it.copy(notices = emptyList()) }
