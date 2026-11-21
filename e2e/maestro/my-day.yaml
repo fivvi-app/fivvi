@@ -1,0 +1,147 @@
+# F013 native Vandaag (spec #457, AC1 and AC4, TD-01), against the local stack: Sarah (the seeded trainer@example.com, a
+# Trainer of John's Gym, which opens first, and the Owner of Sarah Personal Training) plans a session with Anna from + (the
+# form's own first start is the next full hour, so no clock is read), reopens the app, which opens on its first tab, Vandaag,
+# with the large title and the day of the personal scope (AC1), and then turns the current workspace to Sarah Personal Training
+# in Profiel. The next item on Vandaag is one of John's Gym (Sarah has nothing else today): it opens in its own workspace,
+# John's Gym, while the current one stays Sarah Personal Training (AC4). The sign-in is the shared sub-flow, which ends on the
+# home tab. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on both apps
+# (tab.*, today.*, home.*, newSession.*, session.*). Texts differ by language, so the flow checks what both languages share
+# (the workspace's name) and the ids. The two platform tickets (iOS #524, Android #525) run this one flow. Past 23:00 the
+# planned session is tomorrow's, so Vandaag has no item to open: the flow then ends after AC1, as the day is empty.
+appId: ${APP_ID}
+name: AC1 AC4 Vandaag shows the day across workspaces and opens an item in its own workspace
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # Sarah: seeded, a Trainer of John's Gym and the Owner of Sarah Personal Training (packages/database/src/seed.ts).
+  EMAIL: trainer@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+# Something to see today: a session with Anna in John's Gym (PS-04, as in private-session.yaml).
+- extendedWaitUntil:
+    visible:
+      id: home\.openClients
+    timeout: 20000
+- tapOn:
+    id: home\.new
+- tapOn:
+    id: home\.newPrivateSession
+- extendedWaitUntil:
+    visible:
+      id: newSession\.save
+    timeout: 20000
+- tapOn:
+    id: newSession\.client
+- extendedWaitUntil:
+    visible:
+      id: clientPicker\.search
+    timeout: 20000
+- tapOn:
+    id: clientPicker\.search
+- inputText: Anna
+- extendedWaitUntil:
+    visible: .*Anna de Vries.*
+    timeout: 20000
+- tapOn: .*Anna de Vries.*
+- extendedWaitUntil:
+    visible:
+      id: newSession\.clientName
+      text: Anna de Vries
+    timeout: 20000
+- tapOn:
+    id: newSession\.save
+# PS-07 (F023): an earlier run's session, or one of Sarah's seeded week, may sit in that hour; keep this one anyway.
+- extendedWaitUntil:
+    visible:
+      id: (session\.title|newSession\.doubleBooking\.saveAnyway)
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: newSession\.doubleBooking\.saveAnyway
+    commands:
+      - tapOn:
+          id: newSession\.doubleBooking\.saveAnyway
+- extendedWaitUntil:
+    visible:
+      id: session\.title
+    timeout: 20000
+# AC1: the app opens on Vandaag (the app is reopened, the sign-in stays): the large title and the day, one of the two states
+# a day has (a next item, or nothing today), never the failed state.
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: today\.title
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: (today\.next\.open|today\.empty)
+    timeout: 20000
+- assertNotVisible:
+    id: today\.failed
+- assertVisible:
+    id: tab\.calendar
+- assertVisible:
+    id: tab\.home
+# AC4: the current workspace is turned to Sarah Personal Training (Profiel, on the home tab).
+- tapOn:
+    id: tab\.home
+- extendedWaitUntil:
+    visible:
+      id: home\.openProfile
+    timeout: 20000
+- tapOn:
+    id: home\.openProfile
+- extendedWaitUntil:
+    visible:
+      id: profile\.workspace\.sarah-personal-training
+    timeout: 20000
+- tapOn:
+    id: profile\.workspace\.sarah-personal-training
+- extendedWaitUntil:
+    visible:
+      id: home\.workspaceName
+      text: Sarah Personal Training
+    timeout: 20000
+- tapOn:
+    id: tab\.today
+- extendedWaitUntil:
+    visible:
+      id: today\.title
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: today\.next\.open
+    commands:
+      - tapOn:
+          id: today\.next\.open
+      # TD-02 of the item, in its own workspace: John's Gym, not the current Sarah Personal Training.
+      - extendedWaitUntil:
+          visible:
+            id: (session\.title|classDate\.title)
+          timeout: 20000
+      - runFlow:
+          when:
+            visible:
+              id: session\.workspace
+          commands:
+            - assertVisible:
+                id: session\.workspace
+                text: John's Gym
+      # Reopened (the back button of a pushed screen has no id the two apps share): the current workspace is the one chosen.
+      - launchApp
+      - extendedWaitUntil:
+          visible:
+            id: today\.title
+          timeout: 20000
+      - tapOn:
+          id: tab\.home
+      - extendedWaitUntil:
+          visible:
+            id: home\.workspaceName
+            text: Sarah Personal Training
+          timeout: 20000
