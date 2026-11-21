@@ -297,18 +297,19 @@ describe('F014 #1538: the busiest moment of a day', () => {
     ).toEqual(span('2026-09-22T09:00', '2026-09-22T10:00', 2));
   });
 
-  it('joins moments that follow each other with the same number at once', () => {
-    // 18:00-20:00 always has two sessions running, though one ends as the next begins at 19:00.
+  it('ends the moment where the number at once changes, as the prototype does', () => {
+    // 18:00-20:00 always has two sessions running, but the moment is the stretch in which the
+    // peak is first reached: it ends at 19:00, where one session ends and the next begins.
     expect(
       busiestMoment([
         session('long', '2026-09-22T18:00', { minutes: 120 }),
         session('first', '2026-09-22T18:00'),
         session('second', '2026-09-22T19:00'),
       ]),
-    ).toEqual(span('2026-09-22T18:00', '2026-09-22T20:00', 2));
+    ).toEqual(span('2026-09-22T18:00', '2026-09-22T19:00', 2));
   });
 
-  it('does not join moments with a gap between them', () => {
+  it('ends the moment at the gap before the next session', () => {
     expect(
       busiestMoment([
         session('long', '2026-09-22T18:00', { minutes: 180 }),

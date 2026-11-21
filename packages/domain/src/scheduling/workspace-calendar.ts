@@ -118,9 +118,10 @@ export interface BusiestMoment {
  * cancelled ones do not. One session is no overlap, so a day where no two sessions run at once has
  * no busiest moment (`undefined`). A session that ends as another begins does not overlap it.
  *
- * Several stretches as busy as each other: the first one wins. Stretches that follow each other
- * with the same number at once (a session ends as the next begins, another runs through) are one
- * stretch. Works on UTC instants, so a clock change in the day changes nothing.
+ * The moment is the stretch between two instants (a session begins or ends) in which the number is
+ * first reached, as in the prototype: it ends at the next start or end, so it is not joined to a
+ * following stretch with the same number at once. Several stretches as busy as each other: the
+ * first one wins. Works on UTC instants, so a clock change in the day changes nothing.
  */
 export function busiestMoment(
   sessions: readonly Pick<WorkspaceCalendarSession, 'status' | 'startsAt' | 'endsAt'>[],
@@ -141,9 +142,7 @@ export function busiestMoment(
     running += changes.get(instant) ?? 0;
     const next = instants[index + 1];
     if (next === undefined) return;
-    const last = stretches.at(-1);
-    if (last && last.to === instant && last.atOnce === running) last.to = next;
-    else stretches.push({ from: instant, to: next, atOnce: running });
+    stretches.push({ from: instant, to: next, atOnce: running });
   });
 
   let busiest: (typeof stretches)[number] | undefined;

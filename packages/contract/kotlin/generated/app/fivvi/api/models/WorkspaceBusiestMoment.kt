@@ -29,7 +29,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * The busiest moment of the day: the time in which the most sessions run at once and how many, from the sessions of `items` that take place (cancelled ones do not count; class dates, private sessions and Open Gym do). Left out when no two sessions run at once (*Geen overlap*). The first of equally busy moments; sessions that end as another begins do not overlap.
+ * The busiest moment of the day, for *Drukst 18:00–19:00 · 2 tegelijk*: the app words it and shows the times in `timeZone`. The time in which the most sessions run at once and how many, from the sessions of `items` that take place (cancelled ones do not count; class dates, private sessions and Open Gym do). It ends at the next start or end of a session, so 18:00–20:00, 18:00–19:00 and 19:00–20:00 give 18:00–19:00. Left out when no two sessions run at once (*Geen overlap*). The first of equally busy moments; sessions that end as another begins do not overlap.
  *
  * @param startsAt The start of the busiest moment, a UTC instant.
  * @param endsAt The end of the busiest moment, a UTC instant.
