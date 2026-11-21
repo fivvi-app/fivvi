@@ -11,6 +11,7 @@ import app.fivvi.pro.sessions.FakeLocationsApi
 import app.fivvi.pro.sessions.FakeSessionsApi
 import app.fivvi.pro.sessions.NewSessionLoad
 import app.fivvi.pro.sessions.SaveFailure
+import app.fivvi.pro.sessions.SessionFormat
 import app.fivvi.pro.sessions.TimeRefusal
 import app.fivvi.pro.sessions.sessionIdOf
 import app.fivvi.pro.sessions.sessionOf
@@ -20,6 +21,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
+import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -456,6 +459,25 @@ class NewGroupClassViewModelTest {
         assertTrue(viewModel.state().isDirty)
         viewModel.setRepeatsWeekly(false)
         assertFalse(viewModel.state().isDirty)
+    }
+
+    // The screen words *Elke week op {weekday}* from the date in the state (NewGroupClassScreen), so the weekday follows it.
+    @Test
+    fun test_F022_AC6_theWeekdayOfElkeWeekOpFollowsAChangedDate() {
+        val viewModel = viewModel()
+        viewModel.setRepeatsWeekly(true)
+        val amsterdam = ZoneId.of("Europe/Amsterdam")
+        val dutch = SessionFormat(Locale.forLanguageTag("nl-NL"), amsterdam)
+        val english = SessionFormat(Locale.UK, amsterdam)
+
+        viewModel.setDate(LocalDate.of(2026, 11, 19))
+        assertEquals("donderdag", dutch.weekday(viewModel.state().time.start.toLocalDate()))
+        assertEquals("Thursday", english.weekday(viewModel.state().time.start.toLocalDate()))
+
+        viewModel.setDate(LocalDate.of(2026, 11, 23))
+        assertEquals("maandag", dutch.weekday(viewModel.state().time.start.toLocalDate()))
+        assertEquals("Monday", english.weekday(viewModel.state().time.start.toLocalDate()))
+        assertTrue("the weekly choice stays", viewModel.state().repeatsWeekly)
     }
 
     @Test

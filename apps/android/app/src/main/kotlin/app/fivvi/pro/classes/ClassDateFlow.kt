@@ -12,9 +12,9 @@ import java.util.UUID
 
 /**
  * TD-03 (F021): the screen of one class on a date. System back leaves it. *Les wijzigen* shows for whoever the API lists
- * `class.manage` for in the workspace (F004 AC10). [added] is set when TD-05 has just created the date (the number of dates it added): "Groepsles
- * toegevoegd" or "12 groepslessen toegevoegd" shows. [sessionKey] belongs to one sign-in and [opening] to one opening of the screen, so each opening reads
- * the date again.
+ * `class.manage` for in the workspace (F004 AC10). [added] is set when TD-05 has just created the date (the number of
+ * dates it added): "Groepsles toegevoegd" or "12 groepslessen toegevoegd" shows. [sessionKey] belongs to one sign-in and
+ * [opening] to one opening of the screen, so each opening reads the date again.
  */
 @Composable
 fun ClassDateFlow(

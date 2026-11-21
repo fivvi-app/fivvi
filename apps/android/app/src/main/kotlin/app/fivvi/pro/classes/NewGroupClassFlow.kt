@@ -17,8 +17,9 @@ import java.util.UUID
 /**
  * **+** → *Groepsles* (TD-05, F021): the form of the Owner, one full-screen surface. System back leaves it (with a
  * confirmation first when something was entered). When the API has created the class and its date, [onSaved] is told the
- * date's ID and how many dates it added (12 for a weekly class): the host opens TD-03 of it. [sessionKey] belongs to one sign-in and [opening] to one opening of the form, so
- * each opening starts with an empty form. [teamMemberId] is the person's own team-member ID in the workspace.
+ * date's ID and how many dates it added (12 for a weekly class): the host opens TD-03 of it. [sessionKey] belongs to one
+ * sign-in and [opening] to one opening of the form, so each opening starts with an empty form. [teamMemberId] is the
+ * person's own team-member ID in the workspace.
  */
 @Composable
 fun NewGroupClassFlow(

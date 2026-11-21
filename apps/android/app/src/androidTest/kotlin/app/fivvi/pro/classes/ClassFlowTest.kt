@@ -1,5 +1,7 @@
 package app.fivvi.pro.classes
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -438,34 +440,43 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
     // F022: Herhalen offers Niet herhalen and Elke week op {weekday}; the weekly choice shows its note.
     private val formatLocale get() = if (dutch) Locale.forLanguageTag("nl-NL") else Locale.UK
 
-    private fun chooseWeekly() {
+    // The menu is a popup window: wait for its options before they are read or tapped.
+    private fun openRepeatMenu() {
         compose.onNodeWithTag(NewClassTags.REPEAT).performScrollTo().performClick()
+        compose.waitUntilTagExists(NewClassTags.REPEAT_NONE)
         compose.waitUntilTagExists(NewClassTags.REPEAT_WEEKLY)
+    }
+
+    private fun chooseWeekly() {
+        openRepeatMenu()
         compose.onNodeWithTag(NewClassTags.REPEAT_WEEKLY).performClick()
     }
 
     private fun weekdayName(localDate: String) =
         LocalDate.parse(localDate).dayOfWeek.getDisplayName(TextStyle.FULL, formatLocale)
 
+    // The weekday in Elke week op is the form's date: it is compared with the date the form sent, not with the clock.
     @Test
     fun test_F022_AC6_herhalenOffersNietHerhalenAndElkeWeekOpTheWeekdayAndTheNoteShowsWithTheWeeklyChoice() {
         launchAsJohn()
         openNewClass()
+        type(NewClassTags.NAME_NL, "Mobility")
+        app.hideKeyboard(compose)
 
         compose.onNodeWithTag(NewClassTags.REPEAT_NOTE).assertDoesNotExist()
-        compose.onNodeWithTag(NewClassTags.REPEAT).performScrollTo().performClick()
+        openRepeatMenu()
         compose.onNodeWithTag(NewClassTags.REPEAT_NONE).assertTextEquals(string(R.string.classes_schedule_repeat_none))
         compose.onNodeWithTag(NewClassTags.REPEAT_WEEKLY).performClick()
 
         val value = compose.onNodeWithTag(NewClassTags.REPEAT_VALUE).performScrollTo()
-        value.assertTextEquals(string(R.string.classes_schedule_repeat_weekly, weekdayOfTheForm()))
+        val shown = value.fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text)?.joinToString("")
         compose.onNodeWithTag(NewClassTags.REPEAT_NOTE).assertTextEquals(string(R.string.classes_schedule_repeat_note))
-    }
+        save()
 
-    // The weekday of the form's first start: the next full hour in Amsterdam.
-    private fun weekdayOfTheForm() = weekdayName(
-        LocalDateTime.now(ZoneId.of("Europe/Amsterdam")).plusHours(1).toLocalDate().toString(),
-    )
+        compose.waitUntilTagExists(ClassDateTags.SERIES)
+        val sent = classes.created.single().second.firstDate!!
+        assertEquals(string(R.string.classes_schedule_repeat_weekly, weekdayName(sent.localDate)), shown)
+    }
 
     // AC6: John adds a weekly Mobility; the class and the series with 12 dates exist; TD-03 opens with 12 added and the line.
     @Test

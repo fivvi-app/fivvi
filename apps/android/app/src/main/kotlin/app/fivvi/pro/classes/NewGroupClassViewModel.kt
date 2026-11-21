@@ -98,8 +98,9 @@ data class NewGroupClassState(
 }
 
 /**
- * TD-05 *Nieuwe groepsles* (F021 AC6, the Owner; F022 AC6, AC7, *Herhalen*: *Niet herhalen* or *Elke week op {weekday}*,
- * which asks the API for the weekly series and its 12 dates): the name and the description in Dutch and English, the date, the start and the end, the capacity, the trainer (or *Trainer nodig*) and the default location. The
+ * TD-05 *Nieuwe groepsles* (F021 AC6, the Owner; F022 AC6, AC7, *Herhalen*: *Niet herhalen* or *Elke week op
+ * {weekday}*, which asks the API for the weekly series and its 12 dates): the name and the description in Dutch and
+ * English, the date, the start and the end, the capacity, the trainer (or *Trainer nodig*) and the default location. The
  * API creates the class and its one date in one request (`POST …/group-classes` with a `firstDate`, so a refused date
  * leaves no class behind) and decides every rule; the form only collects, shows what the API refused per field and keeps
  * what was typed. Without a connection the form says so and *Opslaan* is off; nothing is queued ([start] reads again).
