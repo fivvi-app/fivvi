@@ -583,7 +583,8 @@
   "home": {
     "openWeb": "Open Fivvi in de browser",
     "setUpOnWeb": "Maak je werkruimte aan op het web.",
-    "signedInAs": "Ingelogd als {email}"
+    "signedInAs": "Ingelogd als {email}",
+    "tab": "Home"
   },
   "invitation": {
     "accept": "Accepteren",
@@ -620,6 +621,10 @@
     "title": "Aanmeldlink"
   },
   "myCalendar": {
+    "app": {
+      "tab": "Agenda",
+      "title": "Agenda"
+    },
     "block": "{type} · {name}",
     "blockBooked": "{booked}/{capacity}",
     "cancelled": "Geannuleerd",
@@ -660,6 +665,26 @@
     "views": "Weergave"
   },
   "myDay": {
+    "app": {
+      "dismiss": "Sluiten",
+      "failed": "Vandaag kon niet worden bijgewerkt.",
+      "freeGap": "Vrij {from}–{to}",
+      "freeGapLength": "{hours} uur",
+      "full": "Vol",
+      "noFreeTime": "Geen vrije tijd meer vandaag",
+      "offline": "Je bent offline. Laatst bijgewerkt om {time}.",
+      "open": "Openen",
+      "openRoute": "Route",
+      "plan": "Plannen",
+      "removed": "Je hebt geen toegang meer tot {workspace}.",
+      "retry": "Opnieuw",
+      "route": "Route vandaag",
+      "summary": "{count, plural, one {# sessie} other {# sessies}} · {first}–{last} · {done} klaar",
+      "summaryEmpty": "Geen sessies vandaag",
+      "tab": "Vandaag",
+      "title": "Vandaag",
+      "tomorrowHint": "Opent de agenda op morgen"
+    },
     "booked": "{booked}/{capacity} geboekt",
     "cancelled": "Geannuleerd",
     "emptyNever": "Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland.",

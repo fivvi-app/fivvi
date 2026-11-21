@@ -23,8 +23,13 @@ struct FivviProApp: App {
             // (F012).
             AppLanguage.forgetChoice(defaults: defaults)
             CurrentWorkspaceStore.forget(defaults: defaults)
+            FilePersonalStore.shared.clear()
         }
-        let session = Session(store: store, onSignedOut: ErrorReporting.clearUser)
+        // What the personal screens keep for the offline view goes with the sign-in (F013 AC7).
+        let session = Session(store: store, onSignedOut: {
+            ErrorReporting.clearUser()
+            FilePersonalStore.shared.clear()
+        })
         let auth = AuthMiddleware(store: store) { await session.tokenRejected() }
         api = Client(
             serverURL: AppConfiguration.apiBaseURL(), configuration: AppConfiguration.clientConfiguration,

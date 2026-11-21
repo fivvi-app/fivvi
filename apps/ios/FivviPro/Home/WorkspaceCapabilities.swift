@@ -39,6 +39,13 @@ final class WorkspaceCapabilities {
         await reload()
     }
 
+    /// The API answered `403` to an action guarded by `capability` in the workspace `workspaceID` (a screen of another
+    /// workspace than the current one, opened from the personal scope, F013): hidden there at once, then read again.
+    func forbidden(_ capability: Capability, in workspaceID: String) async {
+        byWorkspace[workspaceID]?.remove(capability)
+        await reload()
+    }
+
     /// Takes what `GET /api/v1/me` listed; `current` is the workspace the home shows, if any.
     func replace(with workspaces: [Components.Schemas.MeWorkspace], current: String?) {
         byWorkspace = Dictionary(

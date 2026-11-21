@@ -121,6 +121,12 @@ final class StubServer: Sendable {
         responder.sessionRoutes.changeSessionBySomeoneElse()
     }
 
+    /// What `GET /api/v1/me/day` answers (F013).
+    var personalDay: StubPersonalRoutes.Day {
+        get { responder.personalRoutes.day }
+        set { responder.personalRoutes.day = newValue }
+    }
+
     /// While true, `GET /api/v1/me` gets no answer, so the loading state of the home stays on screen. Setting it to
     /// false answers the reads held.
     func holdAccountRequests(_ hold: Bool) {

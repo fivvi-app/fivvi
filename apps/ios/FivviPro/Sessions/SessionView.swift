@@ -14,7 +14,9 @@ struct SessionView: View {
     let language: AppLanguage
     /// The person may plan sessions (`session.private.manage.own` or `.any`), so *Verplaatsen* shows.
     let canMove: Bool
-    let onOpenClient: (String) -> Void
+    /// The client's profile (TM-03), or nil where the person's current workspace is not this session's: the profile and
+    /// its actions follow the current workspace's permissions, so it isn't offered across workspaces (F013).
+    let onOpenClient: ((String) -> Void)?
     @Environment(\.openURL) private var openURL
     @State private var rescheduling: RescheduleViewModel?
 
@@ -150,24 +152,29 @@ struct SessionView: View {
 
     @ViewBuilder private var clientRow: some View {
         if let client = model.client {
-            Button {
-                onOpenClient(client.clientId)
-            } label: {
-                InsetRow(title: client.name, showsChevron: true)
+            if let onOpenClient {
+                Button {
+                    onOpenClient(client.clientId)
+                } label: {
+                    InsetRow(title: client.name, showsChevron: true)
+                }
+                .buttonStyle(.insetRow)
+                .accessibilityIdentifier("session.client")
+            } else {
+                InsetRow(title: client.name)
+                    .accessibilityIdentifier("session.client")
             }
-            .buttonStyle(.insetRow)
-            .accessibilityIdentifier("session.client")
         }
     }
 
     @ViewBuilder private var menu: some View {
-        if model.client != nil {
+        if model.client != nil, canMove || onOpenClient != nil {
             Menu {
                 if canMove, !model.isCancelled {
                     Button(catalog[.sessionPageReschedule]) { rescheduling = model.rescheduleForm() }
                         .accessibilityIdentifier("session.reschedule")
                 }
-                if let client = model.client {
+                if let client = model.client, let onOpenClient {
                     Button(catalog[.sessionPageClientProfile]) { onOpenClient(client.clientId) }
                         .accessibilityIdentifier("session.clientProfile")
                 }

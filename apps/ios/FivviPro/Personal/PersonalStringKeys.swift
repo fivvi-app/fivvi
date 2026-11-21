@@ -1,0 +1,43 @@
+import FivviStrings
+
+/// The i18n keys of the personal screens: Vandaag (TD-01) and Agenda (TD-04), F013 (packages/i18n/{nl-NL,en}.json).
+extension StringKey {
+    static let tabToday = StringKey("myDay.app.tab")
+    static let tabCalendar = StringKey("myCalendar.app.tab")
+    static let tabHome = StringKey("home.tab")
+    static let calendarTitle = StringKey("myCalendar.app.title")
+
+    static let todayTitle = StringKey("myDay.app.title")
+    static let todaySummary = StringKey("myDay.app.summary")
+    static let todaySummaryEmpty = StringKey("myDay.app.summaryEmpty")
+    static let todayCardTitle = StringKey("myDay.title")
+    static let todayFreeGap = StringKey("myDay.app.freeGap")
+    static let todayFreeGapLength = StringKey("myDay.app.freeGapLength")
+    static let todayPlan = StringKey("myDay.app.plan")
+    static let todayNoFreeTime = StringKey("myDay.app.noFreeTime")
+    static let todayRoute = StringKey("myDay.app.route")
+    static let todayOpen = StringKey("myDay.app.open")
+    static let todayFull = StringKey("myDay.app.full")
+    static let todayOffline = StringKey("myDay.app.offline")
+    static let todayFailed = StringKey("myDay.app.failed")
+    static let todayRetry = StringKey("myDay.app.retry")
+    static let todayRemoved = StringKey("myDay.app.removed")
+    static let todayDismiss = StringKey("myDay.app.dismiss")
+    static let todayTomorrowHint = StringKey("myDay.app.tomorrowHint")
+    static let todayOpenRoute = StringKey("myDay.app.openRoute")
+
+    static let todayEmptyToday = StringKey("myDay.emptyToday")
+    static let todayEmptyNext = StringKey("myDay.emptyNext")
+    static let todayEmptyNever = StringKey("myDay.emptyNever")
+    static let todayNextUpcoming = StringKey("myDay.nextUpcoming")
+    static let todayNextInProgress = StringKey("myDay.nextInProgress")
+    static let todayTomorrow = StringKey("myDay.tomorrow")
+    static let todayCancelled = StringKey("myDay.cancelled")
+    static let todayTypePrivate = StringKey("myDay.typePrivate")
+    static let todayTypeGroup = StringKey("myDay.typeGroup")
+    static let todaySpokenTime = StringKey("myDay.spokenTime")
+    static let todaySpokenJoin = StringKey("myDay.spokenJoin")
+    static let todayTimeRange = StringKey("myDay.timeRange")
+    static let todayBookedPill = StringKey("myCalendar.blockBooked")
+    static let timeZoneHint = StringKey("personal.timeZoneHint")
+}

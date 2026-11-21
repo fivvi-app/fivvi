@@ -63,7 +63,7 @@ final class NewSessionViewModel: Identifiable {
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, catalog: Catalog, forAnyTrainer: Bool, email: String,
-        accountName: String?, now: Date = Date(),
+        accountName: String?, now: Date = Date(), start: Date? = nil,
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
         self.api = api
@@ -73,7 +73,7 @@ final class NewSessionViewModel: Identifiable {
         self.email = email
         self.accountName = accountName
         self.onForbidden = onForbidden
-        firstStart = SessionClock.nextFullHour(after: now, in: workspace.timeZone)
+        firstStart = start ?? SessionClock.nextFullHour(after: now, in: workspace.timeZone)
         time = SessionTimeFields(start: firstStart, durationMinutes: 60, timeZone: workspace.timeZone, catalog: catalog)
     }
 

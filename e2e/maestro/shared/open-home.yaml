@@ -1,0 +1,16 @@
+# Sub-flow: the signed-in app on its home. Fivvi Pro on iOS opens on its first tab, Vandaag (F013), and the flows start on the
+# home, which is the tab with the id tab.home; where there is no tab bar (Android, until its twin of F013 lands) the home is
+# what opens, and nothing is tapped. One file for both apps: what decides is what is on screen, not the platform.
+appId: ${APP_ID}
+---
+- extendedWaitUntil:
+    visible:
+      id: tab\.home|home\.signedInAs
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: tab\.home
+    commands:
+      - tapOn:
+          id: tab\.home

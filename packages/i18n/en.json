@@ -583,7 +583,8 @@
   "home": {
     "openWeb": "Open Fivvi in the browser",
     "setUpOnWeb": "Set up your workspace on the web.",
-    "signedInAs": "Signed in as {email}"
+    "signedInAs": "Signed in as {email}",
+    "tab": "Home"
   },
   "invitation": {
     "accept": "Accept",
@@ -620,6 +621,10 @@
     "title": "Join link"
   },
   "myCalendar": {
+    "app": {
+      "tab": "Calendar",
+      "title": "Calendar"
+    },
     "block": "{type} · {name}",
     "blockBooked": "{booked}/{capacity}",
     "cancelled": "Cancelled",
@@ -660,6 +665,26 @@
     "views": "View"
   },
   "myDay": {
+    "app": {
+      "dismiss": "Dismiss",
+      "failed": "Couldn't update today.",
+      "freeGap": "Free {from}–{to}",
+      "freeGapLength": "{hours} hr",
+      "full": "Full",
+      "noFreeTime": "No free time left today",
+      "offline": "You're offline. Last updated at {time}.",
+      "open": "Open",
+      "openRoute": "Directions",
+      "plan": "Plan",
+      "removed": "You no longer have access to {workspace}.",
+      "retry": "Retry",
+      "route": "Today's route",
+      "summary": "{count, plural, one {# session} other {# sessions}} · {first}–{last} · {done} done",
+      "summaryEmpty": "No sessions today",
+      "tab": "Today",
+      "title": "Today",
+      "tomorrowHint": "Opens the calendar on tomorrow"
+    },
     "booked": "{booked}/{capacity} booked",
     "cancelled": "Cancelled",
     "emptyNever": "You don't have any sessions yet. You'll see them here as soon as you're scheduled.",
