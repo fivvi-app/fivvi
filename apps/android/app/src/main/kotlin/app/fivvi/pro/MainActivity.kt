@@ -229,7 +229,7 @@ class MainActivity : ComponentActivity() {
         // On foreground the stored language is read again: a change made elsewhere is adopted (F010 AC2).
         OnForeground(languages::refresh)
 
-        fun openClassDate(id: UUID, added: Boolean, replacing: Boolean = false) {
+        fun openClassDate(id: UUID, added: Int?, replacing: Boolean = false) {
             classDateOpenings++
             stack = Routes.push(if (replacing) Routes.pop(stack) else stack, Routes.classDate(id, added))
         }
@@ -305,7 +305,7 @@ class MainActivity : ComponentActivity() {
                         opening = newClassOpenings,
                         onClose = { stack = Routes.pop(stack) },
                         // Saved: TD-03 of the new date replaces the form, so back from it is the home.
-                        onSaved = { openClassDate(it, added = true, replacing = true) },
+                        onSaved = { id, datesAdded -> openClassDate(id, added = datesAdded, replacing = true) },
                     )
 
                     Routes.classDateOf(route) != null -> ClassDateFlow(
@@ -403,7 +403,7 @@ class MainActivity : ComponentActivity() {
 /**
  * The screens above the home, as one string kept across a rotation: the routes joined by a comma, the last one shown. A
  * route is `clients`, `newSession`, `session/<id>` or `client/<id>` (F020), `newClass`, `classDate/<id>` or, for the date
- * TD-05 has just created, `classDateNew/<id>` (F021).
+ * TD-05 has just created, `classDateNew/<dates added>/<id>` (F021, F022).
  */
 internal object Routes {
     const val CLIENTS = "clients"
@@ -424,13 +424,20 @@ internal object Routes {
 
     fun client(id: UUID) = "$CLIENT$id"
 
-    /** A class on a date (TD-03); [added] is set for the date TD-05 has just created ("Groepsles toegevoegd" shows). */
-    fun classDate(id: UUID, added: Boolean) = "${if (added) CLASS_DATE_ADDED else CLASS_DATE}$id"
+    /**
+     * A class on a date (TD-03); [added] is the number of dates TD-05 has just created for it ("Groepsles toegevoegd", or
+     * "12 groepslessen toegevoegd" for a weekly class), `null` for a date opened from the calendar.
+     */
+    fun classDate(id: UUID, added: Int?) = if (added != null) "$CLASS_DATE_ADDED$added/$id" else "$CLASS_DATE$id"
 
-    /** The date's ID of a class date route and whether it was just added, or `null` for any other route. */
-    fun classDateOf(route: String): Pair<UUID, Boolean>? = when {
-        route.startsWith(CLASS_DATE_ADDED) -> UUID.fromString(route.removePrefix(CLASS_DATE_ADDED)) to true
-        route.startsWith(CLASS_DATE) -> UUID.fromString(route.removePrefix(CLASS_DATE)) to false
+    /** The date's ID of a class date route and how many dates were just added, or `null` for any other route. */
+    fun classDateOf(route: String): Pair<UUID, Int?>? = when {
+        route.startsWith(CLASS_DATE_ADDED) -> route.removePrefix(CLASS_DATE_ADDED).split("/", limit = 2).let {
+            UUID.fromString(it[1]) to it[0].toInt()
+        }
+
+        route.startsWith(CLASS_DATE) -> UUID.fromString(route.removePrefix(CLASS_DATE)) to null
+
         else -> null
     }
 

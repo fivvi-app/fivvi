@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import app.fivvi.api.models.GroupClass
+import app.fivvi.api.models.SessionSeries
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
@@ -51,15 +52,16 @@ class ClassDateScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         trainerIsMe: Boolean = true,
         trainer: app.fivvi.api.models.Trainer? = sarah,
         booked: Int = 0,
-        justAdded: Boolean = false,
+        added: Int? = null,
+        series: SessionSeries? = null,
     ): ClassDateState {
         val shown = groupClass ?: groupClassOf("Mobility", "Mobility flow", "Rustig.", "Gentle.", sarah)
         return ClassDateState(
             myTeamMemberId = if (trainerIsMe) sarah.id else UUID.randomUUID(),
             canManage = canManage,
-            justAdded = justAdded,
+            added = added,
             load = ClassDateLoad.Loaded,
-            session = classDateOf(UUID.randomUUID(), shown, trainer, booked = booked),
+            session = classDateOf(UUID.randomUUID(), shown, trainer, booked = booked, series = series),
             groupClass = shown,
         )
     }
@@ -124,14 +126,54 @@ class ClassDateScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
 
     @Test
     fun test_F021_AC6_aDateJustAddedSaysGroepslesToegevoegd() {
-        show(state(mobility, justAdded = true))
+        show(state(mobility, added = 1))
 
         compose.onNodeWithTag(ClassDateTags.ADDED).assertTextEquals(string(R.string.classes_schedule_saved))
     }
 
+    // F022 AC6: a new weekly class opens with "12 groepslessen toegevoegd".
+    @Test
+    fun test_F022_AC6_aNewWeeklyClassOpensWithTwelveGroepslessenToegevoegd() {
+        show(state(mobility, added = 12))
+
+        compose.onNodeWithTag(ClassDateTags.ADDED).assertTextEquals(
+            if (dutch) "12 groepslessen toegevoegd" else "12 group classes added",
+        )
+    }
+
+    // F022 AC6: a date in a weekly series says Onderdeel van: {class}, elke {weekday} {time}, for the Owner and a Trainer.
+    @Test
+    fun test_F022_AC6_aDateInASeriesSaysOnderdeelVanTheClassEveryWeekdayAndTime() {
+        val series = SessionSeries(UUID.randomUUID(), SessionSeries.Weekday.TH, "18:00", "2026-09-24", emptyList())
+        show(state(mobility, series = series))
+
+        compose.onNodeWithTag(ClassDateTags.SERIES).assertTextEquals(
+            if (dutch) {
+                "Onderdeel van: Mobility, elke donderdag 18:00"
+            } else {
+                "Part of: Mobility flow, every Thursday 18:00"
+            },
+        )
+    }
+
+    @Test
+    fun test_F022_AC6_aTrainerReadsTheSeriesLineToo() {
+        val series = SessionSeries(UUID.randomUUID(), SessionSeries.Weekday.TH, "18:00", "2026-09-24", emptyList())
+        show(state(mobility, canManage = false, series = series))
+
+        compose.onNodeWithTag(ClassDateTags.SERIES).assertIsDisplayed()
+    }
+
+    @Test
+    fun test_F022_AC6_aDateOnItsOwnHasNoSeriesLine() {
+        show(state(mobility))
+
+        compose.onNodeWithTag(ClassDateTags.SERIES).assertDoesNotExist()
+    }
+
     @Test
     fun test_F021_AC6_aDateOpenedLaterSaysNothingOfItBeingAdded() {
-        show(state(mobility, justAdded = false))
+        show(state(mobility))
 
         compose.onNodeWithTag(ClassDateTags.ADDED).assertDoesNotExist()
     }

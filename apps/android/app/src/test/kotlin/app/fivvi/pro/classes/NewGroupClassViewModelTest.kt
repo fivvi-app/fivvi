@@ -2,6 +2,7 @@ package app.fivvi.pro.classes
 
 import app.fivvi.api.models.CreateGroupClassRequest
 import app.fivvi.api.models.FirstGroupClassDate
+import app.fivvi.api.models.SessionSeries
 import app.fivvi.api.models.Trainer
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.home.FakeTrainersApi
@@ -432,5 +433,96 @@ class NewGroupClassViewModelTest {
         viewModel.onSavedHandled()
 
         assertNull(viewModel.state().saved)
+    }
+
+    // F022 *Herhalen*: Niet herhalen or Elke week op {weekday}; the API makes the series and its 12 dates.
+    private fun NewGroupClassViewModel.weeklyMobility() {
+        setNameNl("Mobility")
+        // Thursday 19 November 2026, 18:00.
+        setDate(LocalDate.of(2026, 11, 19))
+        setStart(LocalTime.of(18, 0))
+        setRepeatsWeekly(true)
+    }
+
+    @Test
+    fun test_F022_AC6_weeklyShowsTheNoteAndMakesTheFormDirty() {
+        val viewModel = viewModel()
+        assertFalse(viewModel.state().repeatsWeekly)
+        assertFalse(viewModel.state().isDirty)
+
+        viewModel.setRepeatsWeekly(true)
+
+        assertTrue(viewModel.state().repeatsWeekly)
+        assertTrue(viewModel.state().isDirty)
+        viewModel.setRepeatsWeekly(false)
+        assertFalse(viewModel.state().isDirty)
+    }
+
+    @Test
+    fun test_F022_AC6_aWeeklyMobilityOnThursdayIsSentAsWeeklyAndTheApiMakesTwelveDatesWithTheSeries() {
+        val viewModel = viewModel()
+        viewModel.weeklyMobility()
+
+        viewModel.save()
+
+        assertEquals("one request: the class and its series", 1, classes.created.size)
+        val sent = classes.created.single().second
+        assertEquals(FirstGroupClassDate("2026-11-19", "18:00", FirstGroupClassDate.Repeat.WEEKLY), sent.firstDate)
+        assertEquals(listOf("Mobility"), classes.classes.values.map { it.nameNl })
+        assertEquals(WEEKLY_DATES, sessions.sessions.size)
+        val state = viewModel.state()
+        assertEquals(12, state.datesAdded)
+        assertEquals(SessionSeries.Weekday.TH, state.saved?.series?.weekday)
+        assertEquals("18:00", state.saved?.series?.localStartTime)
+        assertEquals("one series", 1, sessions.sessions.values.mapNotNull { it.series?.id }.toSet().size)
+    }
+
+    @Test
+    fun test_F022_AC6_withoutHerhalenTheDateIsSentOnItsOwnAndAddsOne() {
+        val viewModel = viewModel()
+        viewModel.setNameNl("Mobility")
+
+        viewModel.save()
+
+        assertEquals(null, classes.created.single().second.firstDate?.repeat)
+        assertEquals(1, sessions.sessions.size)
+        assertEquals(1, viewModel.state().datesAdded)
+        assertNull(viewModel.state().saved?.series)
+    }
+
+    @Test
+    fun test_F022_AC7_aWeeklyTimeTheClocksSkipOnOneOfItsDatesShowsTheApisMessageWithThatDateAndStoresNothing() {
+        classes.skippedStart = LocalDate.of(2027, 3, 28)
+        val viewModel = viewModel()
+        viewModel.weeklyMobility()
+        viewModel.setDate(LocalDate.of(2027, 3, 14))
+        viewModel.setStart(LocalTime.of(2, 30))
+
+        viewModel.save()
+
+        val state = viewModel.state()
+        assertNull(state.saved)
+        assertTrue("nothing is created", classes.classes.isEmpty())
+        assertTrue(sessions.sessions.isEmpty())
+        assertEquals(TimeRefusal.TimeDoesNotExist, state.time.refusal)
+        assertEquals(LocalDate.of(2027, 3, 28), state.refusedDate)
+        assertNull(state.saveFailure)
+        assertTrue("what was chosen stays", state.repeatsWeekly)
+        assertEquals("Mobility", state.nameNl)
+        assertTrue(state.canSave)
+    }
+
+    @Test
+    fun test_F022_AC7_aSkippedStartOnASingleDateNamesTheDateOfTheStart() {
+        classes.createAnswers += { sessions.refused("firstDate.localStart" to "time_does_not_exist") }
+        val viewModel = viewModel()
+        viewModel.setNameNl("Mobility")
+        viewModel.setDate(LocalDate.of(2027, 3, 28))
+        viewModel.setStart(LocalTime.of(2, 30))
+
+        viewModel.save()
+
+        assertEquals(TimeRefusal.TimeDoesNotExist, viewModel.state().time.refusal)
+        assertEquals(LocalDate.of(2027, 3, 28), viewModel.state().refusedDate)
     }
 }

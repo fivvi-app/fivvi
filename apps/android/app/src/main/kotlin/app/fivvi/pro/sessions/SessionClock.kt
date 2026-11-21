@@ -1,11 +1,13 @@
 package app.fivvi.pro.sessions
 
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
@@ -60,6 +62,12 @@ class SessionFormat(private val locale: Locale, private val zone: ZoneId) {
 
     /** *do 24 sep 2026*, for a date of the workspace's own wall clock. */
     fun dayYear(date: LocalDate): String = DateTimeFormatter.ofPattern(DAY_YEAR, locale).format(date)
+
+    /** *donderdag*, the weekday of a date of the workspace's own wall clock. */
+    fun weekday(date: LocalDate): String = weekday(date.dayOfWeek)
+
+    /** *donderdag*, the weekday a series names. */
+    fun weekday(day: DayOfWeek): String = day.getDisplayName(TextStyle.FULL, locale)
 
     /** *donderdag 24 september 2026* */
     fun longDay(instant: OffsetDateTime): String = formatted(instant, LONG_DAY)
