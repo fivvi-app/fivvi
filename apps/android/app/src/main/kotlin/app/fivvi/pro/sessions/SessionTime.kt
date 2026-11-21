@@ -64,9 +64,9 @@ data class SessionTime(
     fun refusedBy(issues: List<ValidationErrorIssuesInner>): SessionTime? {
         var refusal: TimeRefusal? = null
         for (issue in issues) {
-            if (issue.path.endsWith("localDate")) {
+            if (issue.path.endsWithField("localDate")) {
                 refusal = TimeRefusal.InvalidDate
-            } else if (issue.path.endsWith("localStart")) {
+            } else if (issue.path.endsWithField("localStart")) {
                 refusal =
                     if (issue.code == "time_does_not_exist") TimeRefusal.TimeDoesNotExist else TimeRefusal.InvalidTime
             }
@@ -87,3 +87,6 @@ data class SessionTime(
         private const val MINUTES_PER_HOUR = 60
     }
 }
+
+/** Whether the path of an issue names [field] itself or a field of that name nested in another (`firstDate.localDate`). */
+private fun String.endsWithField(field: String) = this == field || endsWith(".$field")

@@ -36,4 +36,11 @@ class SessionTimeTest {
         assertNull(time.refusedBy(listOf(ValidationErrorIssuesInner("nameNl", "too_small"))))
         assertNull(time.refusedBy(emptyList()))
     }
+
+    @Test
+    fun test_F021_AC6_aFieldThatOnlyEndsLikeTheDateOrTheStartIsNotATimeRefusal() {
+        assertNull(time.refusedBy(listOf(ValidationErrorIssuesInner("firstLocalDate", "invalid_date"))))
+        assertNull(time.refusedBy(listOf(ValidationErrorIssuesInner("firstDate.notLocalStart", "invalid_time"))))
+        assertNull(time.refusedBy(listOf(ValidationErrorIssuesInner("firstDate.xlocalDate", "invalid_date"))))
+    }
 }

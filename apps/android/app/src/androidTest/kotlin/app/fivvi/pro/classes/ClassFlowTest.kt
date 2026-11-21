@@ -1,5 +1,6 @@
 package app.fivvi.pro.classes
 
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -289,6 +290,25 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
         compose.onNodeWithTag(ClassDateTags.BOOKED).assertTextEquals(
             if (dutch) "0/11 geboekt · 11 plekken vrij" else "0/11 booked · 11 spots free",
         )
+    }
+
+    // A screen reader hears what the capacity buttons change, not just "Minder" and "Meer".
+    @Test
+    fun test_F021_AC6_theCapacityButtonsAreNamedAfterTheCapacity() {
+        launchAsJohn()
+        openNewClass()
+
+        compose.onNodeWithTag(NewClassTags.CAPACITY_DOWN).performScrollTo()
+            .assertContentDescriptionEquals(string(R.string.classes_app_capacity_less))
+        compose.onNodeWithTag(NewClassTags.CAPACITY_UP)
+            .assertContentDescriptionEquals(string(R.string.classes_app_capacity_more))
+        val (less, more) = if (dutch) {
+            "Capaciteit verlagen" to "Capaciteit verhogen"
+        } else {
+            "Decrease capacity" to "Increase capacity"
+        }
+        assertEquals(less, string(R.string.classes_app_capacity_less))
+        assertEquals(more, string(R.string.classes_app_capacity_more))
     }
 
     // The API refuses the name: the message sits under the field, the form stays.

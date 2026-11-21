@@ -443,7 +443,7 @@ private fun CapacityRow(capacity: Int, onCapacity: (Int) -> Unit) {
         ) {
             Icon(
                 painterResource(R.drawable.ic_remove),
-                contentDescription = stringResource(R.string.classes_app_description_less),
+                contentDescription = stringResource(R.string.classes_app_capacity_less),
             )
         }
         Text(
@@ -460,7 +460,7 @@ private fun CapacityRow(capacity: Int, onCapacity: (Int) -> Unit) {
         ) {
             Icon(
                 painterResource(R.drawable.ic_add),
-                contentDescription = stringResource(R.string.classes_app_description_more),
+                contentDescription = stringResource(R.string.classes_app_capacity_more),
             )
         }
     }

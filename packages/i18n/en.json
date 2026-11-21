@@ -90,6 +90,8 @@
   },
   "classes": {
     "app": {
+      "capacityLess": "Decrease capacity",
+      "capacityMore": "Increase capacity",
       "descriptionInDutch": "In Dutch",
       "descriptionLess": "Less",
       "descriptionMore": "More",
