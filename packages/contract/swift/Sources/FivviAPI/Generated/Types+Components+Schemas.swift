@@ -3256,7 +3256,7 @@ extension Components {
             public struct TrainerPayload: Codable, Hashable, Sendable {
                 /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/trainer/value1`.
                 public var value1: Components.Schemas.SessionTrainer
-                /// Left out for *Trainer nodig*: a class date with no trainer.
+                /// Left out for *Trainer nodig*: a class date or a private session with no trainer.
                 ///
                 /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/trainer/value2`.
                 public var value2: OpenAPIRuntime.OpenAPIValueContainer
@@ -3264,7 +3264,7 @@ extension Components {
                 ///
                 /// - Parameters:
                 ///   - value1:
-                ///   - value2: Left out for *Trainer nodig*: a class date with no trainer.
+                ///   - value2: Left out for *Trainer nodig*: a class date or a private session with no trainer.
                 public init(
                     value1: Components.Schemas.SessionTrainer,
                     value2: OpenAPIRuntime.OpenAPIValueContainer
@@ -3411,7 +3411,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceDay/items`.
             public var items: [Components.Schemas.WorkspaceCalendarSession]
-            /// *Aandacht nodig*: the class dates that take place without a trainer, from now to the end of the 14th day counted from today, in time order: "{class}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items.
+            /// *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: "{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items.
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceDay/attention`.
             public var attention: [Components.Schemas.WorkspaceCalendarSession]
@@ -3421,7 +3421,7 @@ extension Components {
             ///   - date: The day shown: `YYYY-MM-DD`, in `timeZone`.
             ///   - timeZone: The workspace’s IANA time zone: the day starts and ends on its wall clock.
             ///   - items: The sessions that start on the day, in time order, cancelled ones included (struck through): the rows of the dashboard and of *Mijn dag | {workspace}*.
-            ///   - attention: *Aandacht nodig*: the class dates that take place without a trainer, from now to the end of the 14th day counted from today, in time order: "{class}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items.
+            ///   - attention: *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: "{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items.
             public init(
                 date: Swift.String,
                 timeZone: Swift.String,

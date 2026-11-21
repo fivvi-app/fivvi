@@ -1,4 +1,4 @@
-// Module: The rules of the workspace calendar: the filters of the week, the rows of one day and the open item "a class date without a trainer".
+// Module: The rules of the workspace calendar: the filters of the week, the rows of one day and the open item "a session without a trainer".
 // Spec: F014
 
 import { orderPersonalSessions } from './personal-day.ts';
@@ -6,7 +6,7 @@ import { addDays, localDateOf, localDayBounds } from './zoned-time.ts';
 
 // The workspace calendar (F014, spec #458): the read routes of a workspace's sessions read them
 // from the database, one workspace at a time (ADR-006), and hand them here. What the filters
-// leave, which sessions make a day, and which class dates need a trainer are rules, so they are
+// leave, which sessions make a day, and which sessions need a trainer are rules, so they are
 // here: pure, no I/O, no clock of their own ("now" is an argument), in the wall clock of the
 // workspace's zone (ADR-012). F023 and F025 extend the open items from this one place.
 
@@ -78,11 +78,13 @@ export function attentionWindow(
 }
 
 /**
- * The class dates that need a trainer (*Aandacht nodig*): a group session that takes place, has no
- * trainer and starts inside `attentionWindow`, in time order. A date that has begun is no longer
- * one to assign.
+ * The sessions that need a trainer (*Aandacht nodig*, the owner's decision of 9 November 2026 on
+ * #540): a class date or a private session that takes place, has no trainer (a class date made
+ * without one, or a private session whose trainer was removed) and starts inside
+ * `attentionWindow`, in time order. A session that has begun is no longer one to assign; Open Gym
+ * has no trainer to assign.
  */
-export function classDatesWithoutTrainer<T extends WorkspaceCalendarSession>(
+export function sessionsWithoutTrainer<T extends WorkspaceCalendarSession>(
   sessions: readonly T[],
   now: Date,
   timeZone: string,
@@ -92,7 +94,7 @@ export function classDatesWithoutTrainer<T extends WorkspaceCalendarSession>(
   return orderPersonalSessions(
     sessions.filter(
       (session) =>
-        session.type === 'group' &&
+        (session.type === 'group' || session.type === 'private') &&
         session.status === 'scheduled' &&
         session.trainerId === null &&
         session.startsAt >= window.from &&

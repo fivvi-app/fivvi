@@ -697,7 +697,7 @@ export interface paths {
         };
         /**
          * The workspace today: the rows of one day and what needs attention
-         * @description The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates in the next 14 days that have no trainer. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).
+         * @description The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).
          */
         get: operations["getWorkspaceDay"];
         put?: never;
@@ -2035,7 +2035,7 @@ export interface components {
             timeZone: string;
             /** @description The sessions that start on the day, in time order, cancelled ones included (struck through): the rows of the dashboard and of *Mijn dag | {workspace}*. */
             items: components["schemas"]["WorkspaceCalendarSession"][];
-            /** @description *Aandacht nodig*: the class dates that take place without a trainer, from now to the end of the 14th day counted from today, in time order: "{class}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items. */
+            /** @description *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: "{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items. */
             attention: components["schemas"]["WorkspaceCalendarSession"][];
         };
         /** @description A class of the workspace: what it is called, who usually teaches it, how many people fit and how long it lasts. It is not a point in time; a class on a date is a `group` session. */

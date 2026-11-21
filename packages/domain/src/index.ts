@@ -399,9 +399,9 @@ export {
 export {
   ATTENTION_DAYS,
   attentionWindow,
-  classDatesWithoutTrainer,
   filterWorkspaceCalendar,
   sessionsOfDay,
+  sessionsWithoutTrainer,
   type WorkspaceCalendarFilters,
   type WorkspaceCalendarSession,
 } from './scheduling/workspace-calendar.ts';

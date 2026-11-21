@@ -6,7 +6,6 @@ import {
 } from '@fivvi/database';
 import {
   attentionWindow,
-  classDatesWithoutTrainer,
   type DetachedField,
   decidePersonalRange,
   filterWorkspaceCalendar,
@@ -15,6 +14,7 @@ import {
   PERSONAL_RANGE_MAX_DAYS,
   parseWeeklyRule,
   sessionsOfDay,
+  sessionsWithoutTrainer,
   type WorkspaceCalendarSession,
 } from '@fivvi/domain';
 import { parseAcceptLanguage, pickContentLanguage, resolveInterfaceLanguage } from '@fivvi/i18n';
@@ -171,7 +171,8 @@ export const WorkspaceCalendarSessionSchema = z
       }),
     location: LocationSchema,
     trainer: SessionTrainerSchema.optional().openapi({
-      description: 'Left out for *Trainer nodig*: a class date with no trainer.',
+      description:
+        'Left out for *Trainer nodig*: a class date or a private session with no trainer.',
     }),
     className: z
       .string()
@@ -245,9 +246,14 @@ export const WorkspaceDaySchema = z
     }),
     attention: z.array(WorkspaceCalendarSessionSchema).openapi({
       description:
-        '*Aandacht nodig*: the class dates that take place without a trainer, from now to the end ' +
-        'of the 14th day counted from today, in time order: "{class}, {date} {time}: nog geen ' +
-        'trainer". Empty when nothing needs attention. Later features add their own open items.',
+        '*Aandacht nodig*: the sessions that take place without a trainer, class dates and ' +
+        'private sessions alike (a private session whose trainer was removed), from now to the ' +
+        'end of the 14th day counted from today, in time order. Each item says what it is as ' +
+        'data: `type` (`group` or `private`), with `className` for a class date and ' +
+        '`clientName` (and `clients`, two for a duo) for a private session; the app words it: ' +
+        '"{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog ' +
+        'geen trainer". Empty when nothing needs attention. Later features add their own open ' +
+        'items.',
     }),
   })
   .openapi('WorkspaceDay', {
@@ -302,7 +308,7 @@ const getWorkspaceDayRoute = defineRoute(
     description:
       'The sessions of the workspace on one day (today unless `date` says otherwise, on the ' +
       'workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the ' +
-      'class dates in the next 14 days that have no trainer. For the Owner’s dashboard and the ' +
+      'class dates and private sessions in the next 14 days that have no trainer. For the Owner’s dashboard and the ' +
       'apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).',
     security: SIGNED_IN,
     request: { params: WorkspaceParamsSchema, query: DayQuerySchema },
@@ -475,7 +481,7 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
         date,
         timeZone: workspace.timeZone,
         items: (rows ?? []).map((item) => shown(item, workspace.timeZone, viewerLocale)),
-        attention: classDatesWithoutTrainer(ahead, now, workspace.timeZone).map((item) =>
+        attention: sessionsWithoutTrainer(ahead, now, workspace.timeZone).map((item) =>
           shown(item, workspace.timeZone, viewerLocale),
         ),
       },
