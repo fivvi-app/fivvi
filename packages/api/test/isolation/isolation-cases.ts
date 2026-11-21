@@ -180,6 +180,21 @@ const aSession: IsolationCase['seed'] = async (db, { workspaceId, clientId }) =>
   return { session: id };
 };
 
+/**
+ * A session of the workspace the seed was called for, in the week the calendar and day routes of
+ * the case ask for, with the client it was called for in it: what the workspace calendar shows
+ * (F014). It has no trainer, so it also shows under *Aandacht nodig* once it is a class; here it is
+ * a private session. The suite searches every response for the sessions of the other workspaces.
+ */
+const aSessionInTheWeek: IsolationCase['seed'] = async (db, { workspaceId, clientId }) => {
+  const { id } = await addSession(db, {
+    workspaceId,
+    clientId,
+    startsAt: new Date('2026-09-22T08:00:00Z'),
+  });
+  return { session: id };
+};
+
 /** A class of the workspace the seed was called for: what the class routes list, read, change and put on a date (F021). */
 const aClass: IsolationCase['seed'] = async (db, { workspaceId }) => {
   const { id } = await addGroupClass(db, { workspaceId });
@@ -475,6 +490,11 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
 
   // The routes of one workspace (F002): a read shows its id.
   getWorkspace: { seed: theWorkspace },
+
+  // The calendar and the day of a workspace (F014): the sessions of that workspace only, whoever
+  // their trainer is; a response never shows another workspace's sessions.
+  getWorkspaceCalendar: { seed: aSessionInTheWeek, query: '?from=2026-09-21&to=2026-09-27' },
+  getWorkspaceDay: { seed: aSessionInTheWeek, query: '?date=2026-09-22' },
 
   // The access log (E014): the Owner's list shows the seeded entry of each client of the workspace.
   listAccessLog: { seed: anAccessLogEntry },

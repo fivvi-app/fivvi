@@ -198,6 +198,7 @@ describe('@permission F004 roles on every workspace route', () => {
       'getInvoiceDetails',
       'getMyBillingDetails',
       'getOffer',
+      'getWorkspaceDay',
       'listAccessLog',
       'listGroupClassSeries',
       'listOffers',
@@ -248,7 +249,8 @@ describe('@permission F004 roles on every workspace route', () => {
     // upcoming sessions (`clients.view`), reading the classes (F021: `class.read`) and the join link
     // (F029: `join_link.view`; only the Owner renews it), and listing and making booking links
     // (F037: `booking_link.copy`; the handler allows a Trainer only the link of a class date, and
-    // only the Owner deactivates).
+    // only the Owner deactivates), and the workspace calendar (F014: `calendar.read`; the day of the
+    // dashboard is the Owner's, `calendar.manage`).
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
       'createBookingLink',
@@ -258,6 +260,7 @@ describe('@permission F004 roles on every workspace route', () => {
       'getJoinLink',
       'getSession',
       'getWorkspace',
+      'getWorkspaceCalendar',
       'listBookingLinks',
       'listClientUpcomingSessions',
       'listClients',
@@ -275,6 +278,8 @@ describe('@permission F004 roles on every workspace route', () => {
     );
     expect(statuses).toEqual({
       getWorkspace: 200,
+      // Past the access check: the probe names no range (F014).
+      getWorkspaceCalendar: 400,
       listClients: 200,
       listLocations: 200,
       listTrainers: 200,

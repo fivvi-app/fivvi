@@ -372,6 +372,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     TrainerView: 'type of the trainer-profile repository (F005)',
     TrainerWithProfile: 'type of the trainer-profile repository (F020)',
     UpcomingSessionView: 'type of the session repository (F020)',
+    WorkspaceCalendarRow: 'type of the workspace calendar repository (F014)',
     WorkspaceEntry: 'type of the tenant scope',
     WorkspacePlace: 'type',
     WorkspaceScope: 'type of the tenant scope',
@@ -493,6 +494,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     listTrainerSessionsBetween: 'repository of the sessions, takes the workspace scope (F023)',
     listTrainers: 'repository of the trainer profiles, takes the workspace scope (F005)',
     listUpcomingSessionsOfClient: 'repository of the sessions, takes the workspace scope (F020)',
+    listWorkspaceCalendar:
+      'repository of the workspace calendar, takes the workspace scope; every session of that workspace (F014)',
     lockInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     lockInvitationQuota: 'repository of the trainer invitations, takes the workspace scope (F011)',
     lockOwners: 'repository of the team, takes the workspace scope (F003)',

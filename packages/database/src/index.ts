@@ -305,6 +305,10 @@ export {
   type TrainerWithProfile,
 } from './repositories/trainer-profiles.ts';
 export {
+  listWorkspaceCalendar,
+  type WorkspaceCalendarRow,
+} from './repositories/workspace-calendar.ts';
+export {
   type ClientWorkspaceSummary,
   createWorkspaceWithOwner,
   findJoinLink,

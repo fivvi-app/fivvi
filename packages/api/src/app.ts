@@ -31,6 +31,7 @@ import { registerSignIn } from './routes/sign-in.ts';
 import { registerTeamMembers } from './routes/team-members.ts';
 import { registerTrainerInvitations } from './routes/trainer-invitations.ts';
 import { registerTrainers } from './routes/trainers.ts';
+import { registerWorkspaceCalendar } from './routes/workspace-calendar.ts';
 import { registerWorkspaces } from './routes/workspaces.ts';
 
 /** Where apps/web mounts the API. Contract paths don't include it, so the API can move later. */
@@ -88,6 +89,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerLocations(app);
   registerAddressLookup(app);
   registerSessions(app);
+  registerWorkspaceCalendar(app);
   registerGroupClasses(app);
   registerJoinLink(app);
   registerBookingLinks(app);
