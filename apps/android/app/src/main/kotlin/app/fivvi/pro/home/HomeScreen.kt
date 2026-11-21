@@ -159,11 +159,19 @@ fun HomeScreen(
     }
 }
 
-// **+** (the prototype's round control), with *Privésessie* and *Groepsles*, or the line that the owner plans the classes.
+/**
+ * **+** (the prototype's round control), with *Privésessie* and *Groepsles*, or the line that the owner plans the classes: at
+ * the top of the home and of Vandaag (F013). It has what the callbacks give; none given, it has nothing.
+ */
 @Composable
-private fun NewMenu(onNewPrivateSession: (() -> Unit)?, onNewGroupClass: (() -> Unit)?, noteWorkspace: String?) {
+fun NewMenu(
+    onNewPrivateSession: (() -> Unit)?,
+    onNewGroupClass: (() -> Unit)?,
+    noteWorkspace: String?,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+) {
     var open by rememberSaveable { mutableStateOf(false) }
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+    Box(modifier, contentAlignment = Alignment.CenterEnd) {
         RoundControl(
             icon = painterResource(R.drawable.ic_add),
             contentDescription = stringResource(R.string.workspace_nav_new),

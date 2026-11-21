@@ -5,6 +5,7 @@ import app.fivvi.api.models.ConfirmEmailChange
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.MyDay
+import app.fivvi.api.models.MyDaySummary
 import app.fivvi.api.models.MySessions
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.RequestEmailChange
@@ -89,9 +90,39 @@ class FakeMeApi : MeApi {
     override suspend fun confirmEmailChange(confirmEmailChange: ConfirmEmailChange): Response<MeResponse> =
         error("FakeMeApi.confirmEmailChange is not expected in this test")
 
-    /** The personal day and sessions (F013) have no screen on Android yet, so no test expects them. */
-    override suspend fun getMyDay(date: String, surface: MeApi.SurfaceGetMyDay?): Response<MyDay> =
-        error("FakeMeApi.getMyDay is not expected in this test")
+    /** What `GET /v1/me/day` answers: [day] while it is set, and while [dayFailure] is not, otherwise a day with no sessions. */
+    var day: MyDay? = null
+
+    /** `GET /v1/me/day` fails with this instead: an `IOException` is a missing connection, a code a server answer. */
+    var dayFailure: (() -> Response<MyDay>)? = null
+
+    /** Every `GET /v1/me/day` received: the date asked for and the surface. */
+    val dayRequests = mutableListOf<Pair<String, MeApi.SurfaceGetMyDay?>>()
+
+    /** `GET /v1/me/day` waits for this before it answers, so a test can act while the read is under way. */
+    var dayGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
+    override suspend fun getMyDay(date: String, surface: MeApi.SurfaceGetMyDay?): Response<MyDay> {
+        dayRequests += date to surface
+        dayGate?.await()
+        dayFailure?.let { return it() }
+        return Response.success(day ?: MyDay(date, "Europe/Amsterdam", 1, emptyList(), MyDaySummary(0, 0), true))
+    }
+
+    /** The next `GET /v1/me/day` finds no connection. */
+    fun failDayOffline() {
+        dayFailure = { throw java.io.IOException("offline") }
+    }
+
+    /** The next `GET /v1/me/day` is answered with [code]. */
+    fun failDayWith(code: Int) {
+        dayFailure = { Response.error(code, "{}".toResponseBody()) }
+    }
+
+    /** Reads work again. */
+    fun recoverDay() {
+        dayFailure = null
+    }
 
     override suspend fun listMySessions(
         from: String,

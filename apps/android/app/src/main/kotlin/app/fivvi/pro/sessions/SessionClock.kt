@@ -50,7 +50,7 @@ object SessionClock {
  * How the session screens write a date and a time: in the interface language's formatting locale (English as en-GB, as
  * the web and `packages/i18n` do) and the workspace's time zone (ADR-012).
  */
-class SessionFormat(private val locale: Locale, private val zone: ZoneId) {
+class SessionFormat(val locale: Locale, private val zone: ZoneId) {
     private fun formatted(instant: OffsetDateTime, pattern: String): String =
         DateTimeFormatter.ofPattern(pattern, locale).format(instant.atZoneSameInstant(zone))
 

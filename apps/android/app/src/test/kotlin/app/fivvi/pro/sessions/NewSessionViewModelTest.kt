@@ -14,6 +14,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.OffsetDateTime
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -58,13 +59,18 @@ class NewSessionViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     // The person, by their team-member ID in the workspace: Sarah's unless given.
-    private fun viewModel(forAnyTrainer: Boolean = false, teamMemberId: UUID = sarah.id) = NewSessionViewModel(
+    private fun viewModel(
+        forAnyTrainer: Boolean = false,
+        teamMemberId: UUID = sarah.id,
+        start: OffsetDateTime? = null,
+    ) = NewSessionViewModel(
         SessionApis(sessions, locations, trainers, FakeWorkspacesApi(), clients),
         workspace,
         forAnyTrainer,
         teamMemberId,
         onNotAllowed = { notAllowed += it.code() },
         now = { now },
+        start = start,
     )
 
     private fun NewSessionViewModel.state() = state.value
@@ -80,6 +86,17 @@ class NewSessionViewModelTest {
         assertEquals(60, state.time.durationMinutes)
         assertTrue(state.notify)
         assertNull(state.client)
+    }
+
+    @Test
+    fun test_F013_design_planOnTheMijnDagCardOpensTheFormAtTheStartOfTheGap() {
+        // 12:00 in Amsterdam on 8 September, as the API's free gap sends it.
+        val gap = OffsetDateTime.parse("2026-09-08T12:00:00+02:00")
+
+        val state = viewModel(start = gap).state()
+
+        assertEquals(LocalDateTime.of(2026, 9, 8, 12, 0), state.time.start)
+        assertFalse("the first start is not something the person entered", state.isDirty)
     }
 
     @Test
