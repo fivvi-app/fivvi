@@ -24,7 +24,7 @@ import {
 } from '@fivvi/observability';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { z } from '@hono/zod-openapi';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
 
@@ -707,6 +707,12 @@ describe('F002 POST /v1/workspaces', () => {
       const read = await call('GET', workspace.id, owner);
       expect(((await read.json()) as WorkspaceBody).name).toBe("John's Gym Utrecht");
       const me = await api().request('/v1/me', { headers: { 'x-test-account': owner.id } });
+      const [ownerRole] = await admin.db
+        .select({ id: teamMembers.id })
+        .from(teamMembers)
+        .where(
+          and(eq(teamMembers.organizationId, workspace.id), eq(teamMembers.accountId, owner.id)),
+        );
       expect(((await me.json()) as { workspaces: unknown[] }).workspaces).toEqual([
         {
           id: workspace.id,
@@ -714,6 +720,7 @@ describe('F002 POST /v1/workspaces', () => {
           slug: workspace.slug,
           trainerWord: 'trainer',
           role: 'owner',
+          teamMemberId: ownerRole?.id,
           capabilities: capabilitiesOf('owner'),
         },
       ]);

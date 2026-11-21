@@ -24,7 +24,7 @@ type NewSessionFrame = Omit<NewSessionProps, 'slug'>;
  * is in it for a person with a trainer profile.
  */
 export async function WorkspaceShell({
-  workspace: { id, name, slug, role, capabilities, trainerWord },
+  workspace: { id, name, slug, role, capabilities, trainerWord, teamMemberId },
   onPersonalPage = false,
   children,
 }: {
@@ -53,6 +53,7 @@ export async function WorkspaceShell({
       newSession = {
         workspaceId: start.workspaceId,
         email: me.email,
+        teamMemberId: start.teamMemberId,
         personName: me.name,
         forAnyTrainer: false,
         canAddClients: start.capabilities.includes('clients.manage'),
@@ -61,6 +62,7 @@ export async function WorkspaceShell({
           workspaceId: place.workspaceId,
           slug: place.slug,
           name: place.name,
+          teamMemberId: place.teamMemberId,
           canAddClients: place.capabilities.includes('clients.manage'),
           trainerWord: trainerWordForms(place.trainerWord, locale),
         })),
@@ -72,6 +74,7 @@ export async function WorkspaceShell({
       newSession = {
         workspaceId: id,
         email: me.email,
+        teamMemberId,
         personName: me.name,
         forAnyTrainer,
         canAddClients: capabilities.includes('clients.manage'),
@@ -81,7 +84,7 @@ export async function WorkspaceShell({
   }
   // *Lessen* and *Groepsles* in + Nieuw (F021), for a person who manages classes.
   const groupClasses = capabilities.includes('class.manage')
-    ? { workspaceId: id, email: me.email, trainerWord: trainerWordForms(trainerWord, locale) }
+    ? { workspaceId: id, teamMemberId, trainerWord: trainerWordForms(trainerWord, locale) }
     : undefined;
   return (
     // The frame is compact; the dialogs and menus opened in it render in a portal, which would be

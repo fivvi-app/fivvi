@@ -37,7 +37,11 @@ describe.each(locales)('F020 the session page and + Nieuw in %s', (locale) => {
   const copy = messages[locale];
   const formatting = locale === 'en' ? 'en-GB' : 'nl-NL';
 
-  const view = (overrides: Partial<Schemas['Session']> = {}, canMove = true) =>
+  const view = (
+    overrides: Partial<Schemas['Session']> = {},
+    canMove = true,
+    teamMemberId = 'm-someone-else',
+  ) =>
     render(
       locale,
       <SessionView
@@ -47,7 +51,7 @@ describe.each(locales)('F020 the session page and + Nieuw in %s', (locale) => {
         client={anna}
         defaultLocale="nl-NL"
         canMove={canMove}
-        ownSession={false}
+        teamMemberId={teamMemberId}
         trainerWord={trainerWordForms('trainer', locale)}
       />,
     );
@@ -77,6 +81,15 @@ describe.each(locales)('F020 the session page and + Nieuw in %s', (locale) => {
     expect(html).toContain('Sarah');
     expect(html).toContain('href="/w/johns-gym/clients/c1"');
     expect(html).toContain(escapeHtml(copy.sessions.page.clientProfile));
+  });
+
+  it('F020 #1414 AC2: the trainer row reads Jij / You only for the trainer whose team-member ID is the viewer’s, not for a namesake', () => {
+    const trainerRow = (html: string) =>
+      /<dd>([^<]*)<\/dd><dt[^>]*>[^<]*<\/dt><dd><a/.exec(html)?.[1];
+    // The session's trainer is Sarah (t1). Another trainer, also called Sarah (t2), looks at it.
+    expect(trainerRow(view({}, true, 't1'))).toBe(escapeHtml(copy.sessions.page.you));
+    expect(trainerRow(view({}, true, 't2'))).toBe('Sarah');
+    expect(view({}, true, 't2')).not.toContain(escapeHtml(copy.sessions.page.you));
   });
 
   it('AC6: Verplaatsen is there for a person who may plan sessions, and only for them', () => {
@@ -119,6 +132,7 @@ describe.each(locales)('F020 the session page and + Nieuw in %s', (locale) => {
             ? {
                 workspaceId: 'w1',
                 email: 'sarah@example.com',
+                teamMemberId: 't1',
                 personName: 'Sarah',
                 forAnyTrainer: false,
                 canAddClients: clientsManage,

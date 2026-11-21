@@ -61,6 +61,8 @@ export interface CreateSendEmailOptions {
   transport: EmailTransport;
   /** From `readEmailConfig().sender`. */
   sender: EmailAddress;
+  /** From `readEmailConfig().replyTo`. Every email carries it (#1514). */
+  replyTo: EmailAddress;
   retry?: RetryPolicy;
   /** Called before each retry, e.g. to log it. The event holds no recipient data. */
   onRetry?: (event: RetryEvent) => void;
@@ -89,6 +91,7 @@ export function createSendEmail(options: CreateSendEmailOptions): SendEmail {
   const {
     transport,
     sender,
+    replyTo,
     retry = defaultRetryPolicy,
     onRetry,
     sleep: wait = sleep,
@@ -104,6 +107,7 @@ export function createSendEmail(options: CreateSendEmailOptions): SendEmail {
     const rendered = await renderEmail(template, props, { locale, timeZone });
     const email: OutgoingEmail = {
       from: sender,
+      replyTo,
       to,
       ...rendered,
       locale,

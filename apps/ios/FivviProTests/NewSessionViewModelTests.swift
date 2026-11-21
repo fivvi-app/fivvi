@@ -13,11 +13,11 @@ final class NewSessionViewModelTests: XCTestCase {
 
     private func form(
         _ api: StubAPI, forAnyTrainer: Bool = false, email: String = "sarah@example.com",
-        name: String? = "Sarah Visser",
+        name: String? = "Sarah Visser", memberID: String = StubSessions.myMemberID,
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) -> NewSessionViewModel {
         NewSessionViewModel(
-            api: api, workspace: SessionFixtures.workspace, catalog: Catalog(locale: language),
+            api: api, workspace: SessionFixtures.workspace(as: memberID), catalog: Catalog(locale: language),
             forAnyTrainer: forAnyTrainer, email: email, accountName: name, now: SessionFixtures.now,
             onForbidden: onForbidden
         )
@@ -52,10 +52,10 @@ final class NewSessionViewModelTests: XCTestCase {
 
     func test_F020_AC2_anOwnerSeesAllTrainersStartsOnTheirOwnPlaceAndMayChooseAnother() async throws {
         let api = SessionFixtures.api()
-        let model = form(api, forAnyTrainer: true, email: "Owner@Example.com", name: "Owner")
+        let model = form(api, forAnyTrainer: true, email: "owner@example.com", name: "Owner")
         await model.start()
         XCTAssertEqual(model.trainers.map(\.name), ["Owner", "Sarah Visser"], "every trainer of the workspace")
-        XCTAssertEqual(model.myTrainerID, StubSessions.myMemberID, "found by their email address, whatever its case")
+        XCTAssertEqual(model.myTrainerID, StubSessions.myMemberID, "found by their team-member ID")
         XCTAssertEqual(model.trainerID, StubSessions.myMemberID)
         let catalog = TestCatalog(language)
         XCTAssertEqual(
@@ -69,6 +69,28 @@ final class NewSessionViewModelTests: XCTestCase {
         _ = await model.save()
 
         XCTAssertEqual(api.sessions.plans.first?.trainerId, StubSessions.otherMemberID)
+    }
+
+    func test_F020_1414_AC2_twoTrainersWithTheSameNameAreToldApartByTheirTeamMemberID() async {
+        let api = SessionFixtures.api()
+        let first = "5b1c2d3e-0000-4000-8000-0000000000c1"
+        let second = "5b1c2d3e-0000-4000-8000-0000000000c2"
+        api.sessions.setTrainers(
+            [.init(id: first, name: "Sarah Visser"), .init(id: second, name: "Sarah Visser")], members: []
+        )
+        // The same name and the same email address; only the ID of the second says which one is the person.
+        let model = form(
+            api, forAnyTrainer: true, email: "sarah@example.com", name: "Sarah Visser", memberID: second
+        )
+        await model.start()
+
+        XCTAssertEqual(model.myTrainerID, second)
+        XCTAssertEqual(model.trainerID, second, "the form starts on the person's own place, not the namesake's")
+        let catalog = TestCatalog(language)
+        XCTAssertEqual(
+            model.trainerText(model.trainers[1]), String(format: catalog["sessions.form.trainerMe"], "Sarah Visser")
+        )
+        XCTAssertEqual(model.trainerText(model.trainers[0]), "Sarah Visser", "no (ik) on the namesake")
     }
 
     func test_F020_AC2_anOwnerWhoDoesNotTrainMustChooseATrainerFirst() async {

@@ -9,6 +9,7 @@ import app.fivvi.api.models.MeWorkspace.Role
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.me.teamMemberIdOf
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.core.quarantine.Permission
 import app.fivvi.pro.home.FakeTrainersApi
@@ -51,6 +52,7 @@ class WorkspaceCapabilitiesTest {
         name.lowercase().replace(' ', '-'),
         TrainerWord.TRAINER,
         role,
+        teamMemberIdOf(name),
         capabilities.toList(),
     )
 

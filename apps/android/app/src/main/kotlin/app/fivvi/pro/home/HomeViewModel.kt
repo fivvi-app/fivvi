@@ -38,7 +38,7 @@ sealed interface MeState {
  */
 sealed interface HomeDestination {
     /** The account has a workspace: the app's home (a placeholder until Vandaag) with the workspace's name. */
-    data class Workspace(val name: String, val id: UUID) : HomeDestination
+    data class Workspace(val name: String, val id: UUID, val teamMemberId: UUID) : HomeDestination
 
     /** No workspace, and the API says the account may create one: set it up on the web. */
     data object SetUpOnWeb : HomeDestination
@@ -169,7 +169,7 @@ class HomeViewModel(
         // Every workspace the app opens is the one reopened next time, also the one it fell back to after a removal (AC7).
         if (start != null && current.remembered.value != start.id) current.remember(start.id)
         return when {
-            start != null -> HomeDestination.Workspace(start.name, start.id)
+            start != null -> HomeDestination.Workspace(start.name, start.id, start.teamMemberId)
             account.canCreateWorkspace -> HomeDestination.SetUpOnWeb
             else -> HomeDestination.NoAccess
         }

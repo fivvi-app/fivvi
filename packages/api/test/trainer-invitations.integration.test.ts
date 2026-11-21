@@ -84,6 +84,7 @@ describe('F011 trainer invitations', () => {
       sendEmail: createSendEmail({
         transport,
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+        replyTo: { email: 'support@example.com' },
         sleep: () => Promise.resolve(),
         random: () => 0,
       }),

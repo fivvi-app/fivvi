@@ -11,7 +11,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.MeWorkspace
-import app.fivvi.api.models.TeamMember
 import app.fivvi.api.models.Trainer
 import app.fivvi.api.models.UpcomingSession
 import app.fivvi.api.models.UpcomingSessions
@@ -52,7 +51,6 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
     private val sessions = FakeSessionsApi()
     private val locations = FakeLocationsApi()
     private val trainers = FakeTrainersApi()
-    private val team = FakeTeamApi()
     private val anna = clientOf("Anna de Vries", "anna@example.com", Client.EmailLocale.NL_NL)
     private val mark = clientOf("Mark Jansen", "mark@example.com", Client.EmailLocale.EN)
     private val sarah = trainerOf("Sarah")
@@ -75,12 +73,13 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
             name = "Sarah",
             capabilities = capabilities,
             role = MeWorkspace.Role.TRAINER,
+            teamMemberId = sarah.id,
         )
         launch()
     }
 
     private fun launchAsJohn() {
-        me.answerAccount(email = "owner@example.com", name = "John")
+        me.answerAccount(email = "owner@example.com", name = "John", teamMemberId = john.id)
         launch()
     }
 
@@ -89,10 +88,6 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
         sessions.clients += listOf(anna, mark).associateBy { it.id }
         trainers.trainers = listOf(john, sarah, tom)
         sessions.trainers += listOf(john, sarah, tom).associateBy { it.id }
-        team.members = listOf(
-            TeamMember(john.id, "John", "owner@example.com", TeamMember.Role.OWNER),
-            TeamMember(sarah.id, "Sarah", "trainer@example.com", TeamMember.Role.TRAINER),
-        )
         app.launch(
             device = listOf(language.tag),
             meApi = me,
@@ -101,7 +96,6 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
             trainersApi = trainers,
             sessionsApi = sessions,
             locationsApi = locations,
-            teamApi = team,
         )
         compose.waitUntilTagExists(HomeTags.OPEN_CLIENTS)
     }
@@ -427,6 +421,7 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
             name = "Sarah",
             capabilities = trainerCapabilities,
             role = MeWorkspace.Role.TRAINER,
+            teamMemberId = sarah.id,
         )
 
         compose.onNodeWithTag(SessionTags.MENU).performClick()

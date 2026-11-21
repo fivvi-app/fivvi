@@ -133,6 +133,7 @@ describe('@isolation E011 account routes', () => {
       slug: expect.any(String),
       trainerWord: 'trainer',
       role: expect.stringMatching(/^(owner|trainer)$/),
+      teamMemberId: expect.any(String),
       capabilities: expect.any(Array),
     }));
     expect(JSON.parse(body)).toEqual({

@@ -1,0 +1,108 @@
+# F021 native group classes (spec #427, AC6, AC7 and the TD-05 / TD-03 design), against the local stack: John (the
+# seeded owner@example.com, Owner of John's Gym) adds the group class "Mobility" with a Dutch and an English description
+# from + → Groepsles (TD-05, Herhalen: Niet herhalen), and TD-03 opens with "Groepsles toegevoegd", the trainer row (John
+# trains, so "Jij" or "You") and the description with its Meer / More toggle and the Owner's ⋯ menu with Les wijzigen. Then
+# Sarah (the seeded trainer@example.com, a Trainer of John's Gym) finds no Groepsles in her +, and the footnote that the
+# owner plans the group classes instead (AC7). The sign-in is the shared sub-flow. Elements are found by id: the Android
+# testTag and the iOS accessibilityIdentifier, the same on both apps (home.new*, newClass.*, classDate.*). Texts differ by
+# language, so the flow checks what both languages share (the class name, the workspace's name) and the ids. The date and
+# the start are the form's own first values (the next full hour); the trainer is John, so a clash with another run of this
+# flow (the other language's, against the same database) ends in the double-booking alert, which the flow answers with
+# Toch opslaan, as private-session.yaml does. The two platform tickets (iOS #450, Android #451) run this one flow.
+appId: ${APP_ID}
+name: AC6 AC7 Add a group class, read it and find no Groepsles as a Trainer
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # John: seeded, the Owner of John's Gym (packages/database/src/seed.ts).
+  EMAIL: owner@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: home\.openClients
+    timeout: 20000
+# AC6: + shows Groepsles for the Owner.
+- tapOn:
+    id: home\.new
+- tapOn:
+    id: home\.newGroupClass
+- extendedWaitUntil:
+    visible:
+      id: newClass\.save
+    timeout: 20000
+- tapOn:
+    id: newClass\.nameNl
+- inputText: Mobility
+- tapOn:
+    id: newClass\.descriptionNl
+- inputText: Rustig bewegen en rekken.
+- tapOn:
+    id: newClass\.descriptionEn
+- inputText: Gentle moving and stretching.
+- tapOn:
+    id: newClass\.save
+- extendedWaitUntil:
+    visible:
+      id: (classDate\.title|newClass\.doubleBooking\.saveAnyway)
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: newClass\.doubleBooking\.saveAnyway
+    commands:
+      - tapOn:
+          id: newClass\.doubleBooking\.saveAnyway
+# TD-03 opens with the class, "Groepsles toegevoegd", the workspace's location and the trainer.
+- extendedWaitUntil:
+    visible:
+      id: classDate\.title
+      text: Mobility
+    timeout: 20000
+- assertVisible:
+    id: classDate\.added
+- assertVisible:
+    id: classDate\.location
+    text: John's Gym
+- assertVisible:
+    id: classDate\.trainer
+    text: (Jij|You)
+- assertVisible:
+    id: classDate\.booked
+    text: 0/12.*
+# The description, cut to a few lines with Meer / More.
+- assertVisible:
+    id: classDate\.description
+- assertVisible:
+    id: classDate\.descriptionToggle
+# The Owner's ⋯ menu has Les wijzigen, which says the class is managed on the web.
+- tapOn:
+    id: classDate\.menu
+- tapOn:
+    id: classDate\.edit
+- assertVisible:
+    id: classDate\.manageOnWeb
+# AC7: Sarah's + has no Groepsles and shows the footnote.
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+    env:
+      EMAIL: trainer@example.com
+- extendedWaitUntil:
+    visible:
+      id: home\.openClients
+    timeout: 20000
+- tapOn:
+    id: home\.new
+- extendedWaitUntil:
+    visible:
+      id: home\.newPrivateSession
+    timeout: 20000
+- assertVisible:
+    id: home\.newGroupClassNote
+- assertNotVisible:
+    id: home\.newGroupClass

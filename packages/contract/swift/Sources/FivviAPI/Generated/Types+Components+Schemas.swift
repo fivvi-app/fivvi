@@ -362,6 +362,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeWorkspace/role`.
             public var role: Components.Schemas.MeWorkspace.RolePayload
+            /// The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/teamMemberId`.
+            public var teamMemberId: Swift.String
             /// - Remark: Generated from `#/components/schemas/MeWorkspace/CapabilitiesPayload`.
             @frozen public enum CapabilitiesPayloadPayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case workspace_manage = "workspace.manage"
@@ -401,6 +405,7 @@ extension Components {
             ///   - slug: The URL name: `/w/{slug}` on the web.
             ///   - trainerWord:
             ///   - role: What the account is in the workspace; shown as a label, never decided on.
+            ///   - teamMemberId: The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
             ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             public init(
                 id: Swift.String,
@@ -408,6 +413,7 @@ extension Components {
                 slug: Swift.String,
                 trainerWord: Components.Schemas.TrainerWord,
                 role: Components.Schemas.MeWorkspace.RolePayload,
+                teamMemberId: Swift.String,
                 capabilities: Components.Schemas.MeWorkspace.CapabilitiesPayload
             ) {
                 self.id = id
@@ -415,6 +421,7 @@ extension Components {
                 self.slug = slug
                 self.trainerWord = trainerWord
                 self.role = role
+                self.teamMemberId = teamMemberId
                 self.capabilities = capabilities
             }
             public enum CodingKeys: String, CodingKey {
@@ -423,6 +430,7 @@ extension Components {
                 case slug
                 case trainerWord
                 case role
+                case teamMemberId
                 case capabilities
             }
         }
@@ -507,6 +515,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/role`.
             public var role: Components.Schemas.MyWorkspace.RolePayload
+            /// The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/teamMemberId`.
+            public var teamMemberId: Swift.String
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/CapabilitiesPayload`.
             @frozen public enum CapabilitiesPayloadPayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case workspace_manage = "workspace.manage"
@@ -550,6 +562,7 @@ extension Components {
             ///   - slug: The URL name: `/w/{slug}` on the web.
             ///   - trainerWord:
             ///   - role: What the account is on the team; shown as a label, never decided on.
+            ///   - teamMemberId: The account’s own team-member ID in the workspace, for an Owner and a Trainer alike: the ID a session’s trainer carries when it is the account’s own. The web and the apps show *Jij* / *You* by comparing it with the session’s trainer, never by name or email.
             ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///   - trainsHere: Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
             public init(
@@ -558,6 +571,7 @@ extension Components {
                 slug: Swift.String,
                 trainerWord: Components.Schemas.TrainerWord,
                 role: Components.Schemas.MyWorkspace.RolePayload,
+                teamMemberId: Swift.String,
                 capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload,
                 trainsHere: Swift.Bool
             ) {
@@ -566,6 +580,7 @@ extension Components {
                 self.slug = slug
                 self.trainerWord = trainerWord
                 self.role = role
+                self.teamMemberId = teamMemberId
                 self.capabilities = capabilities
                 self.trainsHere = trainsHere
             }
@@ -575,6 +590,7 @@ extension Components {
                 case slug
                 case trainerWord
                 case role
+                case teamMemberId
                 case capabilities
                 case trainsHere
             }
@@ -866,10 +882,14 @@ extension Components {
             public var className: Swift.String?
             /// - Remark: Generated from `#/components/schemas/PersonalSession/location`.
             public var location: Components.Schemas.Location?
-            /// The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
+            /// The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart.
             ///
             /// - Remark: Generated from `#/components/schemas/PersonalSession/clientName`.
             public var clientName: Swift.String?
+            /// The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/clients`.
+            public var clients: [Components.Schemas.PersonalSessionClient]?
             /// Creates a new `PersonalSession`.
             ///
             /// - Parameters:
@@ -884,7 +904,8 @@ extension Components {
             ///   - booked: The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
             ///   - className: The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym.
             ///   - location:
-            ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
+            ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart.
+            ///   - clients: The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds.
             public init(
                 sessionId: Swift.String,
                 workspace: Components.Schemas.PersonalWorkspace,
@@ -897,7 +918,8 @@ extension Components {
                 booked: Swift.Int? = nil,
                 className: Swift.String? = nil,
                 location: Components.Schemas.Location? = nil,
-                clientName: Swift.String? = nil
+                clientName: Swift.String? = nil,
+                clients: [Components.Schemas.PersonalSessionClient]? = nil
             ) {
                 self.sessionId = sessionId
                 self.workspace = workspace
@@ -911,6 +933,7 @@ extension Components {
                 self.className = className
                 self.location = location
                 self.clientName = clientName
+                self.clients = clients
             }
             public enum CodingKeys: String, CodingKey {
                 case sessionId
@@ -925,6 +948,7 @@ extension Components {
                 case className
                 case location
                 case clientName
+                case clients
             }
         }
         /// The workspace an item of the personal view is in.
@@ -1071,6 +1095,35 @@ extension Components {
                 case houseNumberAddition
                 case street
                 case city
+            }
+        }
+        /// A client in a private session of the day.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PersonalSessionClient`.
+        public struct PersonalSessionClient: Codable, Hashable, Sendable {
+            /// The client ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSessionClient/clientId`.
+            public var clientId: Swift.String
+            /// The client’s display name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSessionClient/name`.
+            public var name: Swift.String
+            /// Creates a new `PersonalSessionClient`.
+            ///
+            /// - Parameters:
+            ///   - clientId: The client ID.
+            ///   - name: The client’s display name.
+            public init(
+                clientId: Swift.String,
+                name: Swift.String
+            ) {
+                self.clientId = clientId
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case clientId
+                case name
             }
         }
         /// *4 sessies · 09:00–19:00*, and how many of them are done.
@@ -2334,7 +2387,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Session/timeZone`.
             public var timeZone: Swift.String
-            /// 1 for a private session; the date’s own capacity for a class date.
+            /// 1 for a private session, 2 for a duo (F066); the date’s own capacity for a class date.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/capacity`.
             public var capacity: Swift.Int
@@ -2350,7 +2403,7 @@ extension Components {
             public var groupClass: Components.Schemas.SessionGroupClass?
             /// - Remark: Generated from `#/components/schemas/Session/series`.
             public var series: Components.Schemas.SessionSeries?
-            /// The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
+            /// The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5).
             ///
             /// - Remark: Generated from `#/components/schemas/Session/participants`.
             public var participants: [Components.Schemas.SessionParticipant]
@@ -2363,13 +2416,13 @@ extension Components {
             ///   - startsAt: The start, a UTC instant.
             ///   - endsAt: The end, a UTC instant.
             ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012).
-            ///   - capacity: 1 for a private session; the date’s own capacity for a class date.
+            ///   - capacity: 1 for a private session, 2 for a duo (F066); the date’s own capacity for a class date.
             ///   - version: Raised by every change; a change says the version it read. Starts at 1.
             ///   - location:
             ///   - trainer:
             ///   - groupClass:
             ///   - series:
-            ///   - participants: The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
+            ///   - participants: The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5).
             public init(
                 id: Swift.String,
                 _type: Components.Schemas.Session._TypePayload,
@@ -2703,7 +2756,7 @@ extension Components {
                 case displayNameEn
             }
         }
-        /// A private session to plan: one client, one trainer, a local date, start and length.
+        /// A private session to plan: one client, or two for a duo, one trainer, a local date, start and length.
         ///
         /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest`.
         public struct PlanPrivateSessionRequest: Codable, Hashable, Sendable {
@@ -2711,6 +2764,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/clientId`.
             public var clientId: Swift.String
+            /// The second client of a duo session (F066): another client of the workspace, never the same as `clientId` (`400` on `secondClientId` with the code `same_client`). Leave it out for a one-client session. The session is stored once, as a private session with two participants and a capacity of 2, and each client gets EM-11 in their own language, naming the other by first name only.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/secondClientId`.
+            public var secondClientId: Swift.String?
             /// The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
             ///
             /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/trainerId`.
@@ -2727,7 +2784,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/durationMinutes`.
             public var durationMinutes: Swift.Int
-            /// Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says.
+            /// Whether to email the client the confirmation (EM-11), each client of a duo their own. Not sent for a session that starts in the past, whatever this says.
             ///
             /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/notify`.
             public var notify: Swift.Bool
@@ -2750,15 +2807,17 @@ extension Components {
             ///
             /// - Parameters:
             ///   - clientId: The client of the workspace the session is for.
+            ///   - secondClientId: The second client of a duo session (F066): another client of the workspace, never the same as `clientId` (`400` on `secondClientId` with the code `same_client`). Leave it out for a one-client session. The session is stored once, as a private session with two participants and a capacity of 2, and each client gets EM-11 in their own language, naming the other by first name only.
             ///   - trainerId: The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
             ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
             ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
             ///   - durationMinutes: The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
-            ///   - notify: Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says.
+            ///   - notify: Whether to email the client the confirmation (EM-11), each client of a duo their own. Not sent for a session that starts in the past, whatever this says.
             ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 clientId: Swift.String,
+                secondClientId: Swift.String? = nil,
                 trainerId: Swift.String? = nil,
                 localDate: Swift.String,
                 localStart: Swift.String,
@@ -2768,6 +2827,7 @@ extension Components {
                 surface: Components.Schemas.PlanPrivateSessionRequest.SurfacePayload? = nil
             ) {
                 self.clientId = clientId
+                self.secondClientId = secondClientId
                 self.trainerId = trainerId
                 self.localDate = localDate
                 self.localStart = localStart
@@ -2778,6 +2838,7 @@ extension Components {
             }
             public enum CodingKeys: String, CodingKey {
                 case clientId
+                case secondClientId
                 case trainerId
                 case localDate
                 case localStart

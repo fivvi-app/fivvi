@@ -1,7 +1,8 @@
 import { emailColours } from '@fivvi/design-tokens/email-colours';
 import type { ReactNode } from 'react';
-import { Body, Container, Head, Hr, Html, Preview, Section, Text } from 'react-email';
+import { Body, Container, Head, Hr, Html, Section, Text } from 'react-email';
 import type { EmailContext } from '../render.tsx';
+import { PreviewText } from './preview-text.tsx';
 
 // Plain inline styles. Email clients ignore most CSS, so keep it to fonts, colours and spacing.
 // Every colour is a generated design token (`@fivvi/design-tokens/email-colours`, E020 AC16): no
@@ -60,7 +61,7 @@ export function EmailLayout({ ctx, subject, preview, children }: EmailLayoutProp
       <Head>
         <title>{subject}</title>
       </Head>
-      <Preview useTitleTag={false}>{preview}</Preview>
+      <PreviewText>{preview}</PreviewText>
       <Body lang={ctx.lang} style={styles.body}>
         <Container style={styles.container}>
           <Section>{children}</Section>

@@ -61,13 +61,19 @@ object HomeTags {
     /** The **+** and its menu's *Privésessie* (F020). */
     const val NEW = "home.new"
     const val NEW_PRIVATE_SESSION = "home.newPrivateSession"
+
+    /** The menu's *Groepsles* (F021), and the line that takes its place for a team member who may not plan classes. */
+    const val NEW_GROUP_CLASS = "home.newGroupClass"
+    const val NEW_GROUP_CLASS_NOTE = "home.newGroupClassNote"
 }
 
 /**
  * The signed-in home (a placeholder, in the look of *Vandaag (TD-01)*'s large title and grouped list): the workspace's
  * name, the address of the signed-in account, the rows to Klanten and Profiel and the sign-out button, which a progress
  * indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients. The **+** at the top
- * has *Privésessie* (PS-04, F020) while [onNewPrivateSession] is given: the person plans private sessions in the workspace.
+ * has *Privésessie* (PS-04, F020) while [onNewPrivateSession] is given: the person plans private sessions in the workspace;
+ * *Groepsles* (TD-05, F021) while [onNewGroupClass] is given: the person has `class.manage`. Without it, and with
+ * [groupClassNoteWorkspace] (the workspace's name), the menu says that the owner plans the group classes there instead.
  */
 @Composable
 fun HomeScreen(
@@ -80,6 +86,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onOpenClients: (() -> Unit)? = null,
     onNewPrivateSession: (() -> Unit)? = null,
+    onNewGroupClass: (() -> Unit)? = null,
+    groupClassNoteWorkspace: String? = null,
 ) {
     // One scroll for the whole screen, so the account block can't squeeze what is above it at the largest font scale.
     Column(
@@ -87,7 +95,9 @@ fun HomeScreen(
             .padding(Spacing.space4),
         verticalArrangement = Arrangement.spacedBy(Spacing.space4),
     ) {
-        if (onNewPrivateSession != null && me is MeState.Loaded) NewMenu(onNewPrivateSession)
+        if ((onNewPrivateSession != null || onNewGroupClass != null) && me is MeState.Loaded) {
+            NewMenu(onNewPrivateSession, onNewGroupClass, groupClassNoteWorkspace)
+        }
         Destination(me, onOpenWeb)
         when (me) {
             MeState.Loading -> {
@@ -149,9 +159,9 @@ fun HomeScreen(
     }
 }
 
-// **+** (the prototype's round control), with *Privésessie*: the one thing it makes today (classes join it with their features).
+// **+** (the prototype's round control), with *Privésessie* and *Groepsles*, or the line that the owner plans the classes.
 @Composable
-private fun NewMenu(onNewPrivateSession: () -> Unit) {
+private fun NewMenu(onNewPrivateSession: (() -> Unit)?, onNewGroupClass: (() -> Unit)?, noteWorkspace: String?) {
     var open by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         RoundControl(
@@ -165,14 +175,34 @@ private fun NewMenu(onNewPrivateSession: () -> Unit) {
             onDismissRequest = { open = false },
             modifier = Modifier.testTagsAsIds(),
         ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.workspace_nav_new_private_session)) },
-                onClick = {
-                    open = false
-                    onNewPrivateSession()
-                },
-                modifier = Modifier.testTag(HomeTags.NEW_PRIVATE_SESSION),
-            )
+            if (onNewPrivateSession != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.workspace_nav_new_private_session)) },
+                    onClick = {
+                        open = false
+                        onNewPrivateSession()
+                    },
+                    modifier = Modifier.testTag(HomeTags.NEW_PRIVATE_SESSION),
+                )
+            }
+            if (onNewGroupClass != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.workspace_nav_new_group_class)) },
+                    onClick = {
+                        open = false
+                        onNewGroupClass()
+                    },
+                    modifier = Modifier.testTag(HomeTags.NEW_GROUP_CLASS),
+                )
+            }
+            if (onNewGroupClass == null && noteWorkspace != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.workspace_nav_new_group_class_note, noteWorkspace)) },
+                    onClick = {},
+                    enabled = false,
+                    modifier = Modifier.testTag(HomeTags.NEW_GROUP_CLASS_NOTE),
+                )
+            }
         }
     }
 }

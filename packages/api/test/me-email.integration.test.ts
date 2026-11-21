@@ -95,6 +95,7 @@ describe('F005 change your own email address', () => {
       sendEmail: createSendEmail({
         transport,
         sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+        replyTo: { email: 'support@example.com' },
         // As apps/web/server/send-email.ts wires it: each accepted send is the event `email_sent`.
         onSent: ({ emailId, language }) =>
           productEvents.track({

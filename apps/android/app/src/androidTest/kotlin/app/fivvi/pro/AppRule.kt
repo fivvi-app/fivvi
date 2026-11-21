@@ -1,5 +1,6 @@
 package app.fivvi.pro
 
+import android.os.SystemClock
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -9,11 +10,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import app.fivvi.api.apis.ClientsApi
+import app.fivvi.api.apis.GroupClassesApi
 import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.apis.SignInApi
-import app.fivvi.api.apis.TeamApi
 import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.MeResponse
@@ -27,12 +28,12 @@ import app.fivvi.core.auth.InMemorySessionStore
 import app.fivvi.core.auth.Session
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.signin.FakeSignInApi
+import app.fivvi.pro.classes.FakeGroupClassesApi
 import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.FakeWorkspacesApi
 import app.fivvi.pro.sessions.FakeLocationsApi
 import app.fivvi.pro.sessions.FakeSessionsApi
-import app.fivvi.pro.sessions.FakeTeamApi
 import app.fivvi.pro.workspace.CurrentWorkspace
 import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
 import app.fivvi.pro.workspace.LastWorkspaceStore
@@ -59,7 +60,7 @@ class AppRule : ExternalResource() {
         trainersApi: TrainersApi = FakeTrainersApi(),
         sessionsApi: SessionsApi = FakeSessionsApi(),
         locationsApi: LocationsApi = FakeLocationsApi(),
-        teamApi: TeamApi = FakeTeamApi(),
+        groupClassesApi: GroupClassesApi = FakeGroupClassesApi(sessionsApi as? FakeSessionsApi ?: FakeSessionsApi()),
         session: Session = Session(InMemorySessionStore("token-1")),
         signOutApi: (String) -> SignInApi = { signInApi },
         languageStore: LanguageStore = InMemoryLanguageStore(),
@@ -76,7 +77,7 @@ class AppRule : ExternalResource() {
             override val trainersApi = trainersApi
             override val sessionsApi = sessionsApi
             override val locationsApi = locationsApi
-            override val teamApi = teamApi
+            override val groupClassesApi = groupClassesApi
             override val session = session
 
             override fun signOutApi(token: String) = signOutApi(token)
@@ -87,6 +88,8 @@ class AppRule : ExternalResource() {
         }
         scenario = ActivityScenario.launch(MainActivity::class.java).also { launched ->
             imeAnimations.set(0)
+            imeStarts.set(0)
+            imeStartsSeen = 0
             launched.onActivity { activity ->
                 ViewCompat.setWindowInsetsAnimationCallback(activity.window.decorView, imeAnimationCounter)
             }
@@ -109,27 +112,58 @@ class AppRule : ExternalResource() {
      * change of focus hides and shows it again; `imePadding` follows that animation, which Compose's idling does not
      * track, and the root insets already show the end state when it starts. A test that goes on to a control below the
      * fields calls this first (#569). [launch] has registered the callback that counts the running animations.
+     *
+     * The keyboard shows a moment after the text input, not with it: right after typing it is not visible and nothing
+     * animates yet, and a check that returns then lets the keyboard slide in during the next scroll and click, which
+     * lands on the wrong element or misses (#1530). So the call first waits (briefly, a device with a hardware keyboard
+     * shows none) for the keyboard to start since the last call, and it is done only when the keyboard has stayed hidden
+     * for [KEYBOARD_SETTLE_MILLIS], so a show that follows a hide at a change of focus is not missed either.
      */
     fun hideKeyboard(compose: ComposeTestRule, timeoutMillis: Long = KEYBOARD_TIMEOUT_MILLIS) {
         val running = requireNotNull(scenario) { "hideKeyboard needs a launched activity" }
-        compose.waitUntil(timeoutMillis) {
+        fun shown(): Boolean {
             var shown = false
             running.onActivity { activity ->
                 val decor = activity.window.decorView
                 shown = ViewCompat.getRootWindowInsets(decor)?.isVisible(WindowInsetsCompat.Type.ime()) == true
-                if (shown) WindowCompat.getInsetsController(activity.window, decor).hide(WindowInsetsCompat.Type.ime())
             }
-            !shown && imeAnimations.get() == 0
+            return shown
+        }
+        val deadline = SystemClock.uptimeMillis() + KEYBOARD_SHOW_GRACE_MILLIS
+        while (imeStarts.get() == imeStartsSeen && !shown() && SystemClock.uptimeMillis() < deadline) {
+            compose.waitForIdle()
+            Thread.sleep(KEYBOARD_POLL_MILLIS)
+        }
+        var hiddenSince = 0L
+        compose.waitUntil(timeoutMillis) {
+            if (shown()) {
+                running.onActivity { activity ->
+                    WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+                        .hide(WindowInsetsCompat.Type.ime())
+                }
+            }
+            if (shown() || imeAnimations.get() != 0) {
+                hiddenSince = 0L
+            } else if (hiddenSince == 0L) {
+                hiddenSince = SystemClock.uptimeMillis()
+            }
+            hiddenSince != 0L && SystemClock.uptimeMillis() - hiddenSince >= KEYBOARD_SETTLE_MILLIS
         }
         compose.waitForIdle()
+        imeStartsSeen = imeStarts.get()
     }
 
-    // Counts the insets animations of the keyboard that are running: onPrepare comes before the first frame, onEnd after
-    // the last one (also when the animation is cancelled).
+    // Counts the insets animations of the keyboard that are running and, in imeStarts, that have started: onPrepare comes
+    // before the first frame, onEnd after the last one (also when the animation is cancelled). imeStartsSeen is
+    // imeStarts at the end of the last hideKeyboard.
     private val imeAnimations = AtomicInteger(0)
+    private val imeStarts = AtomicInteger(0)
+    private var imeStartsSeen = 0
     private val imeAnimationCounter = object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
         override fun onPrepare(animation: WindowInsetsAnimationCompat) {
-            if (animation.isKeyboard()) imeAnimations.incrementAndGet()
+            if (!animation.isKeyboard()) return
+            imeStarts.incrementAndGet()
+            imeAnimations.incrementAndGet()
         }
 
         override fun onProgress(insets: WindowInsetsCompat, running: List<WindowInsetsAnimationCompat>) = insets
@@ -162,3 +196,6 @@ private fun storedOf(tags: List<String>) =
     }
 
 private const val KEYBOARD_TIMEOUT_MILLIS = 5_000L
+private const val KEYBOARD_SHOW_GRACE_MILLIS = 2_000L
+private const val KEYBOARD_SETTLE_MILLIS = 300L
+private const val KEYBOARD_POLL_MILLIS = 20L

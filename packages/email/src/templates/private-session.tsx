@@ -13,6 +13,11 @@ export interface PrivateSessionEmailProps {
   locationAddress: string | null;
   /** The trainer's name, or `null` when the account has none: the line is left out. */
   trainerName: string | null;
+  /**
+   * The other client of a duo (F066), by first name only; left out or `null` for a one-client
+   * session: the line is left out.
+   */
+  togetherWith?: string | null;
   /** The workspace's word for the people who teach, as it is when the email is sent (F068). */
   trainerWord: TrainerWord;
 }
@@ -20,7 +25,7 @@ export interface PrivateSessionEmailProps {
 /**
  * EM-11 "Nieuwe afspraak: {date} om {time}" / "New appointment: {date} at {time}" (F020): the
  * client's confirmation of a private session, with the date, the time, the location and the
- * trainer. "Afspraak" is the subject only (the glossary: the UI says *privésessie*); the date and
+ * trainer, and for a duo (F066) the other client by first name. "Afspraak" is the subject only (the glossary: the UI says *privésessie*); the date and
  * the times are in the workspace's time zone and the recipient's language, decided by the sender
  * (`confirmationLanguage` in `@fivvi/domain`).
  */
@@ -38,7 +43,16 @@ export const privateSessionEmail: EmailTemplate<PrivateSessionEmailProps> = {
     }),
   render: (
     ctx,
-    { workspaceName, startsAt, endsAt, locationName, locationAddress, trainerName, trainerWord },
+    {
+      workspaceName,
+      startsAt,
+      endsAt,
+      locationName,
+      locationAddress,
+      trainerName,
+      trainerWord,
+      togetherWith,
+    },
   ) => (
     <>
       <Text style={textStyle}>
@@ -64,10 +78,15 @@ export const privateSessionEmail: EmailTemplate<PrivateSessionEmailProps> = {
           })}
         </Text>
       ) : null}
+      {togetherWith ? (
+        <Text style={textStyle}>
+          {ctx.t('email.privateSession.togetherWith', { name: togetherWith })}
+        </Text>
+      ) : null}
     </>
   ),
   frame: { kind: 'client', workspaceName: (props) => props.workspaceName },
-  userContent: ['workspaceName', 'locationName', 'locationAddress', 'trainerName'],
+  userContent: ['workspaceName', 'locationName', 'locationAddress', 'trainerName', 'togetherWith'],
   previewProps: {
     workspaceName: 'John’s Gym',
     startsAt: new Date('2026-09-24T07:00:00Z'),

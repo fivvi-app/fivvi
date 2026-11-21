@@ -288,6 +288,13 @@
       "when": 1795040807841,
       "tag": "0041_booking_links",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795040807842,
+      "tag": "0042_duo_session_capacity",
+      "breakpoints": true
     }
   ]
 }

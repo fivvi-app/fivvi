@@ -39,12 +39,14 @@ test.describe('F029 the Aanmeldlink page', () => {
     await page.goto(`/w/${slug}`);
     await page
       .getByRole('navigation', { name: copy.workspaceNav.label })
-      .getByRole('link', { name: copy.workspaceNav.joinLink })
+      .getByRole('link', { name: copy.workspaceNav.bookingLinks })
       .click();
 
-    await expect(page).toHaveURL(`/w/${slug}/join-link`);
-    await expect(page).toHaveTitle(copy.joinLink.title);
-    await expect(page.getByRole('heading', { level: 1, name: copy.joinLink.title })).toBeVisible();
+    await expect(page).toHaveURL(`/w/${slug}/booking-links`);
+    await expect(page).toHaveTitle(copy.bookingLinks.title);
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.bookingLinks.title }),
+    ).toBeVisible();
     await expect(page.getByText(copy.joinLink.body)).toBeVisible();
     // The data path: the page shows the link the API holds, built on the code in the row.
     const joinLink = page.getByTestId('join-link-url');
@@ -83,7 +85,7 @@ test.describe('F029 the Aanmeldlink page', () => {
     expect(after).not.toBe(before);
     await expect(joinLink).toHaveText(new RegExp(`/j/${after}$`));
     // The page asks the server again, and a reload shows the same.
-    await expect(page).toHaveTitle(copy.joinLink.title);
+    await expect(page).toHaveTitle(copy.bookingLinks.title);
     await expectNoAxeViolations(page, `the Aanmeldlink page after a renewal in ${appLocale}`);
     await page.reload();
     await expect(joinLink).toHaveText(new RegExp(`/j/${after}$`));
@@ -103,14 +105,14 @@ test.describe('F029 the Aanmeldlink page', () => {
     await page.goto(`/w/${slug}`);
     await page
       .getByRole('navigation', { name: copy.workspaceNav.label })
-      .getByRole('link', { name: copy.workspaceNav.joinLink })
+      .getByRole('link', { name: copy.workspaceNav.bookingLinks })
       .click();
 
-    await expect(page).toHaveURL(`/w/${slug}/join-link`);
+    await expect(page).toHaveURL(`/w/${slug}/booking-links`);
     const joinLink = page.getByTestId('join-link-url');
     await expect(joinLink).toHaveText(new RegExp(`/j/${code}$`));
     // She copies the link, and has no Vernieuwen.
-    await page.getByRole('button', { name: copy.joinLink.copy }).click();
+    await joinCard(page, copy).getByRole('button', { name: copy.joinLink.copy }).click();
     await expect(page.getByRole('status')).toHaveText(copy.joinLink.copied);
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
       (await joinLink.textContent()) ?? '',
@@ -127,6 +129,11 @@ test.describe('F029 the Aanmeldlink page', () => {
     expect(await joinCodeOf(slug)).toBe(code);
   });
 });
+
+/** The *Aanmeldlink* card of TW-07, which has the page's other *Link kopiëren* buttons beside it. */
+function joinCard(page: Page, copy: typeof import('@fivvi/i18n')['messages']['en']) {
+  return page.getByRole('region', { name: copy.joinLink.title });
+}
 
 /** The ID of the workspace with the URL name `slug`, as `GET /v1/me/workspaces` lists it. */
 async function workspaceId(page: Page, slug: string): Promise<string> {

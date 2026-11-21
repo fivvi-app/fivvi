@@ -49,6 +49,7 @@ fun NewSessionFlow(
     workspaceName: String,
     forAnyTrainer: Boolean,
     mayAddClients: Boolean,
+    teamMemberId: UUID,
     email: String,
     accountName: String?,
     sessionKey: String,
@@ -61,8 +62,7 @@ fun NewSessionFlow(
             apis,
             workspaceId,
             forAnyTrainer,
-            email,
-            accountName,
+            teamMemberId,
             onNotAllowed = {
                 capabilities.onResponse(
                     it,

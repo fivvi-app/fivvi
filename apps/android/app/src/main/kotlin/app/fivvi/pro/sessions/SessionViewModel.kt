@@ -48,11 +48,11 @@ sealed interface SessionLoad {
 
 /** What TD-02 shows and holds. */
 data class SessionState(
+    /** The person's own team-member ID in the workspace (`GET /api/v1/me`): a session whose trainer has it reads *Jij*. */
+    val myTeamMemberId: UUID,
     val load: SessionLoad = SessionLoad.Loading,
     val session: Session? = null,
     val workspace: WorkspaceDefaults = WorkspaceDefaults(),
-    /** The team-member ID of the person looking, when it can be told: the trainer row then reads *Jij*. */
-    val myTrainerId: UUID? = null,
     /** The client's own record, for the language of the change email (PS-05); `null` until read, or when it can't be. */
     val clientRecord: Client? = null,
     /** The session as it was just moved: the screen says where it went. */
@@ -60,7 +60,7 @@ data class SessionState(
 ) {
     val client: SessionParticipant? get() = session?.participants?.firstOrNull()
     val isCancelled: Boolean get() = session?.status == Session.Status.CANCELLED
-    val trainerIsMe: Boolean get() = session?.trainer?.id.let { it != null && it == myTrainerId }
+    val trainerIsMe: Boolean get() = session?.trainer?.id.let { it != null && it == myTeamMemberId }
     val routeUrl: String? get() = SessionRoute.url(session?.location?.address)
 
     /** The language the client's emails go out in: their own, else the workspace's default. */
@@ -76,19 +76,17 @@ data class SessionState(
  * TD-02 *Privésessie* (F020 AC10, design): the session's title, date and time, where it is with *Route*, the workspace with
  * the trainer (*Jij* for the person looking), and its client. Read from `GET …/sessions/{id}` through the generated
  * client; what is shown stays when a later read fails. The sections of later features (workout, last time, notes,
- * attendance) are not shown yet. [readTeam] says the person may read the team (`team.view`), so their own place is found by
- * their address; [onNotAllowed] is told a 403.
+ * attendance) are not shown yet. [teamMemberId] is the person's own team-member ID in the workspace, which the trainer row
+ * is compared with; [onNotAllowed] is told a 403.
  */
 class SessionViewModel(
     private val apis: SessionApis,
     private val workspaceId: UUID,
     private val sessionId: UUID,
-    private val readTeam: Boolean,
-    private val email: String,
-    private val accountName: String?,
+    private val teamMemberId: UUID,
     private val onNotAllowed: (Response<*>) -> Unit = {},
 ) : ViewModel() {
-    private val _state = MutableStateFlow(SessionState())
+    private val _state = MutableStateFlow(SessionState(myTeamMemberId = teamMemberId))
     val state: StateFlow<SessionState> = _state.asStateFlow()
     private var reading: Job? = null
 
@@ -151,20 +149,9 @@ class SessionViewModel(
         }
     }
 
-    // Who the person is among the trainers, the workspace's defaults and the client's language: all only to word the
-    // screen, so a failure here changes nothing.
+    // The workspace's defaults and the client's language: both only to word the screen, so a failure here changes
+    // nothing.
     private suspend fun readViewer(session: Session) {
-        if (_state.value.myTrainerId == null) {
-            val team = try {
-                SessionTeam.read(apis.trainers, apis.team, workspaceId, readTeam)
-            } catch (_: SessionLoadException) {
-                null
-            }
-            val mine = team?.let {
-                SessionTeam.myTrainerId(it.trainers, it.members, it.teamRequested, email, accountName)
-            }
-            _state.update { it.copy(myTrainerId = mine) }
-        }
         _state.update { it.copy(workspace = apis.workspaces.defaultsOf(workspaceId)) }
         val clientId = session.participants.firstOrNull()?.clientId ?: return
         if (_state.value.clientRecord?.id == clientId) return

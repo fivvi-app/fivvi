@@ -21,6 +21,9 @@ struct HomeView: View {
         case client(ClientRoute)
         /// A private session's screen (TD-02), by ID: after planning one, and from *Komende sessies* of a profile.
         case session(String)
+        /// A class on a date (TD-03), by ID: after adding a class (`added`: "Groepsles toegevoegd" shows) and later from
+        /// the calendars.
+        case classDate(String, added: Int?)
     }
 
     @Environment(\.openURL) private var openURL
@@ -31,6 +34,8 @@ struct HomeView: View {
     @State var path: [Route] = []
     /// PS-04, while its sheet is open (F020).
     @State var newSession: NewSessionViewModel?
+    /// TD-05, while its sheet is open (F021).
+    @State var newClass: NewGroupClassViewModel?
     let api: any APIProtocol
     let language: AppLanguage
     private let welcomeURL: URL
@@ -65,6 +70,7 @@ struct HomeView: View {
                     case .profile: profileScreen
                     case let .client(route): clientProfileScreen(route)
                     case let .session(id): sessionScreen(id)
+                    case let .classDate(id, added): classDateScreen(id, added: added)
                     }
                 }
         }
@@ -105,7 +111,9 @@ struct HomeView: View {
         // The clients' model follows the workspace the account shows: a new workspace is a new list, none is no list.
         .onChange(of: account.workspace, initial: true) { _, workspace in useWorkspace(workspace) }
         .toolbar { newMenu }
+        .openingClassDateForUITest(path: $path, ready: accountIsReady)
         .sheet(item: $newSession) { form in newSessionSheet(form) }
+        .sheet(item: $newClass) { form in newClassSheet(form) }
         .onChange(of: language.catalog) { _, catalog in
             profile.use(catalog)
             clients?.use(catalog)

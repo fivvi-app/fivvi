@@ -26,14 +26,15 @@ final class RescheduleViewModelTests: XCTestCase {
         return Setup(api: api, session: session, client: anna)
     }
 
+    /// `memberID`: the person moving it, by their team-member ID in the workspace (not the session's trainer's unless given).
     private func model(
-        _ setup: Setup, myTrainerID: String? = nil,
+        _ setup: Setup, memberID: String = StubSessions.otherMemberID,
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) -> RescheduleViewModel {
         RescheduleViewModel(
-            api: setup.api, workspace: SessionFixtures.workspace, session: setup.session, clientName: setup.client.name,
-            clientLocale: setup.client.chosenLocale, catalog: Catalog(locale: language), now: SessionFixtures.now,
-            myTrainerID: myTrainerID, onForbidden: onForbidden
+            api: setup.api, workspace: SessionFixtures.workspace(as: memberID), session: setup.session,
+            clientName: setup.client.name, clientLocale: setup.client.chosenLocale, catalog: Catalog(locale: language),
+            now: SessionFixtures.now, onForbidden: onForbidden
         )
     }
 
@@ -190,7 +191,7 @@ final class RescheduleViewModelTests: XCTestCase {
 
     func test_F023_AC6_aMoveOverTheTrainersOwnSessionIsWarnedAndSaveAnywayMovesIt() async throws {
         let ready = overlapping()
-        let form = model(ready, myTrainerID: StubSessions.myMemberID)
+        let form = model(ready, memberID: StubSessions.myMemberID)
         form.time.start = SessionFixtures.at("2026-11-20", "10:30")
 
         let moved = await form.save()
@@ -223,7 +224,7 @@ final class RescheduleViewModelTests: XCTestCase {
 
     func test_F023_AC5_aSessionOfAnotherTrainerAndTheSessionItselfAreNoConflict() async {
         let ready = overlapping(trainerID: StubSessions.otherMemberID)
-        let form = model(ready, myTrainerID: StubSessions.myMemberID)
+        let form = model(ready, memberID: StubSessions.myMemberID)
         form.time.start = SessionFixtures.at("2026-11-20", "10:30")
 
         let moved = await form.save()
@@ -231,7 +232,7 @@ final class RescheduleViewModelTests: XCTestCase {
         XCTAssertNotNil(moved, "Sarah's session at that time is not this trainer's")
         XCTAssertNil(form.doubleBooking)
 
-        let again = model(setup(), myTrainerID: StubSessions.myMemberID)
+        let again = model(setup(), memberID: StubSessions.myMemberID)
         again.time.durationChoice = 90
         let longer = await again.save()
         XCTAssertNotNil(longer, "a session never overlaps itself")
@@ -239,7 +240,7 @@ final class RescheduleViewModelTests: XCTestCase {
 
     func test_F023_AC6_theTitleNamesTheTrainerWhenSomeoneElseMovesTheirSession() async {
         let ready = overlapping()
-        let form = model(ready, myTrainerID: nil)
+        let form = model(ready)
         form.time.start = SessionFixtures.at("2026-11-20", "10:00")
 
         _ = await form.save()

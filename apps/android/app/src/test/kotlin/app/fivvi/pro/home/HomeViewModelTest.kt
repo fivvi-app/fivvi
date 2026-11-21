@@ -6,6 +6,7 @@ import app.fivvi.core.auth.AuthState
 import app.fivvi.core.auth.InMemorySessionStore
 import app.fivvi.core.auth.Session
 import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.me.teamMemberIdOf
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.core.quarantine.Isolation
 import app.fivvi.core.signin.FakeSignInApi
@@ -46,7 +47,7 @@ private fun ownerAccount() = MeResponse(
 
 private val OWNER_IN_WORKSPACE = MeState.Loaded(
     "owner@example.com",
-    HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym")),
+    HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym"), teamMemberIdOf("John's Gym")),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -118,7 +119,7 @@ class HomeViewModelTest {
         api.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
         val viewModel = viewModel()
         assertEquals(
-            HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym")),
+            HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym"), teamMemberIdOf("John's Gym")),
             (viewModel.state.value as MeState.Loaded).destination,
         )
 
@@ -134,7 +135,7 @@ class HomeViewModelTest {
         api.answerAccount(workspaces = listOf("John's Gym", "Other"), canCreateWorkspace = true)
 
         assertEquals(
-            HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym")),
+            HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym"), teamMemberIdOf("John's Gym")),
             (viewModel().state.value as MeState.Loaded).destination,
         )
     }
@@ -166,7 +167,11 @@ class HomeViewModelTest {
         viewModel.refresh()
 
         assertEquals(
-            HomeDestination.Workspace("Sarah Personal Training", workspaceIdOf("Sarah Personal Training")),
+            HomeDestination.Workspace(
+                "Sarah Personal Training",
+                workspaceIdOf("Sarah Personal Training"),
+                teamMemberIdOf("Sarah Personal Training"),
+            ),
             (viewModel.state.value as MeState.Loaded).destination,
         )
     }

@@ -17,13 +17,14 @@ extension StubAPI {
                     .init(
                         id: "7c1d2e3f-0000-4000-8000-00000000000\(index)", name: name,
                         slug: "workspace-\(index)", trainerWord: .trainer, role: .owner,
+                        teamMemberId: Self.memberID(of: "7c1d2e3f-0000-4000-8000-00000000000\(index)"),
                         capabilities: Components.Schemas.MeWorkspace.CapabilitiesPayloadPayload.allCases
                     )
                 }
                 : team.map {
                     .init(
                         id: $0.workspaceID, name: $0.name, slug: $0.slug, trainerWord: .trainer,
-                        role: Self.meRole($0.role),
+                        role: Self.meRole($0.role), teamMemberId: Self.memberID(of: $0.workspaceID),
                         capabilities: ($0.capabilities ?? Self.capabilities(of: $0.role)).compactMap {
                             .init(rawValue: $0.rawValue)
                         }

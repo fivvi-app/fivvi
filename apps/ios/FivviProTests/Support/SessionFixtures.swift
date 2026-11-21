@@ -7,9 +7,16 @@ import FivviAPI
 enum SessionFixtures {
     static let amsterdam = TimeZone(identifier: "Europe/Amsterdam") ?? .current
 
-    static let workspace = CurrentWorkspace(
-        id: "7c1d2e3f-0000-4000-8000-000000000000", name: "John's Gym", defaultLocale: .nlNL, timeZone: amsterdam
-    )
+    /// The workspace as the Owner (`StubSessions.myMemberID`) has it.
+    static let workspace = workspace(as: StubSessions.myMemberID)
+
+    /// The same workspace for the person whose team-member ID there is `teamMemberId`.
+    static func workspace(as teamMemberId: String) -> CurrentWorkspace {
+        CurrentWorkspace(
+            id: "7c1d2e3f-0000-4000-8000-000000000000", name: "John's Gym", defaultLocale: .nlNL, timeZone: amsterdam,
+            teamMemberId: teamMemberId
+        )
+    }
 
     /// Monday 16 November 2026, 08:20 in Amsterdam: the form's first start is 09:00 the same day.
     static let now = StubSessions.date("2026-11-16", "08:20", "Europe/Amsterdam") ?? Date()

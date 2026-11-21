@@ -291,13 +291,10 @@ describe('F020 sessions client: the context of PS-01', () => {
       { id: 'l2', name: 'Annex', isDefault: false },
       { id: 'l1', name: "John's Gym", isDefault: true },
     ],
+    // Two trainers with the same name: only the team-member ID tells them apart.
     '/api/v1/workspaces/w1/trainers': [
-      { id: 't1', name: 'John' },
+      { id: 't1', name: 'Sarah' },
       { id: 't2', name: 'Sarah' },
-    ],
-    '/api/v1/workspaces/w1/team-members': [
-      { id: 't1', name: 'John', email: 'john@example.com', role: 'owner' },
-      { id: 't2', name: 'Sarah', email: 'sarah@example.com', role: 'trainer' },
     ],
   };
   const routed = (overrides: Record<string, number> = {}) =>
@@ -306,10 +303,10 @@ describe('F020 sessions client: the context of PS-01', () => {
       return Promise.resolve(Response.json(answers[key] ?? {}, { status: overrides[key] ?? 200 }));
     });
 
-  it('AC2: an Owner gets every trainer and finds their own place by their email address', async () => {
+  it('AC2: an Owner gets every trainer and finds their own place by their team-member ID', async () => {
     const result = await loadPlanningContext(
       'w1',
-      { forAnyTrainer: true, email: 'John@Example.com' },
+      { forAnyTrainer: true, teamMemberId: 't1' },
       routed(),
     );
 
@@ -325,12 +322,27 @@ describe('F020 sessions client: the context of PS-01', () => {
     });
   });
 
+  it('F020 #1414 AC2: two trainers with the same name are told apart by the ID, and no team list is read', async () => {
+    const fetchFn = routed();
+
+    const second = await loadPlanningContext(
+      'w1',
+      { forAnyTrainer: true, teamMemberId: 't2' },
+      fetchFn,
+    );
+
+    expect(second).toMatchObject({ ok: true, context: { myTrainerId: 't2' } });
+    expect(fetchFn.mock.calls.map(([url]) => String(url))).not.toContain(
+      '/api/v1/workspaces/w1/team-members',
+    );
+  });
+
   it('AC2: a Trainer asks neither for the trainers nor for the team', async () => {
     const fetchFn = routed();
 
     const result = await loadPlanningContext(
       'w1',
-      { forAnyTrainer: false, email: 'sarah@example.com' },
+      { forAnyTrainer: false, teamMemberId: 't2' },
       fetchFn,
     );
 
@@ -344,7 +356,7 @@ describe('F020 sessions client: the context of PS-01', () => {
   it('an Owner who does not train has no place among the trainers', async () => {
     const result = await loadPlanningContext(
       'w1',
-      { forAnyTrainer: true, email: 'mike@example.com' },
+      { forAnyTrainer: true, teamMemberId: 'm-owner-without-profile' },
       routed(),
     );
 
@@ -355,20 +367,20 @@ describe('F020 sessions client: the context of PS-01', () => {
     expect(
       await loadPlanningContext(
         'w1',
-        { forAnyTrainer: false, email: 'a@example.com' },
+        { forAnyTrainer: false, teamMemberId: 'm1' },
         routed({ '/api/v1/workspaces/w1/locations': 403 }),
       ),
     ).toEqual({ ok: false, reason: 'home' });
     expect(
       await loadPlanningContext(
         'w1',
-        { forAnyTrainer: false, email: 'a@example.com' },
+        { forAnyTrainer: false, teamMemberId: 'm1' },
         routed({ '/api/v1/workspaces/w1': 500 }),
       ),
     ).toEqual({ ok: false, reason: 'failed' });
     const offline = vi.fn<typeof fetch>(() => Promise.reject(new TypeError('offline')));
     expect(
-      await loadPlanningContext('w1', { forAnyTrainer: false, email: 'a@example.com' }, offline),
+      await loadPlanningContext('w1', { forAnyTrainer: false, teamMemberId: 'm1' }, offline),
     ).toEqual({ ok: false, reason: 'failed' });
   });
 });

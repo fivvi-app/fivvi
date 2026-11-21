@@ -47,7 +47,8 @@ export const attendanceStatus = pgEnum('attendance_status', [
  * - `starts_at` and `ends_at` are UTC instants (ADR-012). The wall-clock time the person typed is
  *   not stored: it is turned into the instants by `planPrivateSession` in `packages/domain`, and
  *   shown again in the workspace's time zone.
- * - `capacity` is 1 for a private session. A check keeps the end after the start.
+ * - `capacity` is 1 for a private session, or 2 for a duo (F066): a check keeps it at one of the two,
+ *   and the domain keeps the participants within it. A check keeps the end after the start.
  * - `trainer_profile_id` is nullable (Open Gym has no trainer). Removing the trainer's profile (the
  *   Owner stops training, or the team member is removed) leaves the session with no trainer
  *   (`ON DELETE SET NULL (trainer_profile_id)`, which only clears that column; the migration
@@ -166,16 +167,17 @@ export const sessions = businessTable(
       'sessions_group_has_class',
       sql`${table.type} <> 'group' OR ${table.groupClassId} IS NOT NULL`,
     ),
+    // One place, or two for a duo (F066): which of the two follows from the participants.
     check(
-      'sessions_private_has_capacity_one',
-      sql`${table.type} <> 'private' OR ${table.capacity} = 1`,
+      'sessions_private_has_capacity_one_or_two',
+      sql`${table.type} <> 'private' OR ${table.capacity} IN (1, 2)`,
     ),
   ],
 );
 
 /**
- * A client's place in a session (F020; `PRODUCT.md §76`). A private session has exactly one. At
- * most one per session and client. `attendance_status` is `booked` until attendance (F025) or a
+ * A client's place in a session (F020; `PRODUCT.md §76`). A private session has one, or two for a
+ * duo (F066). At most one per session and client. `attendance_status` is `booked` until attendance (F025) or a
  * cancellation (F026) changes it. `agreement_id` is the M11 agreement (credits) the place uses,
  * empty until then; it has no foreign key yet because the table does not exist.
  *

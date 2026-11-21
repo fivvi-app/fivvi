@@ -104,6 +104,10 @@ final class StubServer: Sendable {
     /// The private session bodies the app sent so far (`POST …/sessions/private`), each value as text (F020).
     var plannedSessions: [[String: String]] { responder.sessionRoutes.plans }
 
+    /// The group class bodies the app sent so far (`POST …/group-classes`), each value as text, the first date as
+    /// `firstDate.localDate` and `firstDate.localStart` (F021).
+    var createdGroupClasses: [[String: String]] { responder.sessionRoutes.createdGroupClasses }
+
     /// The reschedule bodies the app sent so far, with the session's ID as `sessionId` (F020).
     var movedSessions: [[String: String]] { responder.sessionRoutes.moves }
 

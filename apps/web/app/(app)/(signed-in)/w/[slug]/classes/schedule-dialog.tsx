@@ -16,7 +16,7 @@ import { Label } from '@fivvi/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@fivvi/ui/components/native-select';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { Field } from '@fivvi/ui/kit/field';
-import { useLocale, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
 import { type DoubleBooking, DoubleBookingDialog } from '../sessions/double-booking';
 import { previewTimes } from '../sessions/session-time';
@@ -31,6 +31,7 @@ import {
   scheduleClassDate,
 } from './classes-client';
 import { FormSection } from './form-section';
+import { referenceDay, weekdayOf } from './series';
 
 type Loaded =
   | { status: 'loading' }
@@ -47,37 +48,42 @@ type Loaded =
  */
 export function ScheduleDialogContent({
   workspaceId,
-  email,
+  teamMemberId,
   classId,
   trainerWord,
   newClass,
   scheduled,
 }: {
   workspaceId: string;
-  /** The signed-in person's email address: their own place among the trainers is found by it. */
-  email: string;
+  /** The signed-in person's own team-member ID in the workspace: their place among the trainers. */
+  teamMemberId: string;
   classId?: string;
   trainerWord: TrainerWordForms;
   /** Closes this dialog and opens the form for a new class; absent where the class is fixed. */
   newClass?: () => void;
-  scheduled: (session: Session) => void;
+  /** `datesAdded` is how many dates a weekly repeat made; absent for one date. */
+  scheduled: (session: Session, datesAdded?: number) => void;
 }) {
   const t = useTranslations('classes.schedule');
   const e = useTranslations('classes.schedule.errors');
   const names = useTranslations('classes');
   const locale = useLocale();
+  const format = useFormatter();
   const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' });
   const [chosen, setChosen] = useState(classId ?? '');
   const [localDate, setLocalDate] = useState('');
   const [localStart, setLocalStart] = useState('');
   const [trainerId, setTrainerId] = useState('');
   const [capacity, setCapacity] = useState('');
+  // *Herhalen* (F022): not at all, or every week on the weekday of the date.
+  const [repeat, setRepeat] = useState<'none' | 'weekly'>('none');
   const [required, setRequired] = useState<{ classId?: boolean; date?: boolean; start?: boolean }>(
     {},
   );
   const [apiErrors, setApiErrors] = useState<{
     date?: DateErrorKey;
     start?: StartErrorKey;
+    startDate?: string;
     capacity?: true;
   }>({});
   const [formError, setFormError] = useState<'noPermission' | 'notSaved' | null>(null);
@@ -95,7 +101,7 @@ export function ScheduleDialogContent({
 
   useEffect(() => {
     let current = true;
-    void loadScheduleContext(workspaceId, email).then((result) => {
+    void loadScheduleContext(workspaceId, teamMemberId).then((result) => {
       if (!current) return;
       if (!result.ok) {
         if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
@@ -109,12 +115,16 @@ export function ScheduleDialogContent({
     return () => {
       current = false;
     };
-  }, [workspaceId, email, classId]);
+  }, [workspaceId, teamMemberId, classId]);
 
   const groupClass =
     loaded.status === 'ready' ? loaded.context.classes.find(({ id }) => id === chosen) : undefined;
   const nameOf = (candidate: GroupClass) =>
     pickContentLanguage(locale, candidate.nameNl, candidate.nameEn);
+  const weekday = weekdayOf(localDate);
+  const weekdayName = weekday
+    ? format.dateTime(referenceDay(weekday), { timeZone: 'UTC', weekday: 'long' })
+    : null;
   const preview = groupClass
     ? previewTimes({
         localDate,
@@ -148,9 +158,10 @@ export function ScheduleDialogContent({
       localStart,
       trainerId,
       capacity,
+      repeat,
       ...(allowConflicts ? { allowConflicts } : {}),
     });
-    if (result.ok) return scheduled(result.session);
+    if (result.ok) return scheduled(result.session, result.datesAdded);
     setPending(false);
     setDoubleBooking(null);
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
@@ -168,6 +179,7 @@ export function ScheduleDialogContent({
       return setApiErrors({
         ...(result.date ? { date: result.date } : {}),
         ...(result.start ? { start: result.start } : {}),
+        ...(result.startDate ? { startDate: result.startDate } : {}),
         ...(result.capacity ? { capacity: true as const } : {}),
       });
     }
@@ -180,8 +192,9 @@ export function ScheduleDialogContent({
     : required.date
       ? e('dateRequired')
       : undefined;
+  // A weekly class says which of its dates the clocks skip: the first one the API found.
   const startError = skipped
-    ? e('timeDoesNotExist', { date: writtenDate(localDate) })
+    ? e('timeDoesNotExist', { date: writtenDate(apiErrors.startDate ?? localDate) })
     : apiErrors.start
       ? e(apiErrors.start)
       : required.start
@@ -321,6 +334,29 @@ export function ScheduleDialogContent({
                     }}
                     error={startError}
                   />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="schedule-repeat">{t('repeatLabel')}</Label>
+                  <NativeSelect
+                    id="schedule-repeat"
+                    name="repeat"
+                    value={repeat}
+                    className="w-full"
+                    onChange={(event) => {
+                      setRepeat(event.target.value === 'weekly' ? 'weekly' : 'none');
+                      setApiErrors({});
+                    }}
+                  >
+                    <NativeSelectOption value="none">{t('repeatNone')}</NativeSelectOption>
+                    <NativeSelectOption value="weekly">
+                      {weekdayName
+                        ? t('repeatWeekly', { weekday: weekdayName })
+                        : t('repeatWeeklyAnyDay')}
+                    </NativeSelectOption>
+                  </NativeSelect>
+                  {repeat === 'weekly' ? (
+                    <p className="text-[13px] text-muted-foreground">{t('repeatNote')}</p>
+                  ) : null}
                 </div>
                 <div className="text-[13px] text-muted-foreground" aria-live="polite">
                   {preview.status === 'placed' ? (

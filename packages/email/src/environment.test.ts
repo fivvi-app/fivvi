@@ -11,6 +11,7 @@ const lettermintEnv = {
   LETTERMINT_ROUTE_MAIL: 'mail-route',
   EMAIL_FROM_ADDRESS: 'noreply@fivvi.app',
   EMAIL_FROM_NAME: 'Fivvi',
+  EMAIL_REPLY_TO_ADDRESS: 'support@example.com',
 };
 const props = {
   code: '482915',
@@ -186,6 +187,21 @@ describe('F001 which transport sends an email', () => {
     expect(() => setup({ ...withoutToken, RAILWAY_ENVIRONMENT_NAME: 'production' })).toThrow(
       /^LETTERMINT_API_TOKEN is not set/,
     );
+  });
+
+  it('#1514: production without the Reply-To address fails at once, never sends without one', () => {
+    const { EMAIL_REPLY_TO_ADDRESS: _replyTo, ...withoutReplyTo } = lettermintEnv;
+    expect(() => setup({ ...withoutReplyTo, RAILWAY_ENVIRONMENT_NAME: 'production' })).toThrow(
+      /^EMAIL_REPLY_TO_ADDRESS is not set/,
+    );
+  });
+
+  it('#1514: the configured Reply-To address goes out as reply_to', async () => {
+    const { requests, send } = setup({ ...lettermintEnv, RAILWAY_ENVIRONMENT_NAME: 'production' });
+
+    await send('anna@gym.test');
+
+    expect(requests[0]?.body.reply_to).toEqual(['support@example.com']);
   });
 
   it("knows production only by Railway's environment name", () => {

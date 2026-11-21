@@ -8,6 +8,7 @@ import {
   createTenantScopes,
   type DatabaseClient,
   organizations,
+  teamMembers,
 } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
 import { capabilitiesOf } from '@fivvi/domain';
@@ -79,6 +80,7 @@ describe('F001N native sign-in through the API', () => {
         createSendEmail({
           transport,
           sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+          replyTo: { email: 'support@example.com' },
         }),
       ...(overrides.reportError && { reportError: overrides.reportError }),
       ...(overrides.productEvents && { productEvents: overrides.productEvents }),
@@ -353,6 +355,10 @@ describe('F001N native sign-in through the API', () => {
         .select()
         .from(organizations)
         .where(eq(organizations.slug, 'johns-gym'));
+      const [ownerRole] = await client.db
+        .select({ id: teamMembers.id })
+        .from(teamMembers)
+        .where(eq(teamMembers.organizationId, gym?.id ?? ''));
       expect(await response.json()).toEqual({
         id: row?.id,
         email: 'owner@example.com',
@@ -368,6 +374,7 @@ describe('F001N native sign-in through the API', () => {
             slug: 'johns-gym',
             trainerWord: 'trainer',
             role: 'owner',
+            teamMemberId: ownerRole?.id,
             capabilities: capabilitiesOf('owner'),
           },
         ],
@@ -790,6 +797,7 @@ describe('F001N native sign-in through the API', () => {
           sendEmail: createSendEmail({
             transport,
             sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+            replyTo: { email: 'support@example.com' },
           }),
         });
         for (let i = 0; i < 20; i++) {

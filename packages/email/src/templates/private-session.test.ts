@@ -100,6 +100,39 @@ describe('F020 EM-11 private session email', () => {
     },
   );
 
+  it.each([
+    ['nl-NL', 'Samen met: Eva'],
+    ['en', 'Together with: Eva'],
+  ] as const)(
+    'F066 AC1: %s names the other client of a duo by first name',
+    async (locale, line) => {
+      const email = await renderEmail(
+        privateSessionEmail,
+        { ...props, togetherWith: 'Eva' },
+        { locale },
+      );
+
+      expect(email.text).toContain(line);
+    },
+  );
+
+  it.each(locales)(
+    'F066: %s has no “together with” line for a one-client session',
+    async (locale) => {
+      const copy = messages[locale].email.privateSession;
+      const alone = await renderEmail(privateSessionEmail, props, { locale });
+      const nulled = await renderEmail(
+        privateSessionEmail,
+        { ...props, togetherWith: null },
+        { locale },
+      );
+
+      for (const email of [alone, nulled]) {
+        expect(email.text).not.toContain(copy.togetherWith.replace(' {name}', ''));
+      }
+    },
+  );
+
   it('renders a name with markup as text', async () => {
     const email = await renderEmail(
       privateSessionEmail,

@@ -33,10 +33,16 @@ export default async function ClassPage({ params }: PageProps<'/w/[slug]/classes
   if (!groupClass) {
     throw new Error('GET /v1/workspaces/{workspaceId}/group-classes/{classId} did not answer.');
   }
+  // *Reeksen* (F022): the weekly series that still run, the Owner's to read (`class.manage`).
+  const { data: series } = await apiClient.GET(
+    '/v1/workspaces/{workspaceId}/group-classes/{classId}/series',
+    { params: { path: { workspaceId: id, classId } }, headers: cookie ? { cookie } : {} },
+  );
   return (
     <ClassView
       slug={slug}
       groupClass={groupClass}
+      series={series ?? []}
       canManage
       trainerWord={trainerWordForms(trainerWord, catalogLocale(await getLocale()))}
     />

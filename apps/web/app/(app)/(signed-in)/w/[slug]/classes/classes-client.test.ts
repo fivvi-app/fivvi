@@ -456,57 +456,64 @@ describe('F021 TW-03 classes client', () => {
           );
         }
         if (path.endsWith('/trainers')) {
-          return Promise.resolve(Response.json([{ id: 't1', name: 'Sarah' }]));
-        }
-        if (path.endsWith('/group-classes')) return Promise.resolve(Response.json([stored]));
-        if (path.endsWith('/team-members')) {
+          // Two trainers with the same name: only the team-member ID tells them apart.
           return Promise.resolve(
             Response.json([
-              { id: 't1', email: 'sarah@example.com' },
-              { id: 't9', email: 'John@Example.com' },
+              { id: 't1', name: 'Sarah' },
+              { id: 't2', name: 'Sarah' },
             ]),
           );
         }
+        if (path.endsWith('/group-classes')) return Promise.resolve(Response.json([stored]));
         return Promise.resolve(Response.json({ timeZone: 'Europe/Amsterdam' }));
       });
 
     it('reads the time zone, the default location, the trainers and the classes', async () => {
-      expect(await loadScheduleContext('w1', 'nobody@example.com', answers())).toEqual({
+      expect(await loadScheduleContext('w1', 'm-nobody', answers())).toEqual({
         ok: true,
         context: {
           timeZone: 'Europe/Amsterdam',
           locationName: "John's Gym",
-          trainers: [{ id: 't1', name: 'Sarah' }],
+          trainers: [
+            { id: 't1', name: 'Sarah' },
+            { id: 't2', name: 'Sarah' },
+          ],
           classes: [stored],
           myTrainerId: null,
         },
       });
     });
 
-    it('F023 AC6: finds the signed-in trainer by the email on the team list, whatever its case', async () => {
-      const found = await loadScheduleContext('w1', 'sarah@example.com', answers());
-      expect(found).toMatchObject({ ok: true, context: { myTrainerId: 't1' } });
+    it('F020 #1414 AC2: finds the signed-in trainer by their team-member ID, not by name', async () => {
+      expect(await loadScheduleContext('w1', 't1', answers())).toMatchObject({
+        ok: true,
+        context: { myTrainerId: 't1' },
+      });
+      // The namesake is someone else: the other Sarah is not taken for the first.
+      expect(await loadScheduleContext('w1', 't2', answers())).toMatchObject({
+        ok: true,
+        context: { myTrainerId: 't2' },
+      });
     });
 
     it('F023 AC6: a person on the team who is no trainer is no trainer here', async () => {
-      const found = await loadScheduleContext('w1', 'john@example.com', answers());
+      const found = await loadScheduleContext('w1', 't9', answers());
       expect(found).toMatchObject({ ok: true, context: { myTrainerId: null } });
     });
 
-    it('F023 AC6: a team list that does not answer leaves the person unfound, not the form failed', async () => {
-      const found = await loadScheduleContext(
-        'w1',
-        'sarah@example.com',
-        answers({ '/team-members': new Response('{}', { status: 500 }) }),
+    it('F020 #1414 AC3: asks for no team list: nothing is matched by email', async () => {
+      const fetchFn = answers();
+      await loadScheduleContext('w1', 't1', fetchFn);
+      expect(fetchFn.mock.calls.map(([url]) => String(url))).not.toContain(
+        '/api/v1/workspaces/w1/team-members',
       );
-      expect(found).toMatchObject({ ok: true, context: { myTrainerId: null } });
     });
 
     it('sends a person the API does not know to the signed-in home', async () => {
       expect(
         await loadScheduleContext(
           'w1',
-          'sarah@example.com',
+          't1',
           answers({ '/trainers': new Response('{}', { status: 403 }) }),
         ),
       ).toEqual({ ok: false, reason: 'home' });
@@ -516,7 +523,7 @@ describe('F021 TW-03 classes client', () => {
       expect(
         await loadScheduleContext(
           'w1',
-          'sarah@example.com',
+          't1',
           answers({ '/locations': new Response('{}', { status: 500 }) }),
         ),
       ).toEqual({ ok: false, reason: 'failed' });
@@ -540,6 +547,125 @@ describe('F021 TW-03 classes client', () => {
 
     it('fails when the answer is not a success', async () => {
       expect(await loadTrainers('w1', reply(500))).toEqual({ ok: false, reason: 'failed' });
+    });
+  });
+
+  describe('F022 the weekly series', () => {
+    const when = { localDate: '2026-10-06', localStart: '18:00', trainerId: 't1', capacity: '8' };
+
+    it('AC1: a weekly repeat sends repeat weekly and returns how many dates were added', async () => {
+      const fetchFn = reply(201, { ...session, datesAdded: 12 });
+
+      const result = await scheduleClassDate('w1', 'c1', { ...when, repeat: 'weekly' }, fetchFn);
+
+      expect(result).toEqual({ ok: true, session: { ...session, datesAdded: 12 }, datesAdded: 12 });
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toMatchObject({
+        repeat: 'weekly',
+      });
+    });
+
+    it('AC1: Niet herhalen sends no repeat and adds no count', async () => {
+      const fetchFn = reply(201, session);
+
+      const result = await scheduleClassDate('w1', 'c1', { ...when, repeat: 'none' }, fetchFn);
+
+      expect(result).toMatchObject({ ok: true });
+      expect(result).not.toHaveProperty('datesAdded');
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).not.toHaveProperty('repeat');
+    });
+
+    it('AC7: the refused date of a weekly class comes with the skipped start, so the message names it', async () => {
+      const fetchFn = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'localStart', code: 'time_does_not_exist', date: '2027-03-28' }],
+      });
+
+      expect(await scheduleClassDate('w1', 'c1', { ...when, repeat: 'weekly' }, fetchFn)).toEqual({
+        ok: false,
+        reason: 'fields',
+        start: 'timeDoesNotExist',
+        startDate: '2027-03-28',
+      });
+    });
+
+    it('a date before today is worded on the date', async () => {
+      const fetchFn = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'localDate', code: 'date_in_past' }],
+      });
+
+      expect(await scheduleClassDate('w1', 'c1', { ...when, repeat: 'weekly' }, fetchFn)).toEqual({
+        ok: false,
+        reason: 'fields',
+        date: 'dateInPast',
+      });
+    });
+
+    it('AC5: Deze en volgende lessen sends scope following and returns how many dates kept their own changes', async () => {
+      const fetchFn = reply(200, { ...session, version: 2, keptDates: 1 });
+
+      const result = await editClassDate(
+        'w1',
+        's1',
+        { version: 1, localStart: '18:00', localEnd: '19:00', capacity: '10', scope: 'following' },
+        fetchFn,
+      );
+
+      expect(result).toEqual({
+        ok: true,
+        session: { ...session, version: 2, keptDates: 1 },
+        keptDates: 1,
+      });
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toMatchObject({
+        scope: 'following',
+      });
+    });
+
+    it('AC4: Alleen deze les sends no scope and reports no kept dates', async () => {
+      const fetchFn = reply(200, { ...session, version: 2 });
+
+      const result = await editClassDate(
+        'w1',
+        's1',
+        { version: 1, localStart: '18:30', localEnd: '19:30', capacity: '8', scope: 'this' },
+        fetchFn,
+      );
+
+      expect(result).not.toHaveProperty('keptDates');
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).not.toHaveProperty('scope');
+    });
+
+    it('AC7: a series change that would reach a skipped start names the date, and a past date is worded', async () => {
+      const skipped = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'localStart', code: 'time_does_not_exist', date: '2027-03-28' }],
+      });
+      expect(
+        await editClassDate(
+          'w1',
+          's1',
+          { version: 1, localStart: '02:30', localEnd: '03:30', capacity: '8', scope: 'following' },
+          skipped,
+        ),
+      ).toEqual({
+        ok: false,
+        reason: 'fields',
+        start: 'timeDoesNotExist',
+        startDate: '2027-03-28',
+      });
+
+      const past = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'scope', code: 'date_in_past' }],
+      });
+      expect(
+        await editClassDate(
+          'w1',
+          's1',
+          { version: 1, localStart: '18:00', localEnd: '19:00', capacity: '8', scope: 'following' },
+          past,
+        ),
+      ).toEqual({ ok: false, reason: 'fields', scope: 'dateInPast' });
     });
   });
 });
