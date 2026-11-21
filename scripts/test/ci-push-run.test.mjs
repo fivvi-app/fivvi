@@ -188,7 +188,7 @@ describe('E002 #1357 the push run of CI on main', () => {
       /pnpm -r /,
       /pnpm --filter @fivvi\/web run test:e2e/,
       /scripts\/test-ios\.sh /,
-      /scripts\/android\.sh (setup|build|emulator|verify|maestro-apk)/,
+      /scripts\/android\.sh (setup|build|emulator|verify|compile-tests|maestro-apk)/,
       /scripts\/maestro\.sh /,
     ];
     // The job timeout of a push run: a number, or `push && N || M` (N on a push, M on the other events).
@@ -234,6 +234,8 @@ describe('E002 #1357 the push run of CI on main', () => {
       'ios-build: SwiftLint, checks and build for testing',
       'android-build: ktlint, checks and debug build',
       'android-tests: Boot the emulator',
+      // E002 #1370: the push-only step that fills the Gradle cache of "Android tests".
+      'android-tests: Compile the test APKs and the release bundle (the push run fills the Gradle cache)',
     ]) {
       assert.ok(found.includes(label), `${label} is checked (found: ${found.join('; ')})`);
     }
@@ -402,5 +404,84 @@ describe('E002 #1357 the docs describe the push run', () => {
     assert.match(section, /no jobs that shows as `cancelled`/);
     assert.doesNotMatch(section, /cannot fail/);
     assert.match(section, /ADR-018/);
+  });
+});
+
+describe('E002 #1370 the push run fills the Gradle cache of Android tests for the tests and the release bundle', () => {
+  const androidTests = steps(jobs['android-tests']);
+  const compile = androidTests.find((step) =>
+    step.includes('run: scripts/android.sh compile-tests'),
+  );
+  const index = (step) => androidTests.indexOf(step);
+
+  it('AC1: a push-only step compiles the test APKs and assembles the release bundle, and runs no test', () => {
+    assert.ok(compile, 'Android tests has a compile-tests step');
+    assert.match(compile, /^ {8}if: github\.event_name == 'push'$/m);
+    assert.equal(androidTests.filter((step) => step.includes('compile-tests')).length, 1);
+    // Still no test suite on a push: the verify steps skip it, and compile-tests is no suite.
+    for (const step of androidTests.filter((s) => s.includes('scripts/android.sh verify'))) {
+      assert.match(step, new RegExp(`^ {8}if: ${NOT_PUSH}`, 'm'));
+    }
+    // It comes after the SDK is installed (either setup step) and the Gradle cache is restored, and before the report upload.
+    const sdk = androidTests.filter((step) => /run: scripts\/android\.sh setup/.test(step));
+    assert.equal(sdk.length, 2);
+    for (const step of sdk) assert.ok(index(step) < index(compile));
+    assert.ok(
+      index(compile) < index(androidTests.find((step) => step.includes('Upload Android reports'))),
+    );
+  });
+
+  it('AC2: the compile step cannot fail the push run: continue-on-error, and a step timeout below the job timeout', () => {
+    assert.match(
+      compile,
+      new RegExp(`^ {8}continue-on-error: ${PUSH_CONTINUES.replace(/[{}$|]/g, '\\$&')}$`, 'm'),
+    );
+    const minutes = Number(compile.match(/^ {8}timeout-minutes: (\d+)$/m)?.[1]);
+    const job = Number(jobs['android-tests'].match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+    assert.ok(
+      minutes > 0 && minutes <= job - 2,
+      `${minutes} leaves room for the cache save in ${job}`,
+    );
+    assert.match(
+      jobs['android-tests'],
+      new RegExp(`^ {4}continue-on-error: ${PUSH_CONTINUES.replace(/[{}$|]/g, '\\$&')}$`, 'm'),
+    );
+  });
+
+  it("AC3: a PR's Android tests restores the cache the push saves: the same job, setup-gradle before the compile step, no override of its cache mode", () => {
+    const gradle = androidTests.find((step) => step.includes('gradle/actions/setup-gradle@'));
+    assert.ok(gradle && index(gradle) < index(compile));
+    // The action writes the cache on the default branch only and reads it everywhere else; nothing here changes that.
+    assert.doesNotMatch(
+      gradle,
+      /cache-(read-only|write-only|disabled|overwrite-existing|key|encryption)/,
+    );
+    assert.doesNotMatch(compile, /GRADLE_|--no-build-cache|--offline/);
+  });
+
+  it('AC4: a PR, a merge group and workflow_dispatch run as before: the verify steps and their conditions are unchanged', () => {
+    const verifyUi = androidTests.find((step) => step.includes('run: scripts/android.sh verify\n'));
+    const verifyNoUi = androidTests.find((step) =>
+      step.includes('run: scripts/android.sh verify --no-ui'),
+    );
+    assert.match(
+      verifyUi,
+      /^ {8}if: github\.event_name != 'push' && needs\.changes\.outputs\.ui_tests == 'true'$/m,
+    );
+    assert.match(
+      verifyNoUi,
+      /^ {8}if: github\.event_name != 'push' && needs\.changes\.outputs\.ui_tests != 'true'$/m,
+    );
+    assert.match(verifyUi, /^ {8}timeout-minutes: 40$/m);
+    assert.match(verifyNoUi, /^ {8}timeout-minutes: 40$/m);
+  });
+
+  it('AC4: WORKFLOW.md §7 lists the compile step and no longer lists the gap', () => {
+    const workflow = readFileSync(join(ROOT, 'docs/engineering/WORKFLOW.md'), 'utf8');
+    const section = workflow.slice(workflow.indexOf('## 7. CI and required checks'));
+    assert.match(section, /`scripts\/android\.sh compile-tests`/);
+    assert.match(section, /unit and instrumented test APKs/);
+    assert.match(section, /without running a test/);
+    assert.doesNotMatch(section, /lacks the dependencies of the test run/);
   });
 });
