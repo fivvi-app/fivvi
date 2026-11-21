@@ -101,7 +101,9 @@ final class TodayViewModel {
             state = .loaded
         }
         guard day != nil else {
+            // The error state has its own *Opnieuw*: an earlier failure's banner must not show a second one.
             state = .failed
+            updateFailed = false
             isOffline = error == .offline
             return
         }

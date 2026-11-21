@@ -106,7 +106,7 @@ struct PersonalDestination: View {
                         Button { Task { await model.load(retry: true) } } label: {
                             Text(language.catalog[.commonRetry]).frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.pill(.filled))
+                        .buttonStyle(.pill(.tonal))
                         .accessibilityIdentifier("personal.retry")
                     }
                 }

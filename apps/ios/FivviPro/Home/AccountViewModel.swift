@@ -96,9 +96,10 @@ final class AccountViewModel {
         try? await fetch()
     }
 
-    /// Asks again and answers the workspaces listed now (Vandaag's pull to refresh, F013 AC8).
+    /// Asks again and answers the workspaces listed now, or nil when the account could not be read (Vandaag's pull to
+    /// refresh, F013 AC8).
     func refreshedMemberships() async -> [PersonalCache.Workspace]? {
-        await refresh()
+        do { try await fetch() } catch { return nil }
         return memberships
     }
 

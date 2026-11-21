@@ -45,6 +45,27 @@ final class TodayRefreshTests: XCTestCase {
         XCTAssertNil(today.updatedAt)
     }
 
+    func test_F013_AC7_theErrorStateShowsOneRetryEvenAfterAnEarlierFailure() async {
+        let clock = MutableClock(PersonalFixtures.at("23:30"))
+        let api = served(PersonalFixtures.sarah())
+        let today = TodayViewModel(
+            api: api, catalog: Catalog(locale: language), store: MemoryPersonalStore(), now: { clock.now },
+            deviceTimeZone: SessionFixtures.amsterdam
+        )
+        await today.load()
+        api.myDay.fail(.status(500))
+        await today.load()
+        XCTAssertTrue(today.updateFailed, "the day on screen stays, with the banner")
+
+        // Offline after midnight with nothing kept for the new date: the error state has the one retry.
+        clock.now = PersonalFixtures.at("00:05", "2026-09-23")
+        api.myDay.fail(.offline)
+        await today.load()
+
+        XCTAssertEqual(today.state, .failed)
+        XCTAssertFalse(today.updateFailed, "the banner's retry is not shown next to the error state's")
+    }
+
     func test_F013_AC7_aDayKeptForTheNewDateIsShownInsteadOfTheEarlierOne() async {
         let store = MemoryPersonalStore()
         let clock = MutableClock(PersonalFixtures.now)
