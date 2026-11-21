@@ -1,10 +1,10 @@
-// Release: the production API over HTTPS (docs/engineering/ENVIRONMENTS.md, "Production address"; the bought domain
-// replaces the Railway domain later). Info.plist has no App Transport Security exception, and declares that the app
-// uses no non-exempt encryption (HTTPS through the OS only, E017 AC1). `pnpm test:ios` fails on an empty, plain-HTTP or
-// `.invalid` address. `//` starts a comment in an xcconfig, hence `$()`.
+// Release: the production API over HTTPS, on the custom domain (docs/engineering/ENVIRONMENTS.md, "Production address";
+// the Railway domain still answers, so builds installed before the switch keep working). Info.plist has no App Transport
+// Security exception, and declares that the app uses no non-exempt encryption (HTTPS through the OS only, E017 AC1).
+// `pnpm test:ios` fails on an empty, plain-HTTP or `.invalid` address. `//` starts a comment in an xcconfig, hence `$()`.
 #include "Simulator.xcconfig"
 INFOPLIST_FILE = Config/Info.plist
-FIVVI_API_BASE_URL = https:/$()/web-production-d3fe2.up.railway.app/api
+FIVVI_API_BASE_URL = https:/$()/fivvi.app/api
 
 // The version of both apps and the default build number (E017 AC4): apps/Version.xcconfig. A release run overrides
 // the build number with `xcodebuild CURRENT_PROJECT_VERSION=<n>`.
