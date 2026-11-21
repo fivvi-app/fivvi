@@ -683,7 +683,7 @@
       "summaryEmpty": "Geen sessies vandaag",
       "tab": "Vandaag",
       "title": "Vandaag",
-      "tomorrowHint": "Opent de agenda op morgen"
+      "tomorrowHint": "Opent de agenda"
     },
     "booked": "{booked}/{capacity} geboekt",
     "cancelled": "Geannuleerd",

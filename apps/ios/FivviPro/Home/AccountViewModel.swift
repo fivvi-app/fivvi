@@ -96,6 +96,12 @@ final class AccountViewModel {
         try? await fetch()
     }
 
+    /// Asks again and answers the workspaces listed now (Vandaag's pull to refresh, F013 AC8).
+    func refreshedMemberships() async -> [PersonalCache.Workspace]? {
+        await refresh()
+        return memberships
+    }
+
     private func fetch() async throws {
         // Told when the request goes out, so an answer to a read that began before a save can be dropped.
         let storedLocaleRead = onPreferredLocale()
@@ -127,19 +133,33 @@ final class AccountViewModel {
         await load()
     }
 
+    /// What reading a workspace for the personal scope came to.
+    enum WorkspaceLookup: Equatable {
+        case found(CurrentWorkspace)
+        /// The person is not on it (any more), or the API refused it.
+        case unavailable
+        /// The API couldn't be reached.
+        case offline
+    }
+
     /// The workspace `id` as the personal scope opens an item in it (F013): the current one, or another the person is on,
-    /// read from the API without changing the current one. Nil when the person is not on it (any more) or it can't be read.
-    func workspace(id: String) async -> CurrentWorkspace? {
-        if let current = workspaces.current, current.id == id { return current }
-        guard let member = listed.first(where: { $0.id == id }),
-              case let .ok(found) = try? await api.getWorkspace(.init(path: .init(workspaceId: id))),
-              let details = try? found.body.json
-        else { return nil }
-        return CurrentWorkspace(
-            id: id, name: member.name, defaultLocale: details.defaultLocale,
-            timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone,
-            teamMemberId: member.teamMemberId, trainerWord: details.trainerWord
-        )
+    /// read from the API without changing the current one. Not found when the person is not on it (any more) or it can't
+    /// be read; offline when the API couldn't be reached.
+    func workspace(id: String) async -> WorkspaceLookup {
+        if let current = workspaces.current, current.id == id { return .found(current) }
+        guard let member = listed.first(where: { $0.id == id }) else { return .unavailable }
+        do {
+            guard case let .ok(found) = try await api.getWorkspace(.init(path: .init(workspaceId: id))),
+                  let details = try? found.body.json
+            else { return .unavailable }
+            return .found(CurrentWorkspace(
+                id: id, name: member.name, defaultLocale: details.defaultLocale,
+                timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone,
+                teamMemberId: member.teamMemberId, trainerWord: details.trainerWord
+            ))
+        } catch {
+            return ClientRequestError(thrown: error) == .offline ? .offline : .unavailable
+        }
     }
 
     /// The last workspace used on this phone decides (`StartWorkspace`), otherwise the first one the API lists (sorted by name); the first

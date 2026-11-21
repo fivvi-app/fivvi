@@ -80,7 +80,8 @@ enum PersonalFixtures {
         PersonalDay(
             date: day, timeZone: "Europe/Amsterdam", workspaceCount: 1, items: [], summary: .init(count: 0, done: 0),
             tomorrow: tomorrow ? .init(date: "2026-09-23", count: 3, firstStartsAt: at("07:00", "2026-09-23")) : nil,
-            nextSessionDate: nextSession, hasSessions: hasSessions
+            // As the API answers: with sessions tomorrow, tomorrow is also the date of the next one.
+            nextSessionDate: nextSession ?? (tomorrow ? "2026-09-23" : nil), hasSessions: hasSessions
         )
     }
 }

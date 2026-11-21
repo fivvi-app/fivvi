@@ -8205,13 +8205,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opens the calendar on tomorrow"
+            "value" : "Opens the calendar"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opent de agenda op morgen"
+            "value" : "Opent de agenda"
           }
         }
       }

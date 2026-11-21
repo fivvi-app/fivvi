@@ -483,7 +483,7 @@
     <string name="my_day_app_summary_empty">No sessions today</string>
     <string name="my_day_app_tab">Today</string>
     <string name="my_day_app_title">Today</string>
-    <string name="my_day_app_tomorrow_hint">Opens the calendar on tomorrow</string>
+    <string name="my_day_app_tomorrow_hint">Opens the calendar</string>
     <string name="my_day_booked">%1$s/%2$s booked</string>
     <string name="my_day_cancelled">Cancelled</string>
     <string name="my_day_empty_never">You don\'t have any sessions yet. You\'ll see them here as soon as you\'re scheduled.</string>

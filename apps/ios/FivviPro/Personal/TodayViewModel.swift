@@ -33,10 +33,13 @@ final class TodayViewModel {
     private let cache: PersonalCache
     private let clock: () -> Date
     private let deviceTimeZone: TimeZone
+    /// Reads `GET /api/v1/me` again and answers the workspaces it lists, or nil when that failed.
+    private let refreshAccount: @MainActor () async -> [PersonalCache.Workspace]?
 
     init(
         api: any APIProtocol, catalog: Catalog, store: any PersonalStore, now: @escaping () -> Date = Date.init,
-        deviceTimeZone: TimeZone = .current
+        deviceTimeZone: TimeZone = .autoupdatingCurrent,
+        refreshAccount: @escaping @MainActor () async -> [PersonalCache.Workspace]? = { nil }
     ) {
         self.api = api
         self.catalog = catalog
@@ -44,6 +47,7 @@ final class TodayViewModel {
         clock = now
         self.now = now()
         self.deviceTimeZone = deviceTimeZone
+        self.refreshAccount = refreshAccount
     }
 
     /// The time now on the model's clock, for the countdown on the next card.
@@ -56,6 +60,14 @@ final class TodayViewModel {
     }
 
     // MARK: Loading
+
+    /// Pull to refresh and *Opnieuw*: the account is read again too (a workspace the person lost shows its notice) and
+    /// so is the day.
+    func refresh() async {
+        async let listed = refreshAccount()
+        await load()
+        if let listed = await listed { workspacesListed(listed) }
+    }
 
     /// Reads today again (opening, foreground, pull to refresh, the OS's time-change signals, *Opnieuw*).
     func load() async {
@@ -78,6 +90,11 @@ final class TodayViewModel {
 
     private func failed(_ error: ClientRequestError, date: String) {
         if error == .cancelled { return }
+        if let shown = day, shown.date != date {
+            // Offline across midnight, or reopened the next morning: yesterday's day is not today's.
+            day = nil
+            updatedAt = nil
+        }
         if day == nil, let kept = cache.day, kept.day.date == date {
             day = kept.day
             updatedAt = kept.savedAt
@@ -195,7 +212,8 @@ final class TodayViewModel {
     /// The empty day's text: *Geen sessies vandaag.*, with the date of the next session, or that there are none at all.
     var emptyText: String? {
         guard let day, items.isEmpty else { return nil }
-        if let next = day.nextSessionDate, let text = format.day(localDate: next) {
+        // The API also sends `nextSessionDate` when tomorrow has sessions: the *Morgen* line says it then.
+        if day.tomorrow == nil, let next = day.nextSessionDate, let text = format.day(localDate: next) {
             return catalog.string(.todayEmptyNext, text)
         }
         return catalog[day.hasSessions ? .todayEmptyToday : .todayEmptyNever]

@@ -12,14 +12,6 @@ struct PersonalRowView: View {
     let onOpen: () -> Void
     @Environment(\.openURL) private var openURL
 
-    static func workspaceColour(_ id: String) -> Color {
-        let palette = [
-            Tokens.Colors.workspaceIndigo, Tokens.Colors.workspaceCyan, Tokens.Colors.workspaceGold,
-            Tokens.Colors.workspaceLime, Tokens.Colors.workspaceBrown, Tokens.Colors.workspaceSlate
-        ]
-        return palette[id.utf8.reduce(0) { ($0 &+ Int($1)) % palette.count }]
-    }
-
     var body: some View {
         HStack(spacing: 0) {
             Button(action: onOpen) {
@@ -72,7 +64,7 @@ struct PersonalRowView: View {
             if let location = row.location { secondary(location) }
             if let workspace = row.workspaceLabel {
                 HStack(spacing: Tokens.Spacing.space1) {
-                    Circle().fill(Self.workspaceColour(row.workspaceID)).frame(width: 8, height: 8)
+                    Circle().fill(Tokens.workspaceColor(for: row.workspaceID)).frame(width: 8, height: 8)
                     secondary(workspace)
                 }
             }

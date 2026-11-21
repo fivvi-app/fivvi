@@ -58,14 +58,16 @@ struct HomeView: View {
         onSignedOut: @escaping (Bool) -> Void,
         personal: any PersonalStore = FilePersonalStore.shared
     ) {
-        _today = State(initialValue: TodayViewModel(
-            api: api, catalog: language.catalog, store: personal, now: UITestClock.provider()
-        ))
-        _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
-        _account = State(initialValue: AccountViewModel(
+        let account = AccountViewModel(
             api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
             onPreferredLocale: { language.startRead() }, workspaces: .persistent()
+        )
+        _today = State(initialValue: TodayViewModel(
+            api: api, catalog: language.catalog, store: personal, now: UITestClock.provider(),
+            refreshAccount: { [account] in await account.refreshedMemberships() }
         ))
+        _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
+        _account = State(initialValue: account)
         self.api = api
         self.language = language
         self.welcomeURL = welcomeURL

@@ -529,7 +529,7 @@
     <!-- Label of the first tab of Fivvi Pro: the trainer's day across workspaces. -->
     <string name="my_day_app_tab">Vandaag</string>
     <string name="my_day_app_title">Vandaag</string>
-    <string name="my_day_app_tomorrow_hint">Opent de agenda op morgen</string>
+    <string name="my_day_app_tomorrow_hint">Opent de agenda</string>
     <string name="my_day_booked">%1$s/%2$s geboekt</string>
     <string name="my_day_cancelled">Geannuleerd</string>
     <string name="my_day_empty_never">Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland.</string>

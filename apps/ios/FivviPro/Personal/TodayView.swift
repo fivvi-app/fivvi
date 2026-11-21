@@ -31,7 +31,7 @@ struct TodayView: View {
                 loaded
             }
         }
-        .refreshable { await model.load() }
+        .refreshable { await model.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             Task { await model.load() }
         }
@@ -58,9 +58,11 @@ struct TodayView: View {
                 StatusMessage(text: text, kind: .error, id: "today.failed")
             }
             PillButtonStack {
-                Button { Task { await model.load() } } label: { Text(catalog[.todayRetry]).frame(maxWidth: .infinity) }
-                    .buttonStyle(.pill(.tonal))
-                    .accessibilityIdentifier("today.retry")
+                Button { Task { await model.refresh() } } label: {
+                    Text(catalog[.todayRetry]).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.pill(.tonal))
+                .accessibilityIdentifier("today.retry")
             }
         }
     }

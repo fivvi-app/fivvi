@@ -683,7 +683,7 @@
       "summaryEmpty": "No sessions today",
       "tab": "Today",
       "title": "Today",
-      "tomorrowHint": "Opens the calendar on tomorrow"
+      "tomorrowHint": "Opens the calendar"
     },
     "booked": "{booked}/{capacity} booked",
     "cancelled": "Cancelled",
