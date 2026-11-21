@@ -27,9 +27,9 @@ extension HomeView {
         NavigationStack {
             NewGroupClassView(
                 model: form, language: language,
-                onSaved: { date in
+                onSaved: { date, datesAdded in
                     newClass = nil
-                    path.append(.classDate(date.id, added: true))
+                    path.append(.classDate(date.id, added: datesAdded))
                 },
                 onCancel: { newClass = nil }
             )
@@ -38,7 +38,7 @@ extension HomeView {
     }
 
     /// TD-03 for the class date `id`.
-    @ViewBuilder func classDateScreen(_ id: String, added: Bool) -> some View {
+    @ViewBuilder func classDateScreen(_ id: String, added: Int?) -> some View {
         if let workspace = account.workspace, case .loaded = account.state {
             ClassDateScreen(
                 api: api, workspace: workspace, sessionID: id, added: added, language: language,
@@ -55,12 +55,12 @@ struct ClassDateScreen: View {
     let language: AppLanguage
 
     init(
-        api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, added: Bool, language: AppLanguage,
+        api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, added: Int?, language: AppLanguage,
         capabilities: WorkspaceCapabilities
     ) {
         _model = State(initialValue: ClassDateViewModel(
             api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog,
-            canManage: capabilities.allows(.class_manage), justAdded: added,
+            canManage: capabilities.allows(.class_manage), added: added,
             onForbidden: { await capabilities.forbidden($0) }
         ))
         self.language = language

@@ -108,6 +108,7 @@ final class ClassUITests: PrivateSessionUITestCase {
             trainer.label, String(format: catalog["classes.trainerNeeded"], word), "Trainer nodig / Trainer needed"
         )
         XCTAssertEqual(app.staticTexts["classDate.title"].label, english ? "Strength" : "Kracht")
+        XCTAssertFalse(app.staticTexts["classDate.series"].exists, "a date on its own has no series line")
         XCTAssertTrue(app.staticTexts["classDate.booked"].label.hasPrefix("0/8"))
         XCTAssertEqual(app.staticTexts["classDate.noBookings"].label, catalog["classes.date.noBookings"])
         XCTAssertEqual(app.staticTexts["classDate.location"].label, "John's Gym")
@@ -151,5 +152,84 @@ final class ClassUITests: PrivateSessionUITestCase {
         let note = app.buttons["home.newGroupClassNote"]
         XCTAssertTrue(note.waitUntilExists(timeout: timeout), "the footnote shows")
         XCTAssertEqual(note.label, String(format: catalog["workspaceNav.newGroupClassNote"], "John's Gym"))
+    }
+
+    // MARK: Herhalen (F022, #455)
+
+    /// *Herhalen* → *Elke week op {weekday}*: the weekly option of the picker.
+    private func chooseWeekly(_ app: XCUIApplication) {
+        let picker = any("newClass.repeat", in: app)
+        XCTAssertTrue(picker.waitUntilExists(timeout: timeout), requestLog)
+        picker.tap()
+        let beginning = catalog["classes.schedule.repeatWeekly"].components(separatedBy: "%1$@").first ?? ""
+        let weekly = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", beginning)).firstMatch
+        XCTAssertTrue(weekly.waitUntilExists(timeout: timeout), requestLog)
+        weekly.tap()
+    }
+
+    /// The weekday of a local date `YYYY-MM-DD` as the app's language writes it.
+    private func weekdayName(of localDate: String) -> String {
+        let parser = DateFormatter()
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.timeZone = TimeZone(identifier: StubSessionRoutes.zone)
+        parser.dateFormat = "yyyy-MM-dd HH:mm"
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: TestCatalog.configuredLanguage)
+        formatter.timeZone = TimeZone(identifier: StubSessionRoutes.zone)
+        formatter.setLocalizedDateFormatFromTemplate("EEEE")
+        return formatter.string(from: parser.date(from: "\(localDate) 12:00") ?? Date())
+    }
+
+    func test_F022_AC6_ownerAddsAWeeklyMobilityAndTD03ShowsTwelveAddedAndTheSeriesLine() throws {
+        let (screen, server) = try launch(owner: true)
+        let app = screen.app
+        openNewClass(app)
+        XCTAssertFalse(app.staticTexts["newClass.repeatNote"].exists, "the note shows with the weekly choice only")
+        type("Mobility", into: "newClass.nameNl", app)
+        chooseWeekly(app)
+        let note = app.staticTexts["newClass.repeatNote"]
+        XCTAssertTrue(note.waitUntilExists(timeout: timeout), requestLog)
+        XCTAssertEqual(note.label, catalog["classes.schedule.repeatNote"], "12 weken in de agenda")
+        app.buttons["newClass.save"].tap()
+
+        let title = app.staticTexts["classDate.title"]
+        XCTAssertTrue(title.waitUntilExists(timeout: timeout), requestLog)
+        XCTAssertEqual(title.label, "Mobility")
+        let added = app.staticTexts["classDate.added"]
+        XCTAssertTrue(added.waitUntilExists(timeout: timeout))
+        let twelve = String(format: catalog["classes.schedule.savedSeries"], 12)
+        XCTAssertEqual(added.label, twelve, "12 groepslessen toegevoegd")
+        let sent = try XCTUnwrap(server.createdGroupClasses.first)
+        XCTAssertEqual(sent["firstDate.repeat"], "weekly")
+        XCTAssertEqual(server.createdGroupClasses.count, 1, "one request makes the class and its series")
+        let localDate = try XCTUnwrap(sent["firstDate.localDate"])
+        let localStart = try XCTUnwrap(sent["firstDate.localStart"])
+        let series = app.staticTexts["classDate.series"]
+        XCTAssertTrue(series.waitUntilExists(timeout: timeout), requestLog)
+        XCTAssertEqual(
+            series.label,
+            String(format: catalog["classes.date.seriesLine"], "Mobility", localStart, weekdayName(of: localDate)),
+            "Onderdeel van: Mobility, elke {weekday} {time}"
+        )
+    }
+
+    func test_F022_AC7_aWeeklyStartTheClocksSkipShowsTheDSTMessageWithTheDateAndNothingIsCreated() throws {
+        let (screen, server) = try launch(owner: true)
+        let app = screen.app
+        openNewClass(app)
+        type("Mobility", into: "newClass.nameNl", app)
+        chooseWeekly(app)
+        server.refuseNextSessionStart()
+        app.buttons["newClass.save"].tap()
+
+        let error = app.staticTexts["newClass.timeError"]
+        XCTAssertTrue(error.waitUntilExists(timeout: timeout), requestLog)
+        let parts = catalog["classes.schedule.errors.timeDoesNotExist"].components(separatedBy: "%1$@")
+        XCTAssertTrue(error.label.hasPrefix(parts.first ?? ""), error.label)
+        XCTAssertTrue(error.label.hasSuffix(parts.last ?? ""), error.label)
+        XCTAssertTrue(error.label.contains("28"), "the date the API named, 28 March: \(error.label)")
+        XCTAssertFalse(app.staticTexts["classDate.title"].exists, "nothing was created")
+        XCTAssertEqual(server.createdGroupClasses.count, 1)
+        XCTAssertTrue(app.staticTexts["newClass.title"].exists, "the form stays as it was")
     }
 }

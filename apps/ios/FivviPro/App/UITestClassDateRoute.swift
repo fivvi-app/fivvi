@@ -24,7 +24,7 @@ extension View {
             content.onChange(of: ready, initial: true) { _, ready in
                 guard ready, !opened, let id = UserDefaults.standard.string(forKey: Self.key) else { return }
                 opened = true
-                path.append(.classDate(id, added: false))
+                path.append(.classDate(id, added: nil))
             }
         }
     }

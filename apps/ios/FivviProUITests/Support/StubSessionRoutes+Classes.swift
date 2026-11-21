@@ -3,11 +3,16 @@ import Foundation
 /// The group class routes of the stub server (F021), over the sessions of `StubSessionRoutes`: `POST …/group-classes`
 /// (the apps' quick create, a class with its first date in one request) and `GET …/group-classes/{id}`. A refused text,
 /// capacity or length answers `400` naming the field as the API does, a trainer who isn't in the workspace `404`, a first
-/// date over the trainer's other scheduled session `409` `trainer_conflict` unless `allowConflicts` is `true`.
+/// date over the trainer's other scheduled session `409` `trainer_conflict` unless `allowConflicts` is `true`. A first
+/// date with `repeat: weekly` (F022) makes 12 dates on the same weekday and wall-clock time, each with its series, and
+/// answers `datesAdded: 12`; with `refuseNextStart` it is refused as the API refuses a weekly start the clocks skip on
+/// one of its dates: `400` on `firstDate.localStart`, `time_does_not_exist`, with that date (`skippedDate`).
 extension StubSessionRoutes {
     /// The class date every launch starts with: *Kracht* (English *Strength*), tomorrow at 18:00, no trainer.
     static let seededClassDateID = "8a0b1c2e-8a54-4b51-9a42-000000000002"
     static let seededClassID = "9c0b1c2e-8a54-4b51-9a42-000000000001"
+    /// The date the stub names when a weekly class's start is skipped: Sunday 28 March 2027, 02:30 does not exist.
+    static let skippedDate = "2027-03-28"
     /// The description of the seeded class, long enough to be cut to a few lines, in Dutch and in English.
     static let seededDescriptionNl = "Een uur kracht voor het hele lichaam, met halters, kettlebells en je eigen "
         + "lichaamsgewicht. We werken aan benen, rug, borst en schouders, en sluiten af met een rustige cooling-down "
@@ -83,7 +88,15 @@ extension StubSessionRoutes {
         let first = body["firstDate"] as? [String: Any]
         flat["firstDate.localDate"] = first?["localDate"].map(Self.text)
         flat["firstDate.localStart"] = first?["localStart"].map(Self.text)
+        flat["firstDate.repeat"] = first?["repeat"].map(Self.text)
         createdClasses.append(flat)
+        let weekly = first?["repeat"] as? String == "weekly"
+        if weekly, refusesStart {
+            refusesStart = false
+            return (400, ["code": "validation_failed", "issues": [[
+                "path": "firstDate.localStart", "code": "time_does_not_exist", "date": Self.skippedDate
+            ]]])
+        }
         if let refusal = refusal(of: body) { return refusal }
         guard isOwner else { return (403, ["code": "forbidden"]) }
         let trainerID = body["trainerId"] as? String
@@ -96,15 +109,41 @@ extension StubSessionRoutes {
         if let clash = clash(of: body, trainerID: trainerID, start: start, minutes: minutes) { return clash }
         let made = makeClass(from: body)
         classes.append(made)
-        let date = groupSession(
-            id: String(format: "8a0b1c2e-8a54-4b51-9a42-%012d", nextNumber), groupClass: made,
-            when: DateInterval(start: start, duration: TimeInterval(minutes * 60)),
-            capacity: body["capacity"] as? Int ?? 1,
-            trainer: trainer.map { ($0["id"] as? String ?? "", $0["name"] as? String ?? "") }
-        )
-        nextNumber += 1
-        sessions.append(date)
-        return (201, ["groupClass": made, "firstDate": date])
+        let dates = (0..<(weekly ? 12 : 1)).compactMap { week -> [String: Any]? in
+            guard let when = Calendar.gregorianAmsterdam.date(byAdding: .weekOfYear, value: week, to: start) else {
+                return nil
+            }
+            var date = groupSession(
+                id: String(format: "8a0b1c2e-8a54-4b51-9a42-%012d", nextNumber), groupClass: made,
+                when: DateInterval(start: when, duration: TimeInterval(minutes * 60)),
+                capacity: body["capacity"] as? Int ?? 1,
+                trainer: trainer.map { ($0["id"] as? String ?? "", $0["name"] as? String ?? "") }
+            )
+            if weekly { date["series"] = series(of: start, occurrence: when) }
+            nextNumber += 1
+            sessions.append(date)
+            return date
+        }
+        var answer: [String: Any] = ["groupClass": made, "firstDate": dates.first ?? NSNull()]
+        if weekly { answer["datesAdded"] = dates.count }
+        return (201, answer)
+    }
+
+    /// The weekly series of a date: its weekday and wall-clock start, as the API writes them.
+    private func series(of start: Date, occurrence: Date) -> [String: Any] {
+        let calendar = Calendar.gregorianAmsterdam
+        let codes = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]
+        let parts = calendar.dateComponents([.hour, .minute], from: start)
+        let day = DateFormatter()
+        day.locale = Locale(identifier: "en_US_POSIX")
+        day.timeZone = calendar.timeZone
+        day.dateFormat = "yyyy-MM-dd"
+        return [
+            "id": "5e1c2d3e-0000-4000-8000-000000000001",
+            "weekday": codes[calendar.component(.weekday, from: start) - 1],
+            "localStartTime": String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0),
+            "occurrenceDate": day.string(from: occurrence), "changedFields": [String]()
+        ]
     }
 
     /// `409` `trainer_conflict` when the trainer has something then and the request doesn't allow it.

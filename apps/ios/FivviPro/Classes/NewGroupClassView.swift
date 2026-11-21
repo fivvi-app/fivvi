@@ -9,12 +9,12 @@ import FivviUI
 /// bar and a form in titled sections, as the owner asked (6 November 2026): *Naam en omschrijving* (the names and
 /// descriptions in Dutch and English, each on a line of its own and as wide as the screen), *De les* (the trainer or
 /// *Trainer nodig*, the capacity and the location) and *Wanneer* (the date, the start, the end and *Herhalen: Niet
-/// herhalen*). Leaving with something entered asks first. Without a connection the form says so and *Opslaan* is off.
+/// herhalen* or *Elke week op {weekday}*, F022, with the note that the next 12 weeks go in the calendar). Leaving with something entered asks first. Without a connection the form says so and *Opslaan* is off.
 struct NewGroupClassView: View {
     @Bindable var model: NewGroupClassViewModel
     let language: AppLanguage
-    /// The API created the class and its date.
-    let onSaved: (Components.Schemas.Session) -> Void
+    /// The API created the class and its first date; the second value is how many dates it added (12 for a weekly class).
+    let onSaved: (Components.Schemas.Session, Int) -> Void
     let onCancel: () -> Void
     @State private var confirmingDiscard = false
 
@@ -77,7 +77,7 @@ struct NewGroupClassView: View {
     }
 
     private func save(allowConflicts: Bool = false) async {
-        if let date = await model.save(allowConflicts: allowConflicts) { onSaved(date) }
+        if let date = await model.save(allowConflicts: allowConflicts) { onSaved(date, model.datesAdded) }
     }
 
     @ViewBuilder private var saveButton: some View {
@@ -226,16 +226,37 @@ struct NewGroupClassView: View {
                 )
                 .accessibilityIdentifier("newClass.end")
                 if let error = model.endErrorText { errorLine(error, id: "newClass.endError") }
-                if let error = model.time.refusalText { errorLine(error, id: "newClass.timeError") }
+                if let error = model.timeRefusalText { errorLine(error, id: "newClass.timeError") }
             }
             .insetRowLayout()
-            LabeledContent(model.repeatLabel) {
-                Text(model.repeatText)
-            }
-            .insetRowLayout()
-            .accessibilityIdentifier("newClass.repeat")
+            repeatRow
         }
         .onChange(of: model.time.start) { model.time.clearRefusal() }
+    }
+
+    /// *Herhalen*: *Niet herhalen* or *Elke week op {weekday}*, with the note under it for the weekly choice.
+    private var repeatRow: some View {
+        VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
+            HStack {
+                Text(model.repeatLabel)
+                    .foregroundStyle(Tokens.Colors.textPrimary)
+                Spacer(minLength: Tokens.Spacing.space2)
+                Picker(model.repeatLabel, selection: $model.repeatsWeekly) {
+                    Text(model.repeatNoneText).tag(false)
+                    Text(model.repeatWeeklyText).tag(true)
+                }
+                .labelsHidden()
+                .accessibilityIdentifier("newClass.repeat")
+            }
+            if let note = model.repeatNoteText {
+                Text(note)
+                    .font(.system(Tokens.TextStyle.footnote))
+                    .foregroundStyle(Tokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("newClass.repeatNote")
+            }
+        }
+        .insetRowLayout()
     }
 
     private func errorLine(_ text: String, id: String) -> some View {

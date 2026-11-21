@@ -216,7 +216,7 @@ final class StubSessions: @unchecked Sendable {
     /// Puts a class date in the workspace, as `POST …/group-classes` does with a first date; returns it.
     func addGroupDate(
         of groupClass: Components.Schemas.GroupClass, start: Date, minutes: Int, capacity: Int,
-        trainer: Components.Schemas.SessionTrainer?
+        trainer: Components.Schemas.SessionTrainer?, series: Components.Schemas.SessionSeries? = nil
     ) -> Session {
         lock.withLock {
             defer { nextNumber += 1 }
@@ -225,7 +225,7 @@ final class StubSessions: @unchecked Sendable {
                 startsAt: start, endsAt: start.addingTimeInterval(TimeInterval(minutes * 60)), timeZone: timeZoneName,
                 capacity: capacity, version: 1, location: place, trainer: trainer,
                 groupClass: .init(id: groupClass.id, nameNl: groupClass.nameNl, nameEn: groupClass.nameEn),
-                participants: []
+                series: series, participants: []
             )
             stored.append(made)
             return made
