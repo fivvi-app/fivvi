@@ -94,6 +94,7 @@ describe('F066 plan a duo session', () => {
         sendEmail: createSendEmail({
           transport,
           sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+          replyTo: { email: 'support@example.com' },
           sleep: () => Promise.resolve(),
           random: () => 0,
         }),
@@ -254,12 +255,14 @@ describe('F066 plan a duo session', () => {
       locale: 'nl-NL',
       template: 'private-session',
       subject: 'Nieuwe afspraak: donderdag 24 september om 09:00',
+      replyTo: { email: 'support@example.com' },
     });
     expect(toLisa?.text).toContain('Samen met: Eva');
     expect(toEva).toMatchObject({
       locale: 'en',
       template: 'private-session',
       subject: 'New appointment: Thursday 24 September at 09:00',
+      replyTo: { email: 'support@example.com' },
     });
     expect(toEva?.text).toContain('Together with: Lisa');
     for (const [mail, other] of [
