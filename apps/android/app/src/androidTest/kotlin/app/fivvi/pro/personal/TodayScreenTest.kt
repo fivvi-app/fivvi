@@ -198,18 +198,8 @@ class TodayScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
 
         tag(TodayTags.CARD).assertIsDisplayed()
         tag(TodayTags.CARD_GAP).assertTextEquals(string(R.string.my_day_app_free_gap, "12:00", "13:30"))
-        val hours = TodayContent.hours(
-            1.5,
-            Locale.forLanguageTag(
-                if (language ==
-                    AppLanguage.DUTCH
-                ) {
-                    "nl-NL"
-                } else {
-                    "en-GB"
-                },
-            ),
-        )
+        val locale = Locale.forLanguageTag(if (language == AppLanguage.DUTCH) "nl-NL" else "en-GB")
+        val hours = TodayContent.hours(1.5, locale)
         texts(string(R.string.my_day_app_free_gap_length, hours)).assertCountEquals(1)
         tag(TodayTags.CARD_ROUTE).assertIsDisplayed()
         texts("TrainMore Zuid → John's Gym").assertCountEquals(1)

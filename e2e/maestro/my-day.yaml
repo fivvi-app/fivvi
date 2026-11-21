@@ -2,12 +2,13 @@
 # Trainer of John's Gym, which opens first, and the Owner of Sarah Personal Training) plans a session with Anna from + (the
 # form's own first start is the next full hour, so no clock is read), reopens the app, which opens on its first tab, Vandaag,
 # with the large title and the day of the personal scope (AC1), and then turns the current workspace to Sarah Personal Training
-# in Profiel. The next item on Vandaag is one of John's Gym (Sarah has nothing else today): it opens in its own workspace,
-# John's Gym, while the current one stays Sarah Personal Training (AC4). The sign-in is the shared sub-flow, which ends on the
+# in Profiel. The next item on Vandaag is the first item of the day that has not ended: the planned session, or the weekly
+# class "Kracht" (John's Gym, Tue and Thu 18:00-19:00) while it is in progress. Either opens in its own workspace, John's
+# Gym, while the current one stays Sarah Personal Training (AC4). The sign-in is the shared sub-flow, which ends on the
 # home tab. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on both apps
 # (tab.*, today.*, home.*, newSession.*, session.*). Texts differ by language, so the flow checks what both languages share
 # (the workspace's name) and the ids. The two platform tickets (iOS #524, Android #525) run this one flow. Past 23:00 the
-# planned session is tomorrow's, so Vandaag has no item to open: the flow then ends after AC1 (the day is empty).
+# planned session is tomorrow's, so Vandaag may have no item to open: the flow then ends after AC1.
 appId: ${APP_ID}
 name: AC1 AC4 Vandaag shows the day across workspaces and opens an item in its own workspace
 env:
@@ -112,10 +113,11 @@ env:
     visible:
       id: today\.title
     timeout: 20000
-# Past 23:00 in Amsterdam the planned session is tomorrow's and Vandaag has no item to open, so AC4 is skipped then, and only
-# then: the host's UTC hour, 21 or later, is that time in summer and a little early in winter (the clock the flow reads is
-# the host's, which the emulator's time follows). Before that the planned session is today's next item, so each check below
-# fails the flow when it doesn't hold, and none of them is a branch that can pass by not looking.
+# Past 23:00 in Amsterdam the planned session is tomorrow's and Vandaag may have no item to open, so AC4 is skipped then, and
+# only then: the host's UTC hour, 21 or later, is that time in summer and a little early in winter (the clock the flow reads
+# is the host's, which the emulator's time follows). Before that Vandaag has an item to open, the planned session or the class
+# in progress, so each check below fails the flow when it doesn't hold, and none of them is a branch that can pass by not
+# looking.
 - evalScript: ${output.lateInTheDay = new Date().getUTCHours() >= 21}
 - runFlow:
     when:
@@ -127,14 +129,20 @@ env:
           timeout: 20000
       - tapOn:
           id: today\.next\.open
-      # TD-02 of the item, in its own workspace: John's Gym, not the current Sarah Personal Training.
+      # The item in its own workspace, not the current Sarah Personal Training: TD-02 of the planned session, which names
+      # John's Gym, or TD-03 of the class in progress, which opens only in the workspace of the class (John's Gym).
       - extendedWaitUntil:
           visible:
-            id: session\.title
+            id: (session\.title|classDate\.title)
           timeout: 20000
-      - assertVisible:
-          id: session\.workspace
-          text: John's Gym
+      - runFlow:
+          when:
+            visible:
+              id: session\.title
+          commands:
+            - assertVisible:
+                id: session\.workspace
+                text: John's Gym
       # Reopened (the back button of a pushed screen has no id the two apps share): the current workspace is the one chosen.
       - launchApp
       - extendedWaitUntil:
