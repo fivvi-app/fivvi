@@ -1,0 +1,2 @@
+ALTER TABLE "sessions" DROP CONSTRAINT "sessions_private_has_capacity_one";--> statement-breakpoint
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_private_has_capacity_one_or_two" CHECK ("sessions"."type" <> 'private' OR "sessions"."capacity" IN (1, 2));

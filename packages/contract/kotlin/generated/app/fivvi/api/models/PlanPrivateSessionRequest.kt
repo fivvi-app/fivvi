@@ -29,13 +29,14 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * A private session to plan: one client, one trainer, a local date, start and length.
+ * A private session to plan: one client, or two for a duo, one trainer, a local date, start and length.
  *
  * @param clientId The client of the workspace the session is for.
  * @param localDate The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
  * @param localStart The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
  * @param durationMinutes The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
- * @param notify Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says.
+ * @param notify Whether to email the client the confirmation (EM-11), each client of a duo their own. Not sent for a session that starts in the past, whatever this says.
+ * @param secondClientId The second client of a duo session (F066): another client of the workspace, never the same as `clientId` (`400` on `secondClientId` with the code `same_client`). Leave it out for a one-client session. The session is stored once, as a private session with two participants and a capacity of 2, and each client gets EM-11 in their own language, naming the other by first name only.
  * @param trainerId The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
  * @param allowConflicts Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
  * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -60,9 +61,13 @@ data class PlanPrivateSessionRequest (
     @SerialName(value = "durationMinutes")
     val durationMinutes: kotlin.Int,
 
-    /* Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says. */
+    /* Whether to email the client the confirmation (EM-11), each client of a duo their own. Not sent for a session that starts in the past, whatever this says. */
     @SerialName(value = "notify")
     val notify: kotlin.Boolean,
+
+    /* The second client of a duo session (F066): another client of the workspace, never the same as `clientId` (`400` on `secondClientId` with the code `same_client`). Leave it out for a one-client session. The session is stored once, as a private session with two participants and a capacity of 2, and each client gets EM-11 in their own language, naming the other by first name only. */
+    @Contextual @SerialName(value = "secondClientId")
+    val secondClientId: java.util.UUID? = null,
 
     /* The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise). */
     @Contextual @SerialName(value = "trainerId")

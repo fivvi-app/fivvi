@@ -29,6 +29,7 @@ export function createPrivateSessionSender({
         : null,
       trainerName: mail.trainerName,
       trainerWord: mail.trainerWord,
+      togetherWith: mail.togetherWith ?? null,
     };
     const delivery = {
       to: mail.to,

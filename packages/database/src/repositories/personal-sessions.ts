@@ -69,7 +69,16 @@ export interface PersonalSessionRow {
   /** The places taken: participants whose place is not cancelled. */
   readonly booked: number;
   readonly location: LocationView;
-  /** The client of a private session; `null` for any other kind (a class names no client). */
+  /**
+   * The clients of a private session, in the order they were added: the ones whose place is not
+   * cancelled (a duo has two, F066), else all of them (a cancelled session keeps its names). Empty
+   * for any other kind (a class names no client).
+   */
+  readonly clients: readonly { readonly clientId: string; readonly name: string }[];
+  /**
+   * The names of `clients` joined with ` & ` (*Lisa & Eva*, F066); `null` without any: a class
+   * names no client.
+   */
   readonly clientName: string | null;
   /**
    * The names of the class of a group session (F021), `null` for any other kind: the Dutch name
@@ -155,6 +164,7 @@ export async function listMySessions(
   const participants = await db
     .select({
       sessionId: sessionParticipants.sessionId,
+      clientId: clients.id,
       clientName: clients.name,
       attendanceStatus: sessionParticipants.attendanceStatus,
     })
@@ -178,11 +188,15 @@ export async function listMySessions(
     .orderBy(asc(sessionParticipants.createdAt), asc(sessionParticipants.id));
   return rows.map(({ location, ...row }) => {
     const places = participants.filter((place) => place.sessionId === row.id);
+    const active = places.filter((place) => place.attendanceStatus !== 'cancelled');
+    // A duo that lost one client reads as the one-client session it has become (F066, AC7).
+    const shown = row.type === 'private' ? (active.length > 0 ? active : places) : [];
     return {
       ...row,
-      booked: places.filter((place) => place.attendanceStatus !== 'cancelled').length,
+      booked: active.length,
       location: toLocationView(location),
-      clientName: row.type === 'private' ? (places[0]?.clientName ?? null) : null,
+      clients: shown.map((place) => ({ clientId: place.clientId, name: place.clientName })),
+      clientName: shown.length > 0 ? shown.map((place) => place.clientName).join(' & ') : null,
     };
   });
 }
