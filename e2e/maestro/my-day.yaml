@@ -143,6 +143,22 @@ env:
             - assertVisible:
                 id: session\.workspace
                 text: John's Gym
+      # TD-03 shows its title also while loading, after a failed load and without permission, so the title alone proves
+      # nothing: the booked line exists only once the class is loaded (in the workspace of the class, John's Gym), and
+      # neither the error nor the no-permission message may show.
+      - runFlow:
+          when:
+            visible:
+              id: classDate\.title
+          commands:
+            - extendedWaitUntil:
+                visible:
+                  id: classDate\.booked
+                timeout: 20000
+            - assertNotVisible:
+                id: classDate\.error
+            - assertNotVisible:
+                id: classDate\.noPermission
       # Reopened (the back button of a pushed screen has no id the two apps share): the current workspace is the one chosen.
       - launchApp
       - extendedWaitUntil:
