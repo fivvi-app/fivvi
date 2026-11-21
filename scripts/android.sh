@@ -20,6 +20,9 @@
 #                         --no-ui (ADR-034; CI's Android tests job passes it while .github/pipeline.json says `ci: fast`, the
 #                         nightly run and `ci: full` run without it): the unit tests and the signed bundle only, no
 #                         emulator is booted and no Compose UI test runs, so the job needs no KVM and no AVD
+#   android.sh compile-tests  compile the unit and the instrumented test APKs of every module and assemble the release bundle,
+#                         without running a test and without the emulator (CI's Android tests job on a push to main: a push
+#                         runs no test suite, so this fills main's Gradle cache with the dependencies of verify; E002 #1370)
 #   android.sh quarantine  the Android tests of quarantine/compose.txt only (unit tests and Compose UI tests; the Quarantine
 #                         job of CI), with FIVVI_QUARANTINE=only; does nothing while the list is empty. test, build... and
 #                         verify leave the listed tests out (E002 #1363, TESTING.md §8)
@@ -278,6 +281,17 @@ cmd_verify() {
   after_unit_tests ${UI_ARG:+"$UI_ARG"}
 }
 
+# What verify compiles and builds, without running any of it: the unit test classes and the instrumented test APKs of every
+# module that has them (the Compose UI tests, not run), and the release bundle (unsigned: no upload keystore in the
+# environment). A push to main runs no test suite (ADR-018); this is what fills main's Gradle cache with the dependencies of
+# the tests and the release bundle, so a PR's Android tests starts warm (E002 #1370).
+cmd_compile_tests() {
+  [ $# -eq 0 ] || usage
+  android_env
+  on_exit stop_android
+  gradle compileDebugUnitTestKotlin assembleDebugAndroidTest :app:bundleRelease
+}
+
 # The Quarantine job's part for Android (E002 #1363): the listed unit tests, then the listed Compose UI tests on an emulator.
 cmd_quarantine() {
   [ $# -eq 0 ] || usage
@@ -347,6 +361,7 @@ case "${1:-}" in
   test) slots_wrap "$(android_slots "$@")" "$0" "$@"; shift; cmd_test "$@" ;;
   build) slots_wrap heavy "$0" "$@"; shift; cmd_build "$@" ;;
   verify) slots_wrap "$(android_slots "$@")" "$0" "$@"; shift; cmd_verify "$@" ;;
+  compile-tests) slots_wrap heavy "$0" "$@"; shift; cmd_compile_tests "$@" ;;
   quarantine) slots_wrap heavy,android-emu "$0" "$@"; shift; cmd_quarantine "$@" ;;
   maestro-apk) slots_wrap heavy "$0" "$@"; shift; cmd_maestro_apk "$@" ;;
   emulator) shift; cmd_emulator "$@" ;;

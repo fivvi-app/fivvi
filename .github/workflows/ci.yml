@@ -1361,6 +1361,17 @@ jobs:
         timeout-minutes: 40
         run: scripts/android.sh verify --no-ui
 
+      # A push to main runs no test suite (ADR-018), so the two steps above don't run there and main's Gradle cache would lack the
+      # dependencies of the unit tests, the Compose UI test APKs and the release bundle: a PR's Android tests starts colder than
+      # before (E002 #1370; runs 44711652541, 44888055834 and 44947576787 restored a cache of 447 B to 3 MB and failed
+      # downloading buildscript artifacts). This step compiles them, runs no test and boots no emulator; the cache is saved by
+      # the post step of setup-gradle. It cannot fail the push run: continue-on-error, and a timeout below the job's.
+      - name: Compile the test APKs and the release bundle (the push run fills the Gradle cache)
+        if: github.event_name == 'push'
+        continue-on-error: ${{ github.event_name == 'push' }}
+        timeout-minutes: 20
+        run: scripts/android.sh compile-tests
+
       - name: The Compose UI test that ran last
         if: failure() && needs.changes.outputs.ui_tests == 'true'
         run: scripts/android.sh last-test
