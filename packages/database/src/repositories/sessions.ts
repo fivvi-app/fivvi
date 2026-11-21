@@ -107,6 +107,8 @@ export interface NewPrivateSession {
   readonly endsAt: Date;
   readonly capacity: number;
   readonly clientId: string;
+  /** The second client of a duo (F066); the capacity is 2 then (`planPrivateSession`). */
+  readonly secondClientId?: string;
   /** The team-member record of the person who plans it. */
   readonly createdByTeamMemberId: string;
 }
@@ -249,8 +251,8 @@ export async function findSession(
 }
 
 /**
- * Stores a private session of the scope's workspace with its one participant, the client, `booked`
- * (version 1, `scheduled`), and returns it as `findSession` shows it. The caller has decided it is
+ * Stores a private session of the scope's workspace with its participants, the client and, for a
+ * duo (F066), the second client, each `booked` (version 1, `scheduled`), and returns it as `findSession` shows it. The caller has decided it is
  * allowed (`planPrivateSession`). The session and its place are written in the request's
  * transaction: they stand or fall with the rest of the request.
  */
@@ -275,11 +277,19 @@ export async function createPrivateSession(
     })
     .returning({ id: sessions.id });
   if (!created) throw new Error('The session was not stored.');
-  await db.insert(sessionParticipants).values({
-    organizationId: scope.workspaceId,
-    sessionId: created.id,
-    clientId: input.clientId,
-  });
+  // One statement per client, in the order given: the participants are read back by `created_at`,
+  // and `now()` is the transaction's start for both, so each row takes the clock's own time.
+  for (const clientId of [
+    input.clientId,
+    ...(input.secondClientId === undefined ? [] : [input.secondClientId]),
+  ]) {
+    await db.insert(sessionParticipants).values({
+      organizationId: scope.workspaceId,
+      sessionId: created.id,
+      clientId,
+      createdAt: sql`clock_timestamp()`,
+    });
+  }
   const session = await findSession(scope, created.id);
   if (!session) throw new Error('The session was not found after it was stored.');
   return session;

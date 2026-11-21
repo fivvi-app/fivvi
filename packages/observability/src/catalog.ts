@@ -56,6 +56,14 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F066: a team member planned a duo session (two clients). The workspace ID and the platform
+  // only (the team member's account UUID is the distinct ID): no session or client ID, name, email
+  // address, trainer, date or time. It comes with `private_session_created`, which counts every
+  // private session.
+  duo_session_planned: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+  },
   // F023: a scheduling save was refused because the trainer already has something at that time
   // (`409 trainer_conflict`, PS-07). The workspace ID and the surface only (the account's UUID is
   // the distinct ID): no session, client, class or trainer, no name, date or time.

@@ -203,7 +203,11 @@ describe('F020 sessions and session participants tables', () => {
     expect(await violated(insert({ endsAt: new Date(startsAt.getTime() - 1) }))).toBe(
       'sessions_ends_after_starts',
     );
-    expect(await violated(insert({ capacity: 2 }))).toBe('sessions_private_has_capacity_one');
+    // One place, or two for a duo (F066); never three.
+    expect(await violated(insert({ capacity: 3 }))).toBe(
+      'sessions_private_has_capacity_one_or_two',
+    );
+    expect(await violated(insert({ capacity: 2 }))).toBeUndefined();
     expect(await violated(insert({ capacity: 0, type: 'group' }))).toBe(
       'sessions_capacity_positive',
     );

@@ -11,6 +11,7 @@ import {
   addAccessLogEntry,
   addBookingLink,
   addClassSeries,
+  addClient,
   addClientBillingDetails,
   addGroupClass,
   addOffer,
@@ -392,10 +393,15 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
 
   // The sessions of a workspace (F020): the plan names the client the suite calls it for and leaves
   // the trainer out, so it is the caller's own session whichever role calls it.
+  // A second client of the same workspace makes it a duo (F066): the plan names both.
   createPrivateSession: {
-    seed: theClientAndATeamThatTrains,
+    seed: async (db, args) => ({
+      ...(await theClientAndATeamThatTrains(db, args)),
+      secondClient: (await addClient(db, { workspaceId: args.workspaceId })).id,
+    }),
     body: (values) => ({
       clientId: values.client,
+      secondClientId: values.secondClient,
       localDate: '2026-09-24',
       localStart: '09:00',
       durationMinutes: 60,
