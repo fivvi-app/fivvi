@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest';
 import {
   ATTENTION_DAYS,
   attentionWindow,
-  classDatesWithoutTrainer,
   filterWorkspaceCalendar,
   sessionsOfDay,
+  sessionsWithoutTrainer,
   type WorkspaceCalendarSession,
 } from './workspace-calendar.ts';
 
 // F014 (spec #458, ticket #528): the rules of the workspace calendar behind its read routes: the
-// filters of the week, the rows of one day and the open item "a class date without a trainer".
+// filters of the week, the rows of one day and the open item "a session without a trainer".
 // Pure, in the wall clock of the workspace's zone (ADR-012).
 
 const ZONE = 'Europe/Amsterdam';
@@ -109,7 +109,7 @@ describe('F014 AC10 (API): the rows of one day', () => {
   });
 });
 
-describe('F014 AC10 (API): class dates without a trainer, the next 14 days', () => {
+describe('F014 AC10 (API): sessions without a trainer, the next 14 days', () => {
   const now = zonedTime('2026-09-22T08:00');
   const boxing = session('boxing', '2026-09-24T19:15', { type: 'group', trainerId: null });
 
@@ -124,16 +124,55 @@ describe('F014 AC10 (API): class dates without a trainer, the next 14 days', () 
   it('finds a class date with no trainer in time order', () => {
     const later = session('later', '2026-10-01T10:00', { type: 'group', trainerId: null });
     expect(
-      classDatesWithoutTrainer([later, boxing, session('kracht', '2026-09-22T10:00')], now, ZONE),
+      sessionsWithoutTrainer([later, boxing, session('kracht', '2026-09-22T10:00')], now, ZONE),
     ).toEqual([boxing, later]);
   });
 
-  it('leaves out dates with a trainer, private sessions, cancelled dates and what has begun', () => {
+  it('finds a private session with no trainer, next to a class date, in time order (#1537)', () => {
+    const removed = session('removed', '2026-09-23T09:00', { trainerId: null });
+    const eveningPrivate = session('evening', '2026-09-24T20:00', { trainerId: null });
     expect(
-      classDatesWithoutTrainer(
+      sessionsWithoutTrainer(
+        [eveningPrivate, boxing, removed, session('with-trainer', '2026-09-23T10:00')],
+        now,
+        ZONE,
+      ),
+    ).toEqual([removed, boxing, eveningPrivate]);
+  });
+
+  it('leaves out private sessions outside the window or that have begun, cancelled or with a trainer', () => {
+    expect(
+      sessionsWithoutTrainer(
+        [
+          session('private-trainer', '2026-09-24T11:00'),
+          session('private-cancelled', '2026-09-24T11:30', {
+            trainerId: null,
+            status: 'cancelled',
+          }),
+          session('private-began', '2026-09-22T07:00', { trainerId: null }),
+          session('private-far', '2026-10-06T00:00', { trainerId: null }),
+        ],
+        now,
+        ZONE,
+      ),
+    ).toEqual([]);
+  });
+
+  it('leaves out an Open Gym session with no trainer', () => {
+    expect(
+      sessionsWithoutTrainer(
+        [session('open', '2026-09-24T11:00', { type: 'open_gym', trainerId: null })],
+        now,
+        ZONE,
+      ),
+    ).toEqual([]);
+  });
+
+  it('leaves out dates with a trainer, cancelled dates and what has begun', () => {
+    expect(
+      sessionsWithoutTrainer(
         [
           session('kracht', '2026-09-24T10:00', { type: 'group' }),
-          session('private', '2026-09-24T11:00', { trainerId: null }),
           session('cancelled', '2026-09-24T12:00', {
             type: 'group',
             trainerId: null,
@@ -150,7 +189,7 @@ describe('F014 AC10 (API): class dates without a trainer, the next 14 days', () 
   it('counts today and the 13 days after it: the 14th day ahead is out', () => {
     const inside = session('inside', '2026-10-05T23:30', { type: 'group', trainerId: null });
     const outside = session('outside', '2026-10-06T00:00', { type: 'group', trainerId: null });
-    expect(classDatesWithoutTrainer([outside, inside], now, ZONE)).toEqual([inside]);
+    expect(sessionsWithoutTrainer([outside, inside], now, ZONE)).toEqual([inside]);
   });
 
   it('takes the wall-clock day of the zone, not UTC', () => {
@@ -164,9 +203,7 @@ describe('F014 AC10 (API): class dates without a trainer, the next 14 days', () 
     });
     const lastDay = session('last-day', '2026-10-06T23:30', { type: 'group', trainerId: null });
     const afterWindow = session('after', '2026-10-07T00:30', { type: 'group', trainerId: null });
-    expect(classDatesWithoutTrainer([afterWindow, lastDay], afterMidnight, ZONE)).toEqual([
-      lastDay,
-    ]);
+    expect(sessionsWithoutTrainer([afterWindow, lastDay], afterMidnight, ZONE)).toEqual([lastDay]);
   });
 
   it('counts the 14 days on the wall clock across the clock change of 25 October', () => {
@@ -178,6 +215,6 @@ describe('F014 AC10 (API): class dates without a trainer, the next 14 days', () 
     });
     const lastDay = session('last-day', '2026-11-02T23:30', { type: 'group', trainerId: null });
     const after = session('after', '2026-11-03T00:00', { type: 'group', trainerId: null });
-    expect(classDatesWithoutTrainer([after, lastDay], crossing, ZONE)).toEqual([lastDay]);
+    expect(sessionsWithoutTrainer([after, lastDay], crossing, ZONE)).toEqual([lastDay]);
   });
 });

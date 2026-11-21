@@ -668,6 +668,93 @@ describe('F014 the workspace calendar and day through the API', () => {
       }
     });
 
+    it('#1537: lists private sessions without a trainer too, with their type and client names as data', async () => {
+      const w = await world();
+      // A trainer who was removed clears the field (ON DELETE SET NULL): the sessions stay.
+      const removed = await addSession(admin.db, {
+        workspaceId: w.gym.id,
+        clientId: w.mark.id,
+        trainerProfileId: null,
+        startsAt: zonedTime('2026-09-23T09:00'),
+      });
+      const duo = await addSession(admin.db, {
+        workspaceId: w.gym.id,
+        clientId: w.mark.id,
+        secondClientId: w.lisa.id,
+        trainerProfileId: null,
+        startsAt: zonedTime('2026-09-25T08:00'),
+      });
+
+      const body = (await (await day(w.gym.id, 'date=2026-09-22', w.john)).json()) as DayBody;
+
+      // In time order, a class date and the private sessions alike.
+      expect(body.attention.map((item) => item.id)).toEqual([removed.id, w.boxing.id, duo.id]);
+      expect(body.attention[0]).toMatchObject({
+        type: 'private',
+        clientName: 'Mark Jansen',
+        clients: [{ clientId: w.mark.id, name: 'Mark Jansen' }],
+      });
+      expect(body.attention[0]?.className).toBeUndefined();
+      expect(body.attention[0]?.trainer).toBeUndefined();
+      expect(body.attention[1]).toMatchObject({ type: 'group', className: 'Boxing' });
+      expect(body.attention[1]?.clientName).toBeUndefined();
+      expect(body.attention[2]).toMatchObject({
+        type: 'private',
+        capacity: 2,
+        clientName: 'Mark Jansen & Lisa Smit',
+        clients: [
+          { clientId: w.mark.id, name: 'Mark Jansen' },
+          { clientId: w.lisa.id, name: 'Lisa Smit' },
+        ],
+      });
+    });
+
+    it('#1537: lists no private session that has a trainer, has begun, is cancelled, is past the 14 days or is in another workspace', async () => {
+      const w = await world();
+      const wanted = await addSession(admin.db, {
+        workspaceId: w.gym.id,
+        clientId: w.mark.id,
+        trainerProfileId: null,
+        startsAt: zonedTime('2026-09-23T09:00'),
+      });
+      const left = [
+        await addSession(admin.db, {
+          workspaceId: w.gym.id,
+          clientId: w.mark.id,
+          status: 'cancelled',
+          trainerProfileId: null,
+          startsAt: zonedTime('2026-09-23T10:00'),
+        }),
+        await addSession(admin.db, {
+          workspaceId: w.gym.id,
+          clientId: w.mark.id,
+          trainerProfileId: null,
+          startsAt: zonedTime('2026-09-22T07:30'),
+        }),
+        await addSession(admin.db, {
+          workspaceId: w.gym.id,
+          clientId: w.mark.id,
+          trainerProfileId: null,
+          startsAt: zonedTime('2026-10-06T10:00'),
+        }),
+        // Another workspace's private session without a trainer: never in this one's list.
+        await addSession(admin.db, {
+          workspaceId: w.own.id,
+          clientId: w.anna.id,
+          trainerProfileId: null,
+          startsAt: zonedTime('2026-09-23T11:00'),
+        }),
+      ];
+
+      const body = (await (await day(w.gym.id, 'date=2026-09-22', w.john)).json()) as DayBody;
+
+      expect(body.attention.map((item) => item.id)).toEqual([wanted.id, w.boxing.id]);
+      for (const session of left) {
+        expect(body.attention.map((item) => item.id)).not.toContain(session.id);
+      }
+      expect(JSON.stringify(body)).not.toContain('Anna de Vries');
+    });
+
     it('names the class in the viewer’s language', async () => {
       const w = await world();
       await addSession(admin.db, {

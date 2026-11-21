@@ -45,7 +45,7 @@ import kotlinx.serialization.Contextual
  * @param version Raised by every change. A move says the version it saw (`409` when it is stale).
  * @param location 
  * @param booked The places taken (not cancelled), for a class date: *{booked}/{capacity} geboekt*. Left out for a private session.
- * @param trainer Left out for *Trainer nodig*: a class date with no trainer.
+ * @param trainer Left out for *Trainer nodig*: a class date or a private session with no trainer.
  * @param className The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session.
  * @param clientName The client’s display name, for a private session; left out for the other kinds. It holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `; `clients` has them apart.
  * @param clients The clients of a private session in the order they were added: one, or two for a duo. A client who cancelled is left out, a cancelled session keeps its clients. Left out for the other kinds.
@@ -94,7 +94,7 @@ data class WorkspaceCalendarSession (
     @SerialName(value = "booked")
     val booked: kotlin.Int? = null,
 
-    /* Left out for *Trainer nodig*: a class date with no trainer. */
+    /* Left out for *Trainer nodig*: a class date or a private session with no trainer. */
     @SerialName(value = "trainer")
     val trainer: SessionTrainer? = null,
 
