@@ -24,6 +24,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 
+/** What reading the account's workspaces again (`GET /v1/me`) came to, for the personal scope (F013). */
+sealed interface WorkspacesRead {
+    data class Listed(val workspaces: List<MeWorkspace>) : WorkspacesRead
+
+    /** The API couldn't be reached. */
+    data object Offline : WorkspacesRead
+
+    /** The API answered, but not with the account. */
+    data object Failed : WorkspacesRead
+}
+
 sealed interface MeState {
     data object Loading : MeState
 
@@ -92,7 +103,13 @@ class HomeViewModel(
     private var loading: Job? = null
 
     // The workspaces the last answer of `GET /v1/me` listed: a switch goes only to one of them.
-    private var listed: List<MeWorkspace> = emptyList()
+    private val _workspaces = MutableStateFlow<List<MeWorkspace>?>(null)
+
+    /**
+     * The workspaces the last answer of `GET /v1/me` listed, with their capabilities, or `null` before it answered; Vandaag
+     * opens an item in any of them (F013).
+     */
+    val workspaces: StateFlow<List<MeWorkspace>?> = _workspaces.asStateFlow()
 
     // The sign-in this screen belongs to (see MainActivity: one view model per generation).
     private val generation = session.state.value.generation
@@ -110,7 +127,7 @@ class HomeViewModel(
      */
     fun switchWorkspace(id: UUID) {
         val shown = (_state.value as? MeState.Loaded)?.destination as? HomeDestination.Workspace
-        if (shown?.id == id || listed.none { it.id == id }) return
+        if (shown?.id == id || _workspaces.value.orEmpty().none { it.id == id }) return
         current.remember(id)
         load()
     }
@@ -134,6 +151,27 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Reads the account again for Vandaag (F013 AC8: a pull to refresh, *Opnieuw*, the foreground): the workspaces and their
+     * capabilities are replaced by what the API lists now. The home itself changes only when the workspace it shows is
+     * gone: then the account is read as on opening, which shows the next one.
+     */
+    suspend fun refreshWorkspaces(): WorkspacesRead {
+        val response = try {
+            api.getMe()
+        } catch (_: IOException) {
+            return WorkspacesRead.Offline
+        } catch (_: SerializationException) {
+            return WorkspacesRead.Failed
+        }
+        val account = response.body()?.takeIf { response.isSuccessful } ?: return WorkspacesRead.Failed
+        _workspaces.value = account.workspaces
+        onWorkspaces(account.workspaces)
+        val shown = (_state.value as? MeState.Loaded)?.destination as? HomeDestination.Workspace
+        if (shown != null && account.workspaces.none { it.id == shown.id }) load()
+        return WorkspacesRead.Listed(account.workspaces)
+    }
+
     /** Ends this phone's sign-in session ([SignOut], F001 AC10). */
     fun signOut() = signOut.start()
 
@@ -153,7 +191,7 @@ class HomeViewModel(
         }
         val account = response.body()?.takeIf { response.isSuccessful }
         return account?.let {
-            listed = it.workspaces
+            _workspaces.value = it.workspaces
             _accountName.value = it.name
             onWorkspaces(it.workspaces)
             if (stillSignedIn()) {

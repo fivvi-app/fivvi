@@ -61,4 +61,19 @@ class RoutesTest {
         assertNull(Routes.classDateOf(Routes.session(id)))
         assertNull(Routes.sessionId(Routes.classDate(id, added = null)))
     }
+
+    @Test
+    fun test_F013_AC4_aRouteOfVandaagCarriesTheWorkspaceOfItsItem() {
+        val workspace = UUID.nameUUIDFromBytes("John's Gym".toByteArray())
+        val route = Routes.inWorkspace(workspace, Routes.session(id))
+
+        assertEquals(workspace, Routes.workspaceOf(route))
+        assertEquals(Routes.session(id), Routes.unscoped(route))
+        assertEquals(id, Routes.sessionId(Routes.unscoped(route)))
+        assertNull("a route of the current workspace names none", Routes.workspaceOf(Routes.session(id)))
+        assertEquals(Routes.CLIENTS, Routes.unscoped(Routes.CLIENTS))
+        // It survives the stack kept across a rotation (the routes are joined by a comma).
+        val stack = Routes.push(Routes.push("", route), Routes.inWorkspace(workspace, Routes.client(id)))
+        assertEquals(listOf(route, "@$workspace:client/$id"), Routes.of(stack))
+    }
 }

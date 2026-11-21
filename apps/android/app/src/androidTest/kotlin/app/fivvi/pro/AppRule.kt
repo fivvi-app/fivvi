@@ -32,11 +32,17 @@ import app.fivvi.pro.classes.FakeGroupClassesApi
 import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.FakeWorkspacesApi
+import app.fivvi.pro.personal.MemoryPersonalStore
+import app.fivvi.pro.personal.PersonalStore
+import app.fivvi.pro.personal.ProTab
 import app.fivvi.pro.sessions.FakeLocationsApi
 import app.fivvi.pro.sessions.FakeSessionsApi
 import app.fivvi.pro.workspace.CurrentWorkspace
 import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
 import app.fivvi.pro.workspace.LastWorkspaceStore
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.rules.ExternalResource
 
@@ -44,7 +50,9 @@ import org.junit.rules.ExternalResource
  * Starts [MainActivity] with fake API clients and fake OS language settings, and puts the real ones back after. The
  * session defaults to a signed-in one (the home); pass `Session(InMemorySessionStore())`
  * for an app that starts signed out. [lastWorkspace] is the device's memory of the workspace used last; pass the same one
- * to a second launch to keep it across a restart.
+ * to a second launch to keep it across a restart. The app opens on [startTab]: the home, which most tests are about, unless
+ * a test of Vandaag says so (the app itself opens on Vandaag, F013); [personal] is what Vandaag keeps for its offline view,
+ * and [now] fixes the clock the personal screens read.
  */
 class AppRule : ExternalResource() {
     private val app = ApplicationProvider.getApplicationContext<FivviApplication>()
@@ -66,6 +74,9 @@ class AppRule : ExternalResource() {
         languageStore: LanguageStore = InMemoryLanguageStore(),
         languageSettings: FakeLanguageSettings = FakeLanguageSettings(perApp, device),
         lastWorkspace: LastWorkspaceStore = InMemoryLastWorkspaceStore(),
+        startTab: ProTab = ProTab.HOME,
+        personal: PersonalStore = MemoryPersonalStore(),
+        now: Instant? = null,
     ) {
         // The account stores the language of the phone, so the stored preference changes nothing unless a test says so.
         (meApi as? FakeMeApi)?.defaultPreferredLocale = storedOf(perApp + device)
@@ -85,6 +96,9 @@ class AppRule : ExternalResource() {
             override val languageSettings: LanguageSettings = languageSettings
             override val languagePreference = LanguagePreference(languageStore, languageSettings)
             override val currentWorkspace = CurrentWorkspace(lastWorkspace)
+            override val personalStore = personal
+            override val initialTab = startTab
+            override val clock: Clock = now?.let { Clock.fixed(it, ZoneOffset.UTC) } ?: Clock.systemUTC()
         }
         scenario = ActivityScenario.launch(MainActivity::class.java).also { launched ->
             imeAnimations.set(0)
