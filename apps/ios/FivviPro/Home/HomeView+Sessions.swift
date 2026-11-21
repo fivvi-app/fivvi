@@ -10,17 +10,17 @@ import FivviUI
 extension HomeView {
     /// **+** in the bar of the home: *Privésessie* for whoever may plan sessions, *Groepsles* for whoever has
     /// `class.manage` (F021); a team member who plans sessions but not classes reads that the owner plans them.
-    @ToolbarContentBuilder var newMenu: some ToolbarContent {
+    @ToolbarContentBuilder func newMenu(from origin: ProTab, enabled: Bool = true) -> some ToolbarContent {
         let menu = NewMenu(capabilities: account.capabilities)
         if clients != nil, menu.isVisible {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     if menu.showsPrivateSession {
-                        Button(catalog[.newPrivateSession]) { openNewSession() }
+                        Button(catalog[.newPrivateSession]) { openNewSession(from: origin) }
                             .accessibilityIdentifier("home.newPrivateSession")
                     }
                     if menu.showsGroupClass {
-                        Button(catalog[.newGroupClass]) { openNewClass() }
+                        Button(catalog[.newGroupClass]) { openNewClass(from: origin) }
                             .accessibilityIdentifier("home.newGroupClass")
                     }
                     if menu.showsGroupClassNote, let workspace = account.workspace {
@@ -32,19 +32,22 @@ extension HomeView {
                     Image(systemName: "plus")
                         .frame(minWidth: 44, minHeight: 44)
                 }
+                .disabled(!enabled)
                 .accessibilityLabel(catalog[.newLabel])
                 .accessibilityIdentifier("home.new")
             }
         }
     }
 
-    private func openNewSession() {
+    /// PS-04 in the current workspace, from the tab `origin`; *Plannen* on Vandaag hands it the start of the free gap.
+    func openNewSession(from origin: ProTab, start: Date? = nil) {
         guard let workspace = account.workspace, case let .loaded(email) = account.state else { return }
         let capabilities = account.capabilities
+        sheetOrigin = origin
         newSession = NewSessionViewModel(
             api: api, workspace: workspace, catalog: catalog,
             forAnyTrainer: capabilities.allows(.session_private_manage_any), email: email,
-            accountName: account.accountName, onForbidden: { await capabilities.forbidden($0) }
+            accountName: account.accountName, start: start, onForbidden: { await capabilities.forbidden($0) }
         )
     }
 
@@ -57,7 +60,11 @@ extension HomeView {
                     canAddClients: account.capabilities.allows(.clients_manage),
                     onSaved: { session in
                         newSession = nil
-                        path.append(.session(session.id))
+                        if sheetOrigin == .home {
+                            path.append(.session(session.id))
+                        } else if let workspace = account.workspace {
+                            todayPath.append(.session(workspaceID: workspace.id, id: session.id))
+                        }
                     },
                     onCancel: { newSession = nil }
                 )
@@ -82,18 +89,20 @@ extension HomeView {
 /// Owns the model of one session screen for as long as the screen is pushed.
 struct SessionScreen: View {
     @State private var model: SessionViewModel
+    let workspaceID: String
     let language: AppLanguage
     let capabilities: WorkspaceCapabilities
-    let onOpenClient: (String) -> Void
+    let onOpenClient: ((String) -> Void)?
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, language: AppLanguage,
-        capabilities: WorkspaceCapabilities, onOpenClient: @escaping (String) -> Void
+        capabilities: WorkspaceCapabilities, onOpenClient: ((String) -> Void)?
     ) {
         _model = State(initialValue: SessionViewModel(
             api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog,
-            onForbidden: { await capabilities.forbidden($0) }
+            onForbidden: { await capabilities.forbidden($0, in: workspace.id) }
         ))
+        workspaceID = workspace.id
         self.language = language
         self.capabilities = capabilities
         self.onOpenClient = onOpenClient
@@ -102,8 +111,8 @@ struct SessionScreen: View {
     var body: some View {
         SessionView(
             model: model, language: language,
-            canMove: capabilities.allows(.session_private_manage_own)
-                || capabilities.allows(.session_private_manage_any),
+            canMove: capabilities.allows(.session_private_manage_own, in: workspaceID)
+                || capabilities.allows(.session_private_manage_any, in: workspaceID),
             onOpenClient: onOpenClient
         )
     }

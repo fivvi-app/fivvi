@@ -398,6 +398,7 @@
     <string name="home_open_web">Open Fivvi in the browser</string>
     <string name="home_set_up_on_web">Set up your workspace on the web.</string>
     <string name="home_signed_in_as">Signed in as %1$s</string>
+    <string name="home_tab">Home</string>
     <string name="invitation_accept">Accept</string>
     <string name="invitation_decline">Decline</string>
     <string name="invitation_declined">You declined the invitation.</string>
@@ -422,6 +423,8 @@
     <string name="join_link_renew_dialog_title">Renew the join link?</string>
     <string name="join_link_renewed">The join link has been renewed.</string>
     <string name="join_link_title">Join link</string>
+    <string name="my_calendar_app_tab">Calendar</string>
+    <string name="my_calendar_app_title">Calendar</string>
     <string name="my_calendar_block">%2$s · %1$s</string>
     <string name="my_calendar_block_booked">%1$s/%2$s</string>
     <string name="my_calendar_cancelled">Cancelled</string>
@@ -460,6 +463,27 @@
     <string name="my_calendar_view_list">List</string>
     <string name="my_calendar_view_week">Week</string>
     <string name="my_calendar_views">View</string>
+    <string name="my_day_app_dismiss">Dismiss</string>
+    <string name="my_day_app_failed">Couldn\'t update today.</string>
+    <string name="my_day_app_free_gap">Free %1$s–%2$s</string>
+    <string name="my_day_app_free_gap_length">%1$s hr</string>
+    <string name="my_day_app_full">Full</string>
+    <string name="my_day_app_no_free_time">No free time left today</string>
+    <string name="my_day_app_offline">You\'re offline. Last updated at %1$s.</string>
+    <string name="my_day_app_open">Open</string>
+    <string name="my_day_app_open_route">Directions</string>
+    <string name="my_day_app_plan">Plan</string>
+    <string name="my_day_app_removed">You no longer have access to %1$s.</string>
+    <string name="my_day_app_retry">Retry</string>
+    <string name="my_day_app_route">Today\'s route</string>
+    <plurals name="my_day_app_summary">
+        <item quantity="one">%1$d session · %3$s–%4$s · %2$s done</item>
+        <item quantity="other">%1$d sessions · %3$s–%4$s · %2$s done</item>
+    </plurals>
+    <string name="my_day_app_summary_empty">No sessions today</string>
+    <string name="my_day_app_tab">Today</string>
+    <string name="my_day_app_title">Today</string>
+    <string name="my_day_app_tomorrow_hint">Opens the calendar on tomorrow</string>
     <string name="my_day_booked">%1$s/%2$s booked</string>
     <string name="my_day_cancelled">Cancelled</string>
     <string name="my_day_empty_never">You don\'t have any sessions yet. You\'ll see them here as soon as you\'re scheduled.</string>

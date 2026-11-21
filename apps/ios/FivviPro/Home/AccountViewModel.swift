@@ -41,6 +41,9 @@ final class AccountViewModel {
     var workspace: CurrentWorkspace? { workspaces.current }
     /// What the account may do in each workspace, from the same answer; the app's one helper for showing actions.
     let capabilities = WorkspaceCapabilities()
+    /// The workspaces `GET /api/v1/me` last listed, by ID and name: the personal scope notices one that is gone (F013).
+    private(set) var memberships: [PersonalCache.Workspace]?
+    private var listed: [Components.Schemas.MeWorkspace] = []
     /// The current workspace and the last one used on this phone (F012).
     private let workspaces: CurrentWorkspaceStore
     private let api: any APIProtocol
@@ -108,6 +111,8 @@ final class AccountViewModel {
         self.destination = destination
         if let current { workspaces.open(current) } else { workspaces.close() }
         capabilities.replace(with: account.workspaces, current: current?.id)
+        listed = account.workspaces
+        memberships = account.workspaces.map { .init(id: $0.id, name: $0.name) }
         // An answer that arrives after the sign-out (the token is gone) or once the screen has gone (its task is
         // cancelled) must not set the account that was just cleared as the error-reporting user (#266).
         if !Task.isCancelled, store.token != nil { onAccount(account.id) }
@@ -120,6 +125,21 @@ final class AccountViewModel {
         guard id != workspace?.id, capabilities.knows(id) else { return }
         workspaces.remember(id)
         await load()
+    }
+
+    /// The workspace `id` as the personal scope opens an item in it (F013): the current one, or another the person is on,
+    /// read from the API without changing the current one. Nil when the person is not on it (any more) or it can't be read.
+    func workspace(id: String) async -> CurrentWorkspace? {
+        if let current = workspaces.current, current.id == id { return current }
+        guard let member = listed.first(where: { $0.id == id }),
+              case let .ok(found) = try? await api.getWorkspace(.init(path: .init(workspaceId: id))),
+              let details = try? found.body.json
+        else { return nil }
+        return CurrentWorkspace(
+            id: id, name: member.name, defaultLocale: details.defaultLocale,
+            timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone,
+            teamMemberId: member.teamMemberId, trainerWord: details.trainerWord
+        )
     }
 
     /// The last workspace used on this phone decides (`StartWorkspace`), otherwise the first one the API lists (sorted by name); the first

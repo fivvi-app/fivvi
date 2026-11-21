@@ -31,6 +31,9 @@ enum AppLaunch {
     ///     (`OpenedLinksRecorder` in the app), so a test can read which address a tap opened.
     ///   - opensClassDate: the app opens TD-03 of this class date once the home is ready (`UITestClassDateRoute` in the
     ///     app), as the app has no list of class dates yet.
+    ///   - startTab: the tab the app opens on (`ProTab.initial` in the app): the home, where the tests of its screens are
+    ///     written; nil is the real start, Vandaag (F013).
+    ///   - now: the personal screens' clock, an ISO 8601 instant (`UITestClock` in the app).
     ///   - countsRenders: the app shows how often its screens rendered in `uitest.renders` (`RenderProbe` in the app),
     ///     so a test can tell a screen that renders without end.
     static func launch(
@@ -42,7 +45,9 @@ enum AppLaunch {
         appearance: String? = nil,
         recordsOpenedLinks: Bool = false,
         countsRenders: Bool = false,
-        opensClassDate: String? = nil
+        opensClassDate: String? = nil,
+        startTab: String? = "home",
+        now: String? = nil
     ) -> XCUIApplication {
         let app = XCUIApplication()
         let languages = deviceLanguages ?? [TestCatalog.configuredLanguage]
@@ -56,24 +61,13 @@ enum AppLaunch {
         case .signedOut: app.launchArguments += ["-UITestSession", "none"]
         case .asLeft: break
         }
-        if let perAppLanguage {
-            app.launchArguments += ["-UITestPerAppLanguage", perAppLanguage]
-        }
-        if let textSize {
-            app.launchArguments += ["-UIPreferredContentSizeCategoryName", textSize]
-        }
-        if let appearance {
-            app.launchArguments += ["-UITestAppearance", appearance]
-        }
-        if recordsOpenedLinks {
-            app.launchArguments += ["-UITestRecordOpenedLinks", "YES"]
-        }
-        if countsRenders {
-            app.launchArguments += ["-UITestCountRenders", "YES"]
-        }
-        if let opensClassDate {
-            app.launchArguments += ["-UITestOpenClassDate", opensClassDate]
-        }
+        let options: [(String, String?)] = [
+            ("-UITestPerAppLanguage", perAppLanguage), ("-UIPreferredContentSizeCategoryName", textSize),
+            ("-UITestAppearance", appearance), ("-UITestRecordOpenedLinks", recordsOpenedLinks ? "YES" : nil),
+            ("-UITestCountRenders", countsRenders ? "YES" : nil), ("-UITestStartTab", startTab),
+            ("-UITestNow", now), ("-UITestOpenClassDate", opensClassDate)
+        ]
+        for case let (key, value?) in options { app.launchArguments += [key, value] }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
         ReachableLaunch.launch(app)
         return app
