@@ -134,6 +134,7 @@ export async function createWorld(options: WorldOptions = {}): Promise<World> {
       sendEmail: createSendEmail({
         transport: createMemoryTransport(),
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+        replyTo: { email: 'support@example.com' },
       }),
       appBaseUrl: () => 'https://fivvi.example.test',
     }),
@@ -142,6 +143,7 @@ export async function createWorld(options: WorldOptions = {}): Promise<World> {
       sendEmail: createSendEmail({
         transport: createMemoryTransport(),
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+        replyTo: { email: 'support@example.com' },
       }),
     }),
     // The test accounts are `<id>@example.com`: every harness account is on the allowlist, so the

@@ -94,6 +94,8 @@ actor StubAPI: APIProtocol {
     let clients = StubClients()
     /// The session routes and what they answer (F020).
     let sessions = StubSessions()
+    /// The group class routes and what they answer (F021).
+    let classes = StubClasses()
     private var goneWorkspaces: Set<String> = []
     private var workspaceStatus: Int?
     /// The bodies of every `requestSignIn`, `exchangeSignInCode` and the number of `getMe` calls so far.

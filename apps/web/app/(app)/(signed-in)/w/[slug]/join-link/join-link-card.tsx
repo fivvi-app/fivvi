@@ -14,11 +14,9 @@ import {
 import { Button } from '@fivvi/ui/components/button';
 import { Card, CardHeader, CardTitle } from '@fivvi/ui/components/card';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
-import { PageShell } from '@fivvi/ui/kit/page-shell';
-import { SuccessLine } from '@fivvi/ui/kit/success-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { renewJoinLink } from './renew-join-link-client';
 
 /** The URL to show: the renewed one only while the server still gives the URL it replaced. */
@@ -27,30 +25,35 @@ export function shownJoinLink(renewal: { from: string; to: string } | null, url:
 }
 
 /**
- * The Aanmeldlink page (F029; a person with `join_link.view`, the Owner and the Trainers): the
- * workspace's one join link with **Link kopiëren**, and, for a person with `join_link.renew` (the
- * Owner), **Vernieuwen**, which asks first because the old link and its QR codes stop working. The
- * new URL shows at once; the page asks the server again and, when its value arrives, shows what the
- * API holds. The QR code, its poster and the booking links join this page in M6 (F038, F037).
+ * The *Aanmeldlink* card at the top of TW-07 *Boekingslinks* (F029, F037; a person with
+ * `join_link.view`, the Owner and the Trainers): the workspace's one join link with **Link
+ * kopiëren**, and, for a person with `join_link.renew` (the Owner), **Vernieuwen**, which asks
+ * first because the old link and its QR codes stop working. The new URL shows at once; the page
+ * asks the server again and, when its value arrives, shows what the API holds. What the person is
+ * told ("Link gekopieerd.", "De aanmeldlink is vernieuwd.") goes to `onNotice`, the page's one
+ * snackbar. The QR code and its poster join this card in M6 (F038).
  */
 export function JoinLinkCard({
   workspaceId,
   url,
   canRenew,
+  onNotice,
 }: {
   workspaceId: string;
   /** The join link in full, as `GET /v1/workspaces/{workspaceId}/join-link` gives it. */
   url: string;
   /** Whether the API lists `join_link.renew` for this person in this workspace. */
   canRenew: boolean;
+  /** Says something to the person: the page shows it as its snackbar, announced politely. */
+  onNotice: (message: string) => void;
 }) {
   const t = useTranslations('joinLink');
+  const headingId = useId();
   const router = useRouter();
   // The URL a renewal gave, and the server value it replaced: once the refreshed page brings a
   // different `url`, the server value is shown.
   const [renewal, setRenewal] = useState<{ from: string; to: string } | null>(null);
   const [asking, setAsking] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
   const [failure, setFailure] = useState<'copy' | 'noConnection' | 'generic' | null>(null);
   const [pending, setPending] = useState(false);
   // The buttons wait for the page to hydrate: a click before that would do nothing.
@@ -61,11 +64,10 @@ export function JoinLinkCard({
   const shown = shownJoinLink(renewal, url);
 
   async function copy() {
-    setNotice(null);
     setFailure(null);
     try {
       await navigator.clipboard.writeText(shown);
-      setNotice(t('copied'));
+      onNotice(t('copied'));
     } catch {
       setFailure('copy');
     }
@@ -73,14 +75,13 @@ export function JoinLinkCard({
 
   async function renew() {
     setPending(true);
-    setNotice(null);
     setFailure(null);
     const result = await renewJoinLink(workspaceId);
     setPending(false);
     setAsking(false);
     if (result.ok) {
       setRenewal({ from: url, to: result.url });
-      setNotice(t('renewed'));
+      onNotice(t('renewed'));
       return router.refresh();
     }
     // Not allowed (any more): the signed-in home knows where this person belongs.
@@ -89,14 +90,14 @@ export function JoinLinkCard({
   }
 
   return (
-    <PageShell>
-      <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-      {notice ? <SuccessLine>{notice}</SuccessLine> : null}
+    <>
       {failure ? <ErrorLine>{t(`errors.${failure}`)}</ErrorLine> : null}
-      <Card className="max-w-2xl">
+      <Card role="region" aria-labelledby={headingId} className="max-w-2xl">
         <CardHeader>
           <CardTitle>
-            <h2 className="text-[15px] font-semibold">{t('title')}</h2>
+            <h2 id={headingId} className="text-[15px] font-semibold">
+              {t('title')}
+            </h2>
           </CardTitle>
         </CardHeader>
         <div className="grid gap-3 px-(--card-spacing)">
@@ -151,6 +152,6 @@ export function JoinLinkCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </PageShell>
+    </>
   );
 }

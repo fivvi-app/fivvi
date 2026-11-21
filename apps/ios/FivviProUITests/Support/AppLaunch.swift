@@ -29,6 +29,8 @@ enum AppLaunch {
     ///     (`LaunchAppearance.uiTestAppearanceKey` in the app); the simulator's own appearance when nil.
     ///   - recordsOpenedLinks: the app opens no link but shows its address in `uitest.openedLink`
     ///     (`OpenedLinksRecorder` in the app), so a test can read which address a tap opened.
+    ///   - opensClassDate: the app opens TD-03 of this class date once the home is ready (`UITestClassDateRoute` in the
+    ///     app), as the app has no list of class dates yet.
     ///   - countsRenders: the app shows how often its screens rendered in `uitest.renders` (`RenderProbe` in the app),
     ///     so a test can tell a screen that renders without end.
     static func launch(
@@ -39,7 +41,8 @@ enum AppLaunch {
         textSize: String? = nil,
         appearance: String? = nil,
         recordsOpenedLinks: Bool = false,
-        countsRenders: Bool = false
+        countsRenders: Bool = false,
+        opensClassDate: String? = nil
     ) -> XCUIApplication {
         let app = XCUIApplication()
         let languages = deviceLanguages ?? [TestCatalog.configuredLanguage]
@@ -67,6 +70,9 @@ enum AppLaunch {
         }
         if countsRenders {
             app.launchArguments += ["-UITestCountRenders", "YES"]
+        }
+        if let opensClassDate {
+            app.launchArguments += ["-UITestOpenClassDate", opensClassDate]
         }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
         ReachableLaunch.launch(app)

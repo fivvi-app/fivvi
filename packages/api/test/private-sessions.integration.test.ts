@@ -114,6 +114,7 @@ describe('F020 plan a private session', () => {
         sendEmail: createSendEmail({
           transport,
           sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+          replyTo: { email: 'support@example.com' },
           sleep: () => Promise.resolve(),
           random: () => 0,
         }),
@@ -682,6 +683,7 @@ describe('F020 plan a private session', () => {
           sendEmail: createSendEmail({
             transport,
             sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+            replyTo: { email: 'support@example.com' },
           }),
         }),
       });
@@ -714,6 +716,7 @@ describe('F020 plan a private session', () => {
           sendEmail: createSendEmail({
             transport,
             sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+            replyTo: { email: 'support@example.com' },
           }),
         }),
       });
@@ -1426,6 +1429,7 @@ describe('F020 plan a private session', () => {
           sendEmail: createSendEmail({
             transport,
             sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+            replyTo: { email: 'support@example.com' },
           }),
         }),
       });

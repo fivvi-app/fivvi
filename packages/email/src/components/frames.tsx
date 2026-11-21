@@ -1,8 +1,9 @@
 import { emailColours } from '@fivvi/design-tokens/email-colours';
 import type { ReactNode } from 'react';
-import { Body, Button, Container, Head, Hr, Html, Preview, Section, Text } from 'react-email';
+import { Body, Button, Container, Head, Hr, Html, Section, Text } from 'react-email';
 import type { EmailContext, EmailMessageKey } from '../render.tsx';
 import { buttonStyle } from './layout.tsx';
+import { PreviewText } from './preview-text.tsx';
 
 // The frames of every email that is about a workspace (F049, spec #476): the client frame for a
 // client, the team frame for a trainer or an owner. The sign-in email and the trainer invitation
@@ -99,7 +100,7 @@ export function EmailFrameLayout({
       <Head>
         <title>{subject}</title>
       </Head>
-      <Preview useTitleTag={false}>{preview}</Preview>
+      <PreviewText>{preview}</PreviewText>
       <Body lang={ctx.lang} style={styles.body}>
         <Container style={styles.container}>
           <Text style={styles.workspace}>{workspaceName}</Text>

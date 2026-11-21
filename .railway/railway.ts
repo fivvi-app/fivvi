@@ -96,6 +96,10 @@ export default defineRailway((ctx) => {
       LETTERMINT_ROUTE_MAIL: preserve(),
       EMAIL_FROM_ADDRESS: preserve(),
       EMAIL_FROM_NAME: 'Fivvi',
+      // Where a reply to any email goes (the sender is noreply@, and a sender that can't receive
+      // replies counts against us with spam filters, #1514). Required, like the sender: production
+      // without it throws. Development (and so previews) uses an example.com address.
+      EMAIL_REPLY_TO_ADDRESS: production ? 'support@fivvi.app' : 'support@example.com',
       // Sign-in (F001, packages/auth). Signs and hashes sign-in sessions, links and codes: a
       // secret per environment, set in the dashboard, and production's never reaches
       // development. Without it, sign-in fails.

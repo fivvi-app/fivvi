@@ -5,6 +5,7 @@ import { type TrainerConflictRefusal, trainerConflict } from '../sessions/sessio
 export type GroupClass = Schemas['GroupClass'];
 export type Session = Schemas['Session'];
 export type Trainer = Schemas['Trainer'];
+export type ClassSeries = Schemas['ClassSeries'];
 
 /** The fields of the class form (TW-03) that can be refused. */
 export type ClassField =
@@ -35,10 +36,12 @@ export interface ClassInput {
 }
 
 /** The `classes.schedule.errors.*` keys of the scheduling form's date, start and capacity. */
-export type DateErrorKey = 'invalidDate';
+export type DateErrorKey = 'invalidDate' | 'dateInPast';
 export type StartErrorKey = 'timeDoesNotExist' | 'invalidTime';
 /** The `classes.edit.errors.*` keys of CO-04's end. */
-export type EndErrorKey = 'endBeforeStart' | 'timeDoesNotExist' | 'invalidTime';
+export type EndErrorKey = 'endBeforeStart' | 'timeDoesNotExist' | 'invalidTime' | 'invalidDuration';
+/** The `classes.edit.errors.*` key of *Wijzigen voor*: a date before today is not changed (F022). */
+export type ScopeErrorKey = 'dateInPast';
 
 /** The refusals every call shares. */
 type Refused =
@@ -56,26 +59,41 @@ export type CreateClassResult =
   | Refused;
 
 export type ScheduleResult =
-  | { ok: true; session: Session }
+  | {
+      ok: true;
+      session: Session;
+      /** How many dates a weekly repeat made (12); absent for one date. */
+      datesAdded?: number;
+    }
   | {
       ok: false;
       reason: 'fields';
       date?: DateErrorKey;
       start?: StartErrorKey;
+      /** The date a skipped start belongs to, for a weekly class: the first one the clocks skip. */
+      startDate?: string;
       capacity?: 'capacityInvalid';
     }
   | Refused;
 
 export type EditDateResult =
-  | { ok: true; session: Session }
+  | {
+      ok: true;
+      session: Session;
+      /** With *Deze en volgende lessen*: how many dates kept their own changes (F022). */
+      keptDates?: number;
+    }
   /** `class_date_changed`: someone changed the date first; `session` is the date as it is now. */
   | { ok: false; reason: 'conflict'; session: Session }
   | {
       ok: false;
       reason: 'fields';
       start?: StartErrorKey;
+      /** The date a skipped start belongs to, when the change reaches more than one date. */
+      startDate?: string;
       end?: EndErrorKey;
       capacity?: 'capacityInvalid';
+      scope?: ScopeErrorKey;
     }
   | Refused;
 
@@ -216,6 +234,8 @@ export interface ScheduleInput {
   /** The trainer of this date, or `''` for *Trainer nodig*. */
   trainerId: string;
   capacity: string;
+  /** *Herhalen* (F022): `weekly` makes a weekly series from this date; `none` (the default) one date. */
+  repeat?: 'none' | 'weekly';
   /** *Toch opslaan* (PS-07): save although the trainer has something then. */
   allowConflicts?: boolean;
 }
@@ -240,6 +260,7 @@ export async function scheduleClassDate(
     trainerId: input.trainerId === '' ? null : input.trainerId,
     capacity: whole(input.capacity),
   };
+  if (input.repeat === 'weekly') body.repeat = 'weekly';
   if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(
     'POST',
@@ -250,16 +271,20 @@ export async function scheduleClassDate(
   if ('failed' in answered) return answered.failed;
   if (answered.status === 409) return trainerConflict(answered.body);
   if (answered.status === 201) {
-    const session = answered.body as Session | null;
+    const session = answered.body as Schemas['ScheduledClassDate'] | null;
     if (!session?.id) return { ok: false, reason: 'generic' };
-    return { ok: true, session };
+    return session.datesAdded === undefined
+      ? { ok: true, session }
+      : { ok: true, session, datesAdded: session.datesAdded };
   }
   if (answered.status === 400) {
     const refused: Extract<ScheduleResult, { reason: 'fields' }> = { ok: false, reason: 'fields' };
-    for (const { path, code } of issuesOf(answered.body)) {
-      if (path === 'localDate') refused.date = 'invalidDate';
+    for (const { path, code, date } of issuesOf(answered.body)) {
+      if (path === 'localDate')
+        refused.date = code === 'date_in_past' ? 'dateInPast' : 'invalidDate';
       if (path === 'localStart') {
         refused.start = code === 'time_does_not_exist' ? 'timeDoesNotExist' : 'invalidTime';
+        if (date) refused.startDate = date;
       }
       if (path === 'capacity') refused.capacity = 'capacityInvalid';
     }
@@ -275,6 +300,8 @@ export interface EditDateInput {
   localStart: string;
   localEnd: string;
   capacity: string;
+  /** *Wijzigen voor* (F022): `this` (the default) changes this date, `following` the series from it on. */
+  scope?: 'this' | 'following';
   /** *Toch opslaan* (PS-07): save although the trainer has something then. */
   allowConflicts?: boolean;
 }
@@ -304,6 +331,7 @@ export async function editClassDate(
     localEnd: input.localEnd,
     capacity: whole(input.capacity),
   };
+  if (input.scope === 'following') body.scope = 'following';
   if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(
     'PATCH',
@@ -313,9 +341,11 @@ export async function editClassDate(
   );
   if ('failed' in answered) return answered.failed;
   if (answered.status === 200) {
-    const session = answered.body as Session | null;
+    const session = answered.body as Schemas['UpdatedClassDate'] | null;
     if (!session?.id) return { ok: false, reason: 'generic' };
-    return { ok: true, session };
+    return session.keptDates === undefined
+      ? { ok: true, session }
+      : { ok: true, session, keptDates: session.keptDates };
   }
   if (answered.status === 409) {
     const conflict = answered.body as Schemas['UpdateGroupClassDateRefusal'] | null;
@@ -326,9 +356,10 @@ export async function editClassDate(
   }
   if (answered.status === 400) {
     const refused: Extract<EditDateResult, { reason: 'fields' }> = { ok: false, reason: 'fields' };
-    for (const { path, code } of issuesOf(answered.body)) {
+    for (const { path, code, date } of issuesOf(answered.body)) {
       if (path === 'localStart') {
         refused.start = code === 'time_does_not_exist' ? 'timeDoesNotExist' : 'invalidTime';
+        if (date) refused.startDate = date;
       }
       if (path === 'localEnd') {
         refused.end =
@@ -336,11 +367,14 @@ export async function editClassDate(
             ? 'endBeforeStart'
             : code === 'time_does_not_exist'
               ? 'timeDoesNotExist'
-              : 'invalidTime';
+              : code === 'invalid_duration'
+                ? 'invalidDuration'
+                : 'invalidTime';
       }
       if (path === 'capacity') refused.capacity = 'capacityInvalid';
+      if (path === 'scope' && code === 'date_in_past') refused.scope = 'dateInPast';
     }
-    if (refused.start || refused.end || refused.capacity) return refused;
+    if (refused.start || refused.end || refused.capacity || refused.scope) return refused;
   }
   return refusal(answered.status);
 }

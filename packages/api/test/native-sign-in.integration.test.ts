@@ -80,6 +80,7 @@ describe('F001N native sign-in through the API', () => {
         createSendEmail({
           transport,
           sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+          replyTo: { email: 'support@example.com' },
         }),
       ...(overrides.reportError && { reportError: overrides.reportError }),
       ...(overrides.productEvents && { productEvents: overrides.productEvents }),
@@ -796,6 +797,7 @@ describe('F001N native sign-in through the API', () => {
           sendEmail: createSendEmail({
             transport,
             sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+            replyTo: { email: 'support@example.com' },
           }),
         });
         for (let i = 0; i < 20; i++) {

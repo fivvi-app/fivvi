@@ -12,6 +12,8 @@ struct TrainerWordForms: Equatable {
     let wordCap: String
     /// *een trainer*
     let aWord: String
+    /// *trainers*, inside a sentence.
+    let words: String
 
     init(_ choice: Components.Schemas.TrainerWord, catalog: Catalog) {
         func form(_ name: String) -> String {
@@ -20,5 +22,6 @@ struct TrainerWordForms: Equatable {
         word = form("word")
         wordCap = form("wordCap")
         aWord = form("aWord")
+        words = form("words")
     }
 }

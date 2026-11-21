@@ -232,12 +232,22 @@ class FakeSessionsApi : SessionsApi {
 
     // The API's rule (F023 AC7), for the fake's own sessions: the trainer's scheduled sessions that overlap [session],
     // soonest first; a session that starts when the other ends does not overlap, and a cancelled one never does.
-    private fun overlapsOf(trainerId: UUID, session: Session, excluding: UUID?): List<TrainerConflictItem> =
-        sessions.values
-            .filter { it.status == Session.Status.SCHEDULED && it.id != excluding && it.trainer?.id == trainerId }
-            .filter { it.startsAt < session.endsAt && session.startsAt < it.endsAt }
-            .sortedBy { it.startsAt }
-            .map {
+    fun overlapsOf(trainerId: UUID, session: Session, excluding: UUID?): List<TrainerConflictItem> = sessions.values
+        .filter { it.status == Session.Status.SCHEDULED && it.id != excluding && it.trainer?.id == trainerId }
+        .filter { it.startsAt < session.endsAt && session.startsAt < it.endsAt }
+        .sortedBy { it.startsAt }
+        .map {
+            val group = it.groupClass
+            if (group != null) {
+                TrainerConflictItem(
+                    it.id,
+                    TrainerConflictItem.Type.GROUP,
+                    it.startsAt,
+                    it.endsAt,
+                    group.nameNl,
+                    group.nameEn,
+                )
+            } else {
                 TrainerConflictItem(
                     it.id,
                     TrainerConflictItem.Type.PRIVATE,
@@ -247,6 +257,7 @@ class FakeSessionsApi : SessionsApi {
                     null,
                 )
             }
+        }
 
     fun <T> status(code: Int): Response<T> = Response.error(code, "{}".toResponseBody(JSON))
 }

@@ -169,7 +169,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     expect(html).not.toContain('/trainers');
   });
 
-  it('F029: the Owner and a Trainer have the Aanmeldlink in the navigation, between Trainers and Settings', () => {
+  it('F037: the Owner and a Trainer have Boekingslinks (with the Aanmeldlink card) in the navigation, between Trainers and Settings', () => {
     const frame = (teamRole: 'owner' | 'trainer', capabilities: typeof OWNER) =>
       render(
         locale,
@@ -186,20 +186,20 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         </WorkspaceFrame>,
       );
     const link = new RegExp(
-      `<a[^>]*href="/w/johns-gym/join-link"[^>]*>${NAV_ICON}<span[^>]*>${escapeHtml(copy.workspaceNav.joinLink)}</span></a>`,
+      `<a[^>]*href="/w/johns-gym/booking-links"[^>]*>${NAV_ICON}<span[^>]*>${escapeHtml(copy.workspaceNav.bookingLinks)}</span></a>`,
     );
 
     const owner = frame('owner', OWNER);
     expect(owner).toMatch(link);
     expect(owner.indexOf('/w/johns-gym/trainers')).toBeLessThan(
-      owner.indexOf('/w/johns-gym/join-link'),
+      owner.indexOf('/w/johns-gym/booking-links'),
     );
-    expect(owner.indexOf('/w/johns-gym/join-link')).toBeLessThan(
+    expect(owner.indexOf('/w/johns-gym/booking-links')).toBeLessThan(
       owner.indexOf('/w/johns-gym/settings/general'),
     );
     expect(frame('trainer', TRAINER)).toMatch(link);
     // The section follows the capability, not the role.
-    expect(frame('owner', [])).not.toContain('/join-link');
+    expect(frame('owner', [])).not.toContain('/booking-links');
   });
 
   it('F004 AC9: the navigation follows the capability list, not the role name', () => {

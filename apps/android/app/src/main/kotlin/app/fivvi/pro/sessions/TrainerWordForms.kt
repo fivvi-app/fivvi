@@ -17,6 +17,8 @@ data class TrainerWordForms(
     val wordCap: String,
     /** *een trainer* */
     val aWord: String,
+    /** *trainers*, inside a sentence. */
+    val words: String,
 ) {
     companion object {
         /** The forms of [choice], each read from the catalog with [text] (a resource ID to its string). */
@@ -25,24 +27,28 @@ data class TrainerWordForms(
                 text(R.string.trainer_word_trainer_word),
                 text(R.string.trainer_word_trainer_word_cap),
                 text(R.string.trainer_word_trainer_a_word),
+                text(R.string.trainer_word_trainer_words),
             )
 
             TrainerWord.INSTRUCTEUR -> TrainerWordForms(
                 text(R.string.trainer_word_instructeur_word),
                 text(R.string.trainer_word_instructeur_word_cap),
                 text(R.string.trainer_word_instructeur_a_word),
+                text(R.string.trainer_word_instructeur_words),
             )
 
             TrainerWord.DOCENT -> TrainerWordForms(
                 text(R.string.trainer_word_docent_word),
                 text(R.string.trainer_word_docent_word_cap),
                 text(R.string.trainer_word_docent_a_word),
+                text(R.string.trainer_word_docent_words),
             )
 
             TrainerWord.COACH -> TrainerWordForms(
                 text(R.string.trainer_word_coach_word),
                 text(R.string.trainer_word_coach_word_cap),
                 text(R.string.trainer_word_coach_a_word),
+                text(R.string.trainer_word_coach_words),
             )
         }
     }

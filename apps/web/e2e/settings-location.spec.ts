@@ -217,7 +217,7 @@ test.describe('F015 Settings → Location (TW-08)', () => {
       copy.workspaceNav.myDay,
       copy.workspaceNav.myCalendar,
       copy.workspaceNav.clients,
-      copy.workspaceNav.joinLink,
+      copy.workspaceNav.bookingLinks,
     ]);
 
     await page.goto(`/w/${slug}/settings/locations`);

@@ -19,13 +19,102 @@
     "openInBrowser": "Openen in de browser",
     "soon": "Deze link openen we binnenkort in de app."
   },
+  "bookingLinks": {
+    "body": "Werken alleen voor klanten die je hebt goedgekeurd.",
+    "columns": {
+      "actions": "Acties",
+      "language": "Taal van de pagina",
+      "link": "Link",
+      "status": "Status",
+      "what": "Wat"
+    },
+    "copied": "Link gekopieerd",
+    "copy": "Link kopiëren",
+    "copyBooking": "Boekingslink kopiëren",
+    "deactivate": "Deactiveren",
+    "deactivateDialog": {
+      "body": "Deze link werkt daarna niet meer, ook niet via een QR-code. Dit kan niet ongedaan worden gemaakt.",
+      "cancel": "Terug",
+      "confirm": "Deactiveren",
+      "title": "Boekingslink deactiveren?"
+    },
+    "deactivated": "Boekingslink gedeactiveerd.",
+    "errors": {
+      "copy": "Kopiëren is niet gelukt. Selecteer de link en kopieer hem zelf.",
+      "generic": "Er ging iets mis. Probeer het opnieuw.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "noPermission": "Je mag dit niet doen."
+    },
+    "inactiveHeading": "Niet actief",
+    "language": {
+      "en": "Altijd Engels",
+      "nl": "Altijd Nederlands",
+      "visitor": "Taal van de bezoeker"
+    },
+    "linkLabel": "Boekingslink",
+    "new": {
+      "classChoose": "Kies een les",
+      "classLabel": "Les",
+      "classNone": "Je hebt nog geen lessen.",
+      "classRequired": "Kies een les.",
+      "create": "Link maken",
+      "created": "Boekingslink gemaakt.",
+      "done": "Klaar",
+      "languageHint": "De bezoeker kan altijd zelf van taal wisselen.",
+      "languageLabel": "Taal van de pagina",
+      "languageOptions": {
+        "en": "Altijd Engels",
+        "nl": "Altijd Nederlands",
+        "visitor": "Taal van de bezoeker (aanbevolen)"
+      },
+      "open": "Nieuwe boekingslink",
+      "title": "Nieuwe boekingslink",
+      "what": {
+        "all": "Alle boekingen",
+        "class": "Eén les",
+        "group": "Groepslessen"
+      },
+      "whatLabel": "Wat"
+    },
+    "scope": {
+      "all": "Alle boekingen",
+      "class": "Les: {class}",
+      "group": "Groepslessen",
+      "session": "Les op {date}: {class}"
+    },
+    "status": {
+      "active": "Actief"
+    },
+    "title": "Boekingslinks",
+    "trainerNote": "{Words} zien de links, maar kunnen ze niet wijzigen."
+  },
   "classes": {
+    "app": {
+      "capacityLess": "Capaciteit verlagen",
+      "capacityMore": "Capaciteit verhogen",
+      "descriptionInDutch": "In het Nederlands",
+      "descriptionLess": "Minder",
+      "descriptionMore": "Meer",
+      "descriptionNote": "Zonder Engelse tekst zien Engelstalige klanten de Nederlandse.",
+      "edit": "Les wijzigen",
+      "manageOnWeb": "Dit beheer je op het web",
+      "newTitle": "Nieuwe groepsles",
+      "ownerNote": "Les wijzigen, een vaste reeks en {words} beheer je op het web."
+    },
     "date": {
       "back": "Alle lessen",
       "booked": "{booked}/{capacity} geboekt · {free, plural, one {# plek vrij} other {# plekken vrij}}",
       "bookedLabel": "Boekingen",
+      "changedField": {
+        "capacity": "capaciteit",
+        "location": "locatie",
+        "time": "tijd",
+        "trainer": "{Word}"
+      },
+      "changedFromSeries": "Aangepast t.o.v. de reeks: {fields}",
       "edit": "Wijzigen",
       "noBookings": "Nog geen boekingen.",
+      "seriesLine": "Onderdeel van: {name}, elke {weekday} {time}",
       "timeRange": "{date}, {start}–{end}",
       "trainerLabel": "{Word}",
       "whenLabel": "Wanneer",
@@ -37,17 +126,24 @@
       "capacityLabel": "Capaciteit",
       "changed": "Deze les is net gewijzigd. Je ziet nu de nieuwe gegevens.",
       "description": "Je wijzigt alleen {date}. De les zelf en de andere data blijven zoals ze zijn.",
+      "descriptionFollowing": "Je wijzigt {date} en de lessen die erna komen. Lessen met eigen wijzigingen blijven zoals ze zijn.",
       "endLabel": "Eind",
       "errors": {
         "capacityInvalid": "Vul een capaciteit in van {min} tot en met {max}.",
+        "dateInPast": "Een les in het verleden wijzig je niet voor de volgende lessen.",
         "endBeforeStart": "De eindtijd moet na de begintijd liggen.",
+        "invalidDuration": "Een les duurt {min} tot en met {max} minuten, in stappen van {step}.",
         "invalidTime": "Dit is geen geldige tijd.",
         "noPermission": "Je mag deze les niet meer wijzigen.",
         "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.",
-        "timeDoesNotExist": "Deze tijd bestaat niet op {date} door de zomertijd."
+        "timeDoesNotExist": "Deze tijd bestaat niet op {date} door de zomertijd. Kies een andere tijd."
       },
+      "kept": "{count, plural, one {# les heeft eigen wijzigingen en blijft zoals hij is.} other {# lessen hebben eigen wijzigingen en blijven zoals ze zijn.}}",
       "save": "Opslaan",
       "saved": "Les opgeslagen.",
+      "scopeFollowing": "Deze en volgende lessen",
+      "scopeLabel": "Wijzigen voor",
+      "scopeThis": "Alleen deze les",
       "startLabel": "Begin",
       "title": "Les wijzigen"
     },
@@ -102,22 +198,34 @@
       "errors": {
         "capacityInvalid": "Vul een capaciteit in van {min} tot en met {max}.",
         "classRequired": "Kies een les.",
+        "dateInPast": "Deze datum ligt in het verleden.",
         "dateRequired": "Kies een datum.",
         "invalidDate": "Deze datum bestaat niet.",
         "invalidTime": "Dit is geen geldige tijd.",
         "noPermission": "Je mag geen lessen plannen.",
         "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.",
         "startRequired": "Kies een begintijd.",
-        "timeDoesNotExist": "Deze tijd bestaat niet op {date} door de zomertijd."
+        "timeDoesNotExist": "Deze tijd bestaat niet op {date} door de zomertijd. Kies een andere tijd."
       },
       "loadFailed": "De gegevens konden niet worden geladen.",
       "location": "Locatie: {name}",
+      "repeatLabel": "Herhalen",
+      "repeatNone": "Niet herhalen",
+      "repeatNote": "We zetten de komende 12 weken in de agenda.",
+      "repeatWeekly": "Elke week op {weekday}",
+      "repeatWeeklyAnyDay": "Elke week",
       "save": "Plannen",
       "saved": "Groepsles toegevoegd",
+      "savedSeries": "{count, plural, one {# groepsles toegevoegd} other {# groepslessen toegevoegd}}",
       "startLabel": "Begin",
       "title": "Op een datum plannen",
       "trainerLabel": "{Word}",
       "whenSection": "Wanneer"
+    },
+    "series": {
+      "from": "vanaf {date}",
+      "line": "Elke {weekday} {start}–{end} · {trainer} · {spots}",
+      "title": "Reeksen"
     },
     "spots": "{count, plural, one {# plek} other {# plekken}}",
     "spotsColumn": "Plekken",
@@ -1686,15 +1794,16 @@
     "description": "Hier komt binnenkort het overzicht van je sportschool of bedrijf."
   },
   "workspaceNav": {
+    "bookingLinks": "Boekingslinks",
     "classes": "Lessen",
     "clients": "Klanten",
-    "joinLink": "Aanmeldlink",
     "label": "Hoofdnavigatie",
     "myCalendar": "Mijn agenda",
     "myDay": "Mijn dag",
     "new": "Nieuw",
     "newClient": "Klant",
     "newGroupClass": "Groepsles",
+    "newGroupClassNote": "Groepslessen van {workspaces} plant de eigenaar.",
     "newMenu": "Nieuw maken",
     "newPrivateSession": "Privésessie",
     "personal": "Persoonlijk",

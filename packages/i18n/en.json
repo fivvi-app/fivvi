@@ -19,13 +19,102 @@
     "openInBrowser": "Open in the browser",
     "soon": "We'll open this link in the app soon."
   },
+  "bookingLinks": {
+    "body": "Only work for clients you have approved.",
+    "columns": {
+      "actions": "Actions",
+      "language": "Page language",
+      "link": "Link",
+      "status": "Status",
+      "what": "What"
+    },
+    "copied": "Link copied",
+    "copy": "Copy link",
+    "copyBooking": "Copy booking link",
+    "deactivate": "Deactivate",
+    "deactivateDialog": {
+      "body": "This link stops working, also through a QR code. This can't be undone.",
+      "cancel": "Go back",
+      "confirm": "Deactivate",
+      "title": "Deactivate this booking link?"
+    },
+    "deactivated": "Booking link deactivated.",
+    "errors": {
+      "copy": "Copying didn't work. Select the link and copy it yourself.",
+      "generic": "Something went wrong. Try again.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "noPermission": "You can't do this."
+    },
+    "inactiveHeading": "Inactive",
+    "language": {
+      "en": "Always English",
+      "nl": "Always Dutch",
+      "visitor": "Visitor's language"
+    },
+    "linkLabel": "Booking link",
+    "new": {
+      "classChoose": "Choose a class",
+      "classLabel": "Class",
+      "classNone": "You don't have any classes yet.",
+      "classRequired": "Choose a class.",
+      "create": "Create link",
+      "created": "Booking link created.",
+      "done": "Done",
+      "languageHint": "The visitor can always switch language themselves.",
+      "languageLabel": "Page language",
+      "languageOptions": {
+        "en": "Always English",
+        "nl": "Always Dutch",
+        "visitor": "Visitor's language (recommended)"
+      },
+      "open": "New booking link",
+      "title": "New booking link",
+      "what": {
+        "all": "All bookings",
+        "class": "One class",
+        "group": "Group classes"
+      },
+      "whatLabel": "What"
+    },
+    "scope": {
+      "all": "All bookings",
+      "class": "Class: {class}",
+      "group": "Group classes",
+      "session": "Class on {date}: {class}"
+    },
+    "status": {
+      "active": "Active"
+    },
+    "title": "Booking links",
+    "trainerNote": "{Words} see the links, but can't change them."
+  },
   "classes": {
+    "app": {
+      "capacityLess": "Decrease capacity",
+      "capacityMore": "Increase capacity",
+      "descriptionInDutch": "In Dutch",
+      "descriptionLess": "Less",
+      "descriptionMore": "More",
+      "descriptionNote": "Without an English text, English-speaking clients see the Dutch one.",
+      "edit": "Edit class",
+      "manageOnWeb": "You manage this on the web",
+      "newTitle": "New group class",
+      "ownerNote": "You manage editing a class, a fixed series and {words} on the web."
+    },
     "date": {
       "back": "All classes",
       "booked": "{booked}/{capacity} booked · {free, plural, one {# spot free} other {# spots free}}",
       "bookedLabel": "Bookings",
+      "changedField": {
+        "capacity": "capacity",
+        "location": "location",
+        "time": "time",
+        "trainer": "{Word}"
+      },
+      "changedFromSeries": "Changed from the series: {fields}",
       "edit": "Edit",
       "noBookings": "No bookings yet.",
+      "seriesLine": "Part of: {name}, every {weekday} {time}",
       "timeRange": "{date}, {start}–{end}",
       "trainerLabel": "{Word}",
       "whenLabel": "When",
@@ -37,17 +126,24 @@
       "capacityLabel": "Capacity",
       "changed": "This class was just changed. You now see the new details.",
       "description": "You're changing only {date}. The class itself and its other dates stay as they are.",
+      "descriptionFollowing": "You're changing {date} and the classes after it. Classes with their own changes stay as they are.",
       "endLabel": "End",
       "errors": {
         "capacityInvalid": "Enter a capacity from {min} to {max}.",
+        "dateInPast": "A class in the past can't be changed for the following classes.",
         "endBeforeStart": "The end time must be after the start time.",
+        "invalidDuration": "A class lasts {min} to {max} minutes, in steps of {step}.",
         "invalidTime": "This isn't a valid time.",
         "noPermission": "You can't change this class any more.",
         "notSaved": "Not saved. Check your connection and try again.",
-        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time."
+        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time. Choose another time."
       },
+      "kept": "{count, plural, one {# class has its own changes and stays as it is.} other {# classes have their own changes and stay as they are.}}",
       "save": "Save",
       "saved": "Class saved.",
+      "scopeFollowing": "This and following classes",
+      "scopeLabel": "Apply to",
+      "scopeThis": "Only this class",
       "startLabel": "Start",
       "title": "Edit class"
     },
@@ -102,22 +198,34 @@
       "errors": {
         "capacityInvalid": "Enter a capacity from {min} to {max}.",
         "classRequired": "Choose a class.",
+        "dateInPast": "This date is in the past.",
         "dateRequired": "Choose a date.",
         "invalidDate": "This date doesn't exist.",
         "invalidTime": "This isn't a valid time.",
         "noPermission": "You can't schedule classes.",
         "notSaved": "Not saved. Check your connection and try again.",
         "startRequired": "Choose a start time.",
-        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time."
+        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time. Choose another time."
       },
       "loadFailed": "The details couldn't be loaded.",
       "location": "Location: {name}",
+      "repeatLabel": "Repeat",
+      "repeatNone": "Don't repeat",
+      "repeatNote": "We'll add the next 12 weeks to the calendar.",
+      "repeatWeekly": "Every week on {weekday}",
+      "repeatWeeklyAnyDay": "Every week",
       "save": "Schedule",
       "saved": "Group class added",
+      "savedSeries": "{count, plural, one {# group class added} other {# group classes added}}",
       "startLabel": "Start",
       "title": "Schedule on a date",
       "trainerLabel": "{Word}",
       "whenSection": "When"
+    },
+    "series": {
+      "from": "from {date}",
+      "line": "Every {weekday} {start}–{end} · {trainer} · {spots}",
+      "title": "Series"
     },
     "spots": "{count, plural, one {# spot} other {# spots}}",
     "spotsColumn": "Spots",
@@ -1686,15 +1794,16 @@
     "description": "The overview of your gym or business will appear here soon."
   },
   "workspaceNav": {
+    "bookingLinks": "Booking links",
     "classes": "Classes",
     "clients": "Clients",
-    "joinLink": "Join link",
     "label": "Main navigation",
     "myCalendar": "My calendar",
     "myDay": "My day",
     "new": "New",
     "newClient": "Client",
     "newGroupClass": "Group class",
+    "newGroupClassNote": "The owner plans the group classes of {workspaces}.",
     "newMenu": "Create new",
     "newPrivateSession": "Private session",
     "personal": "Personal",

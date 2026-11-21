@@ -79,6 +79,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       sendEmail: createSendEmail({
         transport: emailTransport,
         sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+        replyTo: { email: 'support@example.com' },
       }),
       ...overrides,
     });

@@ -48,6 +48,7 @@ try {
 const sendEmail = createSendEmail({
   transport: createConfiguredTransport(config),
   sender: config.sender,
+  replyTo: config.replyTo,
   onRetry: ({ attempt, delayMs, error }) => {
     console.warn(`Attempt ${attempt} failed (${error.message}); retrying in ${delayMs} ms.`);
   },
