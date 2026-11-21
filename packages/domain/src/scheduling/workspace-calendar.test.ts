@@ -154,9 +154,30 @@ describe('F014 AC10 (API): class dates without a trainer, the next 14 days', () 
   });
 
   it('takes the wall-clock day of the zone, not UTC', () => {
-    // 23:30 Amsterdam on 22 September is 21:30 UTC; the clock of "now" is Amsterdam's.
-    const lateNow = zonedTime('2026-09-22T23:30');
-    const nextDay = session('next', '2026-09-23T00:30', { type: 'group', trainerId: null });
-    expect(classDatesWithoutTrainer([nextDay], lateNow, ZONE)).toEqual([nextDay]);
+    // 00:30 on 23 September in Amsterdam is still 22:30 on 22 September in UTC. The 14th day
+    // counting today is 6 October on the wall clock (the window ends at 7 October 00:00), but would
+    // be 5 October reading the UTC date (ending 6 October 02:00 Amsterdam time).
+    const afterMidnight = zonedTime('2026-09-23T00:30');
+    expect(attentionWindow(afterMidnight, ZONE)).toEqual({
+      from: afterMidnight,
+      to: zonedTime('2026-10-07T00:00'),
+    });
+    const lastDay = session('last-day', '2026-10-06T23:30', { type: 'group', trainerId: null });
+    const afterWindow = session('after', '2026-10-07T00:30', { type: 'group', trainerId: null });
+    expect(classDatesWithoutTrainer([afterWindow, lastDay], afterMidnight, ZONE)).toEqual([
+      lastDay,
+    ]);
+  });
+
+  it('counts the 14 days on the wall clock across the clock change of 25 October', () => {
+    // Summer time ends on the way: 14 days of 24 hours would end an hour early, at 23:00 on 2 November.
+    const crossing = zonedTime('2026-10-20T08:00');
+    expect(attentionWindow(crossing, ZONE)).toEqual({
+      from: crossing,
+      to: zonedTime('2026-11-03T00:00'),
+    });
+    const lastDay = session('last-day', '2026-11-02T23:30', { type: 'group', trainerId: null });
+    const after = session('after', '2026-11-03T00:00', { type: 'group', trainerId: null });
+    expect(classDatesWithoutTrainer([after, lastDay], crossing, ZONE)).toEqual([lastDay]);
   });
 });

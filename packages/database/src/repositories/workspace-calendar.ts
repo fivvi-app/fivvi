@@ -47,7 +47,7 @@ export interface WorkspaceCalendarRow {
 /**
  * The sessions of the scope's workspace that start from `window.from` up to, not including,
  * `window.to`, in time order, cancelled ones included (the calendar shows them struck through).
- * Three queries: the sessions with their location, trainer, class and series, and their places.
+ * Two queries: the sessions with their location, trainer, class and series, and their places.
  */
 export async function listWorkspaceCalendar(
   scope: WorkspaceScope,

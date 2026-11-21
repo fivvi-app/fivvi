@@ -573,6 +573,8 @@ describe('F014 the workspace calendar and day through the API', () => {
         });
       }
       const server = api();
+      // A first request warms the app up (modules, pool, plans), so the timing below is the route's.
+      expect((await calendar(pilot.id, WEEK, owner, {}, server)).status).toBe(200);
 
       const started = performance.now();
       const response = await calendar(pilot.id, WEEK, owner, {}, server);
