@@ -111,13 +111,18 @@ struct HomeView: View {
         NavigationStack(path: $path) {
             screen
                 .navigationDestination(for: Route.self) { route in
-                    switch route {
-                    case .clients: clientsScreen
-                    case .profile: profileScreen
-                    case let .client(route): clientProfileScreen(route)
-                    case let .session(id): sessionScreen(id)
-                    case let .classDate(id, added): classDateScreen(id, added: added)
+                    Group {
+                        switch route {
+                        case .clients: clientsScreen
+                        case .profile: profileScreen
+                        case let .client(route): clientProfileScreen(route)
+                        case let .session(id): sessionScreen(id)
+                        case let .classDate(id, added): classDateScreen(id, added: added)
+                        }
                     }
+                    // The screens below the home are second-level screens with forms and long lists: the glass bar would
+                    // float over their last rows and over their sheets, so they hide it, as the system's own apps do.
+                    .toolbarVisibility(.hidden, for: .tabBar)
                 }
         }
     }
