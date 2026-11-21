@@ -68,8 +68,14 @@ data class NewGroupClassState(
     val saving: Boolean = false,
     /** A request failed for lack of a connection: the next successful read clears it. */
     val sawOffline: Boolean = false,
-    /** The API created the class and its date: TD-05 closes and TD-03 of the date opens. */
+    /** *Herhalen*: *Elke week op {weekday}*, the weekday of the date; the API makes the series and its dates. */
+    val repeatsWeekly: Boolean = false,
+    /** The API created the class and its first date: TD-05 closes and TD-03 of the date opens. */
     val saved: Session? = null,
+    /** How many dates the API put in the calendar: 12 for a weekly class, else 1. */
+    val datesAdded: Int = 1,
+    /** The date the API named when it refused a start the clocks skip: the weekly class's first such date. */
+    val skippedDate: LocalDate? = null,
     internal val firstStart: LocalDateTime = LocalDateTime.MIN,
 ) {
     /** With no connection the form says so, and *Opslaan* is off. */
@@ -81,7 +87,10 @@ data class NewGroupClassState(
     val isDirty: Boolean
         get() = (nameNl + nameEn + descriptionNl + descriptionEn).isNotEmpty() ||
             capacity != NewGroupClassViewModel.DEFAULT_CAPACITY || time.start != firstStart ||
-            time.durationMinutes != NewGroupClassViewModel.DEFAULT_MINUTES || trainerId != myTrainerId
+            time.durationMinutes != NewGroupClassViewModel.DEFAULT_MINUTES || trainerId != myTrainerId || repeatsWeekly
+
+    /** The date the refusal of the start is about: the one the API named, else the date of the start. */
+    val refusedDate: LocalDate get() = skippedDate ?: time.start.toLocalDate()
 
     /** Where the class ends: the start plus the length. */
     val endsAt: LocalTime
@@ -89,7 +98,8 @@ data class NewGroupClassState(
 }
 
 /**
- * TD-05 *Nieuwe groepsles* (F021 AC6, the Owner, *Herhalen: Niet herhalen*): the name and the description in Dutch and
+ * TD-05 *Nieuwe groepsles* (F021 AC6, the Owner; F022 AC6, AC7, *Herhalen*: *Niet herhalen* or *Elke week op
+ * {weekday}*, which asks the API for the weekly series and its 12 dates): the name and the description in Dutch and
  * English, the date, the start and the end, the capacity, the trainer (or *Trainer nodig*) and the default location. The
  * API creates the class and its one date in one request (`POST …/group-classes` with a `firstDate`, so a refused date
  * leaves no class behind) and decides every rule; the form only collects, shows what the API refused per field and keeps
@@ -194,6 +204,8 @@ class NewGroupClassViewModel(
         it.copy(time = it.time.withEnd(end), refused = it.refused - ClassField.Duration)
     }
 
+    fun setRepeatsWeekly(weekly: Boolean) = _state.update { it.copy(repeatsWeekly = weekly) }
+
     /** The created date was handed on: it isn't handed on again. */
     fun onSavedHandled() = _state.update { it.copy(saved = null) }
 
@@ -213,6 +225,7 @@ class NewGroupClassViewModel(
                 doubleBooking = null,
                 refused = emptyMap(),
                 time = it.time.cleared(),
+                skippedDate = null,
                 saving = true,
             )
         }
@@ -228,6 +241,7 @@ class NewGroupClassViewModel(
             firstDate = FirstGroupClassDate(
                 localDate = SessionClock.localDate(shown.time.start),
                 localStart = SessionClock.localStart(shown.time.start),
+                repeat = FirstGroupClassDate.Repeat.WEEKLY.takeIf { shown.repeatsWeekly },
             ),
             surface = CreateGroupClassRequest.Surface.ANDROID,
         )
@@ -247,7 +261,7 @@ class NewGroupClassViewModel(
             val date = created.firstDate
             return _state.update {
                 if (date != null) {
-                    it.copy(saving = false, saved = date)
+                    it.copy(saving = false, saved = date, datesAdded = created.datesAdded ?: 1)
                 } else {
                     it.copy(saving = false, saveFailure = SaveFailure.NotSaved)
                 }
@@ -287,10 +301,14 @@ class NewGroupClassViewModel(
         }.getOrNull().orEmpty()
         _state.update { shown ->
             val time = shown.time.refusedBy(issues)
+            // A start the clocks skip names the date: for a weekly class, the first one that doesn't exist.
+            val skipped = issues.firstOrNull { it.code == "time_does_not_exist" && it.path.endsWith("localStart") }
+                ?.date?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
             val refused = issues.mapNotNull { issue -> fieldOf(issue)?.let { it to issue.code } }.toMap()
             shown.copy(
                 saving = false,
                 time = time ?: shown.time,
+                skippedDate = skipped,
                 refused = refused,
                 saveFailure = SaveFailure.NotSaved.takeIf { refused.isEmpty() && time == null },
             )

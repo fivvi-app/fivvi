@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import app.fivvi.api.models.GroupClass
 import app.fivvi.api.models.Session
 import app.fivvi.api.models.SessionParticipant
+import app.fivvi.api.models.SessionSeries
 import app.fivvi.pro.clients.WorkspaceDefaults
 import app.fivvi.pro.clients.defaultsOf
 import java.io.IOException
 import java.net.HttpURLConnection.HTTP_FORBIDDEN
 import java.net.HttpURLConnection.HTTP_NOT_FOUND
+import java.time.DayOfWeek
 import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,14 +36,20 @@ sealed interface ClassDateLoad {
 /** A text of a class in the viewer's language, or the Dutch one when there is none; [isDutchFallback] marks that. */
 data class ClassText(val text: String, val isDutchFallback: Boolean)
 
+/** *Onderdeel van: {name}, elke {weekday} {time}*: what the line of a date in a weekly series says (F022 AC6). */
+data class SeriesLine(val name: String, val time: String, val weekday: DayOfWeek)
+
 /** What TD-03 shows and holds. */
 data class ClassDateState(
     /** The person's own team-member ID in the workspace (`GET /api/v1/me`): a date whose trainer has it reads *Jij*. */
     val myTeamMemberId: UUID,
     /** The person has `class.manage`: they get the ⋯ menu and the footnote. */
     val canManage: Boolean,
-    /** TD-05 has just created this date: "Groepsles toegevoegd" shows. */
-    val justAdded: Boolean = false,
+    /**
+     * TD-05 has just created this date and this many dates (12 for a weekly class, else 1): "Groepsles toegevoegd" or
+     * "12 groepslessen toegevoegd" shows; `null` for a date opened from the calendar.
+     */
+    val added: Int? = null,
     val load: ClassDateLoad = ClassDateLoad.Loading,
     val session: Session? = null,
     /** The class itself, for the description (the date has none); `null` until read, or when it can't be. */
@@ -68,6 +76,12 @@ data class ClassDateState(
     fun title(english: Boolean): String {
         val named = session?.groupClass ?: return ""
         return pick(english, named.nameNl, named.nameEn)?.text ?: named.nameNl
+    }
+
+    /** The series line of a date in a weekly series, from the series the API sends with the date; `null` for a date on its own. */
+    fun seriesLine(english: Boolean): SeriesLine? {
+        val series = session?.series ?: return null
+        return SeriesLine(title(english), series.localStartTime, series.weekday.dayOfWeek())
     }
 
     /** The description in the viewer's language, else Dutch (marked as Dutch); `null` when the class has none to show. */
@@ -99,10 +113,10 @@ class ClassDateViewModel(
     private val sessionId: UUID,
     teamMemberId: UUID,
     canManage: Boolean,
-    justAdded: Boolean = false,
+    added: Int? = null,
     private val onNotAllowed: (Response<*>) -> Unit = {},
 ) : ViewModel() {
-    private val _state = MutableStateFlow(ClassDateState(teamMemberId, canManage, justAdded))
+    private val _state = MutableStateFlow(ClassDateState(teamMemberId, canManage, added))
     val state: StateFlow<ClassDateState> = _state.asStateFlow()
     private var reading: Job? = null
 
@@ -168,4 +182,15 @@ class ClassDateViewModel(
         }
         _state.update { it.copy(groupClass = found ?: it.groupClass) }
     }
+}
+
+// The weekday a series names, as `java.time` has it.
+private fun SessionSeries.Weekday.dayOfWeek(): DayOfWeek = when (this) {
+    SessionSeries.Weekday.MO -> DayOfWeek.MONDAY
+    SessionSeries.Weekday.TU -> DayOfWeek.TUESDAY
+    SessionSeries.Weekday.WE -> DayOfWeek.WEDNESDAY
+    SessionSeries.Weekday.TH -> DayOfWeek.THURSDAY
+    SessionSeries.Weekday.FR -> DayOfWeek.FRIDAY
+    SessionSeries.Weekday.SA -> DayOfWeek.SATURDAY
+    SessionSeries.Weekday.SU -> DayOfWeek.SUNDAY
 }

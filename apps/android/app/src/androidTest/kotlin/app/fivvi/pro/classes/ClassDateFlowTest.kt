@@ -56,7 +56,7 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
                 "John's Gym",
                 date.id,
                 sarah.id,
-                added = false,
+                added = null,
                 sessionKey = "token-1",
                 opening = 1,
                 onBack = {},

@@ -1,5 +1,6 @@
 package app.fivvi.pro.classes
 
+import app.fivvi.api.models.SessionSeries
 import app.fivvi.api.models.Trainer
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.home.FakeTrainersApi
@@ -8,6 +9,8 @@ import app.fivvi.pro.sessions.FakeLocationsApi
 import app.fivvi.pro.sessions.FakeSessionsApi
 import app.fivvi.pro.sessions.trainerOf
 import java.io.IOException
+import java.time.DayOfWeek
+import java.time.LocalDateTime
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,6 +20,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -57,20 +61,16 @@ class ClassDateViewModelTest {
         return date.id
     }
 
-    private fun viewModel(
-        id: UUID,
-        teamMemberId: UUID = john.id,
-        canManage: Boolean = true,
-        justAdded: Boolean = false,
-    ) = ClassDateViewModel(
-        ClassApis(classes, sessions, FakeLocationsApi(), FakeTrainersApi(), FakeWorkspacesApi()),
-        workspace,
-        id,
-        teamMemberId,
-        canManage,
-        justAdded,
-        onNotAllowed = { notAllowed += it.code() },
-    )
+    private fun viewModel(id: UUID, teamMemberId: UUID = john.id, canManage: Boolean = true, added: Int? = null) =
+        ClassDateViewModel(
+            ClassApis(classes, sessions, FakeLocationsApi(), FakeTrainersApi(), FakeWorkspacesApi()),
+            workspace,
+            id,
+            teamMemberId,
+            canManage,
+            added,
+            onNotAllowed = { notAllowed += it.code() },
+        )
 
     @Test
     fun test_F021_AC3_theDateShowsTheNameTheTimeTheLocationTheTrainerAndThePlaces() {
@@ -169,8 +169,73 @@ class ClassDateViewModelTest {
 
     @Test
     fun test_F021_AC6_aDateJustAddedSaysSo() {
-        assertTrue(viewModel(date(), justAdded = true).state.value.justAdded)
-        assertFalse(viewModel(date()).state.value.justAdded)
+        assertEquals(1, viewModel(date(), added = 1).state.value.added)
+        assertNull(viewModel(date()).state.value.added)
+    }
+
+    // F022 AC6: a date in a weekly series says Onderdeel van: {class}, elke {weekday} {time}, from the series the API sends.
+    private fun weeklyDate(trainer: Trainer? = sarah, weekly: Boolean = true): UUID {
+        classes.classes[mobility.id] = mobility
+        val series = SessionSeries(
+            UUID.randomUUID(),
+            SessionSeries.Weekday.TH,
+            "18:00",
+            "2026-09-24",
+            emptyList(),
+        )
+        val date = classDateOf(UUID.randomUUID(), mobility, trainer, series = series.takeIf { weekly })
+        sessions.sessions[date.id] = date
+        return date.id
+    }
+
+    @Test
+    fun test_F022_AC6_aDateInASeriesSaysOnderdeelVanTheClassEveryWeekdayAndTime() {
+        val state = viewModel(weeklyDate()).state.value
+
+        val line = state.seriesLine(english = false)
+        assertEquals(SeriesLine("Mobility", "18:00", DayOfWeek.THURSDAY), line)
+        assertEquals("Mobility flow", state.seriesLine(english = true)?.name)
+    }
+
+    @Test
+    fun test_F022_AC6_theSeriesLineKeepsTheWallClockTimeOfTheSeriesAfterTheClocksChange() {
+        classes.classes[mobility.id] = mobility
+        // 18:00 in Amsterdam after the clocks went back (17:00 UTC): the series still says 18:00.
+        val series = SessionSeries(UUID.randomUUID(), SessionSeries.Weekday.TU, "18:00", "2026-10-27", emptyList())
+        val date = classDateOf(
+            UUID.randomUUID(),
+            mobility,
+            sarah,
+            start = LocalDateTime.of(2026, 10, 27, 18, 0),
+            series = series,
+        )
+        sessions.sessions[date.id] = date
+
+        val line = viewModel(date.id).state.value.seriesLine(english = false)
+
+        assertEquals("18:00", line?.time)
+        assertEquals(DayOfWeek.TUESDAY, line?.weekday)
+    }
+
+    @Test
+    fun test_F022_AC6_aDateOnItsOwnHasNoSeriesLine() {
+        assertNull(viewModel(weeklyDate(weekly = false)).state.value.seriesLine(english = false))
+    }
+
+    @Test
+    fun test_F022_AC6_aTrainerReadsTheSeriesLineToo() {
+        val state = viewModel(weeklyDate(), teamMemberId = sarah.id, canManage = false).state.value
+
+        assertNotNull(state.seriesLine(english = false))
+    }
+
+    @Test
+    fun test_F022_AC6_aNewWeeklyClassOpensWithTwelveGroepslessenToegevoegd() {
+        val id = weeklyDate()
+
+        assertEquals(12, viewModel(id, added = 12).state.value.added)
+        assertEquals(1, viewModel(id, added = 1).state.value.added)
+        assertNull("opened from the calendar: no confirmation", viewModel(id).state.value.added)
     }
 
     @Test

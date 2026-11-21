@@ -1,5 +1,7 @@
 package app.fivvi.pro.classes
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -12,6 +14,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import app.fivvi.api.models.Client
+import app.fivvi.api.models.FirstGroupClassDate
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
@@ -28,12 +31,16 @@ import app.fivvi.pro.localizedString
 import app.fivvi.pro.sessions.DoubleBookingTags
 import app.fivvi.pro.sessions.FakeLocationsApi
 import app.fivvi.pro.sessions.FakeSessionsApi
+import app.fivvi.pro.sessions.SessionFormat
 import app.fivvi.pro.sessions.sessionOf
 import app.fivvi.pro.sessions.trainerOf
 import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.TextStyle
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -428,6 +435,109 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
 
         compose.waitUntilTagExists(HomeTags.NEW)
         compose.onNodeWithText("John's Gym").assertIsDisplayed()
+    }
+
+    // F022: Herhalen offers Niet herhalen and Elke week op {weekday}; the weekly choice shows its note.
+    private val formatLocale get() = if (dutch) Locale.forLanguageTag("nl-NL") else Locale.UK
+
+    // The menu is a popup window: wait for its options before they are read or tapped.
+    private fun openRepeatMenu() {
+        compose.onNodeWithTag(NewClassTags.REPEAT).performScrollTo().performClick()
+        compose.waitUntilTagExists(NewClassTags.REPEAT_NONE)
+        compose.waitUntilTagExists(NewClassTags.REPEAT_WEEKLY)
+    }
+
+    private fun chooseWeekly() {
+        openRepeatMenu()
+        compose.onNodeWithTag(NewClassTags.REPEAT_WEEKLY).performClick()
+    }
+
+    private fun weekdayName(localDate: String) =
+        LocalDate.parse(localDate).dayOfWeek.getDisplayName(TextStyle.FULL, formatLocale)
+
+    // The weekday in Elke week op is the form's date: it is compared with the date the form sent, not with the clock.
+    @Test
+    fun test_F022_AC6_herhalenOffersNietHerhalenAndElkeWeekOpTheWeekdayAndTheNoteShowsWithTheWeeklyChoice() {
+        launchAsJohn()
+        openNewClass()
+        type(NewClassTags.NAME_NL, "Mobility")
+        app.hideKeyboard(compose)
+
+        compose.onNodeWithTag(NewClassTags.REPEAT_NOTE).assertDoesNotExist()
+        openRepeatMenu()
+        compose.onNodeWithTag(NewClassTags.REPEAT_NONE).assertTextEquals(string(R.string.classes_schedule_repeat_none))
+        compose.onNodeWithTag(NewClassTags.REPEAT_WEEKLY).performClick()
+
+        val value = compose.onNodeWithTag(NewClassTags.REPEAT_VALUE).performScrollTo()
+        val shown = value.fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text)?.joinToString("")
+        compose.onNodeWithTag(NewClassTags.REPEAT_NOTE).assertTextEquals(string(R.string.classes_schedule_repeat_note))
+        save()
+
+        compose.waitUntilTagExists(ClassDateTags.SERIES)
+        val sent = classes.created.single().second.firstDate!!
+        assertEquals(string(R.string.classes_schedule_repeat_weekly, weekdayName(sent.localDate)), shown)
+    }
+
+    // AC6: John adds a weekly Mobility; the class and the series with 12 dates exist; TD-03 opens with 12 added and the line.
+    @Test
+    fun test_F022_AC6_ownerAddsAWeeklyMobilityAndTD03ShowsTwelveAddedAndTheSeriesLine() {
+        launchAsJohn()
+        openNewClass()
+        type(NewClassTags.NAME_NL, "Mobility")
+        app.hideKeyboard(compose)
+        chooseWeekly()
+        compose.onNodeWithTag(NewClassTags.REPEAT_NOTE).assertTextEquals(string(R.string.classes_schedule_repeat_note))
+        save()
+
+        compose.waitUntilTagExists(ClassDateTags.SERIES)
+        val sent = classes.created.single().second.firstDate!!
+        assertEquals(FirstGroupClassDate.Repeat.WEEKLY, sent.repeat)
+        assertEquals(1, classes.created.size)
+        assertEquals(WEEKLY_DATES, sessions.sessions.size)
+        compose.onNodeWithTag(ClassDateTags.TITLE).assertTextEquals("Mobility")
+        compose.onNodeWithTag(ClassDateTags.ADDED).assertTextEquals(
+            if (dutch) "12 groepslessen toegevoegd" else "12 group classes added",
+        )
+        compose.onNodeWithTag(ClassDateTags.SERIES).assertTextEquals(
+            string(R.string.classes_date_series_line, "Mobility", sent.localStart, weekdayName(sent.localDate)),
+        )
+    }
+
+    // AC6: a class added without Herhalen has no series line and the single confirmation.
+    @Test
+    fun test_F022_AC6_aClassWithoutHerhalenShowsGroepslesToegevoegdAndNoSeriesLine() {
+        launchAsJohn()
+        openNewClass()
+        type(NewClassTags.NAME_NL, "Mobility")
+        app.hideKeyboard(compose)
+        save()
+
+        compose.waitUntilTagExists(ClassDateTags.ADDED)
+        compose.onNodeWithTag(ClassDateTags.ADDED).assertTextEquals(string(R.string.classes_schedule_saved))
+        compose.onNodeWithTag(ClassDateTags.SERIES).assertDoesNotExist()
+    }
+
+    // AC7: the API refuses a weekly start the clocks skip; its message shows with the date it names and nothing is created.
+    @Test
+    fun test_F022_AC7_aWeeklyStartTheClocksSkipShowsTheDstMessageWithTheDateAndNothingIsCreated() {
+        launchAsJohn()
+        val skipped = LocalDate.now(ZoneId.of("Europe/Amsterdam")).plusWeeks(3)
+        classes.skippedStart = skipped
+        openNewClass()
+        type(NewClassTags.NAME_NL, "Mobility")
+        app.hideKeyboard(compose)
+        chooseWeekly()
+        save()
+
+        compose.waitUntilTagExists(NewClassTags.TIME_ERROR)
+        val day = SessionFormat(formatLocale, ZoneId.of("Europe/Amsterdam")).day(skipped)
+        compose.onNodeWithTag(NewClassTags.TIME_ERROR)
+            .assertTextEquals(string(R.string.classes_schedule_errors_time_does_not_exist, day))
+        compose.onNodeWithTag(ClassDateTags.TITLE).assertDoesNotExist()
+        assertTrue(classes.classes.isEmpty())
+        assertTrue(sessions.sessions.isEmpty())
+        assertEquals(1, classes.created.size)
+        compose.onNodeWithTag(NewClassTags.TITLE).assertIsDisplayed()
     }
 
     companion object {

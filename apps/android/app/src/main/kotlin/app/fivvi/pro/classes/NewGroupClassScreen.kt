@@ -100,6 +100,9 @@ object NewClassTags {
     const val TIME_ERROR = "newClass.timeError"
     const val REPEAT = "newClass.repeat"
     const val REPEAT_VALUE = "newClass.repeatValue"
+    const val REPEAT_NOTE = "newClass.repeatNote"
+    const val REPEAT_NONE = "newClass.repeat.none"
+    const val REPEAT_WEEKLY = "newClass.repeat.weekly"
     const val FAILED = "newClass.failed"
     const val DISCARD = "newClass.discard"
     const val KEEP_EDITING = "newClass.keepEditing"
@@ -124,6 +127,8 @@ class NewGroupClassActions(
     val onDate: (LocalDate) -> Unit,
     val onStart: (LocalTime) -> Unit,
     val onEnd: (LocalTime) -> Unit,
+    /** *Herhalen*: `true` is *Elke week op {weekday}*, `false` *Niet herhalen*. */
+    val onRepeatsWeekly: (Boolean) -> Unit,
 )
 
 /**
@@ -468,7 +473,7 @@ private fun CapacityRow(capacity: Int, onCapacity: (Int) -> Unit) {
 
 private enum class Picking { Date, Start, End }
 
-// The date, the start, the end and *Herhalen: Niet herhalen* (the weekly option is F022).
+// The date, the start, the end and *Herhalen* (F022): *Niet herhalen* or *Elke week op {weekday}*, with its note.
 @Composable
 private fun WhenSection(state: NewGroupClassState, actions: NewGroupClassActions) {
     val format = rememberSessionFormat(state.workspace.zone)
@@ -504,14 +509,10 @@ private fun WhenSection(state: NewGroupClassState, actions: NewGroupClassActions
                     onClick = { picking = Picking.End },
                 )
             }
-            row {
-                FormRow(
-                    stringResource(R.string.classes_schedule_repeat_label),
-                    stringResource(R.string.classes_schedule_repeat_none),
-                    NewClassTags.REPEAT,
-                    NewClassTags.REPEAT_VALUE,
-                )
-            }
+            row { RepeatRow(state.repeatsWeekly, format.weekday(time.start.toLocalDate()), actions.onRepeatsWeekly) }
+        }
+        if (state.repeatsWeekly) {
+            FormNote(stringResource(R.string.classes_schedule_repeat_note), NewClassTags.REPEAT_NOTE)
         }
         EndError(state)
         time.refusal?.let { refusal ->
@@ -520,9 +521,10 @@ private fun WhenSection(state: NewGroupClassState, actions: NewGroupClassActions
 
                 TimeRefusal.InvalidTime -> stringResource(R.string.sessions_form_errors_invalid_time)
 
+                // The API's own words, with the date it names (a weekly class: the first date the clocks skip).
                 TimeRefusal.TimeDoesNotExist -> stringResource(
-                    R.string.sessions_form_errors_time_does_not_exist,
-                    format.day(time.start.toLocalDate()),
+                    R.string.classes_schedule_errors_time_does_not_exist,
+                    format.day(state.refusedDate),
                 )
             }
             Box(Modifier.padding(horizontal = Spacing.space4)) {
@@ -547,6 +549,41 @@ private fun WhenSection(state: NewGroupClassState, actions: NewGroupClassActions
         }
 
         null -> Unit
+    }
+}
+
+// *Herhalen*: the value is *Niet herhalen* or *Elke week op donderdag* (the weekday of the date); a tap offers both.
+@Composable
+private fun RepeatRow(weekly: Boolean, weekday: String, onChange: (Boolean) -> Unit) {
+    var menu by rememberSaveable { mutableStateOf(false) }
+    val none = stringResource(R.string.classes_schedule_repeat_none)
+    val every = stringResource(R.string.classes_schedule_repeat_weekly, weekday)
+    Box {
+        FormRow(
+            label = stringResource(R.string.classes_schedule_repeat_label),
+            value = if (weekly) every else none,
+            tag = NewClassTags.REPEAT,
+            valueTag = NewClassTags.REPEAT_VALUE,
+            onClick = { menu = true },
+        )
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, modifier = Modifier.testTagsAsIds()) {
+            DropdownMenuItem(
+                text = { Text(none) },
+                onClick = {
+                    menu = false
+                    onChange(false)
+                },
+                modifier = Modifier.testTag(NewClassTags.REPEAT_NONE),
+            )
+            DropdownMenuItem(
+                text = { Text(every) },
+                onClick = {
+                    menu = false
+                    onChange(true)
+                },
+                modifier = Modifier.testTag(NewClassTags.REPEAT_WEEKLY),
+            )
+        }
     }
 }
 

@@ -57,6 +57,7 @@ object ClassDateTags {
     const val EYEBROW = "classDate.eyebrow"
     const val WHEN = "classDate.when"
     const val ADDED = "classDate.added"
+    const val SERIES = "classDate.series"
     const val MANAGE_ON_WEB = "classDate.manageOnWeb"
     const val DESCRIPTION = "classDate.description"
     const val DESCRIPTION_MARK = "classDate.descriptionMark"
@@ -196,7 +197,28 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
             format.time(session.startsAt),
         ),
     )
-    if (state.justAdded) Message(stringResource(R.string.classes_schedule_saved), ClassDateTags.ADDED)
+    state.added?.let { added ->
+        val text = if (added > 1) {
+            pluralStringResource(R.plurals.classes_schedule_saved_series, added, added)
+        } else {
+            stringResource(R.string.classes_schedule_saved)
+        }
+        Message(text, ClassDateTags.ADDED)
+    }
+    state.seriesLine(english)?.let { line ->
+        Text(
+            // Placeholders in the order of their names: name, time, weekday.
+            text = stringResource(
+                R.string.classes_date_series_line,
+                line.name,
+                line.time,
+                format.weekday(line.weekday),
+            ),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space4).testTag(ClassDateTags.SERIES),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.subhead,
+        )
+    }
     if (state.manageOnWeb) Message(stringResource(R.string.classes_app_manage_on_web), ClassDateTags.MANAGE_ON_WEB)
     state.description(english)?.let { Description(it, state.descriptionOpen, actions.onToggleDescription) }
     InsetGroupedList {
