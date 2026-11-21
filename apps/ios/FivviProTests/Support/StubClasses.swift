@@ -5,7 +5,9 @@ import FivviAPI
 /// create) and `GET …/group-classes/{id}`. It follows what the screens depend on: a refused text, capacity, length or
 /// time answers `400` naming the field as the API does, a trainer who isn't in the workspace `404`, a first date over
 /// the trainer's other scheduled session `409` `trainer_conflict` unless the request has `allowConflicts`, and nothing is
-/// stored when a request is refused (class and date are stored together or not at all).
+/// stored when a request is refused (class and date are stored together or not at all). A first date that repeats
+/// weekly (F022) makes 12 dates, each with the series (`datesAdded` 12), unless `skipsStart(on:)` says the clocks skip
+/// the start on one of them: then the answer is the API's `400` on `firstDate.localStart` with that date.
 final class StubClasses: @unchecked Sendable {
     typealias GroupClass = Components.Schemas.GroupClass
 
@@ -18,10 +20,16 @@ final class StubClasses: @unchecked Sendable {
     private var stored: [GroupClass] = []
     private var created: [Components.Schemas.CreateGroupClassRequest] = []
     private var nextNumber = 1
+    private var skippedDate: String?
 
     /// Every `POST …/group-classes` body so far.
     var creates: [Components.Schemas.CreateGroupClassRequest] { lock.withLock { created } }
     var all: [GroupClass] { lock.withLock { stored } }
+
+    /// A weekly class whose start the clocks skip on `localDate` (`YYYY-MM-DD`), one of its 12 dates; nil removes it.
+    func skipsStart(on localDate: String?) {
+        lock.withLock { skippedDate = localDate }
+    }
 
     func fail(_ route: Route, with failure: StubSessions.Failure?) {
         lock.withLock { failures[route] = failure }
@@ -76,6 +84,12 @@ final class StubClasses: @unchecked Sendable {
                 }
                 trainer = .init(id: person.id, name: person.name)
             }
+            if body.firstDate?._repeat == .weekly, let skippedDate {
+                return .badRequest(.init(body: .json(.init(
+                    code: .validationFailed,
+                    issues: [.init(path: "firstDate.localStart", code: "time_does_not_exist", date: skippedDate)]
+                ))))
+            }
             let start = body.firstDate.flatMap { sessions.instant($0.localDate, $0.localStart) }
             let minutes = TimeInterval(body.durationMinutes * 60)
             if let start, let trainer {
@@ -88,17 +102,18 @@ final class StubClasses: @unchecked Sendable {
             }
             let made = make(body, trainer: trainer)
             stored.append(made)
-            let date = start.map {
-                sessions.addGroupDate(
-                    of: made, start: $0, minutes: body.durationMinutes, capacity: body.capacity, trainer: trainer
-                )
-            }
-            let first = try date.map {
+            let weekly = body.firstDate?._repeat == .weekly
+            let dates = start.map {
+                sessions.addGroupDates(of: made, from: $0, weekly: weekly, body: body, trainer: trainer)
+            } ?? []
+            let first = try dates.first.map {
                 Components.Schemas.CreatedGroupClass.FirstDatePayload(
                     value1: $0, value2: try .init(unvalidatedValue: nil)
                 )
             }
-            return .created(.init(body: .json(.init(groupClass: made, firstDate: first))))
+            return .created(.init(body: .json(.init(
+                groupClass: made, firstDate: first, datesAdded: weekly ? dates.count : nil
+            ))))
         }
     }
 

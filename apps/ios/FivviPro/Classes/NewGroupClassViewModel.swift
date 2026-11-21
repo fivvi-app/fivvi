@@ -3,7 +3,8 @@ import Observation
 import FivviAPI
 import FivviStrings
 
-/// TD-05 *Nieuwe groepsles* (F021 AC6, the Owner, *Herhalen: Niet herhalen*): the name and description in Dutch and
+/// TD-05 *Nieuwe groepsles* (F021 AC6, the Owner; F022 AC6, AC7, *Herhalen*: *Niet herhalen* or *Elke week op
+/// {weekday}*, which asks the API for the weekly series and its 12 dates): the name and description in Dutch and
 /// English, the date, the start and the end, the capacity, the trainer (or *Trainer nodig*) and the default location.
 /// The API creates the class and its one date in one request (`POST …/group-classes` with a `firstDate`, so a refused
 /// date leaves no class behind) and decides every rule; the form only collects, shows what the API refused per field and
@@ -64,6 +65,12 @@ final class NewGroupClassViewModel: Identifiable {
     private(set) var locationName = ""
     private(set) var myTrainerID: String?
     private(set) var refused: [Field: String] = [:]
+    /// *Herhalen*: every week on the weekday of the date. The API makes the series and its dates and decides every rule.
+    var repeatsWeekly = false
+    /// How many dates the API put in the calendar: 12 for a weekly class, else 1.
+    private(set) var datesAdded = 1
+    /// The date (`YYYY-MM-DD`) the API named when it refused a start the clocks skip: the weekly class's first such date.
+    private var skippedDate: String?
     private(set) var saveFailure: SaveFailure?
     /// PS-07: the API found something else of the trainer's at that time (`409` `trainer_conflict`); nothing was stored.
     private(set) var doubleBooking: DoubleBooking?
@@ -117,9 +124,6 @@ final class NewGroupClassViewModel: Identifiable {
     var endLabel: String { catalog[.classFormEnd] }
     var locationText: String { catalog.string(.classFormLocation, locationName) }
     var repeatLabel: String { catalog[.classFormRepeatLabel] }
-    /// *Niet herhalen*: the weekly option is F022 and, on iOS, #455.
-    var repeatText: String { catalog[.classFormRepeatNone] }
-
     var nameErrorText: String? {
         switch refused[.nameNl] {
         case "too_big": catalog.string(.classFormErrorNameTooLong, String(Limits.name))
@@ -185,7 +189,7 @@ final class NewGroupClassViewModel: Identifiable {
     var isDirty: Bool {
         !(nameNl + nameEn + descriptionNl + descriptionEn).isEmpty || capacity != Self.defaultCapacity
             || time.start != firstStart || time.durationMinutes != Self.defaultMinutes
-            || trainerID != (myTrainerID ?? "")
+            || trainerID != (myTrainerID ?? "") || repeatsWeekly
     }
 
     // MARK: The end
@@ -250,22 +254,28 @@ final class NewGroupClassViewModel: Identifiable {
         doubleBooking = nil
         refused = [:]
         time.clearRefusal()
+        skippedDate = nil
         isSaving = true
         defer { isSaving = false }
         let body = Components.Schemas.CreateGroupClassRequest(
             nameNl: nameNl.trimmed, nameEn: nameEn.trimmedOrNil, descriptionNl: descriptionNl.trimmedOrNil,
             descriptionEn: descriptionEn.trimmedOrNil, trainerId: trainerID.isEmpty ? nil : trainerID,
             capacity: capacity, durationMinutes: time.durationMinutes, allowConflicts: allowConflicts ? true : nil,
-            firstDate: .init(localDate: time.localDate, localStart: time.localStart), surface: .ios
+            firstDate: .init(
+                localDate: time.localDate, localStart: time.localStart, _repeat: repeatsWeekly ? .weekly : nil
+            ),
+            surface: .ios
         )
         do {
             let input = Operations.CreateGroupClass.Input(path: .init(workspaceId: workspace.id), body: .json(body))
             switch try await api.createGroupClass(input) {
             case let .created(created):
-                guard let date = try created.body.json.firstDate?.value1 else {
+                let result = try created.body.json
+                guard let date = result.firstDate?.value1 else {
                     saveFailure = .notSaved
                     return nil
                 }
+                datesAdded = result.datesAdded ?? 1
                 return date
             case let .badRequest(refusal):
                 refuse(try refusal.body.json.issues)
@@ -288,6 +298,7 @@ final class NewGroupClassViewModel: Identifiable {
     /// The `400` of the API: each issue names the field it is about.
     private func refuse(_ issues: [Components.Schemas.ValidationError.IssuesPayloadPayload]) {
         let timeRefused = time.refuse(issues)
+        skippedDate = issues.first { $0.code == "time_does_not_exist" && $0.path.hasSuffix("localStart") }?.date
         for issue in issues {
             switch issue.path {
             case "nameNl": refused[.nameNl] = issue.code
@@ -314,4 +325,22 @@ private extension String {
 
     /// The text, or nil when it is blank: a blank text means none.
     var trimmedOrNil: String? { trimmed.isEmpty ? nil : trimmed }
+}
+
+/// *Herhalen* and the refusal of the time (F022).
+extension NewGroupClassViewModel {
+    var repeatNoneText: String { catalog[.classFormRepeatNone] }
+
+    /// *Elke week op donderdag*: the weekday of the chosen date, as the date shows it.
+    var repeatWeeklyText: String { catalog.string(.classFormRepeatWeekly, time.format.weekday(time.start)) }
+
+    /// "We zetten de komende 12 weken in de agenda.", with the weekly choice.
+    var repeatNoteText: String? { repeatsWeekly ? catalog[.classFormRepeatNote] : nil }
+
+    /// What the API refused about the date or the start. A start the clocks skip names the date the API found.
+    var timeRefusalText: String? {
+        guard time.refusal == .timeDoesNotExist else { return time.refusalText }
+        let date = skippedDate.flatMap { time.format.day(localDate: $0) } ?? time.format.day(time.start)
+        return catalog.string(.classFormErrorTimeDoesNotExist, date)
+    }
 }

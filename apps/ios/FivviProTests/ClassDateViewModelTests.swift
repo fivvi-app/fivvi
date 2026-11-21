@@ -216,7 +216,7 @@ final class ClassDateViewModelTests: XCTestCase {
         let date = strength(api, trainer: nil)
         let model = ClassDateViewModel(
             api: api, workspace: SessionFixtures.workspace, sessionID: date.id, catalog: Catalog(locale: language),
-            canManage: true, justAdded: true
+            canManage: true, added: 1
         )
         await model.load()
         XCTAssertEqual(model.addedText, TestCatalog(language)["classes.schedule.saved"], "Groepsles toegevoegd")

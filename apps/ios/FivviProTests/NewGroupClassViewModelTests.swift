@@ -106,7 +106,7 @@ final class NewGroupClassViewModelTests: XCTestCase {
         XCTAssertEqual(model.nameEnLabel, catalog["classes.form.nameEnLabel"])
         XCTAssertEqual(model.descriptionNlLabel, catalog["classes.form.descriptionNlLabel"])
         XCTAssertEqual(model.descriptionEnLabel, catalog["classes.form.descriptionEnLabel"])
-        XCTAssertEqual(model.repeatText, catalog["classes.schedule.repeatNone"], "Niet herhalen")
+        XCTAssertEqual(model.repeatNoneText, catalog["classes.schedule.repeatNone"], "Niet herhalen")
         XCTAssertEqual(model.nameSectionText, catalog["classes.form.nameSection"])
         XCTAssertEqual(model.classSectionText, catalog["classes.form.classSection"])
         XCTAssertEqual(model.whenSectionText, catalog["classes.schedule.whenSection"])

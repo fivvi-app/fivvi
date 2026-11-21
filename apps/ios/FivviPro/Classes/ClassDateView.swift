@@ -74,6 +74,14 @@ struct ClassDateView: View {
             if let onWeb = model.manageOnWebText {
                 StatusMessage(text: onWeb, kind: .info, id: "classDate.manageOnWeb")
             }
+            if let series = model.seriesLineText {
+                Text(series)
+                    .font(.system(Tokens.TextStyle.subhead))
+                    .foregroundStyle(Tokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Tokens.Spacing.space5)
+                    .accessibilityIdentifier("classDate.series")
+            }
             description
             InsetGroup {
                 locationRow

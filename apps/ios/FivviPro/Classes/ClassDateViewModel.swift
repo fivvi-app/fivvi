@@ -8,7 +8,8 @@ import FivviStrings
 /// nodig*, *{booked}/{capacity} geboekt* and *Nog geen boekingen.*, the description in the viewer's language (else
 /// Dutch, marked as Dutch) cut to a few lines with *Meer* / *Minder*. The Owner's ⋯ menu has *Les wijzigen*, which says
 /// the class is managed on the web. Read from `GET …/sessions/{id}` and, for the description, `GET …/group-classes/{id}`
-/// through the generated client; what is shown stays when a later read fails. Bookings and attendance come with M5/F025.
+/// through the generated client; what is shown stays when a later read fails. A date in a weekly series (F022 AC6) says
+/// *Onderdeel van: {class}, elke {weekday} {time}*, from the series the API sends with the date. Bookings and attendance come with M5/F025.
 @MainActor
 @Observable
 final class ClassDateViewModel {
@@ -31,14 +32,16 @@ final class ClassDateViewModel {
     let workspace: CurrentWorkspace
     /// The person has `class.manage`: they get the ⋯ menu and the footnote.
     let canManage: Bool
-    private let justAdded: Bool
+    /// How many dates the person just added (a new class opens here): 12 for a weekly class, else 1; nil for a date
+    /// opened from the calendar.
+    private let added: Int?
     private let sessionID: String
     private let api: any APIProtocol
     private let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, catalog: Catalog, canManage: Bool,
-        justAdded: Bool = false,
+        added: Int? = nil,
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
         self.api = api
@@ -46,7 +49,7 @@ final class ClassDateViewModel {
         self.sessionID = sessionID
         self.catalog = catalog
         self.canManage = canManage
-        self.justAdded = justAdded
+        self.added = added
         self.onForbidden = onForbidden
     }
 
@@ -95,8 +98,20 @@ final class ClassDateViewModel {
     var noBookingsText: String { catalog[.classDateNoBookings] }
     var showsNoBookings: Bool { booked == 0 }
 
-    /// "Groepsles toegevoegd", on the screen the new class opens on.
-    var addedText: String? { justAdded ? catalog[.classDateAdded] : nil }
+    /// "Groepsles toegevoegd", or "12 groepslessen toegevoegd" for a weekly class, on the screen the new class opens on.
+    var addedText: String? {
+        guard let added else { return nil }
+        return added > 1 ? catalog.string(.classDateAddedSeries, added) : catalog[.classDateAdded]
+    }
+
+    /// *Onderdeel van: Kracht, elke donderdag 18:00*, for a date in a weekly series; nil for a date on its own.
+    var seriesLineText: String? {
+        guard let series = session?.series else { return nil }
+        // Placeholders in the order of their names: name, time, weekday.
+        return catalog.string(
+            .classDateSeriesLine, title, series.localStartTime, format.weekdayName(number: series.weekday.number)
+        )
+    }
 
     // MARK: The description
 
@@ -192,5 +207,20 @@ final class ClassDateViewModel {
 
     private func failed() {
         if state != .loaded { state = .failed }
+    }
+}
+
+private extension Components.Schemas.SessionSeries.WeekdayPayload {
+    /// The number `Calendar` gives the weekday: 1 is Sunday, 2 Monday.
+    var number: Int {
+        switch self {
+        case .su: 1
+        case .mo: 2
+        case .tu: 3
+        case .we: 4
+        case .th: 5
+        case .fr: 6
+        case .sa: 7
+        }
     }
 }

@@ -23,7 +23,7 @@ struct HomeView: View {
         case session(String)
         /// A class on a date (TD-03), by ID: after adding a class (`added`: "Groepsles toegevoegd" shows) and later from
         /// the calendars.
-        case classDate(String, added: Bool)
+        case classDate(String, added: Int?)
     }
 
     @Environment(\.openURL) private var openURL
