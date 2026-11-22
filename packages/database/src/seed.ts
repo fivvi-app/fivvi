@@ -19,6 +19,7 @@ import {
   trainerInvitations,
   trainerProfiles,
 } from './schema/index.ts';
+import { seedPilotWeek } from './seed-pilot-week.ts';
 
 export interface SeedOptions {
   /**
@@ -65,7 +66,9 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * as a client of Sarah Personal Training, and Tuesday 22 September 2026 as the spec has it: Sarah has
  * Anna at 09:00 (Sarah Personal Training), Mark at 11:00 (John's Gym), "Kracht" at 15:00 (a group
  * class, 0 of 8 places) and a cancelled "Kracht" at 18:00, while John and Tom have sessions that
- * day too, which Sarah's calendar must leave out. Rows that
+ * day too, which Sarah's calendar must leave out. And the pilot-shaped week of the workspace
+ * calendar (F014, spec #458): 21 to 27 September 2026 in a fourth workspace, "Pilot Gym", with
+ * 15 class dates and 30 private sessions (`seed-pilot-week.ts`). Rows that
  * every environment needs, like the `hello` greeting, are data migrations instead
  * (`src/system-data.ts`).
  */
@@ -250,13 +253,16 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     now: options.now ?? new Date(),
   });
   await seedPersonalCalendar(db, { gym, personalTraining });
+  // The pilot-shaped week of the workspace calendar (F014), in a workspace of its own so that
+  // F013's 22 September of John's Gym stays as it is (see `seed-pilot-week.ts`).
+  const pilotGym = await seedPilotWeek(db);
   // The standing booking links of every workspace (F037): *Alle boekingen* and *Groepslessen* in
   // the visitor's language. Idempotent through the partial unique index of the active links; the
   // API makes them on the first list too, so a workspace made without the seed has them as well.
   await db
     .insert(bookingLinks)
     .values(
-      [gym, personalTraining, fitStudio].flatMap((organizationId) =>
+      [gym, personalTraining, fitStudio, pilotGym].flatMap((organizationId) =>
         (['all', 'group'] as const).map((scope) => ({
           organizationId,
           scope,
@@ -265,7 +271,7 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
       ),
     )
     .onConflictDoNothing();
-  await seedOffers(db, { gym, others: [personalTraining, fitStudio] });
+  await seedOffers(db, { gym, others: [personalTraining, fitStudio, pilotGym] });
 }
 
 /** The prices of the seed, in euro cents including 21 % VAT: synthetic, as every seeded number. */

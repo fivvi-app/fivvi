@@ -104,6 +104,10 @@ final class StubServer: Sendable {
     /// The private session bodies the app sent so far (`POST …/sessions/private`), each value as text (F020).
     var plannedSessions: [[String: String]] { responder.sessionRoutes.plans }
 
+    /// The group class bodies the app sent so far (`POST …/group-classes`), each value as text, the first date as
+    /// `firstDate.localDate` and `firstDate.localStart` (F021).
+    var createdGroupClasses: [[String: String]] { responder.sessionRoutes.createdGroupClasses }
+
     /// The reschedule bodies the app sent so far, with the session's ID as `sessionId` (F020).
     var movedSessions: [[String: String]] { responder.sessionRoutes.moves }
 
@@ -115,6 +119,12 @@ final class StubServer: Sendable {
     /// Someone else changed the seeded session meanwhile, so the next move answers `409` (F020 AC8).
     func changeSessionBySomeoneElse() {
         responder.sessionRoutes.changeSessionBySomeoneElse()
+    }
+
+    /// What `GET /api/v1/me/day` answers (F013).
+    var personalDay: StubPersonalRoutes.Day {
+        get { responder.personalRoutes.day }
+        set { responder.personalRoutes.day = newValue }
     }
 
     /// While true, `GET /api/v1/me` gets no answer, so the loading state of the home stays on screen. Setting it to

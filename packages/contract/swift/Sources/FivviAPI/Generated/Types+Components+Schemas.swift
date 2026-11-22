@@ -388,6 +388,8 @@ extension Components {
                 case accessLog_read = "access_log.read"
                 case invoices_manage = "invoices.manage"
                 case commerce_offers_manage = "commerce.offers.manage"
+                case calendar_read = "calendar.read"
+                case calendar_manage = "calendar.manage"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -541,6 +543,8 @@ extension Components {
                 case accessLog_read = "access_log.read"
                 case invoices_manage = "invoices.manage"
                 case commerce_offers_manage = "commerce.offers.manage"
+                case calendar_read = "calendar.read"
+                case calendar_manage = "calendar.manage"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -882,10 +886,14 @@ extension Components {
             public var className: Swift.String?
             /// - Remark: Generated from `#/components/schemas/PersonalSession/location`.
             public var location: Components.Schemas.Location?
-            /// The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
+            /// The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart.
             ///
             /// - Remark: Generated from `#/components/schemas/PersonalSession/clientName`.
             public var clientName: Swift.String?
+            /// The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/clients`.
+            public var clients: [Components.Schemas.PersonalSessionClient]?
             /// Creates a new `PersonalSession`.
             ///
             /// - Parameters:
@@ -900,7 +908,8 @@ extension Components {
             ///   - booked: The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
             ///   - className: The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym.
             ///   - location:
-            ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
+            ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart.
+            ///   - clients: The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds.
             public init(
                 sessionId: Swift.String,
                 workspace: Components.Schemas.PersonalWorkspace,
@@ -913,7 +922,8 @@ extension Components {
                 booked: Swift.Int? = nil,
                 className: Swift.String? = nil,
                 location: Components.Schemas.Location? = nil,
-                clientName: Swift.String? = nil
+                clientName: Swift.String? = nil,
+                clients: [Components.Schemas.PersonalSessionClient]? = nil
             ) {
                 self.sessionId = sessionId
                 self.workspace = workspace
@@ -927,6 +937,7 @@ extension Components {
                 self.className = className
                 self.location = location
                 self.clientName = clientName
+                self.clients = clients
             }
             public enum CodingKeys: String, CodingKey {
                 case sessionId
@@ -941,6 +952,7 @@ extension Components {
                 case className
                 case location
                 case clientName
+                case clients
             }
         }
         /// The workspace an item of the personal view is in.
@@ -1087,6 +1099,35 @@ extension Components {
                 case houseNumberAddition
                 case street
                 case city
+            }
+        }
+        /// A client in a private session of the day.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PersonalSessionClient`.
+        public struct PersonalSessionClient: Codable, Hashable, Sendable {
+            /// The client ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSessionClient/clientId`.
+            public var clientId: Swift.String
+            /// The client’s display name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSessionClient/name`.
+            public var name: Swift.String
+            /// Creates a new `PersonalSessionClient`.
+            ///
+            /// - Parameters:
+            ///   - clientId: The client ID.
+            ///   - name: The client’s display name.
+            public init(
+                clientId: Swift.String,
+                name: Swift.String
+            ) {
+                self.clientId = clientId
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case clientId
+                case name
             }
         }
         /// *4 sessies · 09:00–19:00*, and how many of them are done.
@@ -2350,7 +2391,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Session/timeZone`.
             public var timeZone: Swift.String
-            /// 1 for a private session; the date’s own capacity for a class date.
+            /// 1 for a private session, 2 for a duo (F066); the date’s own capacity for a class date.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/capacity`.
             public var capacity: Swift.Int
@@ -2366,7 +2407,7 @@ extension Components {
             public var groupClass: Components.Schemas.SessionGroupClass?
             /// - Remark: Generated from `#/components/schemas/Session/series`.
             public var series: Components.Schemas.SessionSeries?
-            /// The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
+            /// The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5).
             ///
             /// - Remark: Generated from `#/components/schemas/Session/participants`.
             public var participants: [Components.Schemas.SessionParticipant]
@@ -2379,13 +2420,13 @@ extension Components {
             ///   - startsAt: The start, a UTC instant.
             ///   - endsAt: The end, a UTC instant.
             ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012).
-            ///   - capacity: 1 for a private session; the date’s own capacity for a class date.
+            ///   - capacity: 1 for a private session, 2 for a duo (F066); the date’s own capacity for a class date.
             ///   - version: Raised by every change; a change says the version it read. Starts at 1.
             ///   - location:
             ///   - trainer:
             ///   - groupClass:
             ///   - series:
-            ///   - participants: The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
+            ///   - participants: The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5).
             public init(
                 id: Swift.String,
                 _type: Components.Schemas.Session._TypePayload,
@@ -2719,7 +2760,7 @@ extension Components {
                 case displayNameEn
             }
         }
-        /// A private session to plan: one client, one trainer, a local date, start and length.
+        /// A private session to plan: one client, or two for a duo, one trainer, a local date, start and length.
         ///
         /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest`.
         public struct PlanPrivateSessionRequest: Codable, Hashable, Sendable {
@@ -2727,6 +2768,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/clientId`.
             public var clientId: Swift.String
+            /// The second client of a duo session (F066): another client of the workspace, never the same as `clientId` (`400` on `secondClientId` with the code `same_client`). Leave it out for a one-client session. The session is stored once, as a private session with two participants and a capacity of 2, and each client gets EM-11 in their own language, naming the other by first name only.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/secondClientId`.
+            public var secondClientId: Swift.String?
             /// The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
             ///
             /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/trainerId`.
@@ -2743,7 +2788,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/durationMinutes`.
             public var durationMinutes: Swift.Int
-            /// Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says.
+            /// Whether to email the client the confirmation (EM-11), each client of a duo their own. Not sent for a session that starts in the past, whatever this says.
             ///
             /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/notify`.
             public var notify: Swift.Bool
@@ -2766,15 +2811,17 @@ extension Components {
             ///
             /// - Parameters:
             ///   - clientId: The client of the workspace the session is for.
+            ///   - secondClientId: The second client of a duo session (F066): another client of the workspace, never the same as `clientId` (`400` on `secondClientId` with the code `same_client`). Leave it out for a one-client session. The session is stored once, as a private session with two participants and a capacity of 2, and each client gets EM-11 in their own language, naming the other by first name only.
             ///   - trainerId: The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
             ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
             ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
             ///   - durationMinutes: The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
-            ///   - notify: Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says.
+            ///   - notify: Whether to email the client the confirmation (EM-11), each client of a duo their own. Not sent for a session that starts in the past, whatever this says.
             ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 clientId: Swift.String,
+                secondClientId: Swift.String? = nil,
                 trainerId: Swift.String? = nil,
                 localDate: Swift.String,
                 localStart: Swift.String,
@@ -2784,6 +2831,7 @@ extension Components {
                 surface: Components.Schemas.PlanPrivateSessionRequest.SurfacePayload? = nil
             ) {
                 self.clientId = clientId
+                self.secondClientId = secondClientId
                 self.trainerId = trainerId
                 self.localDate = localDate
                 self.localStart = localStart
@@ -2794,6 +2842,7 @@ extension Components {
             }
             public enum CodingKeys: String, CodingKey {
                 case clientId
+                case secondClientId
                 case trainerId
                 case localDate
                 case localStart
@@ -3099,6 +3148,355 @@ extension Components {
                 case startsAt
                 case endsAt
                 case trainer
+            }
+        }
+        /// The sessions of a workspace for a range of days: the Agenda’s week, day and list.
+        ///
+        /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar`.
+        public struct WorkspaceCalendar: Codable, Hashable, Sendable {
+            /// The first day: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar/from`.
+            public var from: Swift.String
+            /// The last day, included: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar/to`.
+            public var to: Swift.String
+            /// The workspace’s IANA time zone: the days follow its wall clock (ADR-012).
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar/timeZone`.
+            public var timeZone: Swift.String
+            /// The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order. Never a session of another workspace.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar/items`.
+            public var items: [Components.Schemas.WorkspaceCalendarSession]
+            /// Creates a new `WorkspaceCalendar`.
+            ///
+            /// - Parameters:
+            ///   - from: The first day: `YYYY-MM-DD`.
+            ///   - to: The last day, included: `YYYY-MM-DD`.
+            ///   - timeZone: The workspace’s IANA time zone: the days follow its wall clock (ADR-012).
+            ///   - items: The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order. Never a session of another workspace.
+            public init(
+                from: Swift.String,
+                to: Swift.String,
+                timeZone: Swift.String,
+                items: [Components.Schemas.WorkspaceCalendarSession]
+            ) {
+                self.from = from
+                self.to = to
+                self.timeZone = timeZone
+                self.items = items
+            }
+            public enum CodingKeys: String, CodingKey {
+                case from
+                case to
+                case timeZone
+                case items
+            }
+        }
+        /// A session of the workspace as a block of its calendar. It holds no note, email address or other contact detail of a client.
+        ///
+        /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession`.
+        public struct WorkspaceCalendarSession: Codable, Hashable, Sendable {
+            /// The session ID. It opens with `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/id`.
+            public var id: Swift.String
+            /// The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/type`.
+            @frozen public enum _TypePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case _private = "private"
+                case group = "group"
+                case openGym = "open_gym"
+            }
+            /// The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/type`.
+            public var _type: Components.Schemas.WorkspaceCalendarSession._TypePayload
+            /// Whether the session still takes place. A cancelled one stays in the list.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/status`.
+            @frozen public enum StatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case scheduled = "scheduled"
+                case cancelled = "cancelled"
+            }
+            /// Whether the session still takes place. A cancelled one stays in the list.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/status`.
+            public var status: Components.Schemas.WorkspaceCalendarSession.StatusPayload
+            /// The start, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/startsAt`.
+            public var startsAt: Foundation.Date
+            /// The end, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/endsAt`.
+            public var endsAt: Foundation.Date
+            /// The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/timeZone`.
+            public var timeZone: Swift.String
+            /// 1 for a private session, 2 for a duo (F066); the date’s own capacity for a class date.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/capacity`.
+            public var capacity: Swift.Int
+            /// Raised by every change. A move says the version it saw (`409` when it is stale).
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/version`.
+            public var version: Swift.Int
+            /// The places taken (not cancelled), for a class date: *{booked}/{capacity} geboekt*. Left out for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/booked`.
+            public var booked: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/location`.
+            public var location: Components.Schemas.Location
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/trainer`.
+            public struct TrainerPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/trainer/value1`.
+                public var value1: Components.Schemas.SessionTrainer
+                /// Left out for *Trainer nodig*: a class date or a private session with no trainer.
+                ///
+                /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/trainer/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `TrainerPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: Left out for *Trainer nodig*: a class date or a private session with no trainer.
+                public init(
+                    value1: Components.Schemas.SessionTrainer,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/trainer`.
+            public var trainer: Components.Schemas.WorkspaceCalendarSession.TrainerPayload?
+            /// The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/className`.
+            public var className: Swift.String?
+            /// The client’s display name, for a private session; left out for the other kinds. It holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `; `clients` has them apart.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/clientName`.
+            public var clientName: Swift.String?
+            /// The clients of a private session in the order they were added: one, or two for a duo. A client who cancelled is left out, a cancelled session keeps its clients. Left out for the other kinds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/clients`.
+            public var clients: [Components.Schemas.PersonalSessionClient]?
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/series`.
+            public struct SeriesPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/series/value1`.
+                public var value1: Components.Schemas.SessionSeries
+                /// The weekly series of a class date (F022): the weekday and time of the series line and what was changed on this date alone. Left out for a date on its own and for private sessions.
+                ///
+                /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/series/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SeriesPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The weekly series of a class date (F022): the weekday and time of the series line and what was changed on this date alone. Left out for a date on its own and for private sessions.
+                public init(
+                    value1: Components.Schemas.SessionSeries,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/series`.
+            public var series: Components.Schemas.WorkspaceCalendarSession.SeriesPayload?
+            /// Creates a new `WorkspaceCalendarSession`.
+            ///
+            /// - Parameters:
+            ///   - id: The session ID. It opens with `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
+            ///   - _type: The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+            ///   - status: Whether the session still takes place. A cancelled one stays in the list.
+            ///   - startsAt: The start, a UTC instant.
+            ///   - endsAt: The end, a UTC instant.
+            ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///   - capacity: 1 for a private session, 2 for a duo (F066); the date’s own capacity for a class date.
+            ///   - version: Raised by every change. A move says the version it saw (`409` when it is stale).
+            ///   - booked: The places taken (not cancelled), for a class date: *{booked}/{capacity} geboekt*. Left out for a private session.
+            ///   - location:
+            ///   - trainer:
+            ///   - className: The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session.
+            ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `; `clients` has them apart.
+            ///   - clients: The clients of a private session in the order they were added: one, or two for a duo. A client who cancelled is left out, a cancelled session keeps its clients. Left out for the other kinds.
+            ///   - series:
+            public init(
+                id: Swift.String,
+                _type: Components.Schemas.WorkspaceCalendarSession._TypePayload,
+                status: Components.Schemas.WorkspaceCalendarSession.StatusPayload,
+                startsAt: Foundation.Date,
+                endsAt: Foundation.Date,
+                timeZone: Swift.String,
+                capacity: Swift.Int,
+                version: Swift.Int,
+                booked: Swift.Int? = nil,
+                location: Components.Schemas.Location,
+                trainer: Components.Schemas.WorkspaceCalendarSession.TrainerPayload? = nil,
+                className: Swift.String? = nil,
+                clientName: Swift.String? = nil,
+                clients: [Components.Schemas.PersonalSessionClient]? = nil,
+                series: Components.Schemas.WorkspaceCalendarSession.SeriesPayload? = nil
+            ) {
+                self.id = id
+                self._type = _type
+                self.status = status
+                self.startsAt = startsAt
+                self.endsAt = endsAt
+                self.timeZone = timeZone
+                self.capacity = capacity
+                self.version = version
+                self.booked = booked
+                self.location = location
+                self.trainer = trainer
+                self.className = className
+                self.clientName = clientName
+                self.clients = clients
+                self.series = series
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case _type = "type"
+                case status
+                case startsAt
+                case endsAt
+                case timeZone
+                case capacity
+                case version
+                case booked
+                case location
+                case trainer
+                case className
+                case clientName
+                case clients
+                case series
+            }
+        }
+        /// Today in the workspace and what needs attention: the Owner’s dashboard.
+        ///
+        /// - Remark: Generated from `#/components/schemas/WorkspaceDay`.
+        public struct WorkspaceDay: Codable, Hashable, Sendable {
+            /// The day shown: `YYYY-MM-DD`, in `timeZone`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceDay/date`.
+            public var date: Swift.String
+            /// The workspace’s IANA time zone: the day starts and ends on its wall clock.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceDay/timeZone`.
+            public var timeZone: Swift.String
+            /// The sessions that start on the day, in time order, cancelled ones included (struck through): the rows of the dashboard and of *Mijn dag | {workspace}*.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceDay/items`.
+            public var items: [Components.Schemas.WorkspaceCalendarSession]
+            /// - Remark: Generated from `#/components/schemas/WorkspaceDay/busiest`.
+            public var busiest: Components.Schemas.WorkspaceBusiestMoment?
+            /// *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: "{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceDay/attention`.
+            public var attention: [Components.Schemas.WorkspaceCalendarSession]
+            /// Whether the workspace has any session at all, past or planned, cancelled or not, whatever day is shown: it tells a new workspace (*Welkom bij Fivvi. …*) from one with nothing planned today. Decided on the server and only for this workspace.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceDay/hasSessions`.
+            public var hasSessions: Swift.Bool
+            /// Creates a new `WorkspaceDay`.
+            ///
+            /// - Parameters:
+            ///   - date: The day shown: `YYYY-MM-DD`, in `timeZone`.
+            ///   - timeZone: The workspace’s IANA time zone: the day starts and ends on its wall clock.
+            ///   - items: The sessions that start on the day, in time order, cancelled ones included (struck through): the rows of the dashboard and of *Mijn dag | {workspace}*.
+            ///   - busiest:
+            ///   - attention: *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: "{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items.
+            ///   - hasSessions: Whether the workspace has any session at all, past or planned, cancelled or not, whatever day is shown: it tells a new workspace (*Welkom bij Fivvi. …*) from one with nothing planned today. Decided on the server and only for this workspace.
+            public init(
+                date: Swift.String,
+                timeZone: Swift.String,
+                items: [Components.Schemas.WorkspaceCalendarSession],
+                busiest: Components.Schemas.WorkspaceBusiestMoment? = nil,
+                attention: [Components.Schemas.WorkspaceCalendarSession],
+                hasSessions: Swift.Bool
+            ) {
+                self.date = date
+                self.timeZone = timeZone
+                self.items = items
+                self.busiest = busiest
+                self.attention = attention
+                self.hasSessions = hasSessions
+            }
+            public enum CodingKeys: String, CodingKey {
+                case date
+                case timeZone
+                case items
+                case busiest
+                case attention
+                case hasSessions
+            }
+        }
+        /// The busiest moment of the day, for *Drukst 18:00–19:00 · 2 tegelijk*: the app words it and shows the times in `timeZone`. The time in which the most sessions run at once and how many, from the sessions of `items` that take place (cancelled ones do not count; class dates, private sessions and Open Gym do). It ends at the next start or end of a session, so 18:00–20:00, 18:00–19:00 and 19:00–20:00 give 18:00–19:00. Left out when no two sessions run at once (*Geen overlap*). The first of equally busy moments; sessions that end as another begins do not overlap.
+        ///
+        /// - Remark: Generated from `#/components/schemas/WorkspaceBusiestMoment`.
+        public struct WorkspaceBusiestMoment: Codable, Hashable, Sendable {
+            /// The start of the busiest moment, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceBusiestMoment/startsAt`.
+            public var startsAt: Foundation.Date
+            /// The end of the busiest moment, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceBusiestMoment/endsAt`.
+            public var endsAt: Foundation.Date
+            /// The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceBusiestMoment/timeZone`.
+            public var timeZone: Swift.String
+            /// How many sessions run at once in that time: 2 or more.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceBusiestMoment/atOnce`.
+            public var atOnce: Swift.Int
+            /// Creates a new `WorkspaceBusiestMoment`.
+            ///
+            /// - Parameters:
+            ///   - startsAt: The start of the busiest moment, a UTC instant.
+            ///   - endsAt: The end of the busiest moment, a UTC instant.
+            ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///   - atOnce: How many sessions run at once in that time: 2 or more.
+            public init(
+                startsAt: Foundation.Date,
+                endsAt: Foundation.Date,
+                timeZone: Swift.String,
+                atOnce: Swift.Int
+            ) {
+                self.startsAt = startsAt
+                self.endsAt = endsAt
+                self.timeZone = timeZone
+                self.atOnce = atOnce
+            }
+            public enum CodingKeys: String, CodingKey {
+                case startsAt
+                case endsAt
+                case timeZone
+                case atOnce
             }
         }
         /// A class of the workspace: what it is called, who usually teaches it, how many people fit and how long it lasts. It is not a point in time; a class on a date is a `group` session.

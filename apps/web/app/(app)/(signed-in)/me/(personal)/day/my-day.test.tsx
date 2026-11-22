@@ -106,6 +106,18 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
         .trim(),
     ]);
 
+  it('F014: an Owner with a team has the toggle back to the Dashboard; nobody else has it', () => {
+    const withToggle = render(
+      locale,
+      <MyDayView day={day} now={now} workspace={{ slug: 'johns-gym', name: "John's Gym" }} />,
+    );
+
+    expect(withToggle).toContain(`aria-label="${messages[locale].workspaceDashboard.scopeLabel}"`);
+    expect(withToggle).toMatch(/aria-current="page"[^>]*>[^<]*<\/a>/);
+    expect(withToggle).toContain('href="/w/johns-gym"');
+    expect(view()).not.toContain(messages[locale].workspaceDashboard.scopeLabel);
+  });
+
   it('AC1: the title, the date and the summary line', () => {
     const html = view();
     const date = new Intl.DateTimeFormat(formatting, {

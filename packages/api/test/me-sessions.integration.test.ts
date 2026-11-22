@@ -334,6 +334,8 @@ describe('F013 the personal day and sessions through the API', () => {
         capacity: 1,
         location: expect.objectContaining({ name: w.own.marker, address: null }),
         clientName: 'Anna de Vries',
+        // The clients apart (F066); one for a one-client session.
+        clients: [{ clientId: expect.any(String), name: 'Anna de Vries' }],
       });
       expect(mark).toMatchObject({
         workspace: { id: w.gym.id, slug: w.gym.marker, name: w.gym.marker },
@@ -343,6 +345,7 @@ describe('F013 the personal day and sessions through the API', () => {
       // A class names no client and no location here, and shows booked/capacity (0/8).
       expect(kracht).toMatchObject({ type: 'group', status: 'scheduled', capacity: 8, booked: 0 });
       expect(kracht).not.toHaveProperty('clientName');
+      expect(kracht).not.toHaveProperty('clients');
       expect(kracht).not.toHaveProperty('location');
       expect(cancelled).toMatchObject({ type: 'group', status: 'cancelled' });
     });

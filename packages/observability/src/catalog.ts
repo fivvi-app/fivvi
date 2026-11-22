@@ -56,6 +56,14 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F066: a team member planned a duo session (two clients). The workspace ID and the platform
+  // only (the team member's account UUID is the distinct ID): no session or client ID, name, email
+  // address, trainer, date or time. It comes with `private_session_created`, which counts every
+  // private session.
+  duo_session_planned: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+  },
   // F023: a scheduling save was refused because the trainer already has something at that time
   // (`409 trainer_conflict`, PS-07). The workspace ID and the surface only (the account's UUID is
   // the distinct ID): no session, client, class or trainer, no name, date or time.
@@ -152,6 +160,20 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   my_calendar_viewed: {
     surface: property.enum(['web', 'ios', 'android']),
     workspace_count: property.number(),
+  },
+  // F014: a team member opened the workspace calendar (`GET /v1/workspaces/{workspaceId}/calendar`).
+  // The workspace ID and the platform only (the team member's account UUID is the distinct ID): no
+  // client, class or trainer, no session, date, time or filter.
+  workspace_calendar_viewed: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+  },
+  // F014: an Owner moved a session by dragging it on the web calendar. The same two properties: no
+  // session, client, class or trainer, and not the old or the new time. The drag itself is a
+  // reschedule of F020 or F022; the web's drag ticket records this event.
+  session_moved_by_drag: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
   },
   // F005 (spec #610): a trainer or owner changed their own email address with a code. The surface
   // only (the account's UUID is the distinct ID): never the old or the new address, the code or

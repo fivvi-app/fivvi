@@ -107,6 +107,13 @@ const PersonalWorkspaceSchema = z
     description: 'The workspace an item of the personal view is in.',
   });
 
+export const PersonalSessionClientSchema = z
+  .object({
+    clientId: z.uuid().openapi({ description: 'The client ID.' }),
+    name: z.string().openapi({ description: 'The client’s display name.' }),
+  })
+  .openapi('PersonalSessionClient', { description: 'A client in a private session of the day.' });
+
 export const PersonalSessionSchema = z
   .object({
     sessionId: z.uuid().openapi({
@@ -154,7 +161,20 @@ export const PersonalSessionSchema = z
       .openapi({
         description:
           'The client’s display name, for a private session; left out for the other kinds. It is ' +
-          'the name in the workspace’s client record and holds no contact detail.',
+          'the name in the workspace’s client record and holds no contact detail. A duo (F066) ' +
+          'reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; ' +
+          '`clients` has them apart.',
+      }),
+    clients: z
+      .array(PersonalSessionClientSchema)
+      .optional()
+      .openapi({
+        description:
+          'The clients of a private session, in the order they were added: one, or two for a ' +
+          'duo (F066, a session with two clients who have not cancelled). A client who cancelled ' +
+          'is left out, so a duo that lost one reads as the one-client session it has become; a ' +
+          'cancelled session keeps its clients. Left out for the other kinds. The session counts ' +
+          'once in `summary` and in every list, whatever it holds.',
       }),
   })
   .openapi('PersonalSession', {
@@ -371,6 +391,7 @@ interface PersonalItem extends PersonalSessionTimes {
   readonly location: PersonalSessionRow['location'];
   readonly placeId: string;
   readonly clientName: string | null;
+  readonly clients: PersonalSessionRow['clients'];
   readonly className: string | null;
 }
 
@@ -392,6 +413,7 @@ function toItem(
     location: row.location,
     placeId: row.location.id,
     clientName: row.clientName,
+    clients: row.clients,
     className:
       row.classNameNl === null
         ? null
@@ -401,7 +423,7 @@ function toItem(
 
 /** What the answer shows of an item: instants as ISO text; the fields of the other kinds are left out. */
 function shown(item: PersonalItem) {
-  const { location, clientName, className } = item;
+  const { location, clientName, clients, className } = item;
   return {
     sessionId: item.sessionId,
     workspace: item.workspace,
@@ -414,7 +436,7 @@ function shown(item: PersonalItem) {
     ...(item.type === 'private'
       ? {
           location,
-          ...(clientName === null ? {} : { clientName }),
+          ...(clientName === null ? {} : { clientName, clients: [...clients] }),
         }
       : { booked: item.booked, ...(className === null ? {} : { className }) }),
   };

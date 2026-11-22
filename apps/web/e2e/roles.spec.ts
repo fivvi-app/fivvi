@@ -119,6 +119,7 @@ test.describe('@permission F004 roles on the web', () => {
     await expect(nav.getByRole('link')).toHaveText([
       copy.workspaceNav.myDay,
       copy.workspaceNav.myCalendar,
+      copy.workspaceNav.calendar,
       copy.workspaceNav.clients,
       copy.workspaceNav.bookingLinks,
     ]);
@@ -235,6 +236,7 @@ test.describe('@permission F004 roles on the web', () => {
       await expect(sarahsPage.getByRole('navigation').getByRole('link')).toHaveText([
         copy.workspaceNav.myDay,
         copy.workspaceNav.myCalendar,
+        copy.workspaceNav.calendar,
         copy.workspaceNav.clients,
         copy.workspaceNav.bookingLinks,
       ]);
@@ -290,6 +292,7 @@ test.describe('@permission F004 roles on the web', () => {
     await expect(page.getByRole('navigation').getByRole('link')).toHaveText([
       copy.workspaceNav.myDay,
       copy.workspaceNav.myCalendar,
+      copy.workspaceNav.calendar,
       copy.workspaceNav.clients,
       copy.workspaceNav.bookingLinks,
     ]);
@@ -357,6 +360,7 @@ test.describe('@permission F004 roles on the web', () => {
     await expect(nav.getByRole('link')).toHaveText([
       copy.workspaceNav.myDay,
       copy.workspaceNav.myCalendar,
+      copy.workspaceNav.calendar,
       copy.workspaceNav.clients,
       copy.workspaceNav.bookingLinks,
     ]);

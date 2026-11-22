@@ -46,6 +46,7 @@ appId: ${APP_ID}
 - tapOn:
     id: signIn\.code
 - inputText: ${output.code}
+- runFlow: open-home.yaml
 - extendedWaitUntil:
     visible:
       id: home\.signedInAs

@@ -23,6 +23,7 @@ env:
 # AC8: closed and opened again without clearing its state, the app opens on the signed-in home, not on TM-01.
 - stopApp
 - launchApp
+- runFlow: shared/open-home.yaml
 - extendedWaitUntil:
     visible:
       id: home\.signedInAs

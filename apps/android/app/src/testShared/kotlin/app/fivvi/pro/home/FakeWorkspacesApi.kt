@@ -6,6 +6,8 @@ import app.fivvi.api.models.Locale
 import app.fivvi.api.models.TrainerWord
 import app.fivvi.api.models.UpdateWorkspaceRequest
 import app.fivvi.api.models.Workspace
+import app.fivvi.api.models.WorkspaceCalendar
+import app.fivvi.api.models.WorkspaceDay
 import app.fivvi.api.models.WorkspaceSwitchedRequest
 import java.util.UUID
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -43,6 +45,19 @@ class FakeWorkspacesApi : WorkspacesApi {
         workspaceId: UUID,
         updateWorkspaceRequest: UpdateWorkspaceRequest,
     ): Response<Workspace> = error("FakeWorkspacesApi.renameWorkspace is not expected in this test")
+
+    override suspend fun getWorkspaceCalendar(
+        workspaceId: UUID,
+        from: String,
+        to: String,
+        trainerIds: List<UUID>?,
+        types: List<String>?,
+        includeCancelled: Boolean?,
+        surface: WorkspacesApi.SurfaceGetWorkspaceCalendar?,
+    ): Response<WorkspaceCalendar> = error("FakeWorkspacesApi.getWorkspaceCalendar is not expected in this test")
+
+    override suspend fun getWorkspaceDay(workspaceId: UUID, date: String?): Response<WorkspaceDay> =
+        error("FakeWorkspacesApi.getWorkspaceDay is not expected in this test")
 
     override suspend fun recordWorkspaceSwitch(
         workspaceId: UUID,

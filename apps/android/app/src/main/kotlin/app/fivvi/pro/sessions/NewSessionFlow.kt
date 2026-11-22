@@ -22,6 +22,7 @@ import app.fivvi.pro.clients.ClientFormActions
 import app.fivvi.pro.clients.ClientsState
 import app.fivvi.pro.clients.clientsViewModel
 import java.io.IOException
+import java.time.OffsetDateTime
 import java.util.UUID
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
@@ -39,7 +40,7 @@ private object Step {
  * from the form out (with a confirmation first when something was entered). When the API has planned the session,
  * [onSaved] is told its ID: the host opens TD-02. [forAnyTrainer] is `session.private.manage.any`, [mayAddClients]
  * `clients.manage`; [sessionKey] belongs to one sign-in and [opening] to one opening of the form, so each opening starts
- * with an empty form.
+ * with an empty form. [start] is the start the form opens with instead of the next full hour: *Plannen* on Vandaag (F013).
  */
 @Composable
 fun NewSessionFlow(
@@ -56,6 +57,7 @@ fun NewSessionFlow(
     opening: Int,
     onClose: () -> Unit,
     onSaved: (UUID) -> Unit,
+    start: OffsetDateTime? = null,
 ) {
     val model = viewModel(key = "newSession-$sessionKey-$workspaceId-$opening") {
         NewSessionViewModel(
@@ -70,6 +72,7 @@ fun NewSessionFlow(
                     MeWorkspace.Capabilities.SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN,
                 )
             },
+            start = start,
         )
     }
     val state by model.state.collectAsStateWithLifecycle()

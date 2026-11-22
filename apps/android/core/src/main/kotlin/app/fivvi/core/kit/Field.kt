@@ -39,7 +39,7 @@ private val ErrorIconSize = 16.dp
  * [help] is a line under the field while it has no message of its own. With `showsErrorMessage = false` the field turns
  * red and is read as in error, but the message is not drawn: the caller puts a [FieldErrorLine] under it, where it can
  * tag it and keep it out of the field's own text. The field then draws no message of its own, so the [help] shows
- * also while there is an [error].
+ * also while there is an [error]. A field that is not [singleLine] shows [minLines] lines and grows to [maxLines].
  */
 @Composable
 fun FivviField(
@@ -50,6 +50,8 @@ fun FivviField(
     error: String? = null,
     enabled: Boolean = true,
     singleLine: Boolean = true,
+    minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     showsErrorMessage: Boolean = true,
@@ -68,6 +70,8 @@ fun FivviField(
         },
         isError = error != null,
         singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
         shape = RoundedCornerShape(Radius.sm),
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,

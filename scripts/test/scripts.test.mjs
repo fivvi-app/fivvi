@@ -5024,6 +5024,39 @@ esac`,
       assert.equal(fake.emulator().booted, false);
     });
 
+    // E002 #1370: a push to main runs no test suite; this fills main's Gradle cache with what verify needs.
+    it('compile-tests compiles the unit and the instrumented test APKs and the release bundle, and runs no test, no static check and no emulator', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['compile-tests']);
+
+      assert.equal(run.status, 0, run.output);
+      const tasks = gradleTasks(fake);
+      assert.match(tasks, /compileDebugUnitTestKotlin/);
+      assert.match(tasks, /assembleDebugAndroidTest/);
+      assert.match(tasks, /:app:bundleRelease/);
+      assert.doesNotMatch(
+        tasks,
+        /testDebugUnitTest|connectedDebugAndroidTest|ktlintCheck|assembleDebug\b/,
+      );
+      assert.equal(fake.emulator().booted, false);
+    });
+
+    it('compile-tests takes no argument and fails when the compile fails', async () => {
+      const fake = checkout();
+      assert.notEqual(
+        (await fake.run('scripts/android.sh', ['compile-tests', '--no-ui'])).status,
+        0,
+      );
+
+      // The fake Gradle fails :app:bundleRelease for a keystore without its passwords: a failed Gradle run fails the command.
+      const failing = checkout();
+      const run = await failing.run('scripts/android.sh', ['compile-tests'], {
+        ANDROID_UPLOAD_KEYSTORE_FILE: '/nonexistent/upload.jks',
+      });
+      assert.notEqual(run.status, 0, run.output);
+    });
+
     it('verify runs the unit tests, the signed release bundle and the Compose UI tests, not the static checks', async () => {
       const fake = checkout();
 

@@ -216,6 +216,7 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     await expect(nav.getByRole('link')).toHaveText([
       copy.workspaceNav.myDay,
       copy.workspaceNav.myCalendar,
+      copy.workspaceNav.calendar,
       copy.workspaceNav.clients,
       copy.workspaceNav.bookingLinks,
     ]);

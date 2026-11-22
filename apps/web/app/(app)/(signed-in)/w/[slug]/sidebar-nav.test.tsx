@@ -113,4 +113,20 @@ describe('E020 sidebar navigation', () => {
 
     expect(html).toContain('h-11 md:h-8.5');
   });
+
+  it('F014: the Dashboard is current on the workspace home only, not on every page below it', () => {
+    const withDashboard = [
+      { href: '/w/johns-gym', label: 'Dashboard', icon: 'today', exact: true },
+      ...items,
+    ] as const;
+    pathname = '/w/johns-gym';
+    expect(current(render('nl-NL', <SidebarNav label={label} items={withDashboard} />))).toEqual([
+      'Dashboard=page',
+    ]);
+
+    pathname = '/w/johns-gym/clients';
+    expect(current(render('nl-NL', <SidebarNav label={label} items={withDashboard} />))).toEqual([
+      'Klanten=page',
+    ]);
+  });
 });

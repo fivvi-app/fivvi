@@ -41,4 +41,39 @@ class RoutesTest {
         assertEquals(emptyList<String>(), Routes.of(""))
         assertEquals("", Routes.pop(""))
     }
+
+    @Test
+    fun test_F021_AC6_aSavedClassReplacesTheFormSoBackIsTheHome() {
+        var stack = Routes.push("", Routes.NEW_CLASS)
+
+        stack = Routes.push(Routes.pop(stack), Routes.classDate(id, added = 1))
+
+        assertEquals(listOf("classDateNew/1/$id"), Routes.of(stack))
+        assertEquals("", Routes.pop(stack))
+    }
+
+    @Test
+    fun test_F021_AC3_aClassDateRouteGivesBackItsIdAndHowManyDatesWereJustAdded() {
+        assertEquals(id to 1, Routes.classDateOf(Routes.classDate(id, added = 1)))
+        assertEquals(id to 12, Routes.classDateOf(Routes.classDate(id, added = 12)))
+        assertEquals(id to null, Routes.classDateOf(Routes.classDate(id, added = null)))
+        assertNull(Routes.classDateOf(Routes.NEW_CLASS))
+        assertNull(Routes.classDateOf(Routes.session(id)))
+        assertNull(Routes.sessionId(Routes.classDate(id, added = null)))
+    }
+
+    @Test
+    fun test_F013_AC4_aRouteOfVandaagCarriesTheWorkspaceOfItsItem() {
+        val workspace = UUID.nameUUIDFromBytes("John's Gym".toByteArray())
+        val route = Routes.inWorkspace(workspace, Routes.session(id))
+
+        assertEquals(workspace, Routes.workspaceOf(route))
+        assertEquals(Routes.session(id), Routes.unscoped(route))
+        assertEquals(id, Routes.sessionId(Routes.unscoped(route)))
+        assertNull("a route of the current workspace names none", Routes.workspaceOf(Routes.session(id)))
+        assertEquals(Routes.CLIENTS, Routes.unscoped(Routes.CLIENTS))
+        // It survives the stack kept across a rotation (the routes are joined by a comma).
+        val stack = Routes.push(Routes.push("", route), Routes.inWorkspace(workspace, Routes.client(id)))
+        assertEquals(listOf(route, "@$workspace:client/$id"), Routes.of(stack))
+    }
 }

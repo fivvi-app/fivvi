@@ -64,6 +64,16 @@
     <string name="booking_links_status_active">Actief</string>
     <string name="booking_links_title">Boekingslinks</string>
     <string name="booking_links_trainer_note">%1$s zien de links, maar kunnen ze niet wijzigen.</string>
+    <string name="classes_app_capacity_less">Capaciteit verlagen</string>
+    <string name="classes_app_capacity_more">Capaciteit verhogen</string>
+    <string name="classes_app_description_in_dutch">In het Nederlands</string>
+    <string name="classes_app_description_less">Minder</string>
+    <string name="classes_app_description_more">Meer</string>
+    <string name="classes_app_description_note">Zonder Engelse tekst zien Engelstalige klanten de Nederlandse.</string>
+    <string name="classes_app_edit">Les wijzigen</string>
+    <string name="classes_app_manage_on_web">Dit beheer je op het web</string>
+    <string name="classes_app_new_title">Nieuwe groepsles</string>
+    <string name="classes_app_owner_note">Les wijzigen, een vaste reeks en %1$s beheer je op het web.</string>
     <string name="classes_date_back">Alle lessen</string>
     <plurals name="classes_date_booked">
         <item quantity="one">%1$s/%2$s geboekt · %3$d plek vrij</item>
@@ -418,6 +428,8 @@
     <string name="home_set_up_on_web">Maak je werkruimte aan op het web.</string>
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
+    <!-- Label of the tab that holds the workspace home (Klanten, Profiel and the account) in Fivvi Pro. -->
+    <string name="home_tab">Home</string>
     <string name="invitation_accept">Accepteren</string>
     <string name="invitation_decline">Afwijzen</string>
     <string name="invitation_declined">Je hebt de uitnodiging afgewezen.</string>
@@ -442,6 +454,9 @@
     <string name="join_link_renew_dialog_title">Aanmeldlink vernieuwen?</string>
     <string name="join_link_renewed">De aanmeldlink is vernieuwd.</string>
     <string name="join_link_title">Aanmeldlink</string>
+    <!-- Label of the second tab of Fivvi Pro: the trainer's calendar across workspaces. -->
+    <string name="my_calendar_app_tab">Agenda</string>
+    <string name="my_calendar_app_title">Agenda</string>
     <!-- The first line of a calendar block and the start of its spoken name: the session type in words, a dot, then the client or class name, e.g. 'Privé · Anna' or 'Groep · Kracht'. The type always comes first (colour is never the only signal). -->
     <string name="my_calendar_block">%2$s · %1$s</string>
     <!-- Places taken and capacity of a group class on its block, e.g. '3/8'. -->
@@ -489,6 +504,32 @@
     <string name="my_calendar_view_list">Lijst</string>
     <string name="my_calendar_view_week">Week</string>
     <string name="my_calendar_views">Weergave</string>
+    <string name="my_day_app_dismiss">Sluiten</string>
+    <string name="my_day_app_failed">Vandaag kon niet worden bijgewerkt.</string>
+    <string name="my_day_app_free_gap">Vrij %1$s–%2$s</string>
+    <!-- Length of the free gap in hours, {hours} is a number such as 1,5 or 2. -->
+    <string name="my_day_app_free_gap_length">%1$s uur</string>
+    <!-- Pill on a group class row that has no places left. -->
+    <string name="my_day_app_full">Vol</string>
+    <string name="my_day_app_no_free_time">Geen vrije tijd meer vandaag</string>
+    <string name="my_day_app_offline">Je bent offline. Laatst bijgewerkt om %1$s.</string>
+    <string name="my_day_app_open">Openen</string>
+    <!-- Accessibility label of the arrow that opens the maps app for a session's location. -->
+    <string name="my_day_app_open_route">Route</string>
+    <string name="my_day_app_plan">Plannen</string>
+    <!-- Notice, shown once, after the person lost access to a workspace. -->
+    <string name="my_day_app_removed">Je hebt geen toegang meer tot %1$s.</string>
+    <string name="my_day_app_retry">Opnieuw</string>
+    <string name="my_day_app_route">Route vandaag</string>
+    <plurals name="my_day_app_summary">
+        <item quantity="one">%1$d sessie · %3$s–%4$s · %2$s klaar</item>
+        <item quantity="other">%1$d sessies · %3$s–%4$s · %2$s klaar</item>
+    </plurals>
+    <string name="my_day_app_summary_empty">Geen sessies vandaag</string>
+    <!-- Label of the first tab of Fivvi Pro: the trainer's day across workspaces. -->
+    <string name="my_day_app_tab">Vandaag</string>
+    <string name="my_day_app_title">Vandaag</string>
+    <string name="my_day_app_tomorrow_hint">Opent de agenda</string>
     <string name="my_day_booked">%1$s/%2$s geboekt</string>
     <string name="my_day_cancelled">Geannuleerd</string>
     <string name="my_day_empty_never">Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland.</string>
@@ -1031,11 +1072,109 @@
     <string name="welcome_workspace_name_hint">Bijvoorbeeld John\'s Gym</string>
     <!-- Label of the field for the name of the gym or business on TW-11. The workspace itself, worded as the person's own business (GLOSSARY §4.1: prefer this over the word werkruimte). -->
     <string name="welcome_workspace_name_label">Naam van je sportschool of bedrijf</string>
-    <!-- Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive. -->
-    <string name="workspace_home_description">Hier komt binnenkort het overzicht van je sportschool of bedrijf.</string>
+    <plurals name="workspace_calendar_booked_line">
+        <item quantity="one">%1$s/%2$s geboekt · %3$d plek vrij</item>
+        <item quantity="other">%1$s/%2$s geboekt · %3$d plekken vrij</item>
+    </plurals>
+    <string name="workspace_calendar_change">Wijzigen</string>
+    <string name="workspace_calendar_changed_from_series">Aangepast t.o.v. de reeks</string>
+    <string name="workspace_calendar_client_profile">Klantprofiel</string>
+    <string name="workspace_calendar_close">Sluiten</string>
+    <string name="workspace_calendar_column_location">Locatie</string>
+    <string name="workspace_calendar_column_trainer">%1$s</string>
+    <string name="workspace_calendar_empty_day">Geen sessies op deze dag.</string>
+    <string name="workspace_calendar_empty_week">Nog niets gepland deze week.</string>
+    <string name="workspace_calendar_error_title">De agenda kon niet laden.</string>
+    <string name="workspace_calendar_filter_trainers">%1$s</string>
+    <string name="workspace_calendar_legend_needs_action">actie nodig</string>
+    <string name="workspace_calendar_legend_scheduled">gepland</string>
+    <string name="workspace_calendar_more">+%1$s meer</string>
+    <plurals name="workspace_calendar_more_hint">
+        <item quantity="one">%1$d sessie meer, open de dag</item>
+        <item quantity="other">%1$d sessies meer, open de dag</item>
+    </plurals>
+    <string name="workspace_calendar_move">Verplaatsen</string>
+    <string name="workspace_calendar_move_back">Terug</string>
+    <string name="workspace_calendar_move_cancelled">Dit item is geannuleerd en kan niet worden verplaatst. We hebben de agenda bijgewerkt.</string>
+    <string name="workspace_calendar_move_changed">Dit item is net gewijzigd. We hebben de agenda bijgewerkt.</string>
+    <string name="workspace_calendar_move_changed_by">Dit item is net gewijzigd door %1$s. We hebben de agenda bijgewerkt.</string>
+    <string name="workspace_calendar_move_confirm">Verplaatsen</string>
+    <string name="workspace_calendar_move_from_to">%1$s → %2$s</string>
+    <string name="workspace_calendar_move_past">Dit tijdstip ligt in het verleden.</string>
+    <string name="workspace_calendar_move_past_blocked">Een les met boekingen kan niet naar het verleden worden verplaatst.</string>
+    <string name="workspace_calendar_move_title">%1$s verplaatsen?</string>
+    <string name="workspace_calendar_moved">Verplaatst naar %1$s %2$s.</string>
+    <string name="workspace_calendar_new_at">Nieuw op %1$s, %2$s</string>
+    <string name="workspace_calendar_new_at_hint">Wat wil je plannen?</string>
+    <string name="workspace_calendar_new_group">+ Groepsles</string>
+    <string name="workspace_calendar_new_private">+ Privésessie</string>
+    <string name="workspace_calendar_no_trainer">Geen %1$s</string>
+    <string name="workspace_calendar_no_trainer_mark">! Nog geen %1$s</string>
+    <string name="workspace_calendar_open">Openen</string>
+    <string name="workspace_calendar_quick_view">Snelle weergave</string>
+    <string name="workspace_calendar_retry">Opnieuw proberen</string>
+    <string name="workspace_calendar_series_line">Elke %2$s %1$s</string>
+    <string name="workspace_calendar_shortcut_list">T: vandaag · ← →: vorige of volgende · D, W, L: dag, week of lijst · N: nieuw</string>
+    <string name="workspace_calendar_shortcuts">Sneltoetsen</string>
+    <string name="workspace_calendar_spoken_booked">%1$s van %2$s geboekt</string>
+    <string name="workspace_calendar_title">Agenda</string>
+    <string name="workspace_calendar_today_mark">Vandaag</string>
+    <string name="workspace_calendar_trainer_line">%1$s: %2$s</string>
+    <string name="workspace_calendar_type_group_class">Groepsles</string>
+    <string name="workspace_calendar_type_private_session">Privésessie</string>
+    <string name="workspace_calendar_when">%1$s · %3$s–%2$s</string>
+    <string name="workspace_calendar_you">Jij</string>
+    <!-- Button of the new-workspace welcome on the Dashboard (WC-01) that opens the dialog to plan a class date (F021). Group class: the glossary word for a class (groepsles). -->
+    <string name="workspace_dashboard_add_group">Groepsles toevoegen</string>
+    <!-- Button of the new-workspace welcome on the Dashboard (WC-01) that opens the dialog to plan a private session (PS-01). -->
+    <string name="workspace_dashboard_add_private">Privésessie toevoegen</string>
+    <!-- Button of an Aandacht nodig row that opens the session to give it a trainer (GLOSSARY §4.1: toewijzen, never koppelen). -->
+    <string name="workspace_dashboard_assign">Toewijzen</string>
+    <!-- Accessible name of the Toewijzen button: the word first, then the row it belongs to. -->
+    <string name="workspace_dashboard_assign_label">Toewijzen: %1$s</string>
+    <!-- A row of Aandacht nodig: a class date or private session in the next 14 days without a trainer. {name} is "Boxing" or "Privé · Mark Jansen", {date} and {time} the day and start time. {word} is the workspace's word for the people who teach (F068). -->
+    <string name="workspace_dashboard_attention_no_trainer">%2$s, %1$s %3$s: nog geen %4$s</string>
+    <string name="workspace_dashboard_attention_none">Niets open. Alles is bijgewerkt.</string>
+    <string name="workspace_dashboard_attention_title">Aandacht nodig</string>
+    <!-- Second line of a class block in the lanes: the start time and the places taken, e.g. "10:00 · 3/8". Keep the separator. -->
+    <string name="workspace_dashboard_block_detail">%2$s · %1$s</string>
+    <!-- Column of Nog vandaag: places taken of a class, or the location of a private session. -->
+    <string name="workspace_dashboard_column_occupancy">Bezetting</string>
+    <string name="workspace_dashboard_column_session">Sessie</string>
+    <string name="workspace_dashboard_column_time">Tijd</string>
+    <!-- Shown on the Dashboard when nothing is scheduled today. {workspace} is the workspace name. -->
+    <string name="workspace_dashboard_empty_day">Vandaag staat er niets gepland in %1$s.</string>
+    <string name="workspace_dashboard_error_title">Het dashboard kon niet laden.</string>
+    <!-- A count out of a total on a tile, e.g. 3/5. Keep the slash. -->
+    <string name="workspace_dashboard_fraction">%1$s/%2$s</string>
+    <!-- Small text under the places count on the Groepsplekken tile: "7/8 geboekt". -->
+    <string name="workspace_dashboard_group_booked">geboekt</string>
+    <string name="workspace_dashboard_group_spots">Groepsplekken</string>
+    <string name="workspace_dashboard_kpi_label">Cijfers van vandaag</string>
+    <string name="workspace_dashboard_lanes_label">Tijdlijn van vandaag, een rij per %1$s</string>
+    <!-- Under the title of the lanes card. {word} is the workspace's word for the people who teach (F068). -->
+    <string name="workspace_dashboard_lanes_note">Eén rij per %1$s. Sessies tegelijk staan naast elkaar.</string>
+    <string name="workspace_dashboard_lanes_title">Vandaag bij %1$s</string>
+    <string name="workspace_dashboard_no_more_today">Geen sessies meer vandaag.</string>
+    <string name="workspace_dashboard_retry">Opnieuw proberen</string>
+    <!-- Accessible name of the switch between the Owner's own day (Mijn dag) and the workspace's day. -->
+    <string name="workspace_dashboard_scope_label">Weergave</string>
+    <!-- Small text under the done count on the Sessies vandaag tile: "3/5 klaar". -->
+    <string name="workspace_dashboard_sessions_done">klaar</string>
+    <string name="workspace_dashboard_sessions_today">Sessies vandaag</string>
+    <string name="workspace_dashboard_still_today">Nog vandaag</string>
+    <!-- Page title of the Owner's home of a workspace (WC-01), the Dashboard. A loanword both languages use. -->
+    <string name="workspace_dashboard_title">Dashboard</string>
+    <string name="workspace_dashboard_to_calendar">Naar de agenda</string>
+    <!-- Line above the Dashboard: "VANDAAG · DINSDAG 22 SEPTEMBER" (the screen sets it in capitals). {date} is the weekday and date in the reader's language. -->
+    <string name="workspace_dashboard_today">Vandaag · %1$s</string>
+    <!-- Shown on the Dashboard of a new workspace, where nothing has ever been planned, instead of the empty-day text (WC-01). Two sentences; the second points at the two buttons that follow (class timetable, private session). -->
+    <string name="workspace_dashboard_welcome">Welkom bij Fivvi. Begin met je lesrooster of een privésessie.</string>
     <string name="workspace_nav_booking_links">Boekingslinks</string>
+    <string name="workspace_nav_calendar">Agenda</string>
     <string name="workspace_nav_classes">Lessen</string>
     <string name="workspace_nav_clients">Klanten</string>
+    <string name="workspace_nav_dashboard">Dashboard</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->
     <string name="workspace_nav_label">Hoofdnavigatie</string>
     <string name="workspace_nav_my_calendar">Mijn agenda</string>
@@ -1043,6 +1182,7 @@
     <string name="workspace_nav_new">Nieuw</string>
     <string name="workspace_nav_new_client">Klant</string>
     <string name="workspace_nav_new_group_class">Groepsles</string>
+    <string name="workspace_nav_new_group_class_note">Groepslessen van %1$s plant de eigenaar.</string>
     <string name="workspace_nav_new_menu">Nieuw maken</string>
     <string name="workspace_nav_new_private_session">Privésessie</string>
     <string name="workspace_nav_personal">Persoonlijk</string>

@@ -17,6 +17,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.OffsetDateTime
 import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -104,7 +105,8 @@ data class NewSessionState(
  * reach the API the form says so and *Opslaan* is off, and nothing is queued; [start] reads again.
  *
  * [forAnyTrainer] is the Owner's right to plan for any trainer (`session.private.manage.any`); a Trainer plans for
- * themself and sends no trainer. [onNotAllowed] is told a 403 of the plan, for the capability helper (F004 AC10).
+ * themself and sends no trainer. [onNotAllowed] is told a 403 of the plan, for the capability helper (F004 AC10). [start] is
+ * the first start the form shows instead of the next full hour (*Plannen* on Vandaag, F013).
  */
 class NewSessionViewModel(
     private val apis: SessionApis,
@@ -113,6 +115,7 @@ class NewSessionViewModel(
     private val teamMemberId: UUID,
     private val onNotAllowed: (Response<*>) -> Unit = {},
     private val now: () -> Instant = Instant::now,
+    private val start: OffsetDateTime? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow(NewSessionState(forAnyTrainer = forAnyTrainer))
     val state: StateFlow<NewSessionState> = _state.asStateFlow()
@@ -142,7 +145,10 @@ class NewSessionViewModel(
                 ?: return finish { it.copy(load = NewSessionLoad.Failed) }
             val trainers = if (forAnyTrainer) SessionTeam.read(apis.trainers, workspaceId) else null
             val mine = trainers?.let { SessionTeam.myTrainerId(it, teamMemberId) }
-            val first = SessionClock.nextFullHour(now(), workspace.zone)
+            // *Plannen* on Vandaag hands over the start of the free gap; otherwise the next full hour.
+            val first =
+                start?.let { SessionClock.local(it, workspace.zone) }
+                    ?: SessionClock.nextFullHour(now(), workspace.zone)
             finish {
                 it.copy(
                     load = NewSessionLoad.Ready,

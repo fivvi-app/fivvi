@@ -1,0 +1,83 @@
+# F022 native weekly classes (spec #428, AC6), against the local stack: John (the seeded owner@example.com, Owner of John's
+# Gym) adds the group class "Mobility" from + → Groepsles (TD-05) with Herhalen: Elke week op {weekday} (the form shows the
+# note "We zetten de komende 12 weken in de agenda."), and TD-03 opens with "12 groepslessen toegevoegd" and the series line
+# "Onderdeel van: Mobility, elke {weekday} {time}". The sign-in is the shared sub-flow. Elements are found by id: the Android
+# testTag and the iOS accessibilityIdentifier, the same on both apps (home.new*, newClass.*, classDate.*); the two options of
+# Herhalen are found by their text, which the iOS menu and the Android menu both show. Texts differ by language, so the flow
+# checks what both languages share (the class name, the number 12) and the ids. The date and the start are the form's own
+# first values (the next full hour); the trainer is John, so a clash with another flow of this run (group-class.yaml adds a
+# Mobility at the same time, as the other language's run does, against the same database) ends in the double-booking alert,
+# which the flow answers with Toch opslaan, as group-class.yaml does. The DST refusal (AC7) needs a start the clocks skip,
+# which the local stack cannot be made to give, so the unit and UI tests prove it. The two platform tickets (iOS #455,
+# Android #456) run this one flow, on both platforms and without a branch on the platform.
+appId: ${APP_ID}
+name: AC6 Add a weekly group class and read the 12 dates added and the series line
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # John: seeded, the Owner of John's Gym (packages/database/src/seed.ts).
+  EMAIL: owner@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: home\.openClients
+    timeout: 20000
+- tapOn:
+    id: home\.new
+- tapOn:
+    id: home\.newGroupClass
+- extendedWaitUntil:
+    visible:
+      id: newClass\.save
+    timeout: 20000
+# Without the weekly choice there is no note about the 12 weeks.
+- assertNotVisible:
+    id: newClass\.repeatNote
+# Herhalen: Elke week op {weekday} (Every week on {weekday}). It is chosen before the name is typed: the keyboard of the
+# name would cover the row on iOS, which has no way to hide it (hideKeyboard fails there), and the row is below the fold
+# of a small Android screen, so the flow scrolls to it and back up to the name.
+- scrollUntilVisible:
+    element:
+      id: newClass\.repeat
+- tapOn:
+    id: newClass\.repeat
+- tapOn:
+    text: (Elke week op .*|Every week on .*)
+- assertVisible:
+    id: newClass\.repeatNote
+- scrollUntilVisible:
+    element:
+      id: newClass\.nameNl
+    direction: UP
+- tapOn:
+    id: newClass\.nameNl
+- inputText: Mobility
+- tapOn:
+    id: newClass\.save
+- extendedWaitUntil:
+    visible:
+      id: (classDate\.title|newClass\.doubleBooking\.saveAnyway)
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: newClass\.doubleBooking\.saveAnyway
+    commands:
+      - tapOn:
+          id: newClass\.doubleBooking\.saveAnyway
+# TD-03 opens with the class, "12 groepslessen toegevoegd" and the series line.
+- extendedWaitUntil:
+    visible:
+      id: classDate\.title
+      text: Mobility
+    timeout: 20000
+- assertVisible:
+    id: classDate\.added
+    text: 12 .*
+- assertVisible:
+    id: classDate\.series
+    text: "(Onderdeel van: Mobility, elke .*|Part of: Mobility, every .*)"

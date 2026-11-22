@@ -11,6 +11,7 @@ import {
   type SessionView,
 } from '@fivvi/database';
 import {
+  clientFirstName,
   confirmationLanguage,
   type DetachedField,
   PRIVATE_SESSION_DURATIONS,
@@ -97,7 +98,7 @@ const SessionGroupClassSchema = z
   })
   .openapi('SessionGroupClass', { description: 'The class a class date was scheduled from.' });
 
-const SessionSeriesSchema = z
+export const SessionSeriesSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The series ID.' }),
     weekday: z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']).openapi({
@@ -148,7 +149,8 @@ export const SessionSchema = z
         '(ADR-012).',
     }),
     capacity: z.number().int().openapi({
-      description: '1 for a private session; the date’s own capacity for a class date.',
+      description:
+        '1 for a private session, 2 for a duo (F066); the date’s own capacity for a class date.',
     }),
     version: z.number().int().openapi({
       description: 'Raised by every change; a change says the version it read. Starts at 1.',
@@ -167,8 +169,9 @@ export const SessionSchema = z
     }),
     participants: z.array(SessionParticipantSchema).openapi({
       description:
-        'The clients in the session, in the order they were added. One for a private session; ' +
-        'none for a class date until bookings exist (M5).',
+        'The clients in the session, in the order they were added. One for a private session, ' +
+        'two for a duo (F066: a session with two clients who have not cancelled); none for a ' +
+        'class date until bookings exist (M5).',
     }),
   })
   .openapi('Session', {
@@ -209,6 +212,17 @@ const DurationMinutesSchema = z
 const PlanPrivateSessionBodySchema = z
   .object({
     clientId: z.uuid().openapi({ description: 'The client of the workspace the session is for.' }),
+    secondClientId: z
+      .uuid()
+      .optional()
+      .openapi({
+        description:
+          'The second client of a duo session (F066): another client of the workspace, never the ' +
+          'same as `clientId` (`400` on `secondClientId` with the code `same_client`). Leave it ' +
+          'out for a one-client session. The session is stored once, as a private session with ' +
+          'two participants and a capacity of 2, and each client gets EM-11 in their own ' +
+          'language, naming the other by first name only.',
+      }),
     trainerId: z
       .uuid()
       .optional()
@@ -223,8 +237,8 @@ const PlanPrivateSessionBodySchema = z
     durationMinutes: DurationMinutesSchema,
     notify: z.boolean().openapi({
       description:
-        'Whether to email the client the confirmation (EM-11). Not sent for a session that ' +
-        'starts in the past, whatever this says.',
+        'Whether to email the client the confirmation (EM-11), each client of a duo their own. ' +
+        'Not sent for a session that starts in the past, whatever this says.',
     }),
     allowConflicts: allowConflictsField,
     surface: z
@@ -239,7 +253,8 @@ const PlanPrivateSessionBodySchema = z
   })
   .openapi('PlanPrivateSessionRequest', {
     description:
-      'A private session to plan: one client, one trainer, a local date, start and length.',
+      'A private session to plan: one client, or two for a duo, one trainer, a local date, ' +
+      'start and length.',
   });
 
 const PlannedPrivateSessionSchema = z
@@ -409,7 +424,8 @@ const planPrivateSessionRoute = defineRoute(
     tags: ['sessions'],
     summary: 'Plan a private session',
     description:
-      'Plans a private session for a client with a trainer (an Owner for any trainer of the ' +
+      'Plans a private session for a client, or a duo session for two clients (`secondClientId`, ' +
+      'F066), with a trainer (an Owner for any trainer of the ' +
       'workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s ' +
       'default location. The date and start are wall-clock time in the workspace’s time zone; ' +
       'the session is stored and answered as UTC instants plus that zone. A past session is ' +
@@ -417,7 +433,11 @@ const planPrivateSessionRoute = defineRoute(
       'not train) answers `404`; an invalid duration, date or time, or a start the clocks skip ' +
       'answers `400` with the field in `issues`. When ' +
       '`notify` is on and the session is not in the past, EM-11 goes to the client after the ' +
-      'session is committed, in the client’s email language, else the workspace’s default. When ' +
+      'session is committed, in the client’s email language, else the workspace’s default; for a ' +
+      'duo, to each client in their own language, naming the other by first name only. The ' +
+      'same client twice answers `400` on `secondClientId`; a second client that is not in the ' +
+      'workspace answers `404`. Only a team member plans a duo: no client route plans, books or ' +
+      'joins one. When ' +
       'the trainer already has a scheduled session of this workspace that overlaps (back-to-back ' +
       'does not), the answer is `409` with the code `trainer_conflict` and those sessions, and ' +
       'nothing is stored, unless `allowConflicts` is `true` (PS-07).',
@@ -618,10 +638,12 @@ function invalidTime(
  * has them now. The event follows the session and its version, so each change has its own key.
  */
 function mailAbout(
-  client: { email: string; name: string; emailLocale: Locale | null },
+  client: { id: string; email: string; name: string; emailLocale: Locale | null },
   workspace: { name: string; timeZone: string; defaultLocale: Locale; trainerWord: TrainerWord },
   session: SessionView,
   previous?: { startsAt: Date; endsAt: Date },
+  /** The other client of a duo: the mail names them by first name and has its own event (F066). */
+  other?: { id: string; name: string },
 ): PrivateSessionMail {
   return {
     to: { email: client.email, name: client.name },
@@ -637,7 +659,8 @@ function mailAbout(
     location: { name: session.location.name, address: session.location.address },
     trainerName: session.trainer?.name.trim() ? session.trainer.name : null,
     trainerWord: workspace.trainerWord,
-    event: privateSessionEmailEvent(session.id, session.version),
+    ...(other ? { togetherWith: clientFirstName(other.name) } : {}),
+    event: privateSessionEmailEvent(session.id, session.version, other ? client.id : undefined),
   };
 }
 
@@ -663,6 +686,10 @@ export function registerSessions(app: OpenAPIHono) {
       timeZone: workspace.timeZone,
       now: clock.now(),
       locations: await listLocations(scope),
+      // Left out for one client: F020's session, as it was.
+      ...(body.secondClientId === undefined
+        ? {}
+        : { clientIds: [body.clientId, body.secondClientId] }),
     });
     // Each refusal rolls the request's transaction back: nothing is stored, nothing is sent.
     if (decision.outcome === 'refused') {
@@ -671,6 +698,9 @@ export function registerSessions(app: OpenAPIHono) {
           return c.json(FORBIDDEN, 403);
         case 'unknown-trainer':
           return c.json(NOT_FOUND, 404);
+        // Only the same client twice can get here: the body holds two clients at most.
+        case 'invalid-clients':
+          return c.json(invalid('secondClientId', 'same_client'), 400);
         case 'invalid-duration':
         case 'invalid-date':
         case 'invalid-time':
@@ -680,6 +710,9 @@ export function registerSessions(app: OpenAPIHono) {
     }
     const client = await findClient(scope, body.clientId);
     if (!client) return c.json(NOT_FOUND, 404);
+    const secondClient =
+      body.secondClientId === undefined ? undefined : await findClient(scope, body.secondClientId);
+    if (body.secondClientId !== undefined && !secondClient) return c.json(NOT_FOUND, 404);
     // `planPrivateSession` planned it only for a trainer who trains here.
     if (!trainer) throw new Error('The trainer of a planned session was not found.');
     const doubleBooked = await checkDoubleBooking(c, {
@@ -702,12 +735,23 @@ export function registerSessions(app: OpenAPIHono) {
       endsAt: decision.endsAt,
       capacity: decision.capacity,
       clientId: client.id,
+      ...(secondClient ? { secondClientId: secondClient.id } : {}),
       createdByTeamMemberId: actor.id,
     });
     const confirmationEmail = sendsConfirmation({ notify: body.notify, past: decision.past });
     const afterCommit = c.get('afterCommit');
     if (confirmationEmail) {
-      afterCommit(() => sendPrivateSession(mailAbout(client, workspace, session)));
+      if (secondClient) {
+        // A duo: an email each, in their own language, naming the other by first name, with a key per client.
+        afterCommit(() =>
+          sendPrivateSession(mailAbout(client, workspace, session, undefined, secondClient)),
+        );
+        afterCommit(() =>
+          sendPrivateSession(mailAbout(secondClient, workspace, session, undefined, client)),
+        );
+      } else {
+        afterCommit(() => sendPrivateSession(mailAbout(client, workspace, session)));
+      }
     }
     // The workspace ID and the surface only: no session, client or trainer, no date or time
     // (OBSERVABILITY.md §4). The web sends no bearer token; an app names its surface, and one that
@@ -721,6 +765,16 @@ export function registerSessions(app: OpenAPIHono) {
           properties: { workspace_id: scope.workspaceId, surface },
         }),
       );
+      // A duo is one more event: the workspace ID and the platform, no client (F066, AC21).
+      if (secondClient) {
+        afterCommit(() =>
+          productEvents.track({
+            event: 'duo_session_planned',
+            distinctId: c.get('account').id,
+            properties: { workspace_id: scope.workspaceId, platform: surface },
+          }),
+        );
+      }
     }
     return c.json(
       {

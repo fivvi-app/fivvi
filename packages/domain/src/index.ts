@@ -320,7 +320,9 @@ export {
 } from './scheduling/apply-following.ts';
 export {
   type CalendarFilters,
+  type CappedOverlaps,
   type ClockChange,
+  capOverlaps,
   clockChangeOn,
   type FilterableItem,
   filterCalendarItems,
@@ -329,6 +331,8 @@ export {
   type OverlapBlock,
   type PlacedInDay,
   placeInDay,
+  type WeekAxis,
+  weekAxis,
   weekDates,
 } from './scheduling/calendar-grid.ts';
 export {
@@ -365,11 +369,14 @@ export {
   planWeeklySeries,
 } from './scheduling/plan-series.ts';
 export {
+  clientFirstName,
   confirmationLanguage,
+  isDuoSession,
   type PlanPrivateSessionDecision,
   type PlanPrivateSessionFacts,
   type PlanPrivateSessionRefusal,
   PRIVATE_SESSION_DURATIONS,
+  PRIVATE_SESSION_MAX_CLIENTS,
   planPrivateSession,
   type ReschedulePrivateSessionDecision,
   type ReschedulePrivateSessionFacts,
@@ -393,6 +400,17 @@ export {
   findTrainerConflicts,
   type TrainerBusySession,
 } from './scheduling/trainer-conflicts.ts';
+export {
+  ATTENTION_DAYS,
+  attentionWindow,
+  type BusiestMoment,
+  busiestMoment,
+  filterWorkspaceCalendar,
+  sessionsOfDay,
+  sessionsWithoutTrainer,
+  type WorkspaceCalendarFilters,
+  type WorkspaceCalendarSession,
+} from './scheduling/workspace-calendar.ts';
 export {
   addDays,
   instantToWallClock,

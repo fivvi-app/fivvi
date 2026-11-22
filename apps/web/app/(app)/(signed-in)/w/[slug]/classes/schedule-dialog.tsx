@@ -52,6 +52,7 @@ export function ScheduleDialogContent({
   classId,
   trainerWord,
   newClass,
+  slot,
   scheduled,
 }: {
   workspaceId: string;
@@ -61,6 +62,8 @@ export function ScheduleDialogContent({
   trainerWord: TrainerWordForms;
   /** Closes this dialog and opens the form for a new class; absent where the class is fixed. */
   newClass?: () => void;
+  /** The date and the start of the empty moment of the calendar the dialog was opened from (WC-06). */
+  slot?: { localDate: string; localStart: string };
   /** `datesAdded` is how many dates a weekly repeat made; absent for one date. */
   scheduled: (session: Session, datesAdded?: number) => void;
 }) {
@@ -71,8 +74,8 @@ export function ScheduleDialogContent({
   const format = useFormatter();
   const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' });
   const [chosen, setChosen] = useState(classId ?? '');
-  const [localDate, setLocalDate] = useState('');
-  const [localStart, setLocalStart] = useState('');
+  const [localDate, setLocalDate] = useState(slot?.localDate ?? '');
+  const [localStart, setLocalStart] = useState(slot?.localStart ?? '');
   const [trainerId, setTrainerId] = useState('');
   const [capacity, setCapacity] = useState('');
   // *Herhalen* (F022): not at all, or every week on the weekday of the date.

@@ -12,19 +12,7 @@ final class StubSessions: @unchecked Sendable {
         case location, trainers, team, plan, get, reschedule, upcoming
     }
 
-    /// What a route answers instead of working.
-    enum Failure: Sendable, Equatable {
-        case offline
-        case status(Int)
-        case forbidden
-        case notFound
-        /// `400` naming one field, as the API refuses a date or a start.
-        case badRequest(path: String, code: String)
-        /// `409` for a move: `session_changed` by this person, or `session_cancelled`.
-        case conflict(cancelled: Bool, changedBy: String?)
-        /// `409` `session_changed` that carries no session.
-        case conflictWithoutSession
-    }
+    typealias Failure = StubSessionFailure
 
     /// One reschedule the app sent.
     struct Move: Sendable, Equatable {
@@ -221,6 +209,35 @@ final class StubSessions: @unchecked Sendable {
 
     /// The API's rule (F023 AC7), for the stub's own sessions: the trainer's scheduled sessions that overlap
     /// `[start, end)`, soonest first; back-to-back and cancelled sessions never do.
+    func overlaps(trainerID: String, start: Date, end: Date) -> [Components.Schemas.TrainerConflictItem] {
+        lock.withLock { conflicts(trainerID: trainerID, start: start, end: end, excluding: nil) }
+    }
+
+    /// Puts a class date in the workspace, as `POST …/group-classes` does with a first date; returns it.
+    func addGroupDate(
+        of groupClass: Components.Schemas.GroupClass, start: Date, minutes: Int, capacity: Int,
+        trainer: Components.Schemas.SessionTrainer?, series: Components.Schemas.SessionSeries? = nil
+    ) -> Session {
+        lock.withLock {
+            defer { nextNumber += 1 }
+            let made = Session(
+                id: String(format: "8a0b1c2e-8a54-4b51-9a42-%012d", nextNumber), _type: .group, status: .scheduled,
+                startsAt: start, endsAt: start.addingTimeInterval(TimeInterval(minutes * 60)), timeZone: timeZoneName,
+                capacity: capacity, version: 1, location: place, trainer: trainer,
+                groupClass: .init(id: groupClass.id, nameNl: groupClass.nameNl, nameEn: groupClass.nameEn),
+                series: series, participants: []
+            )
+            stored.append(made)
+            return made
+        }
+    }
+
+    /// The local date and time of a request in the workspace's time zone.
+    func instant(_ day: String, _ time: String) -> Date? { Self.date(day, time, timeZoneName) }
+
+    /// The trainers the person may choose among.
+    var trainerPeople: [Components.Schemas.Trainer] { lock.withLock { trainerList } }
+
     private func conflicts(
         trainerID: String, start: Date, end: Date, excluding id: String?
     ) -> [Components.Schemas.TrainerConflictItem] {
@@ -230,8 +247,9 @@ final class StubSessions: @unchecked Sendable {
             .sorted { $0.startsAt < $1.startsAt }
             .map {
                 .init(
-                    sessionId: $0.id, _type: ._private, startsAt: $0.startsAt, endsAt: $0.endsAt,
-                    displayName: $0.participants.first?.name ?? "", displayNameEn: nil
+                    sessionId: $0.id, _type: $0._type == .group ? .group : ._private, startsAt: $0.startsAt,
+                    endsAt: $0.endsAt, displayName: $0.groupClass?.nameNl ?? $0.participants.first?.name ?? "",
+                    displayNameEn: $0.groupClass?.nameEn
                 )
             }
     }
@@ -265,7 +283,7 @@ final class StubSessions: @unchecked Sendable {
     }
 
     /// The failure as the output of a route; `offline` throws. Generic over the route's output.
-    private static func output<Output: StubSessionsOutput>(_ failure: Failure) throws -> Output {
+    static func output<Output: StubSessionsOutput>(_ failure: Failure) throws -> Output {
         switch failure {
         case .offline: throw URLError(.notConnectedToInternet)
         case let .status(code): return Output.undocumented(code)
@@ -275,6 +293,20 @@ final class StubSessions: @unchecked Sendable {
         case .conflict, .conflictWithoutSession: return Output.undocumented(409)
         }
     }
+}
+
+/// What a route answers instead of working.
+enum StubSessionFailure: Sendable, Equatable {
+    case offline
+    case status(Int)
+    case forbidden
+    case notFound
+    /// `400` naming one field, as the API refuses a date or a start.
+    case badRequest(path: String, code: String)
+    /// `409` for a move: `session_changed` by this person, or `session_cancelled`.
+    case conflict(cancelled: Bool, changedBy: String?)
+    /// `409` `session_changed` that carries no session.
+    case conflictWithoutSession
 }
 
 /// The failure outputs every session route has, so `StubSessions.output` is written once.

@@ -66,6 +66,26 @@ struct SessionFormat {
     /// *do 24 sep*, as the web words it.
     func day(_ date: Date) -> String { formatted(date, template: "EEEdMMM") }
 
+    /// *donderdag*, the weekday of a date.
+    func weekday(_ date: Date) -> String { formatted(date, template: "EEEE") }
+
+    /// *donderdag*, the weekday that `number` names the way `Calendar` numbers them: 1 is Sunday, 2 Monday.
+    func weekdayName(number: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        let names = formatter.weekdaySymbols ?? []
+        return names.indices.contains(number - 1) ? names[number - 1] : ""
+    }
+
+    /// *do 28 mrt*, written from a local date `YYYY-MM-DD` as the API names it; nil for text that is no date.
+    func day(localDate: String) -> String? {
+        let parser = DateFormatter()
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.timeZone = timeZone
+        parser.dateFormat = "yyyy-MM-dd HH:mm"
+        return parser.date(from: "\(localDate) 12:00").map(day)
+    }
+
     /// *donderdag 24 september 2026*
     func longDay(_ date: Date) -> String { formatted(date, template: "EEEEdMMMMy") }
 

@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import app.fivvi.core.R
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.InsetGroupedList
@@ -61,13 +62,19 @@ object HomeTags {
     /** The **+** and its menu's *Privésessie* (F020). */
     const val NEW = "home.new"
     const val NEW_PRIVATE_SESSION = "home.newPrivateSession"
+
+    /** The menu's *Groepsles* (F021), and the line that takes its place for a team member who may not plan classes. */
+    const val NEW_GROUP_CLASS = "home.newGroupClass"
+    const val NEW_GROUP_CLASS_NOTE = "home.newGroupClassNote"
 }
 
 /**
  * The signed-in home (a placeholder, in the look of *Vandaag (TD-01)*'s large title and grouped list): the workspace's
  * name, the address of the signed-in account, the rows to Klanten and Profiel and the sign-out button, which a progress
  * indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients. The **+** at the top
- * has *Privésessie* (PS-04, F020) while [onNewPrivateSession] is given: the person plans private sessions in the workspace.
+ * has *Privésessie* (PS-04, F020) while [onNewPrivateSession] is given: the person plans private sessions in the workspace;
+ * *Groepsles* (TD-05, F021) while [onNewGroupClass] is given: the person has `class.manage`. Without it, and with
+ * [groupClassNoteWorkspace] (the workspace's name), the menu says that the owner plans the group classes there instead.
  */
 @Composable
 fun HomeScreen(
@@ -80,6 +87,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onOpenClients: (() -> Unit)? = null,
     onNewPrivateSession: (() -> Unit)? = null,
+    onNewGroupClass: (() -> Unit)? = null,
+    groupClassNoteWorkspace: String? = null,
 ) {
     // One scroll for the whole screen, so the account block can't squeeze what is above it at the largest font scale.
     Column(
@@ -87,7 +96,9 @@ fun HomeScreen(
             .padding(Spacing.space4),
         verticalArrangement = Arrangement.spacedBy(Spacing.space4),
     ) {
-        if (onNewPrivateSession != null && me is MeState.Loaded) NewMenu(onNewPrivateSession)
+        if ((onNewPrivateSession != null || onNewGroupClass != null) && me is MeState.Loaded) {
+            NewMenu(onNewPrivateSession, onNewGroupClass, groupClassNoteWorkspace)
+        }
         Destination(me, onOpenWeb)
         when (me) {
             MeState.Loading -> {
@@ -149,30 +160,64 @@ fun HomeScreen(
     }
 }
 
-// **+** (the prototype's round control), with *Privésessie*: the one thing it makes today (classes join it with their features).
+/**
+ * **+** (the prototype's round control), with *Privésessie* and *Groepsles*, or the line that the owner plans the classes: at
+ * the top of the home and of Vandaag (F013). It has what the callbacks give; none given, it has nothing. [enabled] is off while
+ * the phone is offline on Vandaag (creating needs the server), with [disabledReason] as its state for TalkBack.
+ */
 @Composable
-private fun NewMenu(onNewPrivateSession: () -> Unit) {
+fun NewMenu(
+    onNewPrivateSession: (() -> Unit)?,
+    onNewGroupClass: (() -> Unit)?,
+    noteWorkspace: String?,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    enabled: Boolean = true,
+    disabledReason: String? = null,
+) {
     var open by rememberSaveable { mutableStateOf(false) }
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+    Box(modifier, contentAlignment = Alignment.CenterEnd) {
         RoundControl(
             icon = painterResource(R.drawable.ic_add),
             contentDescription = stringResource(R.string.workspace_nav_new),
             onClick = { open = true },
-            modifier = Modifier.testTag(HomeTags.NEW),
+            modifier = Modifier.testTag(HomeTags.NEW).semantics {
+                if (!enabled && disabledReason != null) stateDescription = disabledReason
+            },
+            enabled = enabled,
         )
         DropdownMenu(
             expanded = open,
             onDismissRequest = { open = false },
             modifier = Modifier.testTagsAsIds(),
         ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.workspace_nav_new_private_session)) },
-                onClick = {
-                    open = false
-                    onNewPrivateSession()
-                },
-                modifier = Modifier.testTag(HomeTags.NEW_PRIVATE_SESSION),
-            )
+            if (onNewPrivateSession != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.workspace_nav_new_private_session)) },
+                    onClick = {
+                        open = false
+                        onNewPrivateSession()
+                    },
+                    modifier = Modifier.testTag(HomeTags.NEW_PRIVATE_SESSION),
+                )
+            }
+            if (onNewGroupClass != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.workspace_nav_new_group_class)) },
+                    onClick = {
+                        open = false
+                        onNewGroupClass()
+                    },
+                    modifier = Modifier.testTag(HomeTags.NEW_GROUP_CLASS),
+                )
+            }
+            if (onNewGroupClass == null && noteWorkspace != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.workspace_nav_new_group_class_note, noteWorkspace)) },
+                    onClick = {},
+                    enabled = false,
+                    modifier = Modifier.testTag(HomeTags.NEW_GROUP_CLASS_NOTE),
+                )
+            }
         }
     }
 }

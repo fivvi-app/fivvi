@@ -313,7 +313,7 @@ private fun Duration(time: SessionTime, idPrefix: String, actions: SessionTimeAc
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateDialog(initial: LocalDate, idPrefix: String, onDismiss: () -> Unit, onPick: (LocalDate) -> Unit) {
+internal fun DateDialog(initial: LocalDate, idPrefix: String, onDismiss: () -> Unit, onPick: (LocalDate) -> Unit) {
     // The picker reads and gives UTC midnights; the date is a plain calendar date of the workspace.
     val state = rememberDatePickerState(
         initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
@@ -341,7 +341,7 @@ private fun DateDialog(initial: LocalDate, idPrefix: String, onDismiss: () -> Un
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimeDialog(initial: LocalTime, idPrefix: String, onDismiss: () -> Unit, onPick: (LocalTime) -> Unit) {
+internal fun TimeDialog(initial: LocalTime, idPrefix: String, onDismiss: () -> Unit, onPick: (LocalTime) -> Unit) {
     val state = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,

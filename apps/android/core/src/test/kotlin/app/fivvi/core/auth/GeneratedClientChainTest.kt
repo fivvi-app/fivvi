@@ -25,6 +25,31 @@ class GeneratedClientChainTest {
     private fun apiClient(session: Session) = ApiServices("https://example.com/api/", session, network)
 
     @Test
+    fun test_F013_note604_theDayIsAskedForInTheLanguageShown() = runBlocking {
+        network.json = """{"date":"2026-09-22","timeZone":"Europe/Amsterdam","workspaceCount":1,"items":[],""" +
+            """"summary":{"count":0,"done":0},"hasSessions":false}"""
+        val services = ApiServices("https://example.com/api/", Session(InMemorySessionStore("tok-1")), network) { "en" }
+
+        services.meApi.getMyDay("2026-09-22", MeApi.SurfaceGetMyDay.ANDROID)
+
+        assertEquals("en", sent.single().header("Accept-Language"))
+        assertEquals("Bearer tok-1", sent.single().header("Authorization"))
+    }
+
+    // The contract's enum values (`android`), not Kotlin's names (`ANDROID`), go into a query: the API refused the day with
+    // `400 validation_failed` on `surface` when the app sent the name.
+    @Test
+    fun test_F013_theSurfaceOfTheDayIsSentAsTheContractNamesIt() = runBlocking {
+        network.json = """{"date":"2026-09-22","timeZone":"Europe/Amsterdam","workspaceCount":1,"items":[],""" +
+            """"summary":{"count":0,"done":0},"hasSessions":false}"""
+
+        apiClient(Session(InMemorySessionStore("tok-1"))).meApi.getMyDay("2026-09-22", MeApi.SurfaceGetMyDay.ANDROID)
+
+        assertEquals("android", sent.single().url.queryParameter("surface"))
+        assertEquals("2026-09-22", sent.single().url.queryParameter("date"))
+    }
+
+    @Test
     fun F001N_AC4_meIsCalledWithTheBearerToken() = runBlocking {
         network.json =
             """{"id":"3f0b1c2e-8a54-4b51-9a42-6a1a3a1d9b10","email":"owner@example.com","name":"Owner",""" +

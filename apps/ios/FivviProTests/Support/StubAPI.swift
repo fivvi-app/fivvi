@@ -94,8 +94,13 @@ actor StubAPI: APIProtocol {
     let clients = StubClients()
     /// The session routes and what they answer (F020).
     let sessions = StubSessions()
+    /// The group class routes and what they answer (F021).
+    let classes = StubClasses()
+    /// What `getMyDay` answers (F013).
+    let myDay = StubMyDay()
     private var goneWorkspaces: Set<String> = []
     private var workspaceStatus: Int?
+    private var workspaceOffline = false
     /// The bodies of every `requestSignIn`, `exchangeSignInCode` and the number of `getMe` calls so far.
     private(set) var signInRequests: [Components.Schemas.SignInRequest] = []
     private(set) var exchanges: [Components.Schemas.SignInTokenRequest] = []
@@ -172,6 +177,11 @@ actor StubAPI: APIProtocol {
     /// From now on `getWorkspace` answers this status (without a body) for every workspace.
     func answerWorkspace(withStatus status: Int) {
         workspaceStatus = status
+    }
+
+    /// From now on `getWorkspace` can't reach the API, until it is told it can.
+    func answerWorkspaceOffline(_ offline: Bool = true) {
+        workspaceOffline = offline
     }
 
     func answerMe(with answer: MeAnswer) {
@@ -296,6 +306,7 @@ extension StubAPI {
 
     func getWorkspace(_ input: Operations.GetWorkspace.Input) async throws -> Operations.GetWorkspace.Output {
         requestedWorkspaces.append(input.path.workspaceId)
+        if workspaceOffline { throw URLError(.notConnectedToInternet) }
         if let workspaceStatus { return .undocumented(statusCode: workspaceStatus, .init()) }
         if goneWorkspaces.contains(input.path.workspaceId) {
             return .notFound(.init(body: .json(.init(code: .notFound))))

@@ -40,6 +40,7 @@ class SessionTeamTest {
                 "${R.string.trainer_word_coach_word}",
                 "${R.string.trainer_word_coach_word_cap}",
                 "${R.string.trainer_word_coach_a_word}",
+                "${R.string.trainer_word_coach_words}",
             ),
             forms,
         )

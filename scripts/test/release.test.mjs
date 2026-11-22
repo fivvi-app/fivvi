@@ -23,6 +23,8 @@ const ROOT = join(import.meta.dirname, '../..');
 const RELEASE = join(ROOT, 'scripts/release.sh');
 // The iOS files these tests read: turbo caches `//#test:root` by its `inputs`, so each must be one of them (#594).
 const { reads: iosReads, note: noteRead } = readRecorder('apps/ios/');
+// The Android files these tests read: the same rule, for the properties file of the release address.
+const { reads: androidReads, note: noteAndroid } = readRecorder('apps/android/');
 
 const base = mkdtempSync(join(tmpdir(), 'release-test-'));
 after(() => rmSync(base, { recursive: true, force: true }));
@@ -1357,6 +1359,33 @@ describe('#437 E017: the iOS jobs run on the image and Xcode that CI tests the a
     assert.match(tests, /^ {8}locale: \[nl, en\]$/m);
     assert.match(tests, /^ {8}shard: \[1, 2\]$/m);
     assert.match(ios, /^ {4}name: iOS release$/m);
+  });
+});
+
+describe('Release builds call the production API on the custom domain, not the Railway domain', () => {
+  // The address of the web service is https://fivvi.app (ENVIRONMENTS.md, "Production address"); the Railway domain still
+  // answers, so installed builds keep working. Debug and preview addresses stay as they are.
+  it('iOS: Release.xcconfig sets FIVVI_API_BASE_URL to https://fivvi.app/api (`$()` keeps `//` from starting a comment)', () => {
+    const release = readFileSync(noteRead(join(ROOT, 'apps/ios/Config/Release.xcconfig')), 'utf8');
+    assert.match(release, /^FIVVI_API_BASE_URL = https:\/\$\(\)\/fivvi\.app\/api$/m);
+    assert.ok(!/railway\.app/.test(release), 'the Railway domain is gone from Release.xcconfig');
+  });
+
+  it('Android: gradle.properties sets fivvi.releaseApiBaseUrl to https://fivvi.app/api/ (with the trailing slash)', () => {
+    const properties = readFileSync(
+      noteAndroid(join(ROOT, 'apps/android/gradle.properties')),
+      'utf8',
+    );
+    assert.match(properties, /^fivvi\.releaseApiBaseUrl=https:\/\/fivvi\.app\/api\/$/m);
+    assert.ok(
+      !/railway\.app/.test(properties),
+      'the Railway domain is gone from gradle.properties',
+    );
+  });
+
+  it('turbo.json lists as inputs of the root tests the Android file read above', () => {
+    assert.ok(androidReads.size >= 1, 'the tests read an Android file');
+    assert.deepEqual(uncovered([...androidReads]), [], UNCOVERED_MESSAGE);
   });
 });
 

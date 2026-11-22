@@ -51,7 +51,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | [F011](https://github.com/fivvi-app/fivvi/issues/422) | Trainer Invitations: the Owner invites a trainer by email from *Trainers* (name, address, language of the email) and sees, resends and withdraws the pending invitations; the invited person signs in with that address and accepts or declines on the invitation page, a client's own account included | IMPLEMENTED | Must | M3 | F003, F004, E006 | ✅ | ✅ | §49 |
 | [F012](https://github.com/fivvi-app/fivvi/issues/423) | Multi-Workspace Trainer: a scope switcher on the web (sidebar header) and in the iOS and Android apps (Profiel → Mijn werkruimtes), each opening that workspace's role home; the last workspace is remembered per device; an allowlisted account can create another workspace | IMPLEMENTED | Must | M3 (+ iOS/Android: workspace switch in the profile) | F003, F005 | ✅ | ✅ | §4, §6 |
 | F013 | Personal Trainer Calendar | IN PROGRESS | Must | M4 (+ iOS/Android) | F012, F020 | ⬜ | ⬜ | §45–§48, §78 (type labels and filters) |
-| F014 | Workspace Calendar | PLANNED | Must | M4 | F020 | ⬜ | ⬜ | §45, §48, §78 (type and trainer filters) |
+| F014 | Workspace Calendar | IN PROGRESS | Must | M4 | F020 | ⬜ | ⬜ | §45, §48, §78 (type and trainer filters) |
 
 ### Locations
 
@@ -68,13 +68,13 @@ The single source of truth for feature status. A status changes **in the same PR
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F020 | Private Sessions: plan a private session for a client (the Owner for any trainer, a Trainer for themself), open it and move it with an optional email to the client, on web, iOS and Android; the person's own sessions read *Jij* / *You* by the team-member ID `GET /api/v1/me` returns | IMPLEMENTED | Must | M4 (+ iOS/Android) | F005, F006, F015 | ✅ | ✅ | §17 |
-| F021 | Group Class Templates | IN PROGRESS | Must | M4 (+ iOS/Android: create a class) | F005, F015 | ⬜ | ⬜ | §15, §18, §19 |
+| F021 | Group Class Templates: the workspace's classes with a name and description in Dutch and English, the usual trainer or *Trainer nodig*, a capacity and a duration, managed by the Owner on Lessen (web); a class on a date opens on its own page (CO-01 on the web for the whole team; TD-03 on iOS and Android, which the Owner reaches after adding a class from + → Groepsles (TD-05), and a Trainer's + shows that the owner plans the group classes); a Trainer reaches TD-03 in the apps once they have a calendar | IMPLEMENTED | Must | M4 (+ iOS/Android: create a class) | F005, F015 | ✅ | ✅ | §15, §18, §19 |
 | F022 | Recurring Classes | IN PROGRESS | Must | M4 (+ iOS/Android: weekly repeat) | F021, E012 | ⬜ | ⬜ | §15, §20 |
 | F023 | Trainer Assignment | IN PROGRESS | Must | M4 (+ iOS/Android: double-booking check) | F020, F021 | ⬜ | ⬜ | §17, §19 |
 | F024 | Trainer Substitution | PLANNED | Must | M4 | F022, F023 | ⬜ | ⬜ | §19 |
 | F025 | Attendance | PLANNED | Must | M4 (+ iOS/Android) | F020, F022 | ⬜ | ⬜ | §43 |
 | F026 | Cancellations | PLANNED | Must | M4 (+ iOS/Android: cancel a session) | F020, F022, F049 | ⬜ | ⬜ | §17, §43, §51 (records time and actor for the §93 cutoff) |
-| [F066](https://github.com/fivvi-app/fivvi/issues/586) | Duo Sessions: two clients and one trainer, each with their own credit, attendance, notes and workout; only the trainer plans one; if one client cancels it continues as a private session | PLANNED | Must | After G4 (ADR-033): M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android); credits M11; workout logs M7 | F020, F025, F026; later stages F033, F054, F055, F043, F045 | ⬜ | ⬜ | §17, §92, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 5 |
+| [F066](https://github.com/fivvi-app/fivvi/issues/586) | Duo Sessions: two clients and one trainer, each with their own credit, attendance, notes and workout; only the trainer plans one; if one client cancels it continues as a private session | IN PROGRESS | Must | After G4 (ADR-033): M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android); credits M11; workout logs M7 | F020, F025, F026; later stages F033, F054, F055, F043, F045 | ⬜ | ⬜ | §17, §92, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 5 |
 | [F067](https://github.com/fivvi-app/fivvi/issues/587) | Class Levels: a fixed list of four levels on a class, set on the series and changeable per date; information only, with no filter and no limit on who books | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android) | F021, F022; client view F027, F033 | ⬜ | ⬜ | §18, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 6 |
 
 ### Booking

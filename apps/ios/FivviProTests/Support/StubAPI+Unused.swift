@@ -52,14 +52,20 @@ extension StubAPI {
         fatalError("The app doesn't call confirmEmailChange yet")
     }
 
-    func getMyDay(_ input: Operations.GetMyDay.Input) async throws -> Operations.GetMyDay.Output {
-        fatalError("The app doesn't call getMyDay yet")
-    }
-
     func listMySessions(
         _ input: Operations.ListMySessions.Input
     ) async throws -> Operations.ListMySessions.Output {
         fatalError("The app doesn't call listMySessions yet")
+    }
+
+    func getWorkspaceCalendar(
+        _ input: Operations.GetWorkspaceCalendar.Input
+    ) async throws -> Operations.GetWorkspaceCalendar.Output {
+        fatalError("The app doesn't call getWorkspaceCalendar yet")
+    }
+
+    func getWorkspaceDay(_ input: Operations.GetWorkspaceDay.Input) async throws -> Operations.GetWorkspaceDay.Output {
+        fatalError("The app doesn't call getWorkspaceDay yet")
     }
 
     func lookupAddress(_ input: Operations.LookupAddress.Input) async throws -> Operations.LookupAddress.Output {
@@ -98,18 +104,6 @@ extension StubAPI {
         _ input: Operations.ListGroupClasses.Input
     ) async throws -> Operations.ListGroupClasses.Output {
         fatalError("The app doesn't call listGroupClasses yet")
-    }
-
-    func createGroupClass(
-        _ input: Operations.CreateGroupClass.Input
-    ) async throws -> Operations.CreateGroupClass.Output {
-        fatalError("The app doesn't call createGroupClass yet")
-    }
-
-    func getGroupClass(
-        _ input: Operations.GetGroupClass.Input
-    ) async throws -> Operations.GetGroupClass.Output {
-        fatalError("The app doesn't call getGroupClass yet")
     }
 
     func updateGroupClass(

@@ -108,6 +108,7 @@ flowchart TD
 └──────────────────────────────────────────────────────────┘
 ```
 
+- **Duo (second client, F066, [#586](https://github.com/fivvi-app/fivvi/issues/586))**: below *Klant* sits *Tweede klant* with *Geen* as its default. Picking one makes the session a **duo session**: the title reads *Nieuwe duosessie*, the second list leaves out the first client, and the session is still one session of type `private` with two participants (`secondClientId` of `POST …/sessions/private`; no separate type is stored). The same client twice, or a client of another workspace, is refused by the API; only a trainer or the Owner plans a duo (the rules of a one-client session: the Owner for any trainer, a Trainer for themself), and a client never plans, books or joins one. Each client gets EM-11 in their own language, once each, naming the other client by first name only (*Samen met: Eva* / *Together with: Lisa*). The duo row reads "Lisa & Eva · Duosessie" in the private colour and counts once in *Vandaag* and in every day summary. Adding a second client to a planned session, cancelling one client and the per-client screens follow in the other tickets of the spec.
 - **Field order** follows how trainers think: *who* → *when* → *who trains* → *where* (inferred) → *what* (optional).
 - **Workspace** is the current one on web. From *Mijn agenda* (personal scope) a *Werkruimte* field appears first, and only if the user can create sessions in more than one workspace. It's pre-filled from the chosen client.
 - **Duration** chips come from the pilot's common durations ⚑ [Q25](../open-questions.md#q25); `▾` offers another value in 5-minute steps. The end time is shown, not asked.
@@ -120,6 +121,9 @@ flowchart TD
 | Element | NL | EN |
 |---|---|---|
 | Title | Nieuwe privésessie | New private session |
+| Title with a second client | Nieuwe duosessie | New duo session |
+| Second client | Tweede klant · Geen | Second client · None |
+| Duo row | {client} & {client} · Duosessie | {client} & {client} · Duo session |
 | Labels | Klant · Datum · Begin · Duur · Trainer · Locatie · Training (optioneel) · Werkruimte | Client · Date · Start · Duration · Trainer · Location · Workout (optional) · Workspace |
 | Duration chips | 45 · 60 · 90 min | 45 · 60 · 90 min |
 | End | Eindigt om {time} · Eindigt om {time} (volgende dag) | Ends at {time} · Ends at {time} (next day) |

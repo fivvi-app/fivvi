@@ -95,6 +95,9 @@ class FakeSessionsApi : SessionsApi {
     val created = mutableListOf<Pair<UUID, PlanPrivateSessionRequest>>()
     val moved = mutableListOf<Triple<UUID, UUID, ReschedulePrivateSessionRequest>>()
     val read = mutableListOf<UUID>()
+
+    /** The workspace and the ID of every session read: a screen of Vandaag asks in the workspace of its item (F013 AC4). */
+    val readIn = mutableListOf<Pair<UUID, UUID>>()
     val createAnswers = ArrayDeque<suspend (PlanPrivateSessionRequest) -> Response<PlannedPrivateSession>>()
     val rescheduleAnswers = ArrayDeque<
         suspend (
@@ -153,6 +156,7 @@ class FakeSessionsApi : SessionsApi {
 
     override suspend fun getSession(workspaceId: UUID, sessionId: UUID): Response<Session> {
         read += sessionId
+        readIn += workspaceId to sessionId
         failure?.let { throw it }
         getStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
         return sessions[sessionId]?.let { Response.success(it) } ?: Response.error(404, "{}".toResponseBody(JSON))
@@ -232,12 +236,22 @@ class FakeSessionsApi : SessionsApi {
 
     // The API's rule (F023 AC7), for the fake's own sessions: the trainer's scheduled sessions that overlap [session],
     // soonest first; a session that starts when the other ends does not overlap, and a cancelled one never does.
-    private fun overlapsOf(trainerId: UUID, session: Session, excluding: UUID?): List<TrainerConflictItem> =
-        sessions.values
-            .filter { it.status == Session.Status.SCHEDULED && it.id != excluding && it.trainer?.id == trainerId }
-            .filter { it.startsAt < session.endsAt && session.startsAt < it.endsAt }
-            .sortedBy { it.startsAt }
-            .map {
+    fun overlapsOf(trainerId: UUID, session: Session, excluding: UUID?): List<TrainerConflictItem> = sessions.values
+        .filter { it.status == Session.Status.SCHEDULED && it.id != excluding && it.trainer?.id == trainerId }
+        .filter { it.startsAt < session.endsAt && session.startsAt < it.endsAt }
+        .sortedBy { it.startsAt }
+        .map {
+            val group = it.groupClass
+            if (group != null) {
+                TrainerConflictItem(
+                    it.id,
+                    TrainerConflictItem.Type.GROUP,
+                    it.startsAt,
+                    it.endsAt,
+                    group.nameNl,
+                    group.nameEn,
+                )
+            } else {
                 TrainerConflictItem(
                     it.id,
                     TrainerConflictItem.Type.PRIVATE,
@@ -247,6 +261,7 @@ class FakeSessionsApi : SessionsApi {
                     null,
                 )
             }
+        }
 
     fun <T> status(code: Int): Response<T> = Response.error(code, "{}".toResponseBody(JSON))
 }

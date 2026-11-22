@@ -11475,7 +11475,7 @@ public enum Operations {
     }
     /// Plan a private session
     ///
-    /// Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default. When the trainer already has a scheduled session of this workspace that overlaps (back-to-back does not), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
+    /// Plans a private session for a client, or a duo session for two clients (`secondClientId`, F066), with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default; for a duo, to each client in their own language, naming the other by first name only. The same client twice answers `400` on `secondClientId`; a second client that is not in the workspace answers `404`. Only a team member plans a duo: no client route plans, books or joins one. When the trainer already has a scheduled session of this workspace that overlaps (back-to-back does not), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/private`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/private/post(createPrivateSession)`.
@@ -13605,6 +13605,881 @@ public enum Operations {
             /// - Throws: An error if `self` is not `.internalServerError`.
             /// - SeeAlso: `.internalServerError`.
             public var internalServerError: Operations.UpdateGroupClassDate.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
+    /// The workspace calendar: the sessions of a range of days
+    ///
+    /// Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/calendar`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/calendar/get(getWorkspaceCalendar)`.
+    public enum GetWorkspaceCalendar {
+        public static let id: Swift.String = "getWorkspaceCalendar"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/path`.
+            public struct Path: Sendable, Hashable {
+                /// The workspace ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/path/workspaceId`.
+                public var workspaceId: Swift.String
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - workspaceId: The workspace ID.
+                public init(workspaceId: Swift.String) {
+                    self.workspaceId = workspaceId
+                }
+            }
+            public var path: Operations.GetWorkspaceCalendar.Input.Path
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query`.
+            public struct Query: Sendable, Hashable {
+                /// The first day: `YYYY-MM-DD`, on the workspace’s wall clock. A date that is none (30 February) answers `400` on `from`.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/from`.
+                public var from: Swift.String
+                /// The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/to`.
+                public var to: Swift.String
+                /// Only the sessions of these trainers (team-member IDs, as in `GET …/trainers`); repeat the parameter for each. A session without a trainer matches none. Left out: every trainer.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/trainerIds`.
+                public var trainerIds: [Swift.String]?
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/TypesPayload`.
+                @frozen public enum TypesPayloadPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                    case _private = "private"
+                    case group = "group"
+                }
+                /// Only these kinds of session: `private` (*Privé*) and `group` (*Groep*); repeat the parameter for each. Left out: every kind.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/types`.
+                public typealias TypesPayload = [Operations.GetWorkspaceCalendar.Input.Query.TypesPayloadPayload]
+                /// Only these kinds of session: `private` (*Privé*) and `group` (*Groep*); repeat the parameter for each. Left out: every kind.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/types`.
+                public var types: Operations.GetWorkspaceCalendar.Input.Query.TypesPayload?
+                /// *Geannuleerde tonen*: `true` (the default) keeps the cancelled sessions, `false` leaves them out.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/includeCancelled`.
+                public var includeCancelled: Swift.Bool?
+                /// The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/surface`.
+                @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                    case ios = "ios"
+                    case android = "android"
+                }
+                /// The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/surface`.
+                public var surface: Operations.GetWorkspaceCalendar.Input.Query.SurfacePayload?
+                /// Creates a new `Query`.
+                ///
+                /// - Parameters:
+                ///   - from: The first day: `YYYY-MM-DD`, on the workspace’s wall clock. A date that is none (30 February) answers `400` on `from`.
+                ///   - to: The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`.
+                ///   - trainerIds: Only the sessions of these trainers (team-member IDs, as in `GET …/trainers`); repeat the parameter for each. A session without a trainer matches none. Left out: every trainer.
+                ///   - types: Only these kinds of session: `private` (*Privé*) and `group` (*Groep*); repeat the parameter for each. Left out: every kind.
+                ///   - includeCancelled: *Geannuleerde tonen*: `true` (the default) keeps the cancelled sessions, `false` leaves them out.
+                ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+                public init(
+                    from: Swift.String,
+                    to: Swift.String,
+                    trainerIds: [Swift.String]? = nil,
+                    types: Operations.GetWorkspaceCalendar.Input.Query.TypesPayload? = nil,
+                    includeCancelled: Swift.Bool? = nil,
+                    surface: Operations.GetWorkspaceCalendar.Input.Query.SurfacePayload? = nil
+                ) {
+                    self.from = from
+                    self.to = to
+                    self.trainerIds = trainerIds
+                    self.types = types
+                    self.includeCancelled = includeCancelled
+                    self.surface = surface
+                }
+            }
+            public var query: Operations.GetWorkspaceCalendar.Input.Query
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetWorkspaceCalendar.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetWorkspaceCalendar.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.GetWorkspaceCalendar.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - query:
+            ///   - headers:
+            public init(
+                path: Operations.GetWorkspaceCalendar.Input.Path,
+                query: Operations.GetWorkspaceCalendar.Input.Query,
+                headers: Operations.GetWorkspaceCalendar.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.query = query
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.WorkspaceCalendar)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.WorkspaceCalendar {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceCalendar.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceCalendar.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The sessions.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/calendar/get(getWorkspaceCalendar)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.GetWorkspaceCalendar.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.GetWorkspaceCalendar.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/400/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceCalendar.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceCalendar.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The request did not match the contract.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/calendar/get(getWorkspaceCalendar)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.GetWorkspaceCalendar.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Operations.GetWorkspaceCalendar.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/401/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.NotSignedIn)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotSignedIn {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceCalendar.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceCalendar.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// Nobody is signed in: no valid sign-in session or bearer token.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/calendar/get(getWorkspaceCalendar)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.GetWorkspaceCalendar.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Operations.GetWorkspaceCalendar.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/403/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/403/content/application\/json`.
+                    case json(Components.Schemas.Forbidden)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Forbidden {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceCalendar.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceCalendar.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has a place in the workspace that this route’s access doesn’t allow.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/calendar/get(getWorkspaceCalendar)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.GetWorkspaceCalendar.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Operations.GetWorkspaceCalendar.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct NotFound: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/404/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/404/content/application\/json`.
+                    case json(Components.Schemas.NotFound)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotFound {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceCalendar.Output.NotFound.Body
+                /// Creates a new `NotFound`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceCalendar.Output.NotFound.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has no place in the workspace, or the record is out of the caller’s reach.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/calendar/get(getWorkspaceCalendar)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Operations.GetWorkspaceCalendar.Output.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Operations.GetWorkspaceCalendar.Output.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceCalendar.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceCalendar.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/calendar/get(getWorkspaceCalendar)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.GetWorkspaceCalendar.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.GetWorkspaceCalendar.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
+    /// The workspace today: the rows of one day and what needs attention
+    ///
+    /// The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/day`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/day/get(getWorkspaceDay)`.
+    public enum GetWorkspaceDay {
+        public static let id: Swift.String = "getWorkspaceDay"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/path`.
+            public struct Path: Sendable, Hashable {
+                /// The workspace ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/path/workspaceId`.
+                public var workspaceId: Swift.String
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - workspaceId: The workspace ID.
+                public init(workspaceId: Swift.String) {
+                    self.workspaceId = workspaceId
+                }
+            }
+            public var path: Operations.GetWorkspaceDay.Input.Path
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/query`.
+            public struct Query: Sendable, Hashable {
+                /// The day to show: `YYYY-MM-DD`, on the workspace’s wall clock; today when left out. A date that is none (30 February) answers `400` on `date`.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/query/date`.
+                public var date: Swift.String?
+                /// Creates a new `Query`.
+                ///
+                /// - Parameters:
+                ///   - date: The day to show: `YYYY-MM-DD`, on the workspace’s wall clock; today when left out. A date that is none (30 February) answers `400` on `date`.
+                public init(date: Swift.String? = nil) {
+                    self.date = date
+                }
+            }
+            public var query: Operations.GetWorkspaceDay.Input.Query
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetWorkspaceDay.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetWorkspaceDay.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.GetWorkspaceDay.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - query:
+            ///   - headers:
+            public init(
+                path: Operations.GetWorkspaceDay.Input.Path,
+                query: Operations.GetWorkspaceDay.Input.Query = .init(),
+                headers: Operations.GetWorkspaceDay.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.query = query
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.WorkspaceDay)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.WorkspaceDay {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceDay.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceDay.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The day.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/day/get(getWorkspaceDay)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.GetWorkspaceDay.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.GetWorkspaceDay.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/400/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceDay.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceDay.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The request did not match the contract.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/day/get(getWorkspaceDay)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.GetWorkspaceDay.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Operations.GetWorkspaceDay.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/401/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.NotSignedIn)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotSignedIn {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceDay.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceDay.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// Nobody is signed in: no valid sign-in session or bearer token.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/day/get(getWorkspaceDay)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.GetWorkspaceDay.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Operations.GetWorkspaceDay.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/403/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/403/content/application\/json`.
+                    case json(Components.Schemas.Forbidden)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Forbidden {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceDay.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceDay.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has a place in the workspace that this route’s access doesn’t allow.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/day/get(getWorkspaceDay)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.GetWorkspaceDay.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Operations.GetWorkspaceDay.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct NotFound: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/404/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/404/content/application\/json`.
+                    case json(Components.Schemas.NotFound)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotFound {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceDay.Output.NotFound.Body
+                /// Creates a new `NotFound`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceDay.Output.NotFound.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has no place in the workspace, or the record is out of the caller’s reach.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/day/get(getWorkspaceDay)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Operations.GetWorkspaceDay.Output.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Operations.GetWorkspaceDay.Output.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/day/GET/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetWorkspaceDay.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetWorkspaceDay.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/day/get(getWorkspaceDay)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.GetWorkspaceDay.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.GetWorkspaceDay.Output.InternalServerError {
                 get throws {
                     switch self {
                     case let .internalServerError(response):
