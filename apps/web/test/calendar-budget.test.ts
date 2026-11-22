@@ -5,8 +5,10 @@ import {
   type CalendarTiming,
   calendarFailures,
   calendarSignInCode,
+  calendarTargetRefusal,
+  countedRun,
   parseRailwayLog,
-  railwayEnvironmentOf,
+  railwayProjectId,
   signInLogEnvironment,
   summarizeCalendarTiming,
 } from './calendar-budget';
@@ -26,16 +28,27 @@ describe('F014 AC15 calendarFailures', () => {
     expect(CALENDAR_RENDER_BUDGET_MS).toBe(1000);
   });
 
-  it('counts the best of the runs, as the budgets of the site do', () => {
+  it('passes on a run that is within both budgets', () => {
     expect(calendarFailures(timing())).toEqual([]);
     expect(
       calendarFailures(timing({ requestMs: [900, 480, 700], renderMs: [1400, 990, 1200] })),
     ).toEqual([]);
   });
 
-  it('names the budget that is over, and a run that is missing counts as over', () => {
-    expect(calendarFailures(timing({ requestMs: [510, 600] }))).toEqual(['request']);
-    expect(calendarFailures(timing({ renderMs: [1000, 1500] }))).toEqual(['render']);
+  it('needs one run that is within both budgets: the best request and the best render of different runs do not count', () => {
+    // Run 1: fast request, slow render. Run 2: slow request, fast render. Neither run passes.
+    const split = timing({ requestMs: [300, 900], renderMs: [1400, 600] });
+    expect(calendarFailures(split)).not.toEqual([]);
+    expect(countedRun(split)).toBeDefined();
+  });
+
+  it('names the budgets that the closest run is over, and no run counts as over', () => {
+    expect(calendarFailures(timing({ requestMs: [510, 600], renderMs: [500, 400] }))).toEqual([
+      'request',
+    ]);
+    expect(calendarFailures(timing({ requestMs: [200, 300], renderMs: [1000, 1500] }))).toEqual([
+      'render',
+    ]);
     expect(calendarFailures(timing({ requestMs: [], renderMs: [] }))).toEqual([
       'request',
       'render',
@@ -43,38 +56,86 @@ describe('F014 AC15 calendarFailures', () => {
   });
 });
 
-describe('F014 AC15 railwayEnvironmentOf', () => {
-  it('maps the address of a PR preview to its Railway environment', () => {
-    expect(railwayEnvironmentOf('https://web-fivvi-pr-1543.up.railway.app')).toBe('fivvi-pr-1543');
+describe('F014 AC15 countedRun', () => {
+  it('is the first run within both budgets', () => {
+    expect(countedRun(timing({ requestMs: [900, 480, 200], renderMs: [500, 990, 100] }))).toEqual({
+      requestMs: 480,
+      renderMs: 990,
+    });
   });
 
-  it('knows no environment for any other address: the caller names it', () => {
-    expect(railwayEnvironmentOf('https://fivvi.app')).toBeUndefined();
-    expect(railwayEnvironmentOf('https://web-development-1a2b.up.railway.app')).toBeUndefined();
-    expect(railwayEnvironmentOf('http://localhost:3100')).toBeUndefined();
+  it('is the run closest to both budgets when none is within them, and none when there is no run', () => {
+    expect(
+      countedRun(timing({ requestMs: [900, 520, 700], renderMs: [1400, 1100, 1900] })),
+    ).toEqual({ requestMs: 520, renderMs: 1100 });
+    expect(countedRun(timing({ requestMs: [], renderMs: [] }))).toBeUndefined();
+  });
+});
+
+describe('F014 AC15 calendarTargetRefusal', () => {
+  it.each([
+    'https://web-fivvi-pr-1543.up.railway.app',
+    'https://web-development-1a2b.up.railway.app',
+  ])('allows a preview and the development deploy: %s', (target) => {
+    expect(calendarTargetRefusal(target)).toBeUndefined();
+  });
+
+  it.each([
+    'https://fivvi.app',
+    'https://www.fivvi.app',
+    'https://web-production-d3fe2.up.railway.app',
+    'https://web-staging-1a2b.up.railway.app',
+    'https://web-fivvi-pr-12.up.railway.app.evil.example',
+    'https://evil.example/web-fivvi-pr-12.up.railway.app',
+    'http://web-fivvi-pr-12.up.railway.app',
+    'http://localhost:3100',
+  ])('refuses any other address, production first: %s', (target) => {
+    expect(calendarTargetRefusal(target)).toMatch(/preview|development/);
   });
 });
 
 describe('F014 AC15 signInLogEnvironment', () => {
-  it('is the environment of the preview, or the one the run names for another address', () => {
-    expect(signInLogEnvironment('https://web-fivvi-pr-1543.up.railway.app', undefined)).toBe(
-      'fivvi-pr-1543',
-    );
-    expect(signInLogEnvironment('https://web-x1.up.railway.app', 'development')).toBe(
-      'development',
-    );
-    expect(signInLogEnvironment('https://web-fivvi-pr-1543.up.railway.app', ' fivvi-pr-9 ')).toBe(
-      'fivvi-pr-9',
-    );
+  const preview = 'https://web-fivvi-pr-1543.up.railway.app';
+  const development = 'https://web-development-1a2b.up.railway.app';
+
+  it('is the environment of the preview, or development for the development deploy', () => {
+    expect(signInLogEnvironment(preview, undefined)).toBe('fivvi-pr-1543');
+    expect(signInLogEnvironment(preview, ' fivvi-pr-1543 ')).toBe('fivvi-pr-1543');
+    expect(signInLogEnvironment(development, undefined)).toBe('development');
+    expect(signInLogEnvironment(development, 'development')).toBe('development');
   });
 
-  it('asks for the environment when the address does not say, and never reads the log of production', () => {
-    expect(() => signInLogEnvironment('https://web-x1.up.railway.app', undefined)).toThrow(
-      /BUDGETS_RAILWAY_ENVIRONMENT/,
-    );
-    expect(() => signInLogEnvironment('https://fivvi.app', 'production')).toThrow(/production/);
-    expect(() => signInLogEnvironment('https://fivvi.app', undefined)).toThrow(
-      /BUDGETS_RAILWAY_ENVIRONMENT/,
+  it.each([
+    ['production', preview],
+    ['production', development],
+    ['Production', development],
+    ['PRODUCTION', 'https://fivvi.app'],
+    ['development', 'https://fivvi.app'],
+    ['development', 'https://www.fivvi.app'],
+    ['development', 'https://web-production-d3fe2.up.railway.app'],
+    ['fivvi-pr-1', 'https://web-production-d3fe2.up.railway.app'],
+    // An environment ID, or any name that is not development or fivvi-pr-<n>:
+    ['5ac2d844-191a-4671-9632-50b66817f648', preview],
+    ['fivvi-pr-12 ; production', preview],
+    ['Development', development],
+    ['pr-1543', preview],
+  ])('never reads the log of %s for %s', (environment, target) => {
+    expect(() => signInLogEnvironment(target, environment)).toThrow();
+  });
+
+  it('needs the environment to agree with the address', () => {
+    expect(() => signInLogEnvironment(preview, 'fivvi-pr-9')).toThrow(/fivvi-pr-1543/);
+    expect(() => signInLogEnvironment(preview, 'development')).toThrow(/fivvi-pr-1543/);
+    expect(() => signInLogEnvironment(development, 'fivvi-pr-1543')).toThrow(/development/);
+  });
+});
+
+describe('F014 AC15 railwayProjectId', () => {
+  it('is read from the environment when set, else the project of scripts/_lib.sh', () => {
+    expect(railwayProjectId({ RAILWAY_PROJECT_ID: ' abc-123 ' })).toBe('abc-123');
+    expect(railwayProjectId({})).toBe('5ac2d844-191a-4671-9632-50b66817f648');
+    expect(railwayProjectId({ RAILWAY_PROJECT_ID: '' })).toBe(
+      '5ac2d844-191a-4671-9632-50b66817f648',
     );
   });
 });
@@ -150,7 +211,7 @@ describe('F014 AC15 summarizeCalendarTiming', () => {
   it('says what was measured and against what, with one line per language', () => {
     const summary = summarizeCalendarTiming({
       target: 'https://web-fivvi-pr-1543.up.railway.app',
-      rows: [timing(), timing({ locale: 'nl-NL', renderMs: [1200, 1300] })],
+      rows: [timing(), timing({ locale: 'nl-NL', requestMs: [210, 180], renderMs: [1200, 1300] })],
     });
     expect(summary).toContain('https://web-fivvi-pr-1543.up.railway.app');
     expect(summary).toContain('Pilot Gym');
@@ -159,8 +220,8 @@ describe('F014 AC15 summarizeCalendarTiming', () => {
       .split('\n')
       .filter((l) => l.startsWith('| en') || l.startsWith('| nl-NL'));
     expect(lines).toEqual([
-      '| en | 45 | 180 ms (210, 180, 190) | 610 ms (820, 640, 610) | pass |',
-      '| nl-NL | 45 | 180 ms (210, 180, 190) | 1200 ms (1200, 1300) | fail (render) |',
+      '| en | 45 | 210 ms (210, 180, 190) | 820 ms (820, 640, 610) | pass |',
+      '| nl-NL | 45 | 210 ms (210, 180) | 1200 ms (1200, 1300) | fail (render) |',
     ]);
   });
 });

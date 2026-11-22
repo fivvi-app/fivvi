@@ -10,9 +10,11 @@ import {
   type CalendarTiming,
   calendarFailures,
   calendarSignInCode,
+  calendarTargetRefusal,
   type LogEntry,
   PILOT_WEEK,
   parseRailwayLog,
+  railwayProjectId,
   signInLogEnvironment,
 } from '../test/calendar-budget';
 import { expect, test } from './fixtures';
@@ -33,11 +35,12 @@ import { expect, test } from './fixtures';
 // does, on the sign-in page, and reads the code from the `web` deployment's log with the `railway`
 // CLI, which agents may use on previews and `development` (docs/agents/tools.md). No back door:
 // the code is the one the server sent. The environment is the preview's own
-// (`web-fivvi-pr-<n>` is `fivvi-pr-<n>`); for another address set `BUDGETS_RAILWAY_ENVIRONMENT`
-// (`development`). The log of `production` is never read.
+// (`web-fivvi-pr-<n>` is `fivvi-pr-<n>`, `web-development-<id>` is `development`);
+// `BUDGETS_RAILWAY_ENVIRONMENT` may only repeat it. Any other address, production above all, skips
+// the test: it is never signed in on and its log is never read.
 //
 // Each language signs in once: an address gets three codes per 15 minutes.
-const RAILWAY_PROJECT_ID = '5ac2d844-191a-4671-9632-50b66817f648';
+const RAILWAY_PROJECT_ID = railwayProjectId(process.env);
 const MAX_ATTEMPTS = 3;
 const run = promisify(execFile);
 
@@ -59,13 +62,17 @@ test.describe('F014 AC15 the pilot-shaped week on a preview', () => {
     !target,
     'Timed on a deployed preview only: set BUDGETS_BASE_URL (the local AC15 test is in workspace-calendar.spec.ts).',
   );
+  // `pnpm test:budgets` against production is a valid run for the site's budgets (#648): this
+  // test skips there instead of failing the run.
+  const refusal = target ? calendarTargetRefusal(target) : undefined;
+  test.skip(Boolean(refusal), refusal);
 
   test('AC15: Agenda (week) of the seeded pilot week answers within 500 ms and renders within 1 s', async ({
     page,
     appLocale,
     messages: copy,
   }, testInfo) => {
-    if (!target) return;
+    if (!target || calendarTargetRefusal(target)) return;
     const environment = signInLogEnvironment(target, process.env.BUDGETS_RAILWAY_ENVIRONMENT);
     await signInWithLog(page, environment, copy);
 
