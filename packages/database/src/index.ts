@@ -305,6 +305,7 @@ export {
   type TrainerWithProfile,
 } from './repositories/trainer-profiles.ts';
 export {
+  hasWorkspaceSession,
   listWorkspaceCalendar,
   type WorkspaceCalendarRow,
 } from './repositories/workspace-calendar.ts';

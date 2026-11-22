@@ -1,5 +1,6 @@
 import {
   findWorkspace,
+  hasWorkspaceSession,
   listWorkspaceCalendar,
   type WorkspaceCalendarRow,
   type WorkspaceScope,
@@ -287,6 +288,12 @@ export const WorkspaceDaySchema = z
         'geen trainer". Empty when nothing needs attention. Later features add their own open ' +
         'items.',
     }),
+    hasSessions: z.boolean().openapi({
+      description:
+        'Whether the workspace has any session at all, past or planned, cancelled or not, ' +
+        'whatever day is shown: it tells a new workspace (*Welkom bij Fivvi. …*) from one with ' +
+        'nothing planned today. Decided on the server and only for this workspace.',
+    }),
   })
   .openapi('WorkspaceDay', {
     description: 'Today in the workspace and what needs attention: the Owner’s dashboard.',
@@ -512,6 +519,8 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
     const busiest = busiestMoment(rows);
     // The open items look 14 days ahead whatever day is shown: read on their own.
     const ahead = window ? await readWindow(scope, window) : [];
+    // Any row says the workspace has sessions; only an empty answer asks the database.
+    const hasSessions = rows.length > 0 || ahead.length > 0 || (await hasWorkspaceSession(scope));
     return c.json(
       {
         date,
@@ -530,6 +539,7 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
         attention: sessionsWithoutTrainer(ahead, now, workspace.timeZone).map((item) =>
           shown(item, workspace.timeZone, viewerLocale),
         ),
+        hasSessions,
       },
       200,
     );

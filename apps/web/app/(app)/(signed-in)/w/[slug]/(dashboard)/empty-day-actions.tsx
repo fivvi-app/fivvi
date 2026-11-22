@@ -8,10 +8,13 @@ import { useOpenNewSession } from '../sessions/new-private-session';
 /**
  * What the empty day offers (WC-01): *+ Privésessie* (PS-01) for a person who may plan private
  * sessions and *+ Groepsles* (F021's *Op een datum plannen*) for the Owner, the same two actions
- * as the empty week of the Agenda. Each is there only when the frame gives its dialog.
+ * as the empty week of the Agenda. Each is there only when the frame gives its dialog. The
+ * welcome of a new workspace (`welcome`, #1544) offers the same two as *Groepsles toevoegen* and
+ * *Privésessie toevoegen*.
  */
-export function EmptyDayActions() {
-  const t = useTranslations('workspaceCalendar');
+export function EmptyDayActions({ welcome = false }: { welcome?: boolean }) {
+  const calendar = useTranslations('workspaceCalendar');
+  const dashboard = useTranslations('workspaceDashboard');
   const openNewSession = useOpenNewSession();
   const openSchedule = useClassDialogs()?.openSchedule;
   if (!openNewSession && !openSchedule) return null;
@@ -19,12 +22,12 @@ export function EmptyDayActions() {
     <div className="flex flex-wrap gap-2">
       {openNewSession ? (
         <Button type="button" variant="outline" onClick={() => openNewSession()}>
-          {t('newPrivate')}
+          {welcome ? dashboard('addPrivate') : calendar('newPrivate')}
         </Button>
       ) : null}
       {openSchedule ? (
         <Button type="button" variant="outline" onClick={() => openSchedule()}>
-          {t('newGroup')}
+          {welcome ? dashboard('addGroup') : calendar('newGroup')}
         </Button>
       ) : null}
     </div>

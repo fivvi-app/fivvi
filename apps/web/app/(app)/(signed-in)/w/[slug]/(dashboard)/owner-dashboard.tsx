@@ -144,8 +144,17 @@ export function OwnerDashboard({
 
         {items.length === 0 ? (
           <div className="grid justify-items-start gap-2">
-            <p>{t('emptyDay', { workspace })}</p>
-            <EmptyDayActions />
+            {day.hasSessions ? (
+              <>
+                <p>{t('emptyDay', { workspace })}</p>
+                <EmptyDayActions />
+              </>
+            ) : (
+              <>
+                <p>{t('welcome')}</p>
+                <EmptyDayActions welcome />
+              </>
+            )}
           </div>
         ) : (
           <>

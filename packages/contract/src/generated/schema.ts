@@ -2038,6 +2038,8 @@ export interface components {
             busiest?: components["schemas"]["WorkspaceBusiestMoment"];
             /** @description *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: "{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items. */
             attention: components["schemas"]["WorkspaceCalendarSession"][];
+            /** @description Whether the workspace has any session at all, past or planned, cancelled or not, whatever day is shown: it tells a new workspace (*Welkom bij Fivvi. …*) from one with nothing planned today. Decided on the server and only for this workspace. */
+            hasSessions: boolean;
         };
         /** @description The busiest moment of the day, for *Drukst 18:00–19:00 · 2 tegelijk*: the app words it and shows the times in `timeZone`. The time in which the most sessions run at once and how many, from the sessions of `items` that take place (cancelled ones do not count; class dates, private sessions and Open Gym do). It ends at the next start or end of a session, so 18:00–20:00, 18:00–19:00 and 19:00–20:00 give 18:00–19:00. Left out when no two sessions run at once (*Geen overlap*). The first of equally busy moments; sessions that end as another begins do not overlap. */
         WorkspaceBusiestMoment: {

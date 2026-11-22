@@ -148,3 +148,17 @@ export async function listWorkspaceCalendar(
     ...placesShown(row.type, places.get(row.id) ?? []),
   }));
 }
+
+/**
+ * Whether the scope's workspace has any session at all, whoever its trainer is: past or planned,
+ * cancelled or not. Tells a new workspace from one with nothing on the day (F014, #1544). Scoped
+ * to the workspace alone, so another workspace's sessions never count.
+ */
+export async function hasWorkspaceSession(scope: WorkspaceScope): Promise<boolean> {
+  const found = await executorOf(scope)
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.organizationId, scope.workspaceId))
+    .limit(1);
+  return found.length > 0;
+}

@@ -1864,6 +1864,8 @@
     "you": "You"
   },
   "workspaceDashboard": {
+    "addGroup": "Add group class",
+    "addPrivate": "Add private session",
     "assign": "Assign",
     "assignLabel": "Assign: {item}",
     "attentionNoTrainer": "{name}, {date} {time}: no {word} yet",
@@ -1890,7 +1892,8 @@
     "stillToday": "Still today",
     "title": "Dashboard",
     "toCalendar": "Go to calendar",
-    "today": "Today · {date}"
+    "today": "Today · {date}",
+    "welcome": "Welcome to Fivvi. Start with your class timetable or a private session."
   },
   "workspaceNav": {
     "bookingLinks": "Booking links",

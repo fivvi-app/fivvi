@@ -37,6 +37,7 @@ import kotlinx.serialization.Contextual
  * @param timeZone The workspace’s IANA time zone: the day starts and ends on its wall clock.
  * @param items The sessions that start on the day, in time order, cancelled ones included (struck through): the rows of the dashboard and of *Mijn dag | {workspace}*.
  * @param attention *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: \"{class}, {date} {time}: nog geen trainer\", \"Privé · {client}, {date} {time}: nog geen trainer\". Empty when nothing needs attention. Later features add their own open items.
+ * @param hasSessions Whether the workspace has any session at all, past or planned, cancelled or not, whatever day is shown: it tells a new workspace (*Welkom bij Fivvi. …*) from one with nothing planned today. Decided on the server and only for this workspace.
  * @param busiest 
  */
 @Serializable
@@ -58,6 +59,10 @@ data class WorkspaceDay (
     /* *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: \"{class}, {date} {time}: nog geen trainer\", \"Privé · {client}, {date} {time}: nog geen trainer\". Empty when nothing needs attention. Later features add their own open items. */
     @SerialName(value = "attention")
     val attention: kotlin.collections.List<WorkspaceCalendarSession>,
+
+    /* Whether the workspace has any session at all, past or planned, cancelled or not, whatever day is shown: it tells a new workspace (*Welkom bij Fivvi. …*) from one with nothing planned today. Decided on the server and only for this workspace. */
+    @SerialName(value = "hasSessions")
+    val hasSessions: kotlin.Boolean,
 
     @SerialName(value = "busiest")
     val busiest: WorkspaceBusiestMoment? = null

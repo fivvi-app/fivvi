@@ -1864,6 +1864,8 @@
     "you": "Jij"
   },
   "workspaceDashboard": {
+    "addGroup": "Groepsles toevoegen",
+    "addPrivate": "Privésessie toevoegen",
     "assign": "Toewijzen",
     "assignLabel": "Toewijzen: {item}",
     "attentionNoTrainer": "{name}, {date} {time}: nog geen {word}",
@@ -1890,7 +1892,8 @@
     "stillToday": "Nog vandaag",
     "title": "Dashboard",
     "toCalendar": "Naar de agenda",
-    "today": "Vandaag · {date}"
+    "today": "Vandaag · {date}",
+    "welcome": "Welkom bij Fivvi. Begin met je lesrooster of een privésessie."
   },
   "workspaceNav": {
     "bookingLinks": "Boekingslinks",

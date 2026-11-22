@@ -451,6 +451,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'repository of the personal sessions, takes the workspace scope; answers yes or no (F013)',
     hasPendingInvitation:
       'query of the sign-in gate for apps/web, takes the executor it is given; answers yes or no (F011)',
+    hasWorkspaceSession:
+      'repository of the workspace calendar, takes the workspace scope; answers yes or no (F014)',
     inEachWorkspace:
       'takes the account scope and sets the request transaction’s context to one of its workspaces at a time (F013, ADR-006); the workspace must be in the scope and the account a team member there; opens no connection',
     insertPayment: 'repository of the payment ledger, takes the workspace scope (E019)',

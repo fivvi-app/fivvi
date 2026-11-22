@@ -396,7 +396,7 @@ test.describe('F014 the Owner’s Dashboard on the web', () => {
     await expectNoAxeViolations(page, `the private-only Dashboard on a phone in ${appLocale}`);
   });
 
-  test('Design: a solo PT’s Dashboard has no Mijn dag toggle, and an empty day says so with the actions to plan', async ({
+  test('Design: a solo PT’s Dashboard has no Mijn dag toggle, and a new workspace welcomes the Owner with the actions to plan', async ({
     page,
     context,
     appLocale,
@@ -418,18 +418,59 @@ test.describe('F014 the Owner’s Dashboard on the web', () => {
         .getByRole('link', { name: copy.workspaceNav.dashboard }),
     ).toBeVisible();
     await page.goto(`/w/${gym.slug}`);
-    // An empty day: the text and the two ways to plan something, no tiles or lanes.
+    // Nothing planned, ever (#1544): the welcome, not the empty-day text, and no tiles or lanes.
+    await expect(inMain(page).getByText(t.welcome)).toBeVisible();
+    await expect(inMain(page).getByText(t.emptyDay.replace('{workspace}', GYM))).toHaveCount(0);
+    const main = page.getByRole('main');
+    await expect(main.getByRole('button', { name: t.addPrivate })).toBeVisible();
+    await expect(main.getByRole('button', { name: t.addGroup })).toBeVisible();
+    await expect(page.getByRole('list', { name: t.kpiLabel })).toHaveCount(0);
+    await expect(inMain(page).getByText(t.attentionNone)).toBeVisible();
+    await expectNoAxeViolations(page, `the welcome Dashboard in ${appLocale}`);
+    await page.setViewportSize(PHONE);
+    await expectNoAxeViolations(page, `the welcome Dashboard on a phone in ${appLocale}`);
+  });
+
+  test('#1544: the welcome’s actions open the dialogs to plan', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const gym = await team(page, context, []);
+    const t = copy.workspaceDashboard;
+    await page.goto(`/w/${gym.slug}`);
+
+    await inMain(page).getByRole('button', { name: t.addPrivate }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await inMain(page).getByRole('button', { name: t.addGroup }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+  });
+
+  test('#1544: a workspace with sessions but none today shows the empty-day text, not the welcome', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const gym = await team(page, context, ['sarah']);
+    // A session tomorrow: the workspace is not new, and today is empty.
+    await gym.privateSession('Mark Jansen', '07:00', gym.trainer('Sarah'), inDays(1));
+    const t = copy.workspaceDashboard;
+    await page.goto(`/w/${gym.slug}`);
+
+    await expect(page.getByRole('heading', { level: 1, name: t.title })).toBeVisible();
     await expect(inMain(page).getByText(t.emptyDay.replace('{workspace}', GYM))).toBeVisible();
+    await expect(inMain(page).getByText(t.welcome)).toHaveCount(0);
     const main = page.getByRole('main');
     await expect(
       main.getByRole('button', { name: copy.workspaceCalendar.newPrivate }),
     ).toBeVisible();
     await expect(main.getByRole('button', { name: copy.workspaceCalendar.newGroup })).toBeVisible();
+    await expect(main.getByRole('button', { name: t.addPrivate })).toHaveCount(0);
     await expect(page.getByRole('list', { name: t.kpiLabel })).toHaveCount(0);
-    await expect(inMain(page).getByText(t.attentionNone)).toBeVisible();
-    await expectNoAxeViolations(page, `the empty Dashboard in ${appLocale}`);
-    await page.setViewportSize(PHONE);
-    await expectNoAxeViolations(page, `the empty Dashboard on a phone in ${appLocale}`);
+    await expectNoAxeViolations(page, `the empty-day Dashboard in ${appLocale}`);
   });
 
   test('Trainer nodig: a class date and a private session without a trainer are listed with Toewijzen, and a row is gone once a trainer is assigned', async ({
