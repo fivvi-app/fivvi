@@ -17,11 +17,13 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type DateTimeFormatOptions, useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { type KeyboardEvent, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { TimeZoneHint } from '../../../me/(personal)/time-zone-hint';
+import { useClassDialogs } from '../classes/classes-provider';
 import { useOpenNewSession } from '../sessions/new-private-session';
 import { useSessionFormat } from '../sessions/use-session-format';
 import {
+  browserStorage,
   DEFAULT_FILTERS,
   filterItems,
   filtersKey,
@@ -30,6 +32,7 @@ import {
   type WorkspaceFilters,
   writeFilters,
 } from './calendar-filters';
+import { shortcutFor } from './calendar-shortcuts';
 import { type CalendarAccess, type CalendarItem, QuickView } from './quick-view';
 
 export type CalendarView = 'day' | 'week' | 'list';
@@ -97,6 +100,8 @@ export function WorkspaceCalendarView({
   const router = useRouter();
   // PS-01 of the frame's + Nieuw; none for a person who may not plan private sessions.
   const openNewSession = useOpenNewSession();
+  // *Op een datum plannen* (F021) for the Owner; none for a person who may not manage classes.
+  const openSchedule = useClassDialogs()?.openSchedule;
   const defaultView = useDefaultView();
   const [chosen, setChosen] = useState<CalendarView | undefined>(initialView);
   const view = chosen ?? defaultView;
@@ -110,7 +115,7 @@ export function WorkspaceCalendarView({
   const [now, setNow] = useState<Date>();
   const key = filtersKey(accountId, workspaceId);
   // What this browser remembers is read once the page is there; the server draws the default.
-  useEffect(() => setFilters(readFilters(window.localStorage, key)), [key]);
+  useEffect(() => setFilters(readFilters(browserStorage(), key)), [key]);
   useEffect(() => {
     setNow(new Date());
     const timer = setInterval(() => setNow(new Date()), 60_000);
@@ -140,7 +145,7 @@ export function WorkspaceCalendarView({
 
   function change(next: WorkspaceFilters) {
     setFilters(next);
-    writeFilters(window.localStorage, key, next);
+    writeFilters(browserStorage(), key, next);
   }
 
   /** The address of the calendar on `to`, keeping the view the person chose. */
@@ -157,24 +162,17 @@ export function WorkspaceCalendarView({
     window.history.replaceState(null, '', url);
   }
 
-  // T, ← →, D, W, L and N, unless the person is typing or a dialog is open.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement;
-      if (event.metaKey || event.ctrlKey || event.altKey || selected) return;
-      if (target.closest('input, textarea, select, [role="dialog"]')) return;
-      const go = (to: string) => router.push(href(to));
-      if (event.key === 't') go(today);
-      else if (event.key === 'ArrowLeft') go(addDays(date, -step));
-      else if (event.key === 'ArrowRight') go(addDays(date, step));
-      else if (event.key === 'd') choose('day');
-      else if (event.key === 'w') choose('week');
-      else if (event.key === 'l') choose('list');
-      else if (event.key === 'n') openNewSession?.();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
+  // T, ← →, D, W, L and N, only while focus is in the calendar (WCAG 2.1.4), see `shortcutFor`.
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    const shortcut = shortcutFor(event, event.target as HTMLElement | null);
+    if (!shortcut || selected) return;
+    const go = (to: string) => router.push(href(to));
+    if (shortcut === 'today') go(today);
+    else if (shortcut === 'previous') go(addDays(date, -step));
+    else if (shortcut === 'next') go(addDays(date, step));
+    else if (shortcut === 'new') openNewSession?.();
+    else choose(shortcut);
+  };
 
   const typeOf = (item: Shown) =>
     item.type === 'private' ? shared('typePrivate') : shared('typeGroup');
@@ -380,7 +378,7 @@ export function WorkspaceCalendarView({
   );
 
   return (
-    <main className="flex-1 px-4 pt-5 pb-10 md:px-6">
+    <main className="flex-1 px-4 pt-5 pb-10 md:px-6" onKeyDown={onKeyDown}>
       <div className="grid max-w-275 content-start gap-4">
         <header className="grid gap-1">
           <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
@@ -473,7 +471,12 @@ export function WorkspaceCalendarView({
             ))}
             <li className="text-sm">{t('legendScheduled')}</li>
             <li className="text-sm line-through">{shared('cancelled')}</li>
-            <li className="text-sm">{t('noTrainerMark', { ...trainerWord })}</li>
+            <li className="text-sm">
+              <span aria-hidden="true" className="font-semibold">
+                !{' '}
+              </span>
+              {t('legendNeedsAction')}
+            </li>
           </ul>
         </div>
         <details className="text-sm text-muted-foreground">
@@ -492,11 +495,18 @@ export function WorkspaceCalendarView({
         {empty === 'nothing' ? (
           <div className="grid justify-items-start gap-2">
             <p>{view === 'day' ? t('emptyDay') : t('emptyWeek')}</p>
-            {openNewSession ? (
-              <Button type="button" variant="outline" onClick={openNewSession}>
-                {t('newPrivate')}
-              </Button>
-            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {openNewSession ? (
+                <Button type="button" variant="outline" onClick={openNewSession}>
+                  {t('newPrivate')}
+                </Button>
+              ) : null}
+              {openSchedule ? (
+                <Button type="button" variant="outline" onClick={() => openSchedule()}>
+                  {t('newGroup')}
+                </Button>
+              ) : null}
+            </div>
           </div>
         ) : null}
 

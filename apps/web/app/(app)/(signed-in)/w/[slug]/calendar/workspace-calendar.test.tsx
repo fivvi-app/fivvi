@@ -2,6 +2,7 @@ import type { Schemas } from '@fivvi/contract';
 import { locales, messages, trainerWordForms } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { escapeHtml, render } from '../../../../../../test/render';
+import { ClassesProvider } from '../classes/classes-provider';
 import { WorkspaceFrame } from '../workspace-frame';
 import { type CalendarView, WorkspaceCalendarView } from './workspace-calendar';
 
@@ -158,6 +159,41 @@ describe.each(locales)('F014 Agenda in %s', (locale) => {
     // The cancelled block is struck through; Open Gym is nowhere.
     expect(html).toContain('line-through');
     expect(html).not.toMatch(/Open Gym/);
+  });
+
+  it('the legend names every state the spec lists: scheduled, cancelled and needs action', () => {
+    const legend =
+      view('week').match(
+        /aria-label="[^"]*"[^>]*class="flex flex-wrap items-center[^>]*>.*?<\/ul>/,
+      )?.[0] ?? '';
+    expect(legend).toContain(t.legendScheduled);
+    expect(legend).toContain(shared.cancelled);
+    expect(legend).toContain(t.legendNeedsAction);
+  });
+
+  it('an empty week offers + Groepsles to a person who manages classes, and to nobody else', () => {
+    const empty = { items: [] };
+    const asOwner = render(
+      locale,
+      <ClassesProvider workspaceId="w1" slug="pilot-gym" teamMemberId="m-paula" trainerWord={words}>
+        <WorkspaceCalendarView
+          calendar={{ ...week, ...empty }}
+          date="2026-09-22"
+          today="2026-09-22"
+          initialView="week"
+          trainers={trainers}
+          slug="pilot-gym"
+          workspaceId="w1"
+          accountId="a1"
+          access={access}
+          trainerWord={words}
+        />
+      </ClassesProvider>,
+    );
+    expect(asOwner).toContain(t.emptyWeek);
+    expect(asOwner).toContain(escapeHtml(t.newGroup));
+    expect(view('week', empty)).toContain(t.emptyWeek);
+    expect(view('week', empty)).not.toContain(escapeHtml(t.newGroup));
   });
 
   it('AC3: Trainers lists the team and Geen trainer, Type lists Privé and Groepsles; all are on', () => {

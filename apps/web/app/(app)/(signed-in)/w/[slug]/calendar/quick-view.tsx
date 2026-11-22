@@ -15,6 +15,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useSessionFormat } from '../sessions/use-session-format';
+import { quickViewActions } from './quick-view-actions';
 
 export type CalendarItem = Schemas['WorkspaceCalendarSession'];
 
@@ -32,10 +33,11 @@ export interface CalendarAccess {
 }
 
 /**
- * WC-05 *Snelle weergave* (F014): the facts of one block and the actions that exist. A side panel
- * rather than a popover: Esc or *Sluiten* closes it and focus goes back to the block. A note is
- * never here: the API does not send one. A Trainer's own private session has the actions F020 gives
- * them; another trainer's session has *Openen* only.
+ * WC-05 *Snelle weergave* (F014): the facts of one block and the actions that exist, in a sheet
+ * on the right (the dialog of the kit, anchored to the side as PS-01 is). Esc or *Sluiten* closes it
+ * and focus goes back to the block. A note is never here: the API does not send one. A Trainer's
+ * own private session has the actions F020 gives them; another trainer's session has *Openen*
+ * only (`quickViewActions`).
  */
 export function QuickView({
   item,
@@ -59,6 +61,7 @@ export function QuickView({
       {item ? (
         <DialogContent
           aria-label={t('quickView')}
+          className="top-0 right-0 left-auto h-dvh max-w-none translate-x-0 translate-y-0 content-start overflow-y-auto rounded-none p-5 sm:max-w-md"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             returnFocus();
@@ -94,7 +97,7 @@ function QuickViewBody({
   const client = item.clients?.[0];
   const weekday = item.series ? WEEKDAYS.indexOf(item.series.weekday) : -1;
   const free = Math.max(item.capacity - (item.booked ?? 0), 0);
-  const movable = isPrivate && !cancelled && (access.canMoveAny || (access.canMoveOwn && own));
+  const actions = quickViewActions(item, access);
   return (
     <>
       <DialogHeader>
@@ -140,17 +143,17 @@ function QuickViewBody({
         <Button asChild>
           <Link href={href as Route}>{t('open')}</Link>
         </Button>
-        {movable ? (
+        {actions.move ? (
           <Button asChild variant="outline">
             <Link href={`${href}?move=1` as Route}>{t('move')}</Link>
           </Button>
         ) : null}
-        {!isPrivate && !cancelled && access.canChangeClasses ? (
+        {actions.change ? (
           <Button asChild variant="outline">
-            <Link href={href as Route}>{t('change')}</Link>
+            <Link href={`${href}?edit=1` as Route}>{t('change')}</Link>
           </Button>
         ) : null}
-        {isPrivate && client && access.canSeeClients ? (
+        {actions.clientProfile && client ? (
           <Button asChild variant="outline">
             <Link href={`/w/${slug}/clients/${client.clientId}` as Route}>
               {t('clientProfile')}

@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  browserStorage,
   DEFAULT_FILTERS,
   filterItems,
   filtersKey,
@@ -63,5 +64,28 @@ describe('F014 AC3: the filters of the workspace calendar', () => {
     expect(readFilters(storage, mine)).toEqual(DEFAULT_FILTERS);
     store.set(mine, 'not json');
     expect(readFilters(storage, mine)).toEqual(DEFAULT_FILTERS);
+  });
+});
+
+describe('F014 AC3: a browser that blocks its storage', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('has no storage rather than an error: the property itself throws a SecurityError', () => {
+    vi.stubGlobal('window', {
+      get localStorage(): Storage {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+      },
+    });
+    expect(browserStorage()).toBeUndefined();
+    expect(readFilters(browserStorage(), 'key')).toEqual(DEFAULT_FILTERS);
+    expect(() => writeFilters(browserStorage(), 'key', DEFAULT_FILTERS)).not.toThrow();
+  });
+
+  it('is the browser’s own storage when it allows it, and none where there is no window', () => {
+    const storage = { getItem: () => null, setItem: () => {} };
+    vi.stubGlobal('window', { localStorage: storage });
+    expect(browserStorage()).toBe(storage);
+    vi.stubGlobal('window', undefined);
+    expect(browserStorage()).toBeUndefined();
   });
 });

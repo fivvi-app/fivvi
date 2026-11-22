@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * opens. A person without `clients.view` sees the no-permission page; a session the workspace
  * doesn't have (the API answers 404 for another workspace's too, 400 for an id that is no UUID)
  * and one that is neither a private session nor a class date are a 404; a class date goes to CO-01.
- * `?move=1` (the calendar's *Verplaatsen*) opens PS-05 at once. The session is read from
+ * `?move=1` (the calendar's *Verplaatsen*) opens PS-05 at once; `?edit=1` (*Wijzigen*) opens CO-04. The session is read from
  * `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`, so the page shows what the API holds.
  */
 export default async function SessionPage({
@@ -27,7 +27,7 @@ export default async function SessionPage({
   searchParams,
 }: PageProps<'/w/[slug]/sessions/[id]'>) {
   const { slug: slugParam, id: sessionId } = await params;
-  const { move } = await searchParams;
+  const { move, edit } = await searchParams;
   const { id, name, slug, capabilities, trainerWord, teamMemberId } = await workspaceOf(slugParam);
   if (!capabilities.includes('clients.view')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
@@ -42,7 +42,9 @@ export default async function SessionPage({
   }
   // The calendar (F014) links every block to `/sessions/{id}`: a class date is CO-01's page.
   if (session.type === 'group' && session.groupClass) {
-    redirect(`/w/${slugParam}/classes/${session.groupClass.id}/${sessionId}` as Route);
+    // `?edit=1` (the calendar's *Wijzigen*) goes on to CO-04.
+    const date = `/w/${slugParam}/classes/${session.groupClass.id}/${sessionId}`;
+    redirect((edit === '1' ? `${date}?edit=1` : date) as Route);
   }
   const participant = session.participants[0];
   if (session.type !== 'private' || !participant) notFound();

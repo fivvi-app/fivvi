@@ -77,8 +77,8 @@ test.describe('F014 Agenda on the web', () => {
     return response.json();
   }
 
-  /** The team, signed in as John, and the week of the spec planned through the API as the Owner does. */
-  async function seed(page: Page, context: Parameters<typeof signInWithSession>[0]): Promise<Week> {
+  /** John's Gym with Sarah and Tom on its team, and John signed in: nothing planned yet. */
+  async function team(page: Page, context: Parameters<typeof signInWithSession>[0]) {
     const [john, sarah, tom] = [newAddress('john'), newAddress('sarah'), newAddress('tom')];
     await createAccount(john, undefined, 'John');
     await createAccount(sarah, undefined, 'Sarah');
@@ -99,6 +99,12 @@ test.describe('F014 Agenda on the web', () => {
       name: string;
     }[];
     const trainer = (name: string) => trainers.find((entry) => entry.name === name)?.id ?? '';
+    return { john, sarah, tom, slug, workspaceId, base, trainer };
+  }
+
+  /** The team, signed in as John, and the week of the spec planned through the API as the Owner does. */
+  async function seed(page: Page, context: Parameters<typeof signInWithSession>[0]): Promise<Week> {
+    const { john, sarah, tom, slug, workspaceId, base, trainer } = await team(page, context);
     const date = tuesday();
     const client = async (name: string) =>
       (
@@ -357,6 +363,13 @@ test.describe('F014 Agenda on the web', () => {
     await mark.click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toContainText(`${shared.typePrivate} · Mark Jansen`);
+    // A sheet on the right, the height of the window: not a modal in the middle (WC-05).
+    const size = page.viewportSize();
+    const box = await dialog.boundingBox();
+    expect(size && box && Math.round(box.x + box.width)).toBe(size?.width);
+    expect(box?.y).toBe(0);
+    expect(box?.height).toBe(size?.height);
+    expect(box?.x).toBeGreaterThan((size?.width ?? 0) / 2);
     await expect(dialog).toContainText('07:00–08:00');
     await expect(dialog).toContainText(t.trainerLine.replace('{name}', 'Sarah'));
     await expect(dialog).toContainText(GYM);
@@ -417,10 +430,14 @@ test.describe('F014 Agenda on the web', () => {
     await expect(dialog.getByRole('link', { name: t.open })).toBeVisible();
     await expect(dialog.getByRole('link', { name: t.move })).toHaveCount(0);
     await expect(dialog.getByRole('link', { name: t.change })).toHaveCount(0);
+    // Trainers may see clients (clients.view), but not through a colleague's session.
+    await expect(dialog.getByRole('link', { name: t.clientProfile })).toHaveCount(0);
+    await expect(dialog.getByRole('link')).toHaveCount(1);
     await page.keyboard.press('Escape');
     // Her own is hers to move; the class she teaches opens without Wijzigen (the Owner's).
     await blocks(page).filter({ hasText: 'Mark Jansen' }).click();
     await expect(dialog.getByRole('link', { name: t.move })).toBeVisible();
+    await expect(dialog.getByRole('link', { name: t.clientProfile })).toBeVisible();
     await page.keyboard.press('Escape');
     await blocks(page).filter({ hasText: 'Boxing' }).click();
     await expect(dialog.getByRole('link', { name: t.change })).toHaveCount(0);
@@ -435,16 +452,18 @@ test.describe('F014 Agenda on the web', () => {
     await expect(page.getByRole('button', { name: shared.viewWeek, pressed: true })).toBeVisible();
   });
 
-  test('AC13: the week the clocks go back has ◐ on the Sunday, 02:00 twice and the hint in another time zone', async ({
+  test('AC13: the week the clocks go back has ◐ on the Sunday, 02:00 twice, Kracht at 10:00 on the Tuesday and the hint in another time zone', async ({
     page,
     context,
     messages: copy,
   }) => {
     test.slow();
-    const week = await seed(page, context);
+    // Only what the week needs, so what is in it does not depend on the day the test runs: the
+    // weekly Kracht of the week of the spec would reach this week for part of the year.
+    const { john, slug, base, trainer } = await team(page, context);
     const shared = copy.myCalendar;
     const sunday = clocksBack();
-    const base = `/api/v1/workspaces/${week.workspaceId}`;
+    const tuesdayOfWeek = shift(sunday, -5);
     const anna = (await created(page.request, `${base}/clients`, {
       name: 'Anna de Vries',
       email: 'anna@example.com',
@@ -457,9 +476,20 @@ test.describe('F014 Agenda on the web', () => {
       durationMinutes: 45,
       notify: false,
     });
-    await page.goto(`/w/${week.slug}/calendar?date=${sunday}&view=week`);
+    // Kracht on the Tuesday at 10:00 (the 20th of October in the spec's year), one date.
+    await created(page.request, `${base}/group-classes`, {
+      nameNl: 'Kracht',
+      capacity: 8,
+      durationMinutes: 60,
+      trainerId: trainer('John'),
+      firstDate: { localDate: tuesdayOfWeek, localStart: '10:00' },
+    });
+    await page.goto(`/w/${slug}/calendar?date=${sunday}&view=week`);
 
-    await expect(blocks(page)).toHaveCount(1);
+    await expect(blocks(page)).toHaveCount(2);
+    await expect(blocks(page).filter({ hasText: 'Kracht' })).toHaveAccessibleName(
+      /Kracht, .*10:00.*11:00/,
+    );
     const header = page.locator('[data-slot="week-grid-header"] > div').nth(6);
     await expect(header).toContainText('◐');
     await expect(header.getByText(shared.clockBack)).toBeAttached();
@@ -478,14 +508,123 @@ test.describe('F014 Agenda on the web', () => {
     });
     if (!abroad) throw new Error('No browser.');
     try {
-      await signInWithSession(abroad, week.john);
+      await signInWithSession(abroad, john);
       const far = await abroad.newPage();
-      await far.goto(`/w/${week.slug}/calendar?date=${week.date}&view=week`);
+      await far.goto(`/w/${slug}/calendar?date=${sunday}&view=week`);
       await expect(far.getByText(copy.personal.timeZoneHint)).toBeVisible();
+      // Still Amsterdam's 10:00, not New York's 04:00.
       await expect(far.getByRole('button', { name: /Kracht, .*10:00/ })).toBeVisible();
     } finally {
       await abroad.close();
     }
+  });
+
+  test('AC6: Verplaatsen opens PS-05 and Wijzigen opens CO-04 at once; Openen opens the session with no dialog', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    test.slow();
+    const week = await seed(page, context);
+    const t = copy.workspaceCalendar;
+    await page.goto(`/w/${week.slug}/calendar?date=${week.date}&view=week`);
+    const dialog = page.getByRole('dialog');
+
+    // Openen: the session's page with nothing open on it.
+    await blocks(page).filter({ hasText: 'Mark Jansen' }).click();
+    await dialog.getByRole('link', { name: t.open }).click();
+    await expect(page).toHaveURL(new RegExp(`/sessions/${week.sessions.mark}$`));
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Mark Jansen');
+    await expect(page.getByRole('button', { name: copy.sessions.page.reschedule })).toBeEnabled();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    // Verplaatsen: the same page with PS-05 open.
+    await page.goBack();
+    await blocks(page).filter({ hasText: 'Mark Jansen' }).click();
+    await dialog.getByRole('link', { name: t.move }).click();
+    await expect(page).toHaveURL(new RegExp(`/sessions/${week.sessions.mark}\\?move=1$`));
+    await expect(page.getByRole('dialog')).toContainText(copy.sessions.reschedule.title);
+
+    // Wijzigen: the class date's page with CO-04 open.
+    await page.goto(`/w/${week.slug}/calendar?date=${week.date}&view=week`);
+    await blocks(page).filter({ hasText: 'Kracht' }).first().click();
+    await dialog.getByRole('link', { name: t.change }).click();
+    await expect(page).toHaveURL(new RegExp(`/classes/[^/]+/${week.sessions.kracht}\\?edit=1$`));
+    await expect(page.getByRole('dialog')).toContainText(copy.classes.edit.title);
+    await page.keyboard.press('Escape');
+    // Openen on the same date: no dialog.
+    await page.goBack();
+    await blocks(page).filter({ hasText: 'Kracht' }).first().click();
+    await dialog.getByRole('link', { name: t.open }).click();
+    await expect(page).toHaveURL(new RegExp(`/classes/[^/]+/${week.sessions.kracht}$`));
+    await expect(page.getByRole('button', { name: copy.classes.date.edit })).toBeEnabled();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
+  test('an empty week offers + Privésessie, and + Groepsles to the Owner only', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    test.slow();
+    const week = await seed(page, context);
+    const t = copy.workspaceCalendar;
+    // The week before the seeded one holds nothing.
+    const empty = `/w/${week.slug}/calendar?date=${shift(week.date, -14)}&view=week`;
+    await page.goto(empty);
+    await expect(page.getByRole('main').getByText(t.emptyWeek)).toBeVisible();
+    await expect(page.getByRole('button', { name: t.newPrivate })).toBeVisible();
+    await page.getByRole('button', { name: t.newGroup }).click();
+    await expect(page.getByRole('dialog')).toContainText(copy.classes.schedule.title);
+    await page.keyboard.press('Escape');
+    await expectNoAxeViolations(page, 'Empty week');
+
+    await signInWithSession(context, week.sarah);
+    await page.goto(empty);
+    await expect(page.getByRole('button', { name: t.newPrivate })).toBeVisible();
+    await expect(page.getByRole('button', { name: t.newGroup })).toHaveCount(0);
+  });
+
+  test('the shortcuts work while focus is in the calendar, not elsewhere, and ← → leave the grid’s scroll alone', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    test.slow();
+    const week = await seed(page, context);
+    const shared = copy.myCalendar;
+    await page.goto(`/w/${week.slug}/calendar?date=${week.date}&view=week`);
+    const pressed = (name: string) => page.getByRole('button', { name, pressed: true });
+    await expect(pressed(shared.viewWeek)).toBeVisible();
+
+    // Outside the calendar (the navigation) a letter does nothing.
+    await page.getByRole('navigation').getByRole('link').first().focus();
+    await page.keyboard.press('l');
+    await expect(pressed(shared.viewWeek)).toBeVisible();
+
+    // Inside it, L is the list and D the day; typing in a filter is not a shortcut.
+    await page.getByRole('link', { name: shared.today }).focus();
+    await page.keyboard.press('l');
+    await expect(pressed(shared.viewList)).toBeVisible();
+    await page.getByRole('checkbox').first().focus();
+    await page.keyboard.press('d');
+    await expect(pressed(shared.viewList)).toBeVisible();
+    await page.getByRole('link', { name: shared.today }).focus();
+    await page.keyboard.press('d');
+    await expect(pressed(shared.viewDay)).toBeVisible();
+    await page.keyboard.press('w');
+    await expect(pressed(shared.viewWeek)).toBeVisible();
+
+    // → goes to the next week from the toolbar, but not from the grid, which scrolls sideways.
+    await page
+      .getByRole('region', { name: /./ })
+      .filter({ has: page.locator('[data-slot="week-grid-header"]') })
+      .focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page).toHaveURL(new RegExp(`date=${week.date}`));
+    await page.getByRole('link', { name: shared.today }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page).toHaveURL(new RegExp(`date=${shift(week.date, 7)}`));
   });
 
   test('AC15: the week renders within a second', async ({ page, context }) => {

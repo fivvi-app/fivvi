@@ -37,6 +37,18 @@ export function filterItems<
   );
 }
 
+/**
+ * The browser's storage, or none: a browser that blocks it (a private window, a policy) throws a
+ * SecurityError from the property itself, before any `getItem`.
+ */
+export function browserStorage(): Storage | undefined {
+  try {
+    return typeof window === 'undefined' ? undefined : window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 /** The filters a browser stored, read defensively: anything but what `writeFilters` wrote is the default. */
 export function readFilters(
   storage: Pick<Storage, 'getItem'> | undefined,

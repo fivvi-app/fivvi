@@ -21,12 +21,15 @@ export async function generateMetadata(): Promise<Metadata> {
  * `class.manage`, also has **Wijzigen**; with `booking_link.copy` (both) a scheduled class date that
  * has not started has **Boekingslink kopiëren** (F037). The date is read from
  * `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`. A session the workspace doesn't have, one
- * that is no class date and one of another class are a 404.
+ * that is no class date and one of another class are a 404. `?edit=1` (the calendar's *Wijzigen*)
+ * opens CO-04 at once, for the person who has it.
  */
 export default async function ClassDatePage({
   params,
+  searchParams,
 }: PageProps<'/w/[slug]/classes/[classId]/[sessionId]'>) {
   const { slug: slugParam, classId, sessionId } = await params;
+  const { edit } = await searchParams;
   const { id, name, slug, capabilities, trainerWord, teamMemberId } = await workspaceOf(slugParam);
   if (!capabilities.includes('class.read')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
@@ -52,6 +55,7 @@ export default async function ClassDatePage({
         capabilities.includes('booking_link.copy') && offersBookingLink(session, new Date())
       }
       ownDate={ownDate}
+      startEditing={edit === '1'}
       trainerWord={trainerWordForms(trainerWord, catalogLocale(await getLocale()))}
     />
   );
