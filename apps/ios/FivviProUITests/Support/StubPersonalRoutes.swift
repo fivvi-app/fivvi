@@ -87,4 +87,52 @@ final class StubPersonalRoutes: @unchecked Sendable {
             "hasSessions": true
         ])
     }
+
+    // MARK: The workspace's day (F014)
+
+    static let sarahID = "5b1c2d3e-0000-4000-8000-0000000000a3"
+    static let sarahName = "Sarah de Boer"
+    static let studioMark = "8a0b1c2e-8a54-4b51-9a42-0000000000c1"
+    static let studioLisa = "8a0b1c2e-8a54-4b51-9a42-0000000000c3"
+    static let studioBoxing = "8a0b1c2e-8a54-4b51-9a42-0000000000c4"
+    /// John's Gym's Tuesday 22 September 2026 for John, the Owner (`ownName`) who also trains, with Sarah and Tom: the
+    /// seeded private session of `StubSessionRoutes` is John's own at 18:00 and the seeded class date Sarah's Kracht at
+    /// 10:00; Boxing runs at 18:00 too, so two sessions are at once from 18:00 to 19:00.
+    func respondWorkspaceDay(date: String, ownName: String) -> (status: Int, json: [String: Any]) {
+        let own: [String: Any] = ["id": StubSessionRoutes.myMemberID, "name": ownName]
+        let sarah: [String: Any] = ["id": Self.sarahID, "name": Self.sarahName]
+        let tom: [String: Any] = ["id": StubSessionRoutes.otherMemberID, "name": StubSessionRoutes.otherTrainerName]
+        func session(
+            _ id: String, _ start: String, _ end: String, trainer: [String: Any], client: String? = nil,
+            className: String? = nil
+        ) -> [String: Any] {
+            var item: [String: Any] = [
+                "id": id, "type": className == nil ? "private" : "group", "status": "scheduled",
+                "startsAt": Self.instant(start), "endsAt": Self.instant(end), "timeZone": StubSessionRoutes.zone,
+                "capacity": className == nil ? 1 : 8, "version": 1, "location": Self.place("John's Gym"),
+                "trainer": trainer
+            ]
+            if className != nil { item["booked"] = 0 }
+            if let className { item["className"] = className }
+            if let client { item["clientName"] = client }
+            return item
+        }
+        let items = date == Self.day ? [
+            session(Self.studioMark, "07:00", "08:00", trainer: sarah, client: "Mark Jansen"),
+            session(Self.kracht, "10:00", "11:00", trainer: sarah, className: "Kracht"),
+            session(Self.studioLisa, "11:00", "12:00", trainer: tom, client: "Lisa Smit"),
+            session(Self.anna, "18:00", "19:00", trainer: own, client: "Anna de Vries"),
+            session(Self.studioBoxing, "18:00", "19:00", trainer: sarah, className: "Boxing")
+        ] : [[String: Any]]()
+        var day: [String: Any] = [
+            "date": date, "timeZone": StubSessionRoutes.zone, "items": items, "attention": [Any](), "hasSessions": true
+        ]
+        if !items.isEmpty {
+            day["busiest"] = [
+                "startsAt": Self.instant("18:00"), "endsAt": Self.instant("19:00"), "timeZone": StubSessionRoutes.zone,
+                "atOnce": 2
+            ]
+        }
+        return (200, day)
+    }
 }

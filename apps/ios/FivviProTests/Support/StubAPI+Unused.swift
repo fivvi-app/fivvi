@@ -64,10 +64,6 @@ extension StubAPI {
         fatalError("The app doesn't call getWorkspaceCalendar yet")
     }
 
-    func getWorkspaceDay(_ input: Operations.GetWorkspaceDay.Input) async throws -> Operations.GetWorkspaceDay.Output {
-        fatalError("The app doesn't call getWorkspaceDay yet")
-    }
-
     func lookupAddress(_ input: Operations.LookupAddress.Input) async throws -> Operations.LookupAddress.Output {
         fatalError("The app doesn't call lookupAddress yet")
     }
