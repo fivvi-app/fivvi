@@ -65,6 +65,9 @@ export function WorkspaceFrame({
 }) {
   const t = useTranslations('workspaceNav');
   const items: NavItem[] = [];
+  if (capabilities.includes('calendar.read')) {
+    items.push({ href: `/w/${slug}/calendar`, label: t('calendar'), icon: 'calendar' });
+  }
   if (capabilities.includes('clients.view')) {
     items.push({ href: `/w/${slug}/clients`, label: t('clients'), icon: 'clients' });
   }
