@@ -63,9 +63,10 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     private val words get() = string(R.string.trainer_word_trainer_words)
 
-    // The account as `GET /v1/me` answers it: John is the Owner (every capability) or Sarah a Trainer (no calendar.manage).
+    // The account as `GET /v1/me` answers it: John is the Owner (every capability), Sarah a Trainer (no calendar.manage).
     private fun launch(
         role: MeWorkspace.Role = MeWorkspace.Role.OWNER,
+        account: app.fivvi.api.models.Trainer = john,
         team: List<app.fivvi.api.models.Trainer> = StudioFixtures.team,
     ) {
         val capabilities = MeWorkspace.Capabilities.values().toList().filter {
@@ -73,12 +74,12 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         }
         repeat(4) {
             me.answerAccount(
-                email = "john@example.com",
-                name = "John Visser",
+                email = "${account.name.substringBefore(' ').lowercase()}@example.com",
+                name = account.name,
                 workspaces = listOf(JOHNS_GYM),
                 role = role,
                 capabilities = capabilities,
-                teamMemberId = john.id,
+                teamMemberId = account.id,
             )
         }
         me.day = PersonalFixtures.sarah(
@@ -147,12 +148,12 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.onNodeWithTag(StudioTags.lane(StudioFixtures.sarah.id.toString())).assertTextEquals("Sarah")
         compose.onNodeWithTag(StudioTags.lane(StudioFixtures.tom.id.toString())).assertTextEquals("Tom")
         compose.onNodeWithTag(StudioTags.NOW).assertExists()
-        // A block is named by its trainer, its title and its start, and is touched on at least 44 dp.
+        // A block is named by its trainer, its title and its start, and is touched on at least 48 dp (size.touch-min).
         val kracht = compose.onNodeWithTag(StudioTags.block(StudioFixtures.idOf("kracht")))
         kracht.assertContentDescriptionEquals(
             string(R.string.my_day_app_studio_block, "10:00", "Kracht", "Sarah de Boer"),
         )
-        kracht.assertHeightIsAtLeast(44.dp)
+        kracht.assertHeightIsAtLeast(48.dp)
         // Rows, each with its trainer; the next card.
         assertTrue(descriptionOf(TodayTags.row(StudioFixtures.idOf("lisa"))).contains("Tom Bakker"))
         assertTrue(
@@ -175,7 +176,7 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     @Test
     fun test_F014_AC11_aTrainerHasNoControl() {
-        launch(role = MeWorkspace.Role.TRAINER)
+        launch(role = MeWorkspace.Role.TRAINER, account = StudioFixtures.sarah)
 
         waitForMijnDag()
         compose.waitForIdle()

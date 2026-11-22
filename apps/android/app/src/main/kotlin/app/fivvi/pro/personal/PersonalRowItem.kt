@@ -82,7 +82,7 @@ private fun spokenLabel(row: PersonalRow, trainer: String?): String {
 
 /** *Jij*, the trainer's name or [nobody] (*Geen trainer*): who trains a row of *Hele studio*, or `null` on Mijn dag. */
 @Composable
-private fun trainerText(row: PersonalRow, nobody: String): String? = when (val trainer = row.trainer) {
+private fun trainerText(row: PersonalRow, nobody: String?): String? = when (val trainer = row.trainer) {
     null -> null
     PersonalTrainer.You -> stringResource(R.string.my_day_app_studio_you)
     is PersonalTrainer.Named -> trainer.name
@@ -93,7 +93,8 @@ private fun trainerText(row: PersonalRow, nobody: String): String? = when (val t
  * A row of Vandaag and Agenda, Calendar-style on Android (`DECISIONS.md` §3): the shaped avatar of the session type, the
  * name, what only fits when there is more than one kind or team, the time on the right and, for a class, the pill. It is
  * one element for TalkBack, named with the type; the arrow to the maps app is an action of it, and a button for everyone else.
- * On *Hele studio* a row also says who trains it; [nobody] is the word for a session with no trainer (*Geen trainer*).
+ * On *Hele studio* a row also says who trains it; [nobody] is the word for a session with no trainer (*Geen trainer*),
+ * and is left out (`null`) on Mijn dag, where a row has no trainer line, so no row can show a blank one.
  */
 @Composable
 fun PersonalRowItem(
@@ -101,7 +102,7 @@ fun PersonalRowItem(
     onOpen: () -> Unit,
     onRoute: (String) -> Unit,
     modifier: Modifier = Modifier,
-    nobody: String = "",
+    nobody: String? = null,
 ) {
     val trainer = trainerText(row, nobody)
     val spoken = spokenLabel(row, trainer)

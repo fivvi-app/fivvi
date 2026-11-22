@@ -299,7 +299,7 @@ private fun LaneLabel(lane: StudioLane, nobody: String, modifier: Modifier) {
 
 /**
  * A lane: its blocks drawn 24 dp tall (14 dp where sessions of the trainer overlap, as in the prototype) in a track at least
- * 44 dp tall. The track is shared out among the lane's rows, so each block is touched on its whole row of the track, and
+ * 48 dp tall (size.touch-min). The track is shared out among the lane's rows, so each block is touched on its whole row of the track, and
  * blocks of one lane never take each other's touches.
  */
 @Composable
@@ -408,8 +408,8 @@ private val AVATAR = 24.dp
 private val BLOCK = 24.dp
 private val STACKED_BLOCK = 14.dp
 
-/** What a block may be touched on: at least 44 dp tall, whatever it is drawn as. */
-private val TOUCH = 44.dp
+/** What a block may be touched on: at least 48 dp tall (size.touch-min on Android), whatever it is drawn as. */
+private val TOUCH = 48.dp
 private val MIN_BLOCK_WIDTH = 6.dp
 private val BLOCK_GAP = 2.dp
 private val BLOCK_RADIUS = 4.dp

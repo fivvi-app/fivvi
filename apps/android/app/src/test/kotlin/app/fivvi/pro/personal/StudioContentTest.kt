@@ -1,6 +1,7 @@
 package app.fivvi.pro.personal
 
 import app.fivvi.api.models.WorkspaceCalendarSession
+import app.fivvi.api.models.WorkspaceDay
 import app.fivvi.pro.personal.PersonalFixtures.at
 import app.fivvi.pro.personal.StudioFixtures.idOf
 import java.time.Instant
@@ -214,5 +215,24 @@ class StudioContentTest {
         val content = content(now = at("10:20").toInstant())
 
         assertNull(requireNotNull(content.next).minutesAt(at("10:20").toInstant()))
+    }
+
+    @Test
+    fun test_F014_AC11_aDayWithTheClocksChangingKeepsTheRealLengthOfASession() {
+        // 25 October 2026: at 03:00 the clocks go back to 02:00. 02:30 CEST to 03:30 CET is two hours, not one.
+        val day = "2026-10-25"
+        val sarah = StudioFixtures.sarah
+        val changing = StudioFixtures.session("dst", "02:30", "03:30", sarah, client = "Mark Jansen", day = day)
+        val later = StudioFixtures.session("later", "05:00", "06:00", sarah, client = "Lisa Smit", day = day)
+        val clocks = WorkspaceDay(day, "Europe/Amsterdam", listOf(changing, later), emptyList(), true, null)
+
+        val timeline = requireNotNull(content(clocks, now = at("04:00", day).toInstant()).team.timeline)
+
+        val blocks = timeline.lanes.single().blocks
+        // The axis runs 02:00 to 11:00 (540 minutes, nine hours at least): the first block is 120 of them, from minute 30.
+        assertEquals(120.0 / 540, blocks[0].width, 1e-9)
+        assertEquals(30.0 / 540, blocks[0].left, 1e-9)
+        assertEquals(60.0 / 540, blocks[1].width, 1e-9)
+        assertEquals("the now-line sits at 04:00", 120.0 / 540, requireNotNull(timeline.nowFraction), 1e-9)
     }
 }
