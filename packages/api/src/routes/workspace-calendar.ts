@@ -6,6 +6,7 @@ import {
 } from '@fivvi/database';
 import {
   attentionWindow,
+  busiestMoment,
   type DetachedField,
   decidePersonalRange,
   filterWorkspaceCalendar,
@@ -233,6 +234,27 @@ export const WorkspaceCalendarSchema = z
       'The sessions of a workspace for a range of days: the Agenda’s week, day and list.',
   });
 
+export const WorkspaceBusiestMomentSchema = z
+  .object({
+    startsAt: z.iso
+      .datetime()
+      .openapi({ description: 'The start of the busiest moment, a UTC instant.' }),
+    endsAt: z.iso
+      .datetime()
+      .openapi({ description: 'The end of the busiest moment, a UTC instant.' }),
+    timeZone: z.string().openapi({
+      description: 'The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).',
+    }),
+    atOnce: z.number().int().min(2).openapi({
+      description: 'How many sessions run at once in that time: 2 or more.',
+    }),
+  })
+  .openapi('WorkspaceBusiestMoment', {
+    description:
+      'The stretch of the day in which the most sessions run at once, for *Drukst 18:00–19:00 · 2 ' +
+      'tegelijk*: the app words it and shows the times in `timeZone`.',
+  });
+
 export const WorkspaceDaySchema = z
   .object({
     date: z.string().openapi({ description: 'The day shown: `YYYY-MM-DD`, in `timeZone`.' }),
@@ -243,6 +265,16 @@ export const WorkspaceDaySchema = z
       description:
         'The sessions that start on the day, in time order, cancelled ones included (struck ' +
         'through): the rows of the dashboard and of *Mijn dag | {workspace}*.',
+    }),
+    busiest: WorkspaceBusiestMomentSchema.optional().openapi({
+      description:
+        'The busiest moment of the day, for *Drukst 18:00–19:00 · 2 tegelijk*: the app words it ' +
+        'and shows the times in `timeZone`. The time in which the most sessions run at once and ' +
+        'how many, from the sessions of `items` that take place (cancelled ones do not count; ' +
+        'class dates, private sessions and Open Gym do). It ends at the next start or end of a ' +
+        'session, so 18:00–20:00, 18:00–19:00 and 19:00–20:00 give 18:00–19:00. Left out when ' +
+        'no two sessions run at once (*Geen overlap*). The first of equally busy moments; ' +
+        'sessions that end as another begins do not overlap.',
     }),
     attention: z.array(WorkspaceCalendarSessionSchema).openapi({
       description:
@@ -308,7 +340,9 @@ const getWorkspaceDayRoute = defineRoute(
     description:
       'The sessions of the workspace on one day (today unless `date` says otherwise, on the ' +
       'workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the ' +
-      'class dates and private sessions in the next 14 days that have no trainer. For the Owner’s dashboard and the ' +
+      'class dates and private sessions in the next 14 days that have no trainer. `busiest` is the ' +
+      'day’s busiest moment (the time with the most sessions at once, and how many), left out ' +
+      'when no two sessions overlap. For the Owner’s dashboard and the ' +
       'apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).',
     security: SIGNED_IN,
     request: { params: WorkspaceParamsSchema, query: DayQuerySchema },
@@ -469,18 +503,30 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
     const window = attentionWindow(now, workspace.timeZone);
     const viewerLocale = viewerLocaleOf(c);
 
-    const rows = sessionsOfDay(
-      await readWindow(scope, { from: bounds.start, to: bounds.end }),
-      date,
-      workspace.timeZone,
-    );
+    const rows =
+      sessionsOfDay(
+        await readWindow(scope, { from: bounds.start, to: bounds.end }),
+        date,
+        workspace.timeZone,
+      ) ?? [];
+    const busiest = busiestMoment(rows);
     // The open items look 14 days ahead whatever day is shown: read on their own.
     const ahead = window ? await readWindow(scope, window) : [];
     return c.json(
       {
         date,
         timeZone: workspace.timeZone,
-        items: (rows ?? []).map((item) => shown(item, workspace.timeZone, viewerLocale)),
+        items: rows.map((item) => shown(item, workspace.timeZone, viewerLocale)),
+        ...(busiest
+          ? {
+              busiest: {
+                startsAt: busiest.startsAt.toISOString(),
+                endsAt: busiest.endsAt.toISOString(),
+                timeZone: workspace.timeZone,
+                atOnce: busiest.atOnce,
+              },
+            }
+          : {}),
         attention: sessionsWithoutTrainer(ahead, now, workspace.timeZone).map((item) =>
           shown(item, workspace.timeZone, viewerLocale),
         ),

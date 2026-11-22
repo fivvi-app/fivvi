@@ -399,6 +399,8 @@ export {
 export {
   ATTENTION_DAYS,
   attentionWindow,
+  type BusiestMoment,
+  busiestMoment,
   filterWorkspaceCalendar,
   sessionsOfDay,
   sessionsWithoutTrainer,

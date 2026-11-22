@@ -102,3 +102,54 @@ export function sessionsWithoutTrainer<T extends WorkspaceCalendarSession>(
     ),
   );
 }
+
+/** The busiest moment of a day: when the most sessions run at once, and how many. */
+export interface BusiestMoment {
+  readonly startsAt: Date;
+  readonly endsAt: Date;
+  /** How many sessions run at once: 2 or more. */
+  readonly atOnce: number;
+}
+
+/**
+ * The busiest moment of a day (the owner's *Drukst 18:00–19:00 · 2 tegelijk*, the prototype's
+ * *Hele studio* card): the stretch of time in which the most sessions run at once, with that
+ * number. Every session that takes place counts, whatever its kind and whether it has a trainer;
+ * cancelled ones do not. One session is no overlap, so a day where no two sessions run at once has
+ * no busiest moment (`undefined`). A session that ends as another begins does not overlap it.
+ *
+ * The moment is the stretch between two instants (a session begins or ends) in which the number is
+ * first reached, as in the prototype: it ends at the next start or end, so it is not joined to a
+ * following stretch with the same number at once. Several stretches as busy as each other: the
+ * first one wins. Works on UTC instants, so a clock change in the day changes nothing.
+ */
+export function busiestMoment(
+  sessions: readonly Pick<WorkspaceCalendarSession, 'status' | 'startsAt' | 'endsAt'>[],
+): BusiestMoment | undefined {
+  // The change in the number of sessions running, at each instant a session begins or ends.
+  const changes = new Map<number, number>();
+  for (const { status, startsAt, endsAt } of sessions) {
+    if (status !== 'scheduled' || endsAt <= startsAt) continue;
+    changes.set(startsAt.getTime(), (changes.get(startsAt.getTime()) ?? 0) + 1);
+    changes.set(endsAt.getTime(), (changes.get(endsAt.getTime()) ?? 0) - 1);
+  }
+  const instants = [...changes.keys()].sort((a, b) => a - b);
+
+  // The stretches between two instants, each with its number of sessions at once.
+  const stretches: { from: number; to: number; atOnce: number }[] = [];
+  let running = 0;
+  instants.forEach((instant, index) => {
+    running += changes.get(instant) ?? 0;
+    const next = instants[index + 1];
+    if (next === undefined) return;
+    stretches.push({ from: instant, to: next, atOnce: running });
+  });
+
+  let busiest: (typeof stretches)[number] | undefined;
+  for (const stretch of stretches) {
+    if (stretch.atOnce >= 2 && stretch.atOnce > (busiest?.atOnce ?? 1)) busiest = stretch;
+  }
+  return busiest
+    ? { startsAt: new Date(busiest.from), endsAt: new Date(busiest.to), atOnce: busiest.atOnce }
+    : undefined;
+}

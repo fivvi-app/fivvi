@@ -75,6 +75,7 @@ interface DayBody {
   timeZone: string;
   items: Item[];
   attention: Item[];
+  busiest?: { startsAt: string; endsAt: string; timeZone: string; atOnce: number };
 }
 
 describe('F014 the workspace calendar and day through the API', () => {
@@ -755,6 +756,124 @@ describe('F014 the workspace calendar and day through the API', () => {
       expect(JSON.stringify(body)).not.toContain('Anna de Vries');
     });
 
+    describe('the busiest moment (#1538)', () => {
+      /** A private session of Mark with Sarah that starts at `local` (Amsterdam wall clock). */
+      const sessionAt = (w: Awaited<ReturnType<typeof world>>, local: string, options = {}) =>
+        addSession(admin.db, {
+          workspaceId: w.gym.id,
+          clientId: w.mark.id,
+          trainerProfileId: w.sarahGym,
+          startsAt: zonedTime(local),
+          ...options,
+        });
+
+      it('AC1: names the hour two sessions share at 18:00 with 2 at once, in UTC with the zone', async () => {
+        const w = await world();
+        // The cancelled Kracht of 18:00 is in the world already: it does not count.
+        await sessionAt(w, '2026-09-22T18:00');
+        await sessionAt(w, '2026-09-22T18:00', { trainerProfileId: w.tomGym, clientId: w.lisa.id });
+
+        const body = (await (await day(w.gym.id, 'date=2026-09-22', w.john)).json()) as DayBody;
+
+        expect(body.busiest).toEqual({
+          startsAt: '2026-09-22T16:00:00.000Z',
+          endsAt: '2026-09-22T17:00:00.000Z',
+          timeZone: 'Europe/Amsterdam',
+          atOnce: 2,
+        });
+      });
+
+      it('AC1: a day without overlap names none: the field is left out', async () => {
+        const w = await world();
+
+        const body = (await (await day(w.gym.id, 'date=2026-09-22', w.john)).json()) as DayBody;
+        const empty = (await (await day(w.gym.id, 'date=2026-09-26', w.john)).json()) as DayBody;
+
+        expect(body.items).toHaveLength(4);
+        expect(body).not.toHaveProperty('busiest');
+        expect(empty).not.toHaveProperty('busiest');
+      });
+
+      it('does not count a cancelled session, one of another day or one of another workspace', async () => {
+        const w = await world();
+        // The cancelled Kracht of 18:00 and one session of 18:00 are not an overlap; nor are Sarah's
+        // own business at the same time, the day before, or the day after.
+        await sessionAt(w, '2026-09-22T18:00');
+        await addSession(admin.db, {
+          workspaceId: w.own.id,
+          clientId: w.anna.id,
+          trainerProfileId: await profileOf(w.own.id, w.sarah.id),
+          startsAt: zonedTime('2026-09-22T18:00'),
+        });
+        await sessionAt(w, '2026-09-21T18:00');
+        await sessionAt(w, '2026-09-23T18:00');
+
+        const body = (await (await day(w.gym.id, 'date=2026-09-22', w.john)).json()) as DayBody;
+
+        expect(body).not.toHaveProperty('busiest');
+      });
+
+      it('counts class dates, with or without a trainer, and names the part that overlaps', async () => {
+        const w = await world();
+        // Boxing has no trainer: 19:15-20:15 on Thursday; a private session from 19:45 overlaps it.
+        await sessionAt(w, '2026-09-24T19:45');
+
+        const body = (await (await day(w.gym.id, 'date=2026-09-24', w.john)).json()) as DayBody;
+
+        expect(body.busiest).toMatchObject({
+          startsAt: '2026-09-24T17:45:00.000Z',
+          endsAt: '2026-09-24T18:15:00.000Z',
+          atOnce: 2,
+        });
+      });
+
+      it.each([
+        ['2026-03-29', 'the day summer time begins (23 hours)', '2026-03-29T16:00:00.000Z'],
+        ['2026-10-25', 'the day summer time ends (25 hours)', '2026-10-25T17:00:00.000Z'],
+      ])('AC2: on %s, %s, 18:00 is the right UTC instant', async (date, _what, startsAt) => {
+        const w = await world();
+        await sessionAt(w, `${date}T18:00`);
+        await sessionAt(w, `${date}T18:00`, { trainerProfileId: w.tomGym, clientId: w.lisa.id });
+
+        const body = (await (await day(w.gym.id, `date=${date}`, w.john)).json()) as DayBody;
+
+        expect(body.busiest).toEqual({
+          startsAt,
+          endsAt: new Date(new Date(startsAt).getTime() + 3_600_000).toISOString(),
+          timeZone: 'Europe/Amsterdam',
+          atOnce: 2,
+        });
+      });
+
+      it('AC2: sessions that overlap across the clock change share the real hour', async () => {
+        const w = await world();
+        // Winter time becomes summer time at 01:00 UTC on 29 March: 00:30Z is 01:30 on the wall clock.
+        const at = (iso: string) => new Date(iso);
+        await addSession(admin.db, {
+          workspaceId: w.gym.id,
+          clientId: w.mark.id,
+          trainerProfileId: w.sarahGym,
+          startsAt: at('2026-03-29T00:30:00Z'),
+          durationMinutes: 90,
+        });
+        await addSession(admin.db, {
+          workspaceId: w.gym.id,
+          clientId: w.lisa.id,
+          trainerProfileId: w.tomGym,
+          startsAt: at('2026-03-29T01:00:00Z'),
+          durationMinutes: 120,
+        });
+
+        const body = (await (await day(w.gym.id, 'date=2026-03-29', w.john)).json()) as DayBody;
+
+        expect(body.busiest).toMatchObject({
+          startsAt: '2026-03-29T01:00:00.000Z',
+          endsAt: '2026-03-29T02:00:00.000Z',
+          atOnce: 2,
+        });
+      });
+    });
+
     it('names the class in the viewer’s language', async () => {
       const w = await world();
       await addSession(admin.db, {
@@ -801,6 +920,20 @@ describe('F014 the workspace calendar and day through the API', () => {
         operationId: 'getWorkspaceDay',
         'x-access': access('calendar.manage', ['owner']),
       });
+    });
+
+    it('#1538: the day names its busiest moment as UTC instants with the zone and a count, none when absent', () => {
+      const schema = contract.components.schemas.WorkspaceDay;
+      expect(schema.required).not.toContain('busiest');
+      expect(schema.properties.busiest.$ref).toBe('#/components/schemas/WorkspaceBusiestMoment');
+      const busiest = contract.components.schemas.WorkspaceBusiestMoment;
+      expect(Object.keys(busiest.properties).sort()).toEqual([
+        'atOnce',
+        'endsAt',
+        'startsAt',
+        'timeZone',
+      ]);
+      expect([...busiest.required].sort()).toEqual(['atOnce', 'endsAt', 'startsAt', 'timeZone']);
     });
   });
 
