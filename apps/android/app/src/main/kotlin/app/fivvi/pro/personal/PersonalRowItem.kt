@@ -66,27 +66,45 @@ fun kindLabel(row: PersonalRow): String =
  * TalkBack. It always names the type, whether or not the row writes it.
  */
 @Composable
-private fun spokenLabel(row: PersonalRow): String {
+private fun spokenLabel(row: PersonalRow, trainer: String?): String {
     val join = stringResource(R.string.my_day_spoken_join)
     val parts = listOfNotNull(
         stringResource(R.string.my_day_spoken_time, row.endText, row.startText),
         row.title,
         kindLabel(row).lowercase(),
         row.location,
+        trainer,
         row.workspaceName.takeIf { row.showsWorkspace },
         stringResource(R.string.my_day_cancelled).takeIf { row.isCancelled },
     )
     return parts.reduce { all, next -> join.format(all, next) }
 }
 
+/** *Jij*, the trainer's name or [nobody] (*Geen trainer*): who trains a row of *Hele studio*, or `null` on Mijn dag. */
+@Composable
+private fun trainerText(row: PersonalRow, nobody: String): String? = when (val trainer = row.trainer) {
+    null -> null
+    PersonalTrainer.You -> stringResource(R.string.my_day_app_studio_you)
+    is PersonalTrainer.Named -> trainer.name
+    PersonalTrainer.Nobody -> nobody
+}
+
 /**
  * A row of Vandaag and Agenda, Calendar-style on Android (`DECISIONS.md` §3): the shaped avatar of the session type, the
  * name, what only fits when there is more than one kind or team, the time on the right and, for a class, the pill. It is
  * one element for TalkBack, named with the type; the arrow to the maps app is an action of it, and a button for everyone else.
+ * On *Hele studio* a row also says who trains it; [nobody] is the word for a session with no trainer (*Geen trainer*).
  */
 @Composable
-fun PersonalRowItem(row: PersonalRow, onOpen: () -> Unit, onRoute: (String) -> Unit, modifier: Modifier = Modifier) {
-    val spoken = spokenLabel(row)
+fun PersonalRowItem(
+    row: PersonalRow,
+    onOpen: () -> Unit,
+    onRoute: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    nobody: String = "",
+) {
+    val trainer = trainerText(row, nobody)
+    val spoken = spokenLabel(row, trainer)
     val routeLabel = stringResource(R.string.my_day_app_open_route)
     val route = row.routeUrl
     Row(
@@ -118,7 +136,7 @@ fun PersonalRowItem(row: PersonalRow, onOpen: () -> Unit, onRoute: (String) -> U
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SessionAvatar(if (row.isGroup) SessionType.Group else SessionType.Private, initialsOf(row.title))
-            Details(row, Modifier.weight(1f))
+            Details(row, trainer, Modifier.weight(1f))
             Times(row)
         }
         if (route != null) {
@@ -134,7 +152,7 @@ fun PersonalRowItem(row: PersonalRow, onOpen: () -> Unit, onRoute: (String) -> U
 }
 
 @Composable
-private fun Details(row: PersonalRow, modifier: Modifier) {
+private fun Details(row: PersonalRow, trainer: String?, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.space0_5)) {
         Text(
             row.title,
@@ -143,6 +161,7 @@ private fun Details(row: PersonalRow, modifier: Modifier) {
         )
         if (row.namesKind) Secondary(kindLabel(row))
         row.location?.let { Secondary(it) }
+        trainer?.let { Secondary(it) }
         if (row.showsWorkspace) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

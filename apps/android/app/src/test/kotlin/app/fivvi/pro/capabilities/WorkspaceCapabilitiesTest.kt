@@ -2,6 +2,7 @@ package app.fivvi.pro.capabilities
 
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.api.models.MeWorkspace.Capabilities.CALENDAR_PERIOD_MANAGE
 import app.fivvi.api.models.MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE
 import app.fivvi.api.models.MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW
 import app.fivvi.api.models.MeWorkspace.Capabilities.WORKSPACE_PERIOD_MANAGE
@@ -209,5 +210,18 @@ class WorkspaceCapabilitiesTest {
 
         assertEquals(0, api.calls)
         assertTrue(helper.mayShow(johnsGym, CLIENTS_PERIOD_MANAGE))
+    }
+
+    // F014 AC11: the day of the workspace answered 403 to a person the phone thought could read it: the control goes at once.
+    @Test
+    @Permission
+    fun test_F014_AC11_aRefusedDayHidesCalendarManageAndRefreshesTheCapabilities() {
+        helper.replace(listOf(workspace("John's Gym", Role.OWNER, CALENDAR_PERIOD_MANAGE, CLIENTS_PERIOD_MANAGE)))
+        answerAccount(workspace("John's Gym", Role.TRAINER, CLIENTS_PERIOD_VIEW))
+
+        helper.forbidden(johnsGym, CALENDAR_PERIOD_MANAGE)
+
+        assertEquals(1, api.calls)
+        assertFalse(helper.mayShow(johnsGym, CALENDAR_PERIOD_MANAGE))
     }
 }

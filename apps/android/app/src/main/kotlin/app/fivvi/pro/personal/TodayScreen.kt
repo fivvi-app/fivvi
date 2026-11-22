@@ -105,6 +105,8 @@ class TodayActions(
  * next item as the gradient card; every other item in time order; the *Morgen* line. Loading is skeleton rows; the day
  * refreshes by pull. The title collapses into a small bar once it is scrolled away. [deviceZone] is the phone's own
  * time zone, which decides whether the hint that times are Dutch shows; [now] ticks for the countdown on the next card.
+ * An Owner of a workspace with a team has *Mijn dag | Hele studio* under the title ([studio], F014): the same screen with
+ * the workspace's day, a lane per trainer, in place of the personal one.
  */
 @Composable
 fun TodayScreen(
@@ -113,9 +115,21 @@ fun TodayScreen(
     deviceZone: ZoneId,
     now: Instant,
     modifier: Modifier = Modifier,
+    studio: StudioUi? = null,
 ) {
     val format = rememberSessionFormat(PersonalRows.TIME_ZONE)
     val content = remember(state.day, state.now, format) { state.day?.let { TodayContent(it, state.now, format) } }
+    val studioDay = studio?.state?.takeIf { it.isStudio }?.day
+    val studioContent = remember(studioDay, studio?.workspace, now, format.locale) {
+        val workspace = studio?.workspace
+        if (studioDay != null && workspace != null) {
+            StudioContent(studioDay, workspace.id, workspace.name, workspace.ownId, now, format.locale)
+        } else {
+            null
+        }
+    }
+    val showsToggle = studio?.state?.showsToggle == true
+    val isStudio = studio?.state?.isStudio == true
     val list = rememberLazyListState()
     val collapsed by remember { derivedStateOf { list.firstVisibleItemIndex > 0 } }
     val title = stringResource(R.string.my_day_app_title)
@@ -135,16 +149,24 @@ fun TodayScreen(
                     title,
                     TodayContent.eyebrow(state.now, format.locale),
                     content,
-                    state.day != null,
+                    showsSummary = state.day != null && !showsToggle,
                     actions.menu,
                     state.isOffline,
                 )
             }
-            item { Banners(state, actions, deviceZone, now) }
-            when (state.load) {
-                TodayLoad.Loading -> item { Skeleton() }
-                TodayLoad.Failed -> item { Retry(actions.onRefresh, showsFailure = state.showsFailure) }
-                TodayLoad.Loaded -> if (content != null) loaded(content, state, actions, now)
+            // The personal day's own states belong to Mijn dag: the studio shows its own.
+            item { Banners(state, actions, deviceZone, now, personal = !isStudio) }
+            if (studio != null && showsToggle) {
+                item { StudioScopeControl(studio, summary = if (state.day != null) summaryText(content) else null) }
+            }
+            if (studio != null && isStudio) {
+                studioDay(studio, studioContent, actions, now)
+            } else {
+                when (state.load) {
+                    TodayLoad.Loading -> item { Skeleton() }
+                    TodayLoad.Failed -> item { Retry(actions.onRefresh, showsFailure = state.showsFailure) }
+                    TodayLoad.Loaded -> if (content != null) loaded(content, state, actions, now)
+                }
             }
         }
         if (collapsed) CollapsedBar(title, Modifier.align(Alignment.TopCenter))
@@ -156,7 +178,7 @@ private fun Header(
     title: String,
     eyebrow: String,
     content: TodayContent?,
-    loaded: Boolean,
+    showsSummary: Boolean,
     menu: @Composable (offline: Boolean) -> Unit,
     offline: Boolean,
 ) {
@@ -175,21 +197,9 @@ private fun Header(
                 },
                 style = MaterialTheme.typography.title1,
             )
-            if (loaded) {
-                val summary = content?.summary
+            if (showsSummary) {
                 Text(
-                    text = if (summary == null) {
-                        stringResource(R.string.my_day_app_summary_empty)
-                    } else {
-                        pluralStringResource(
-                            R.plurals.my_day_app_summary,
-                            summary.count,
-                            summary.count,
-                            summary.done.toString(),
-                            summary.first,
-                            summary.last,
-                        )
-                    },
+                    text = summaryText(content),
                     modifier = Modifier.testTag(TodayTags.SUMMARY),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.body,
@@ -197,6 +207,24 @@ private fun Header(
             }
         }
         menu(offline)
+    }
+}
+
+/** *4 sessies · 09:00–19:00 · 1 klaar*, or *Geen sessies vandaag*. */
+@Composable
+private fun summaryText(content: TodayContent?): String {
+    val summary = content?.summary
+    return if (summary == null) {
+        stringResource(R.string.my_day_app_summary_empty)
+    } else {
+        pluralStringResource(
+            R.plurals.my_day_app_summary,
+            summary.count,
+            summary.count,
+            summary.done.toString(),
+            summary.first,
+            summary.last,
+        )
     }
 }
 
@@ -213,7 +241,13 @@ private fun CollapsedBar(title: String, modifier: Modifier) {
 }
 
 @Composable
-private fun Banners(state: TodayState, actions: TodayActions, deviceZone: ZoneId, now: Instant) {
+private fun Banners(
+    state: TodayState,
+    actions: TodayActions,
+    deviceZone: ZoneId,
+    now: Instant,
+    personal: Boolean = true,
+) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.space2)) {
         state.notices.forEach { name ->
             Row(
@@ -232,7 +266,7 @@ private fun Banners(state: TodayState, actions: TodayActions, deviceZone: ZoneId
                 }
             }
         }
-        if (state.isOffline) {
+        if (personal && state.isOffline) {
             val updatedAt = state.updatedAt
             val format = rememberSessionFormat(PersonalRows.TIME_ZONE)
             Text(
@@ -251,7 +285,7 @@ private fun Banners(state: TodayState, actions: TodayActions, deviceZone: ZoneId
                 style = MaterialTheme.typography.body,
             )
         }
-        if (state.updateFailed) Retry(actions.onRefresh, showsFailure = true)
+        if (personal && state.updateFailed) Retry(actions.onRefresh, showsFailure = true)
         if (TodayContent.showsTimeZoneHint(deviceZone, now)) {
             Text(
                 stringResource(R.string.personal_time_zone_hint),

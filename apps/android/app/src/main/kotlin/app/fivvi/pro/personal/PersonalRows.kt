@@ -16,6 +16,17 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.math.ceil
 
+/** Who trains a session of the studio's day (F014 *Hele studio*): the rows of the studio say it, those of Mijn dag don't. */
+sealed interface PersonalTrainer {
+    /** The signed-in Owner: the row says *jij*. */
+    data object You : PersonalTrainer
+
+    data class Named(val name: String) : PersonalTrainer
+
+    /** The session has no trainer: *Geen trainer*. */
+    data object Nobody : PersonalTrainer
+}
+
 /** The booked figure of a class row: *3/8*, or *Vol* once no place is left. */
 sealed interface PersonalPill {
     data class Booked(val booked: Int, val capacity: Int) : PersonalPill
@@ -49,6 +60,8 @@ data class PersonalRow(
     val pill: PersonalPill?,
     val isCancelled: Boolean,
     val isPast: Boolean,
+    /** Who trains it, on the rows of *Hele studio*; `null` on Mijn dag, where every row is the person's own. */
+    val trainer: PersonalTrainer? = null,
 )
 
 /** Builds the rows of a list of items, in the language's formatting locale and Dutch time. */
