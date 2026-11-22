@@ -26,7 +26,7 @@ import { WorkspaceSwitcher } from './workspace-switcher';
  * `class.manage` (`groupClasses`) it has *Groepsles*, which opens the scheduling of a class (F021),
  * and the navigation has *Lessen* (TW-03). A person with a trainer profile (`personalPages`) has
  * the group *Persoonlijk* above the workspace's, with *Mijn dag* and *Mijn agenda* (F013). The
- * rest of the navigation comes with F014.
+ * Dashboard (F014, WC-01) leads the workspace's group for a person with `calendar.manage`.
  */
 export function WorkspaceFrame({
   name,
@@ -65,6 +65,10 @@ export function WorkspaceFrame({
 }) {
   const t = useTranslations('workspaceNav');
   const items: NavItem[] = [];
+  if (capabilities.includes('calendar.manage')) {
+    // The Owner's home (F014, WC-01); a Trainer's home is *Mijn dag*, which has no capability to list.
+    items.push({ href: `/w/${slug}`, label: t('dashboard'), icon: 'today', exact: true });
+  }
   if (capabilities.includes('calendar.read')) {
     items.push({ href: `/w/${slug}/calendar`, label: t('calendar'), icon: 'calendar' });
   }

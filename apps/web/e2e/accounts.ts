@@ -275,6 +275,24 @@ export async function cancelSession(sessionId: string): Promise<void> {
 }
 
 /**
+ * Gives the session `sessionId` the trainer profile of the account `email` in its workspace, on the
+ * e2e app server's database, as assigning a trainer will (F023): until that feature exists, a spec
+ * that needs a session to get its trainer back sets the column itself.
+ */
+export async function assignTrainer(sessionId: string, email: string): Promise<void> {
+  await withPool((pool) =>
+    pool.query(
+      `update sessions set trainer_profile_id = (
+         select tp.id from trainer_profiles tp
+         join team_members tm on tm.id = tp.team_member_id
+         where tm.account_id = ${SESSION_OWNER} and tp.organization_id = sessions.organization_id
+       ) where id = $2`,
+      [email, sessionId],
+    ),
+  );
+}
+
+/**
  * Moves the session `sessionId` two months back, on the e2e app server's database: the date has
  * passed. The API plans no date in the past, so a spec that needs one sets the time itself.
  */

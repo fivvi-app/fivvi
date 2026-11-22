@@ -58,7 +58,10 @@ test.describe('F002 first run and the signed-in home', () => {
     await page.getByRole('button', { name: copy.welcome.submit }).click();
 
     await expect(page).toHaveURL(SLUG_OF_NEW_GYM);
-    await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
+    // The Owner's home is the Dashboard (F014); the tab and the sidebar name the workspace.
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.workspaceDashboard.title }),
+    ).toBeVisible();
     await expect(page).toHaveTitle("John's Gym");
     // The data path: the account is Sarah, owns the new workspace, and, being on the sign-up
     // allowlist, may set up another (F012 AC8).
@@ -106,7 +109,11 @@ test.describe('F002 first run and the signed-in home', () => {
     await page.getByRole('button', { name: copy.welcome.submit }).click();
 
     await expect(page).toHaveURL(/\/w\/studio-zuid(-\d+)?$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Studio Zuid' })).toBeVisible();
+    // The Owner's home is the Dashboard (F014); the tab and the sidebar name the workspace.
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.workspaceDashboard.title }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle('Studio Zuid');
     const me = (await (await page.request.get('/api/v1/me')).json()) as Me;
     expect(me.name).toBe('E2E');
   });
@@ -170,8 +177,11 @@ test.describe('F002 first run and the signed-in home', () => {
     await page.goto('/home');
 
     await expect(page).toHaveURL(new RegExp(`/w/${SEEDED_SLUG}$`));
-    await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
-    await expect(page.getByText(copy.workspaceHome.description)).toBeVisible();
+    // The Owner's home is the Dashboard (F014); the workspace's name is in the sidebar's header.
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.workspaceDashboard.title }),
+    ).toBeVisible();
+    await expect(page.getByText(`John's Gym · ${copy.roles.owner}`)).toBeVisible();
     await expect(page.getByRole('button', { name: copy.signOut.label })).toBeVisible();
     const me = (await (await page.request.get('/api/v1/me')).json()) as Me;
     expect(me.canCreateWorkspace).toBe(false);
@@ -313,7 +323,10 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
     ]);
     // Every page shows it: the home of the workspace, at the same address.
     await page.goto(home);
-    await expect(page.getByRole('heading', { level: 1, name: "John's Gym Utrecht" })).toBeVisible();
+    // The Owner's home is the Dashboard (F014); the tab and the sidebar name the workspace.
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.workspaceDashboard.title }),
+    ).toBeVisible();
     await expect(page).toHaveTitle("John's Gym Utrecht");
     await expect(page.getByRole('complementary')).toContainText("John's Gym Utrecht");
   });
