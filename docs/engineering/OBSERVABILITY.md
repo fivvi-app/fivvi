@@ -168,6 +168,7 @@ The live events, one per line in alphabetical order, each with its feature and s
 - `private_session_created` (F020, spec [#425](https://github.com/fivvi-app/fivvi/issues/425))
 - `private_session_rescheduled` (F020, spec [#425](https://github.com/fivvi-app/fivvi/issues/425))
 - `public_request_refused` (E013, spec [#467](https://github.com/fivvi-app/fivvi/issues/467))
+- `session_moved_by_drag` (F014, spec [#458](https://github.com/fivvi-app/fivvi/issues/458))
 - `sign_in_requested` (F001, spec [#128](https://github.com/fivvi-app/fivvi/issues/128))
 - `signed_in` (F001, spec [#128](https://github.com/fivvi-app/fivvi/issues/128))
 - `team_member_removed` (F003, spec [#171](https://github.com/fivvi-app/fivvi/issues/171))
