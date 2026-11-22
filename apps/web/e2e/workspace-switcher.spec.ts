@@ -263,6 +263,22 @@ test.describe('F012 the scope switcher on the web', () => {
     await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
   });
 
+  test("a Trainer's address of the workspace is answered with the redirect to Mijn dag, not with a page that redirects (#1548)", async ({
+    page,
+    context,
+  }) => {
+    const { sarah, gymSlug } = await sarahOnTwoTeams();
+    await signInWithSession(context, sarah);
+
+    // The navigation has ended on Mijn dag when `goto` returns: a page that streamed first (the
+    // Dashboard's loading state) and redirected from the browser left every next click and
+    // navigation of a test, and of a person on a slow connection, racing it.
+    const response = await page.goto(`/w/${gymSlug}`);
+    expect(new URL(page.url()).pathname).toBe('/me/day');
+    expect(response?.url()).toMatch(/\/me\/day$/);
+    expect(response?.request().redirectedFrom()).not.toBeNull();
+  });
+
   test('AC5: removed from the remembered workspace', async ({ page, context, messages: copy }) => {
     const { sarah, gymSlug, personalSlug } = await sarahOnTwoTeams();
     await signInWithSession(context, sarah);
