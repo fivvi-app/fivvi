@@ -26,6 +26,8 @@ extension StubServer {
         var preferredLocale: String?
         /// The account's name at the start, or nil for none (F005).
         var name: String? = "Owner"
+        /// Whether the first workspace has a trainer besides the signed-in person (F014: a solo PT has no *Hele studio*).
+        var hasTeam = true
     }
 
     /// A workspace of the account (synthetic).

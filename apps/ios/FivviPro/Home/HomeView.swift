@@ -35,6 +35,8 @@ struct HomeView: View {
     /// The tabs (F013): Vandaag first, then Agenda, then the home of the current workspace.
     @State var tab = ProTab.initial()
     @State var today: TodayViewModel
+    /// The Owner's *Mijn dag | Hele studio* (F014): the workspace's day, for a workspace with a team.
+    @State var studio: StudioDayModel
     @State var todayPath: [PersonalRoute] = []
     /// The tab a sheet was opened from: where the person lands once it saved something.
     @State var sheetOrigin = ProTab.home
@@ -66,6 +68,10 @@ struct HomeView: View {
             api: api, catalog: language.catalog, store: personal, now: UITestClock.provider(),
             refreshAccount: { [account] in await account.refreshedMemberships() }
         ))
+        _studio = State(initialValue: StudioDayModel(
+            api: api, catalog: language.catalog, now: UITestClock.provider(),
+            onForbidden: { [capabilities = account.capabilities] in await capabilities.forbidden(.calendar_manage) }
+        ))
         _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
         _account = State(initialValue: account)
         self.api = api
@@ -95,6 +101,7 @@ struct HomeView: View {
             await language.save()
             await account.refresh()
             await today.load()
+            await studio.refresh()
         }
         // The clients' model follows the workspace the account shows: a new workspace is a new list, none is no list.
         .onChange(of: account.workspace, initial: true) { _, workspace in useWorkspace(workspace) }
@@ -105,6 +112,7 @@ struct HomeView: View {
             profile.use(catalog)
             clients?.use(catalog)
             today.use(catalog)
+            studio.use(catalog)
         }
     }
 
@@ -188,23 +196,6 @@ struct HomeView: View {
         case .workspace, nil:
             EmptyView()
         }
-    }
-
-    private func message(_ text: String, id: String) -> some View {
-        Text(text)
-            .font(.system(Tokens.TextStyle.body))
-            .foregroundStyle(Tokens.Colors.textPrimary)
-            .multilineTextAlignment(.leading)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityIdentifier(id)
-    }
-
-    private func pillLabel(_ text: String) -> some View {
-        Text(text)
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity)
     }
 
     /// The signed-in address and Sign out, in a card of their own at the end.
@@ -342,5 +333,25 @@ extension HomeView {
             )
             .id(route.id)
         }
+    }
+}
+
+/// Small text pieces of the home, kept apart so the screen's own body stays short.
+extension HomeView {
+    fileprivate func message(_ text: String, id: String) -> some View {
+        Text(text)
+            .font(.system(Tokens.TextStyle.body))
+            .foregroundStyle(Tokens.Colors.textPrimary)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier(id)
+    }
+
+    fileprivate func pillLabel(_ text: String) -> some View {
+        Text(text)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
     }
 }

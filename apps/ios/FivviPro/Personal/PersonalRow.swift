@@ -33,6 +33,9 @@ struct PersonalRow: Identifiable, Equatable {
     /// "09:00 tot 10:00, Anna de Vries, privésessie, John's Gym, Sarah Personal Training": one VoiceOver element, and
     /// it always names the type.
     let spokenLabel: String
+    /// *Jij*, a trainer's name or *Geen trainer*: only on the workspace's day (*Hele studio*, F014), where each row names
+    /// its trainer.
+    var trainerText: String?
 }
 
 /// Builds the rows of a list of items.
@@ -43,44 +46,86 @@ struct PersonalRows {
     /// The items are of more than one kind, so each row names its kind.
     let namesKinds: Bool
 
+    /// The personal day is in Dutch time (F013 AC14); the workspace's day (*Hele studio*) in the workspace's own zone.
     static let timeZone = DateEyebrow.defaultTimeZone
+    let timeZone: TimeZone
 
-    private var format: SessionFormat { SessionFormat(locale: catalog.formattingLocale, timeZone: Self.timeZone) }
+    private var format: SessionFormat { SessionFormat(locale: catalog.formattingLocale, timeZone: timeZone) }
 
     init(items: [PersonalItem], workspaceCount: Int, catalog: Catalog, now: Date) {
+        self.init(
+            namesKinds: Set(items.map(\._type)).count > 1, workspaceCount: workspaceCount, catalog: catalog, now: now
+        )
+    }
+
+    init(
+        namesKinds: Bool, workspaceCount: Int, catalog: Catalog, now: Date, timeZone: TimeZone = PersonalRows.timeZone
+    ) {
+        self.timeZone = timeZone
         self.catalog = catalog
         self.now = now
         self.workspaceCount = workspaceCount
-        namesKinds = Set(items.map(\._type)).count > 1
+        self.namesKinds = namesKinds
     }
 
     func typeWord(_ item: PersonalItem) -> String {
-        catalog[item._type == .group ? .todayTypeGroup : .todayTypePrivate]
+        typeWord(isGroup: item._type == .group)
+    }
+
+    func typeWord(isGroup: Bool) -> String {
+        catalog[isGroup ? .todayTypeGroup : .todayTypePrivate]
     }
 
     func row(_ item: PersonalItem) -> PersonalRow {
-        let start = format.time(item.startsAt)
-        let end = format.time(item.endsAt)
         let isGroup = item._type == .group
-        let title = (isGroup ? item.className : item.clientName) ?? ""
-        let location = item.location?.name
-        let pill: String? = isGroup ? item.booked.map { booked in
-            booked >= item.capacity
-                ? catalog[.todayFull] : catalog.string(.todayBookedPill, String(booked), String(item.capacity))
+        return row(Facts(
+            id: item.sessionId, workspaceID: item.workspace.id, workspaceName: item.workspace.name, isGroup: isGroup,
+            title: (isGroup ? item.className : item.clientName) ?? "", startsAt: item.startsAt, endsAt: item.endsAt,
+            location: item.location, booked: item.booked, capacity: item.capacity,
+            isCancelled: item.status == .cancelled
+        ))
+    }
+
+    /// What a row is written from, whichever route the item came from.
+    struct Facts {
+        let id: String
+        let workspaceID: String
+        let workspaceName: String
+        let isGroup: Bool
+        let title: String
+        let startsAt: Date
+        let endsAt: Date
+        let location: Components.Schemas.Location?
+        let booked: Int?
+        let capacity: Int
+        let isCancelled: Bool
+        var trainerText: String?
+    }
+
+    func row(_ facts: Facts) -> PersonalRow {
+        let start = format.time(facts.startsAt)
+        let end = format.time(facts.endsAt)
+        let location = facts.location?.name
+        let pill: String? = facts.isGroup ? facts.booked.map { booked in
+            booked >= facts.capacity
+                ? catalog[.todayFull] : catalog.string(.todayBookedPill, String(booked), String(facts.capacity))
         } : nil
         let spoken = [
-            catalog.string(.todaySpokenTime, end, start), title, typeWord(item).lowercased(), location,
-            workspaceCount > 1 ? item.workspace.name : nil, item.status == .cancelled ? catalog[.todayCancelled] : nil
+            catalog.string(.todaySpokenTime, end, start), facts.title, typeWord(isGroup: facts.isGroup).lowercased(),
+            location, workspaceCount > 1 ? facts.workspaceName : nil, facts.trainerText,
+            facts.isCancelled ? catalog[.todayCancelled] : nil
         ].compactMap { $0 }
         return PersonalRow(
-            id: item.sessionId, workspaceID: item.workspace.id, workspaceName: item.workspace.name, isGroup: isGroup,
-            title: title, timeText: catalog.string(.todayTimeRange, end, start), startText: start, endText: end,
-            typeLabel: namesKinds ? typeWord(item) : nil,
-            workspaceLabel: workspaceCount > 1 ? item.workspace.name : nil,
-            location: isGroup ? nil : location, routeURL: isGroup ? nil : LocationRoute.url(item.location?.address),
-            pill: pill, pillIsFull: pill == catalog[.todayFull], isCancelled: item.status == .cancelled,
-            isPast: item.endsAt <= now,
-            spokenLabel: spoken.dropFirst().reduce(spoken[0]) { catalog.string(.todaySpokenJoin, $0, $1) }
+            id: facts.id, workspaceID: facts.workspaceID, workspaceName: facts.workspaceName, isGroup: facts.isGroup,
+            title: facts.title, timeText: catalog.string(.todayTimeRange, end, start), startText: start, endText: end,
+            typeLabel: namesKinds ? typeWord(isGroup: facts.isGroup) : nil,
+            workspaceLabel: workspaceCount > 1 ? facts.workspaceName : nil,
+            location: facts.isGroup ? nil : location,
+            routeURL: facts.isGroup ? nil : LocationRoute.url(facts.location?.address),
+            pill: pill, pillIsFull: pill == catalog[.todayFull], isCancelled: facts.isCancelled,
+            isPast: facts.endsAt <= now,
+            spokenLabel: spoken.dropFirst().reduce(spoken[0]) { catalog.string(.todaySpokenJoin, $0, $1) },
+            trainerText: facts.trainerText
         )
     }
 }
