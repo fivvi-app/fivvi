@@ -54,6 +54,7 @@ const answer = async (response: Response) => ({
 describe('F001N native sign-in through the API', () => {
   let database: TestDatabase;
   let client: DatabaseClient;
+  let seededEmails: string[];
   const transport = createMemoryTransport();
   /** The work a sign-in request does after its answer; `requestSignIn` waits for it. */
   const tasks = createBackgroundTasks();
@@ -215,6 +216,10 @@ describe('F001N native sign-in through the API', () => {
     database = await cloneTemplateDatabase();
     client = createDatabase({ url: database.url, maxConnections: 4 });
     await seed(client.db);
+    // Whoever the seed makes stays; a test removes only the accounts that a sign-in made (#1548).
+    seededEmails = (await client.db.select({ email: authUsers.email }).from(authUsers)).map(
+      (user) => user.email,
+    );
   });
 
   afterAll(async () => {
@@ -232,18 +237,8 @@ describe('F001N native sign-in through the API', () => {
     await client.db.delete(authVerifications);
     await client.db.delete(authRateLimits);
     await client.db.delete(authSessions);
-    // Only the seeded accounts stay (John, Sarah, Tom, Lisa and Mike, F003, F020, F013).
-    await client.db
-      .delete(authUsers)
-      .where(
-        notInArray(authUsers.email, [
-          'owner@example.com',
-          'trainer@example.com',
-          'tom@example.com',
-          'lisa@example.com',
-          'mike@example.com',
-        ]),
-      );
+    // Only the seeded accounts stay.
+    await client.db.delete(authUsers).where(notInArray(authUsers.email, seededEmails));
   });
 
   describe.each(['nl-NL', 'en'] as const)('interface language %s', (locale) => {

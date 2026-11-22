@@ -41,6 +41,7 @@ interface PoolLike {
 describe('F001 sign in with the emailed code through the API', () => {
   let database: TestDatabase;
   let client: DatabaseClient;
+  let seededEmails: string[];
   const transport = createMemoryTransport();
   /** The sign-in requests' work that runs after their answer; `requestCode` waits for it. */
   const tasks = createBackgroundTasks();
@@ -217,6 +218,10 @@ describe('F001 sign in with the emailed code through the API', () => {
     database = await cloneTemplateDatabase();
     client = createDatabase({ url: database.url, maxConnections: 4 });
     await seed(client.db);
+    // Whoever the seed makes stays; a test removes only the accounts that a sign-in made (#1548).
+    seededEmails = (await client.db.select({ email: authUsers.email }).from(authUsers)).map(
+      (user) => user.email,
+    );
   });
 
   afterAll(async () => {
@@ -232,18 +237,8 @@ describe('F001 sign in with the emailed code through the API', () => {
     allowlist = parseSignUpAllowlist(undefined);
     await client.db.delete(authVerifications);
     await client.db.delete(authRateLimits);
-    // Accounts that first sign-ins created: only the seeded accounts stay (John, Sarah, Tom, Lisa and Mike).
-    await client.db
-      .delete(authUsers)
-      .where(
-        notInArray(authUsers.email, [
-          'owner@example.com',
-          'trainer@example.com',
-          'tom@example.com',
-          'lisa@example.com',
-          'mike@example.com',
-        ]),
-      );
+    // Accounts that first sign-ins created: only the seeded accounts stay.
+    await client.db.delete(authUsers).where(notInArray(authUsers.email, seededEmails));
     await resetTrainerAccount();
   });
 
@@ -909,7 +904,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(transport.sent).toEqual([]);
       // No account, and no verification that a code could be entered for.
       expect(await client.db.$count(authUsers, eq(authUsers.email, 'nobody@example.com'))).toBe(0);
-      expect(await client.db.$count(authUsers)).toBe(5);
+      expect(await client.db.$count(authUsers)).toBe(seededEmails.length);
       expect(await verifications()).toEqual([]);
     });
 
@@ -944,7 +939,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       }
 
       expect(transport.sent).toEqual([]);
-      expect(await client.db.$count(authUsers)).toBe(5);
+      expect(await client.db.$count(authUsers)).toBe(seededEmails.length);
     });
 
     it('AC8: with no allowlist at all, sign-up is closed even for example.com', async () => {
