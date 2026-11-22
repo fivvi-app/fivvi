@@ -1112,8 +1112,44 @@
     <string name="workspace_calendar_type_private_session">Privésessie</string>
     <string name="workspace_calendar_when">%1$s · %3$s–%2$s</string>
     <string name="workspace_calendar_you">Jij</string>
-    <!-- Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive. -->
-    <string name="workspace_home_description">Hier komt binnenkort het overzicht van je sportschool of bedrijf.</string>
+    <!-- Button of an Aandacht nodig row that opens the session to give it a trainer (GLOSSARY §4.1: toewijzen, never koppelen). -->
+    <string name="workspace_dashboard_assign">Toewijzen</string>
+    <!-- Accessible name of the Toewijzen button: the word first, then the row it belongs to. -->
+    <string name="workspace_dashboard_assign_label">Toewijzen: %1$s</string>
+    <!-- A row of Aandacht nodig: a class date or private session in the next 14 days without a trainer. {name} is "Boxing" or "Privé · Mark Jansen", {date} and {time} the day and start time. {word} is the workspace's word for the people who teach (F068). -->
+    <string name="workspace_dashboard_attention_no_trainer">%2$s, %1$s %3$s: nog geen %4$s</string>
+    <string name="workspace_dashboard_attention_none">Niets open. Alles is bijgewerkt.</string>
+    <string name="workspace_dashboard_attention_title">Aandacht nodig</string>
+    <!-- Column of Nog vandaag: places taken of a class, or the location of a private session. -->
+    <string name="workspace_dashboard_column_occupancy">Bezetting</string>
+    <string name="workspace_dashboard_column_session">Sessie</string>
+    <string name="workspace_dashboard_column_time">Tijd</string>
+    <!-- Shown on the Dashboard when nothing is scheduled today. {workspace} is the workspace name. -->
+    <string name="workspace_dashboard_empty_day">Vandaag staat er niets gepland in %1$s.</string>
+    <string name="workspace_dashboard_error_title">Het dashboard kon niet laden.</string>
+    <!-- A count out of a total on a tile, e.g. 3/5. Keep the slash. -->
+    <string name="workspace_dashboard_fraction">%1$s/%2$s</string>
+    <!-- Small text under the places count on the Groepsplekken tile: "7/8 geboekt". -->
+    <string name="workspace_dashboard_group_booked">geboekt</string>
+    <string name="workspace_dashboard_group_spots">Groepsplekken</string>
+    <string name="workspace_dashboard_kpi_label">Cijfers van vandaag</string>
+    <string name="workspace_dashboard_lanes_label">Tijdlijn van vandaag, een rij per %1$s</string>
+    <!-- Under the title of the lanes card. {word} is the workspace's word for the people who teach (F068). -->
+    <string name="workspace_dashboard_lanes_note">Eén rij per %1$s. Sessies tegelijk staan naast elkaar.</string>
+    <string name="workspace_dashboard_lanes_title">Vandaag bij %1$s</string>
+    <string name="workspace_dashboard_no_more_today">Geen sessies meer vandaag.</string>
+    <string name="workspace_dashboard_retry">Opnieuw proberen</string>
+    <!-- Accessible name of the switch between the Owner's own day (Mijn dag) and the workspace's day. -->
+    <string name="workspace_dashboard_scope_label">Weergave</string>
+    <!-- Small text under the done count on the Sessies vandaag tile: "3/5 klaar". -->
+    <string name="workspace_dashboard_sessions_done">klaar</string>
+    <string name="workspace_dashboard_sessions_today">Sessies vandaag</string>
+    <string name="workspace_dashboard_still_today">Nog vandaag</string>
+    <!-- Page title of the Owner's home of a workspace (WC-01), the Dashboard. A loanword both languages use. -->
+    <string name="workspace_dashboard_title">Dashboard</string>
+    <string name="workspace_dashboard_to_calendar">Naar de agenda</string>
+    <!-- Line above the Dashboard: "VANDAAG · DINSDAG 22 SEPTEMBER" (the screen sets it in capitals). {date} is the weekday and date in the reader's language. -->
+    <string name="workspace_dashboard_today">Vandaag · %1$s</string>
     <string name="workspace_nav_booking_links">Boekingslinks</string>
     <string name="workspace_nav_calendar">Agenda</string>
     <string name="workspace_nav_classes">Lessen</string>

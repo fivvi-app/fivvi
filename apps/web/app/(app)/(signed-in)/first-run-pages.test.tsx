@@ -2,7 +2,6 @@ import { locales, messages } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import { escapeHtml, render } from '../../../test/render';
 import { NoAccess } from './home/no-access';
-import { WorkspaceHome } from './w/[slug]/workspace-home';
 import { WelcomeForm } from './welcome/welcome-form';
 
 // Expected copy is read from the catalogs, never hard-coded (TESTING.md §5.4).
@@ -46,13 +45,6 @@ describe.each(locales)('F002 first-run pages in %s', (locale) => {
     expect(html).not.toContain('<form');
     expect(html).not.toContain('<button');
     expect(html).not.toContain(escapeHtml(copy.welcome.submit));
-  });
-
-  it('the workspace home shows the workspace’s name as its heading', () => {
-    const html = render(locale, <WorkspaceHome name="John's Gym" />);
-
-    expect(html).toContain('<h1>John&#x27;s Gym</h1>');
-    expect(html).toContain(escapeHtml(copy.workspaceHome.description));
   });
 });
 

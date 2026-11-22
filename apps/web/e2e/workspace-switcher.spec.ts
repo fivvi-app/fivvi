@@ -153,7 +153,11 @@ test.describe('F012 the scope switcher on the web', () => {
 
     await expect(page).toHaveURL(`/w/${personalSlug}`);
     expect((await switched).status()).toBe(204);
-    await expect(page.getByRole('heading', { level: 1, name: PERSONAL })).toBeVisible();
+    // The Owner's home is the Dashboard (F014); the tab and the sidebar name the workspace.
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.workspaceDashboard.title }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle(PERSONAL);
     await expect(switcher(page, `${PERSONAL} · ${copy.roles.owner}`)).toBeVisible();
     await expect(nav.getByRole('link', { name: copy.workspaceNav.trainers })).toBeVisible();
     await expect(nav.getByRole('link', { name: copy.workspaceNav.settings })).toBeVisible();
@@ -201,7 +205,11 @@ test.describe('F012 the scope switcher on the web', () => {
     await switcher(page, `${GYM} · ${copy.roles.trainer}`).click();
     await page.getByRole('menuitemradio', { name: `${PERSONAL} · ${copy.roles.owner}` }).click();
     await expect(page).toHaveURL(`/w/${personalSlug}`);
-    await expect(page.getByRole('heading', { level: 1, name: PERSONAL })).toBeVisible();
+    // The Owner's home is the Dashboard (F014); the tab and the sidebar name the workspace.
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.workspaceDashboard.title }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle(PERSONAL);
     await expect(page.locator('html')).toHaveAttribute('lang', language ?? '');
     await expect(page.getByRole('link', { name: copy.workspaceNav.clients })).toBeVisible();
 
@@ -233,7 +241,11 @@ test.describe('F012 the scope switcher on the web', () => {
     const { sarah, gymSlug, personalSlug } = await sarahOnTwoTeams();
     await signInWithSession(context, sarah);
     await page.goto(`/w/${personalSlug}`);
-    await expect(page.getByRole('heading', { level: 1, name: PERSONAL })).toBeVisible();
+    // The Owner's home is the Dashboard (F014); the tab and the sidebar name the workspace.
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.workspaceDashboard.title }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle(PERSONAL);
     await expectRemembered(context, personalSlug);
     await page.goto('/home');
     await expect(page).toHaveURL(`/w/${personalSlug}`);
@@ -278,7 +290,11 @@ test.describe('F012 the scope switcher on the web', () => {
     await page.getByRole('button', { name: copy.welcome.submit }).click();
 
     await expect(page).toHaveURL(/\/w\/pilot-two(-\d+)?$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Pilot Two' })).toBeVisible();
+    // The Owner's home is the Dashboard (F014); the tab and the sidebar name the workspace.
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.workspaceDashboard.title }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle('Pilot Two');
     await expect(switcher(page, `Pilot Two · ${copy.roles.owner}`)).toBeVisible();
     const me = (await (await page.request.get('/api/v1/me')).json()) as {
       workspaces: { name: string; role: string }[];

@@ -1851,8 +1851,33 @@
     "when": "{date} · {start}–{end}",
     "you": "Jij"
   },
-  "workspaceHome": {
-    "description": "Hier komt binnenkort het overzicht van je sportschool of bedrijf."
+  "workspaceDashboard": {
+    "assign": "Toewijzen",
+    "assignLabel": "Toewijzen: {item}",
+    "attentionNoTrainer": "{name}, {date} {time}: nog geen {word}",
+    "attentionNone": "Niets open. Alles is bijgewerkt.",
+    "attentionTitle": "Aandacht nodig",
+    "columnOccupancy": "Bezetting",
+    "columnSession": "Sessie",
+    "columnTime": "Tijd",
+    "emptyDay": "Vandaag staat er niets gepland in {workspace}.",
+    "errorTitle": "Het dashboard kon niet laden.",
+    "fraction": "{count}/{total}",
+    "groupBooked": "geboekt",
+    "groupSpots": "Groepsplekken",
+    "kpiLabel": "Cijfers van vandaag",
+    "lanesLabel": "Tijdlijn van vandaag, een rij per {word}",
+    "lanesNote": "Eén rij per {word}. Sessies tegelijk staan naast elkaar.",
+    "lanesTitle": "Vandaag bij {workspace}",
+    "noMoreToday": "Geen sessies meer vandaag.",
+    "retry": "Opnieuw proberen",
+    "scopeLabel": "Weergave",
+    "sessionsDone": "klaar",
+    "sessionsToday": "Sessies vandaag",
+    "stillToday": "Nog vandaag",
+    "title": "Dashboard",
+    "toCalendar": "Naar de agenda",
+    "today": "Vandaag · {date}"
   },
   "workspaceNav": {
     "bookingLinks": "Boekingslinks",

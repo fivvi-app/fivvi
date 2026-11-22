@@ -1851,8 +1851,33 @@
     "when": "{date} · {start}–{end}",
     "you": "You"
   },
-  "workspaceHome": {
-    "description": "The overview of your gym or business will appear here soon."
+  "workspaceDashboard": {
+    "assign": "Assign",
+    "assignLabel": "Assign: {item}",
+    "attentionNoTrainer": "{name}, {date} {time}: no {word} yet",
+    "attentionNone": "Nothing open. Everything is up to date.",
+    "attentionTitle": "Needs attention",
+    "columnOccupancy": "Occupancy",
+    "columnSession": "Session",
+    "columnTime": "Time",
+    "emptyDay": "Nothing is scheduled today at {workspace}.",
+    "errorTitle": "The dashboard could not load.",
+    "fraction": "{count}/{total}",
+    "groupBooked": "booked",
+    "groupSpots": "Group spots",
+    "kpiLabel": "Figures of today",
+    "lanesLabel": "Timeline of today, one row per {word}",
+    "lanesNote": "One row per {word}. Sessions at the same time sit side by side.",
+    "lanesTitle": "Today at {workspace}",
+    "noMoreToday": "No more sessions today.",
+    "retry": "Try again",
+    "scopeLabel": "View",
+    "sessionsDone": "done",
+    "sessionsToday": "Sessions today",
+    "stillToday": "Still today",
+    "title": "Dashboard",
+    "toCalendar": "Go to calendar",
+    "today": "Today · {date}"
   },
   "workspaceNav": {
     "bookingLinks": "Booking links",

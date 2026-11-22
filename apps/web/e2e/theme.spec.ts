@@ -584,14 +584,18 @@ test.describe('E020 trainer web shell', () => {
     for (const scheme of colorSchemes) {
       await page.emulateMedia({ colorScheme: scheme });
       await page.goto(`/w/${slug}`);
-      await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
-      await expect(page.getByText(copy.workspaceHome.description)).toBeVisible();
+      await expect(
+        page.getByRole('heading', { level: 1, name: copy.workspaceDashboard.title }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('main').getByText(copy.workspaceDashboard.attentionNone),
+      ).toBeVisible();
       // The bar over the page is 60px high, as the prototype's `.w-top`.
       const bar = page
         .getByRole('button', { name: copy.workspaceNav.new, exact: true })
         .locator('xpath=ancestor::div[contains(@class, "border-b")][1]');
       expect((await bar.boundingBox())?.height).toBe(60);
-      await expect(page.locator('[data-slot="card"]')).toHaveCSS(
+      await expect(page.locator('[data-slot="card"]').first()).toHaveCSS(
         'background-color',
         tokenColour('web.trainer.card', scheme),
       );
