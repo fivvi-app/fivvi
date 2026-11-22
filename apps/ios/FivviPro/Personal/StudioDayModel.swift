@@ -7,8 +7,9 @@ import FivviUI
 /// The Owner's *Mijn dag | Hele studio* on Vandaag (F014 AC11, the design of `DECISIONS.md` §3, iOS): the control, and the
 /// workspace's day read-only from `GET /api/v1/workspaces/{id}/day` through the generated client. The API decides the day,
 /// the busiest moment and who may read it (`calendar.manage`); this model words them and draws the lanes. The control shows
-/// by the web's rule (`toggleShown`): the Owner has calendar.manage, trains in the workspace and somebody else does too,
-/// which `GET …/trainers` answers. A solo PT, an Owner who doesn't train and a Trainer have none, and no studio view.
+/// by the ticket's and `DECISIONS.md` §3's rule: the person has calendar.manage and the workspace has a team, more than one
+/// trainer, which `GET …/trainers` answers; whether the Owner trains too does not matter (an Owner who doesn't has an empty
+/// *Mijn dag*, as TD-01 shows one). A solo PT and a Trainer have none, and no studio view.
 @MainActor
 @Observable
 final class StudioDayModel {
@@ -56,11 +57,10 @@ final class StudioDayModel {
 
     // MARK: The control
 
-    /// The Owner trains here and somebody else does too (`calendar.manage` decides who may ask at all).
+    /// The workspace has a team: more than one trainer (`calendar.manage` decides who may ask at all).
     var showsToggle: Bool {
-        guard canManage, let workspace, let trainers else { return false }
-        let own = workspace.teamMemberId
-        return trainers.contains { $0.id == own } && trainers.contains { $0.id != own }
+        guard canManage, workspace != nil, let trainers else { return false }
+        return trainers.count > 1
     }
 
     var isStudio: Bool { showsToggle && scope == .studio }
@@ -89,7 +89,17 @@ final class StudioDayModel {
     func select(_ scope: Scope) async {
         guard showsToggle else { return }
         self.scope = scope
-        if scope == .studio, day == nil { await load() }
+        guard scope == .studio, !isToday(day) else { return }
+        // A day that is not today is not shown as today: it goes while today is read.
+        day = nil
+        state = .loading
+        await load()
+    }
+
+    /// The day read is today in the workspace's time zone.
+    private func isToday(_ day: Components.Schemas.WorkspaceDay?) -> Bool {
+        guard let day, let workspace else { return false }
+        return day.date == SessionClock.localDate(clock(), in: workspace.timeZone)
     }
 
     /// `GET …/trainers`: who trains here. A read that fails leaves what was known.
@@ -178,9 +188,15 @@ final class StudioDayModel {
         return trainer.id == ownID ? catalog[.studioYou] : trainer.name
     }
 
+    /// The workspace's time zone: the day's own, as the API sent it.
+    private var zone: TimeZone {
+        day.flatMap { TimeZone(identifier: $0.timeZone) } ?? workspace?.timeZone ?? PersonalRows.timeZone
+    }
+
     private func rowBuilder(at now: Date) -> PersonalRows {
         PersonalRows(
-            namesKinds: Set(items.map(\._type)).count > 1, workspaceCount: 1, catalog: catalog, now: now
+            namesKinds: Set(items.map(\._type)).count > 1, workspaceCount: 1, catalog: catalog, now: now,
+            timeZone: zone
         )
     }
 
@@ -192,10 +208,6 @@ final class StudioDayModel {
             startsAt: item.startsAt, endsAt: item.endsAt, location: item.location, booked: item.booked,
             capacity: item.capacity, isCancelled: item.status == .cancelled, trainerText: trainerText(item)
         ))
-    }
-
-    private var format: SessionFormat {
-        SessionFormat(locale: catalog.formattingLocale, timeZone: PersonalRows.timeZone)
     }
 
     /// The head of the team card, the busiest moment and the lanes. With nothing taking place the head says so.
@@ -210,7 +222,6 @@ final class StudioDayModel {
     func team(at now: Date) -> TeamCard? {
         guard let day else { return nil }
         let builder = rowBuilder(at: now)
-        let zone = TimeZone(identifier: day.timeZone) ?? workspace?.timeZone ?? PersonalRows.timeZone
         let context = StudioTimeline.Context(
             ownID: ownID, catalog: catalog, nobody: catalog.string(.studioNoTrainer, words.word),
             rows: { self.row($0, with: builder) }
@@ -265,7 +276,4 @@ final class StudioDayModel {
         let nextID = next(at: now)?.row.id
         return items.filter { $0.id != nextID }.map { row($0, with: builder) }
     }
-
-    /// Whether the day has any session to show: the rows and the next card.
-    var hasSessions: Bool { !items.isEmpty }
 }

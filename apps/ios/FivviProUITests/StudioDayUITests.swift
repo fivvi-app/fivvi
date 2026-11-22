@@ -59,6 +59,7 @@ final class StudioDayUITests: SignInUITestCase {
         XCTAssertTrue(kracht.exists, "Sarah's Kracht is a block of her lane")
         let named = String(format: catalog["myDay.app.studioBlock"], "10:00", "Kracht", StubPersonalRoutes.sarahName)
         XCTAssertEqual(kracht.label, named)
+        XCTAssertGreaterThanOrEqual(kracht.frame.height, 44, "a block is touched on at least 44 pt")
         // Rows, each with its trainer.
         let lisa = app.buttons["today.row.\(StubPersonalRoutes.studioLisa)"]
         XCTAssertTrue(lisa.exists, "Lisa's session of Tom is a row")

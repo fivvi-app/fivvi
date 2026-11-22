@@ -46,9 +46,11 @@ struct PersonalRows {
     /// The items are of more than one kind, so each row names its kind.
     let namesKinds: Bool
 
+    /// The personal day is in Dutch time (F013 AC14); the workspace's day (*Hele studio*) in the workspace's own zone.
     static let timeZone = DateEyebrow.defaultTimeZone
+    let timeZone: TimeZone
 
-    private var format: SessionFormat { SessionFormat(locale: catalog.formattingLocale, timeZone: Self.timeZone) }
+    private var format: SessionFormat { SessionFormat(locale: catalog.formattingLocale, timeZone: timeZone) }
 
     init(items: [PersonalItem], workspaceCount: Int, catalog: Catalog, now: Date) {
         self.init(
@@ -56,7 +58,10 @@ struct PersonalRows {
         )
     }
 
-    init(namesKinds: Bool, workspaceCount: Int, catalog: Catalog, now: Date) {
+    init(
+        namesKinds: Bool, workspaceCount: Int, catalog: Catalog, now: Date, timeZone: TimeZone = PersonalRows.timeZone
+    ) {
+        self.timeZone = timeZone
         self.catalog = catalog
         self.now = now
         self.workspaceCount = workspaceCount

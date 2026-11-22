@@ -6,52 +6,11 @@ import XCTest
 @testable import FivviLanguage
 
 /// The Owner's *Mijn dag | Hele studio* on Vandaag (F014 AC11, the design of `DECISIONS.md` §3, iOS): the control for an
-/// Owner who trains in a workspace with a team, and the workspace's day as `GET /api/v1/workspaces/{id}/day` answers it:
+/// Owner of a workspace with a team, and the workspace's day as `GET /api/v1/workspaces/{id}/day` answers it:
 /// a team card with a lane per trainer and the busiest moment, the next card and the rows, each with its trainer. The test
 /// plan runs every test in nl and en (FivviPro.xctestplan).
 @MainActor
-final class StudioDayModelTests: XCTestCase {
-    private let language = InterfaceLanguage.resolve(.system())
-    private var catalog: TestCatalog { TestCatalog(language) }
-    private let johns = StudioFixtures.workspace
-
-    private func makeModel(
-        _ api: StubAPI, now: Date = PersonalFixtures.now, onForbidden: @escaping @MainActor () async -> Void = {}
-    ) -> StudioDayModel {
-        StudioDayModel(api: api, catalog: Catalog(locale: language), now: { now }, onForbidden: onForbidden)
-    }
-
-    private var word: String { catalog["trainerWord.trainer.word"] }
-    private var words: String { catalog["trainerWord.trainer.words"] }
-
-    /// John's Gym as `GET …/trainers` lists it: the trainers given.
-    private func stubbed(
-        trainers: [Components.Schemas.Trainer], day: Components.Schemas.WorkspaceDay? = StudioFixtures.johnsDay()
-    ) -> StubAPI {
-        let api = StubAPI()
-        api.sessions.setTrainers(trainers, members: [])
-        api.workspaceDay.serve(day)
-        return api
-    }
-
-    private func johnWithATeam(day: Components.Schemas.WorkspaceDay? = StudioFixtures.johnsDay()) -> StubAPI {
-        stubbed(trainers: [StudioFixtures.john, StudioFixtures.sarah, StudioFixtures.tom], day: day)
-    }
-
-    private func studio(_ api: StubAPI, now: Date = PersonalFixtures.now) async -> StudioDayModel {
-        let model = makeModel(api, now: now)
-        await model.configure(workspace: johns, canManage: true)
-        await model.select(.studio)
-        return model
-    }
-
-    /// *Trainer: Sarah*, as the next card words it.
-    private func trainerLine(_ name: String) -> String {
-        String(format: catalog["myDay.app.studioTrainer"], catalog["trainerWord.trainer.wordCap"], name)
-    }
-
-    private func firstName(_ name: String) -> String { String(name.split(separator: " ")[0]) }
-
+final class StudioDayModelTests: StudioDayTestCase {
     // MARK: The control
 
     func test_F014_AC11_theControlShowsForAnOwnerWhoTrainsAndHasATeam() async {
@@ -92,13 +51,27 @@ final class StudioDayModelTests: XCTestCase {
         XCTAssertTrue(solo.workspaceDay.requests.isEmpty)
     }
 
-    func test_F014_AC11_anOwnerWhoDoesNotTrainHasNoMijnDagToToggleTo() async {
-        let api = stubbed(trainers: [StudioFixtures.sarah, StudioFixtures.tom])
+    func test_F014_AC11_anOwnerWhoDoesNotTrainStillHasTheControlForTheTeam() async {
+        let day = StudioFixtures.johnsDay(items: [StudioFixtures.mark, StudioFixtures.lisa], busiest: nil)
+        let api = stubbed(trainers: [StudioFixtures.sarah, StudioFixtures.tom], day: day)
         let model = makeModel(api)
 
         await model.configure(workspace: johns, canManage: true)
 
-        XCTAssertFalse(model.showsToggle, "the web's rule: the Owner trains, and somebody else does")
+        XCTAssertTrue(model.showsToggle, "the ticket: calendar.manage and a team, more than one trainer")
+        await model.select(.studio)
+        XCTAssertTrue(model.isStudio)
+        let lanes = model.team(at: PersonalFixtures.now)?.timeline?.lanes
+        XCTAssertEqual(lanes?.map(\.isOwn), [false, false], "no lane of the Owner's own: no Jij")
+    }
+
+    func test_F014_AC11_aWorkspaceWithOneTrainerHasNoControlWhoeverThatIs() async {
+        let api = stubbed(trainers: [StudioFixtures.sarah])
+        let model = makeModel(api)
+
+        await model.configure(workspace: johns, canManage: true)
+
+        XCTAssertFalse(model.showsToggle, "one trainer is no team")
     }
 
     func test_F014_AC11_theControlIsGoneWhenTheWorkspaceChangesToOneWithoutATeam() async {
@@ -278,56 +251,5 @@ final class StudioDayModelTests: XCTestCase {
         let subtitle = try XCTUnwrap(model.nextSubtitle(at: PersonalFixtures.at("12:30")))
 
         XCTAssertTrue(subtitle.hasSuffix(trainerLine(catalog["myDay.app.studioYouLower"])), subtitle)
-    }
-
-    // MARK: Failing
-
-    func test_F014_AC11_aDayThatCannotBeReadShowsOpnieuwAndKeepsWhatItHad() async {
-        let api = johnWithATeam()
-        let model = await studio(api)
-        XCTAssertEqual(model.state, .loaded)
-
-        api.workspaceDay.fail(.offline)
-        await model.load()
-        XCTAssertEqual(model.state, .loaded, "the day on screen stays")
-        XCTAssertTrue(model.isOffline)
-
-        api.workspaceDay.fail(.status(500))
-        await model.load()
-        XCTAssertTrue(model.updateFailed)
-        XCTAssertFalse(model.isOffline)
-
-        api.workspaceDay.fail(nil)
-        await model.load()
-        XCTAssertFalse(model.updateFailed)
-        XCTAssertFalse(model.isOffline)
-    }
-
-    func test_F014_AC11_withNoDayToShowTheStudioFailsWithItsOwnRetry() async {
-        let api = johnWithATeam()
-        api.workspaceDay.fail(.status(500))
-
-        let model = await studio(api)
-
-        XCTAssertEqual(model.state, .failed)
-        XCTAssertEqual(model.failedText, catalog["myDay.app.failed"])
-        api.workspaceDay.fail(nil)
-        await model.refresh()
-        XCTAssertEqual(model.state, .loaded)
-        XCTAssertNil(model.failedText)
-    }
-
-    func test_F014_AC11_aWorkspaceThatRefusesTheDayHidesTheControl() async {
-        let api = johnWithATeam()
-        api.workspaceDay.fail(.forbidden)
-        var told = 0
-
-        let model = makeModel(api, onForbidden: { told += 1 })
-        await model.configure(workspace: johns, canManage: true)
-        await model.select(.studio)
-
-        XCTAssertFalse(model.showsToggle, "the API's 403 is the last word on calendar.manage")
-        XCTAssertEqual(model.scope, .mine)
-        XCTAssertEqual(told, 1, "the capability helper is told, so it reads the account again")
     }
 }

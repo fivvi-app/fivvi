@@ -71,7 +71,11 @@ struct StudioDayView: View {
 struct StudioTeamCard: View {
     let card: StudioDayModel.TeamCard
     let onOpen: (PersonalRow) -> Void
-    private let labelWidth: CGFloat = 76
+    @Environment(\.dynamicTypeSize) private var textSize
+    /// The lane's label: at the accessibility text sizes it is wider and wraps instead of being cut off.
+    private var labelWidth: CGFloat { textSize.isAccessibilitySize ? 150 : 76 }
+    /// What a block may be touched on: at least 44 pt tall (`apps/ios/README.md`), whatever it is drawn as.
+    private let touchHeight: CGFloat = 44
 
     var body: some View {
         Card {
@@ -106,7 +110,7 @@ struct StudioTeamCard: View {
     }
 
     private func lanes(_ timeline: StudioTimeline) -> some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(timeline.lanes) { lane in
                 HStack(spacing: Tokens.Spacing.space2) {
                     label(lane).frame(width: labelWidth, alignment: .leading)
@@ -128,14 +132,20 @@ struct StudioTeamCard: View {
             }
             Text(lane.title)
                 .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .lineLimit(textSize.isAccessibilitySize ? nil : 2)
+                .minimumScaleFactor(textSize.isAccessibilitySize ? 1 : 0.8)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("today.studio.lane.\(lane.id)")
         }
     }
 
+    /// A lane: its blocks drawn 24 pt tall (14 pt where sessions of the trainer overlap, as in the prototype) in a track at
+    /// least 44 pt tall. The track is shared out among the lane's rows, so each block is touched on its whole row of the
+    /// track, and blocks of one lane never take each other's touches.
     private func track(_ lane: StudioTimeline.Lane) -> some View {
         let blockHeight: CGFloat = lane.rowCount > 1 ? 14 : 24
+        let height = max(touchHeight, CGFloat(lane.rowCount) * (blockHeight + 1) - 1)
+        let band = height / CGFloat(lane.rowCount)
         return GeometryReader { proxy in
             ZStack(alignment: .topLeading) {
                 ForEach(lane.blocks) { block in
@@ -143,16 +153,19 @@ struct StudioTeamCard: View {
                         RoundedRectangle(cornerRadius: 4, style: .continuous)
                             .fill(block.isGroup ? Tokens.Colors.sessionGroupSolid : Tokens.Colors.sessionPrivateSolid)
                             .opacity(block.isPast ? 0.4 : 1)
+                            .frame(height: blockHeight)
+                            .frame(maxHeight: .infinity)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .frame(width: max(6, proxy.size.width * block.width - 2), height: blockHeight)
-                    .offset(x: proxy.size.width * block.left, y: CGFloat(block.stack) * (blockHeight + 1))
+                    .frame(width: max(6, proxy.size.width * block.width - 2), height: band)
+                    .offset(x: proxy.size.width * block.left, y: CGFloat(block.stack) * band)
                     .accessibilityLabel(block.label)
                     .accessibilityIdentifier("today.studio.block.\(block.id)")
                 }
             }
         }
-        .frame(height: CGFloat(lane.rowCount) * (blockHeight + 1) - 1)
+        .frame(height: height)
         .background(alignment: .center) {
             Rectangle().fill(Tokens.Colors.bgSubtle).frame(height: 1)
         }
