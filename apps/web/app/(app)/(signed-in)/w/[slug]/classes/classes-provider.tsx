@@ -24,8 +24,17 @@ export interface ClassesProps {
 export interface ClassDialogs {
   /** *Nieuwe les* (TW-03). */
   openNewClass: () => void;
-  /** *Op een datum plannen*: for one class, or asking for the class first. */
-  openSchedule: (classId?: string) => void;
+  /**
+   * *Op een datum plannen*: for one class, or asking for the class first; from the calendar's
+   * empty moment (WC-06) with its date and start filled in.
+   */
+  openSchedule: (classId?: string, slot?: ScheduleSlot) => void;
+}
+
+/** The date and the start (`YYYY-MM-DD`, `HH:mm`, in the workspace's time zone) of an empty moment of the calendar. */
+export interface ScheduleSlot {
+  localDate: string;
+  localStart: string;
 }
 
 const Dialogs = createContext<ClassDialogs | null>(null);
@@ -35,7 +44,9 @@ export function useClassDialogs(): ClassDialogs | null {
   return useContext(Dialogs);
 }
 
-type Open = { dialog: 'class'; thenSchedule: boolean } | { dialog: 'schedule'; classId?: string };
+type Open =
+  | { dialog: 'class'; thenSchedule: boolean }
+  | { dialog: 'schedule'; classId?: string; slot?: ScheduleSlot };
 
 /**
  * The class dialogs of a workspace's frame (F021): *Nieuwe les*, and *Op een datum plannen* from a
@@ -57,7 +68,12 @@ export function ClassesProvider({
   const dialogs = useMemo<ClassDialogs>(
     () => ({
       openNewClass: () => setOpen({ dialog: 'class', thenSchedule: false }),
-      openSchedule: (classId) => setOpen({ dialog: 'schedule', ...(classId ? { classId } : {}) }),
+      openSchedule: (classId, slot) =>
+        setOpen({
+          dialog: 'schedule',
+          ...(classId ? { classId } : {}),
+          ...(slot ? { slot } : {}),
+        }),
     }),
     [],
   );
@@ -85,10 +101,11 @@ export function ClassesProvider({
         ) : open?.dialog === 'schedule' ? (
           <ScheduleDialogContent
             // A new dialog for each class, so the form starts from that class.
-            key={open.classId ?? 'ask'}
+            key={`${open.classId ?? 'ask'}${open.slot ? `-${open.slot.localDate}-${open.slot.localStart}` : ''}`}
             workspaceId={workspaceId}
             teamMemberId={teamMemberId}
             {...(open.classId ? { classId: open.classId } : {})}
+            {...(open.slot ? { slot: open.slot } : {})}
             trainerWord={trainerWord}
             {...(open.classId
               ? {}

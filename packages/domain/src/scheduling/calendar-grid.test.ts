@@ -204,6 +204,46 @@ describe('F014 AC13: repeated and skipped hours', () => {
   });
 });
 
+describe('F014 WC-06, WC-07: the wall-clock time of a place in the grid', () => {
+  it('an ordinary week reads the grid minute as the wall clock', () => {
+    const axis = weekAxis(weekDates('2026-09-22'), AMSTERDAM);
+    expect(axis.wallTime('2026-09-22', 0)).toBe('00:00');
+    expect(axis.wallTime('2026-09-22', 14 * 60 + 15)).toBe('14:15');
+    expect(axis.wallTime('2026-09-22', 1440)).toBeUndefined();
+  });
+
+  it('turns the repeated hour of 25 October back into the wall clock and finds none in the other days gap', () => {
+    const axis = weekAxis(weekDates('2026-10-25'), AMSTERDAM);
+    // The changing day counts elapsed time: 03:00 winter time is the 241st minute after the second 02:00.
+    expect(axis.wallTime('2026-10-25', 150)).toBe('02:30');
+    expect(axis.wallTime('2026-10-25', 240)).toBe('03:00');
+    expect(axis.wallTime('2026-10-25', 600)).toBe('09:00');
+    // The other days sit one row lower from 03:00 on, and the extra row (03:00-04:00 of the grid) holds nothing.
+    expect(axis.wallTime('2026-10-20', 660)).toBe('10:00');
+    expect(axis.wallTime('2026-10-20', 120)).toBe('02:00');
+    expect(axis.wallTime('2026-10-20', 200)).toBeUndefined();
+  });
+
+  it('skips 02:00 on 28 March', () => {
+    const axis = weekAxis(weekDates('2027-03-28'), AMSTERDAM);
+    expect(axis.wallTime('2027-03-28', 90)).toBe('01:30');
+    expect(axis.wallTime('2027-03-28', 120)).toBe('03:00');
+    expect(axis.wallTime('2027-03-23', 540)).toBe('10:00');
+    expect(axis.wallTime('2027-03-23', 60)).toBe('01:00');
+  });
+
+  it('is the inverse of minute() for every quarter hour of an ordinary day', () => {
+    const axis = weekAxis(weekDates('2026-09-22'), AMSTERDAM);
+    for (let minute = 0; minute < 1440; minute += 15) {
+      const time = axis.wallTime('2026-09-22', minute) ?? '';
+      const instant = new Date(
+        Date.UTC(2026, 8, 22, Number(time.slice(0, 2)) - 2, Number(time.slice(3, 5))),
+      );
+      expect(axis.minute('2026-09-22', instant)).toBe(minute);
+    }
+  });
+});
+
 describe('F014 WC-02: up to 3 overlapping blocks, then +{n} meer', () => {
   const block = (startMinute: number, endMinute: number) => ({ startMinute, endMinute });
 

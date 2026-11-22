@@ -1,5 +1,5 @@
 import { type Locale, type Messages, trainerWordForms } from '@fivvi/i18n';
-import type { APIRequestContext, Page } from '@playwright/test';
+import type { APIRequestContext, Locator, Page } from '@playwright/test';
 import {
   cancelSession,
   clientIpHeaders,
@@ -62,6 +62,8 @@ interface Week {
   tom: string;
   slug: string;
   workspaceId: string;
+  /** The team-member IDs of the trainers: what the day view's columns are keyed by. */
+  trainerIds: { sarah: string; tom: string };
   sessions: Record<'mark' | 'lisa' | 'kracht' | 'krachtCancelled' | 'boxing', string>;
   date: string;
 }
@@ -166,6 +168,7 @@ test.describe('F014 Agenda on the web', () => {
       slug,
       workspaceId,
       date,
+      trainerIds: { sarah: trainer('Sarah'), tom: trainer('Tom') },
       sessions: {
         mark,
         lisa,
@@ -625,6 +628,394 @@ test.describe('F014 Agenda on the web', () => {
     await page.getByRole('link', { name: shared.today }).focus();
     await page.keyboard.press('ArrowRight');
     await expect(page).toHaveURL(new RegExp(`date=${shift(week.date, 7)}`));
+  });
+
+  // ---------------------------------------------------------------------------------------------
+  // F014 WC-03, WC-06, WC-07 (tickets #530 and #531): the day per trainer, a click on an empty
+  // moment and moving by dragging. The grid is 48 px an hour from 06:00 (nothing in these weeks
+  // starts earlier and the last block ends before 21:00): a minute is 0.8 px.
+  // ---------------------------------------------------------------------------------------------
+  const FIRST_HOUR = 6;
+  const MINUTE_PX = 0.8;
+
+  /** The columns of the grid, in order. */
+  const gridColumns = (page: Page) => page.locator('[data-slot="week-grid-body"] > [data-column]');
+
+  /** The screen point of `time` (`HH:mm`) in `column`; the page is tall enough for the whole grid. */
+  async function pointAt(column: Locator, time: string, offsetMinutes = 0) {
+    await column.scrollIntoViewIfNeeded();
+    const box = await column.boundingBox();
+    if (!box) throw new Error('The column is not on the page.');
+    const [hour, minute] = time.split(':').map(Number);
+    const minutes = (hour ?? 0) * 60 + (minute ?? 0) - FIRST_HOUR * 60 + offsetMinutes;
+    return { x: box.x + box.width / 2, y: box.y + minutes * MINUTE_PX };
+  }
+
+  /** Drags the block from its middle by `minutes` (60 minutes are 48 px), over `steps` pointer moves. */
+  async function dragBlock(page: Page, block: Locator, minutes: number, sideways = 0) {
+    const box = await block.boundingBox();
+    if (!box) throw new Error('The block is not on the page.');
+    const x = box.x + box.width / 2;
+    const y = box.y + Math.min(box.height / 2, 20);
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + sideways / 2, y + (minutes * MINUTE_PX) / 2, { steps: 6 });
+    await page.mouse.move(x + sideways, y + minutes * MINUTE_PX, { steps: 6 });
+    await page.mouse.up();
+  }
+
+  const shortDate = (date: string, appLocale: Locale) =>
+    new Intl.DateTimeFormat(appLocale === 'en' ? 'en-GB' : 'nl-NL', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    })
+      .format(new Date(`${date}T12:00:00Z`))
+      .replace(/\./g, '');
+  const plain = (text: string | null) =>
+    (text ?? '').replace(/\./g, '').replace(/\s+/g, ' ').trim();
+
+  /** The local time of a session's start as the API stores it, in the workspace's time zone. */
+  async function startOf(page: Page, week: Week, id: string, date = week.date) {
+    const answer = (await (
+      await page.request.get(
+        `/api/v1/workspaces/${week.workspaceId}/calendar?from=${shift(date, -1)}&to=${shift(date, 3)}`,
+      )
+    ).json()) as { items: { id: string; startsAt: string }[] };
+    const item = answer.items.find((entry) => entry.id === id);
+    return item
+      ? new Intl.DateTimeFormat('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hourCycle: 'h23',
+          timeZone: 'Europe/Amsterdam',
+        }).format(new Date(item.startsAt))
+      : undefined;
+  }
+
+  test('AC4: the day view has a column per trainer and Geen trainer only on the day that needs it', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const week = await seed(page, context);
+    const t = wording(copy.workspaceCalendar, appLocale);
+    await page.goto(`/w/${week.slug}/calendar?date=${week.date}&view=day`);
+
+    const headers = page.locator('[data-slot="week-grid-header"] > div');
+    // John (You), Sarah and Tom; no Geen trainer column on Tuesday.
+    await expect(headers).toHaveText([t.you, 'Sarah', 'Tom']);
+    const columns = gridColumns(page);
+    await expect(columns).toHaveCount(3);
+    await expect(columns.nth(1).locator('button[aria-haspopup="dialog"]')).toHaveCount(3);
+    await expect(columns.nth(1)).toContainText('Mark Jansen');
+    await expect(columns.nth(1)).toContainText('Kracht');
+    await expect(columns.nth(2)).toContainText('Lisa Smit');
+    await expect(columns.nth(0).locator('button')).toHaveCount(0);
+    await expectNoAxeViolations(page, `Agenda day Tuesday in ${appLocale}`);
+
+    // Thursday: Boxing has no trainer, so there is a column for that.
+    await page.goto(`/w/${week.slug}/calendar?date=${shift(week.date, 2)}&view=day`);
+    await expect(headers).toHaveText([t.you, 'Sarah', 'Tom', t.noTrainer]);
+    await expect(gridColumns(page).nth(3)).toContainText('Boxing');
+    await expect(gridColumns(page).nth(3).locator('button')).toHaveCount(1);
+    await expectNoAxeViolations(page, `Agenda day Thursday in ${appLocale}`);
+  });
+
+  test('AC7: a click on an empty moment offers Privésessie and Groepsles, PS-01 is filled in with the date and the time, and in the day view with the column’s trainer', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    await page.setViewportSize({ width: 1280, height: 1500 });
+    const week = await seed(page, context);
+    const t = wording(copy.workspaceCalendar, appLocale);
+    const wednesday = shift(week.date, 1);
+    await page.goto(`/w/${week.slug}/calendar?date=${week.date}&view=week`);
+
+    // Wednesday 14:00 of the week.
+    const column = gridColumns(page).nth(2);
+    await expect(column).toHaveAttribute('data-column', wednesday);
+    const click = await pointAt(column, '14:00', 6);
+    await page.mouse.click(click.x, click.y);
+    const menu = page.getByRole('dialog', {
+      name: t.newAt.replace('{date}', shortDate(wednesday, appLocale)).replace('{time}', '14:00'),
+    });
+    await expect(menu).toBeVisible();
+    await expect(
+      menu.getByRole('button', { name: copy.workspaceNav.newPrivateSession }),
+    ).toBeVisible();
+    await expect(menu.getByRole('button', { name: copy.workspaceNav.newGroupClass })).toBeVisible();
+    await expectNoAxeViolations(page, `New at a time slot in ${appLocale}`);
+
+    // Privésessie: PS-01 with that date and time; in the week there is no column's trainer.
+    await menu.getByRole('button', { name: copy.workspaceNav.newPrivateSession }).click();
+    const form = page.getByRole('dialog', { name: copy.sessions.form.title });
+    await expect(form.locator('input[name="localDate"]')).toHaveValue(wednesday);
+    await expect(form.locator('input[name="localStart"]')).toHaveValue('14:00');
+    await expect(
+      form.getByText(copy.sessions.form.endsAt.replace('{time}', '15:00')),
+    ).toBeVisible();
+    // Nothing was typed after the slot: Esc closes it without asking to discard.
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    // Groepsles: Op een datum plannen with the date and the start.
+    await page.mouse.click(click.x, click.y);
+    await menu.getByRole('button', { name: copy.workspaceNav.newGroupClass }).click();
+    const schedule = page.getByRole('dialog', { name: copy.classes.schedule.title });
+    await expect(schedule.locator('input[name="localDate"]')).toHaveValue(wednesday);
+    await expect(schedule.locator('input[name="localStart"]')).toHaveValue('14:00');
+    await page.keyboard.press('Escape');
+
+    // Click and drag over 14:00-15:30 sets the length too.
+    const from = await pointAt(column, '14:00', 6);
+    const to = await pointAt(column, '15:30', -3);
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, (from.y + to.y) / 2, { steps: 5 });
+    await page.mouse.move(to.x, to.y, { steps: 5 });
+    await expect(page.locator('[data-slot="week-grid-selection"]')).toBeVisible();
+    await page.mouse.up();
+    await menu.getByRole('button', { name: copy.workspaceNav.newPrivateSession }).click();
+    await expect(form.locator('input[name="localStart"]')).toHaveValue('14:00');
+    await expect(
+      form.getByText(copy.sessions.form.endsAt.replace('{time}', '15:30')),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    // The day view: a click in Tom's column also fills in Tom.
+    await page.goto(`/w/${week.slug}/calendar?date=${week.date}&view=day`);
+    const tom = gridColumns(page).nth(2);
+    const inTom = await pointAt(tom, '14:00', 6);
+    await page.mouse.click(inTom.x, inTom.y);
+    await expect(
+      page.getByRole('dialog', {
+        name: t.newAt.replace('{date}', shortDate(week.date, appLocale)).replace('{time}', '14:00'),
+      }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: copy.workspaceNav.newPrivateSession }).click();
+    await expect(form.locator('input[name="localDate"]')).toHaveValue(week.date);
+    await expect(form.locator('input[name="localStart"]')).toHaveValue('14:00');
+    await expect(form.locator('select[name="trainerId"]')).toHaveValue(week.trainerIds.tom);
+    await expectNoAxeViolations(page, `New private session from a slot in ${appLocale}`);
+  });
+
+  test('AC12: a Trainer gets no empty-slot menu and cannot drag a block', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    test.slow();
+    await page.setViewportSize({ width: 1280, height: 1500 });
+    const week = await seed(page, context);
+    await signInWithSession(context, week.sarah);
+    await page.goto(`/w/${week.slug}/calendar?date=${week.date}&view=week`);
+
+    const column = gridColumns(page).nth(2);
+    await expect(column).toHaveCSS('cursor', 'auto');
+    const click = await pointAt(column, '14:00', 6);
+    await page.mouse.click(click.x, click.y);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    // Her own session does not move by dragging either: that is the Owner's (the form is hers).
+    const mark = blocks(page).filter({ hasText: 'Mark Jansen' });
+    await dragBlock(page, mark, 60);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await startOf(page, week, week.sessions.mark)).toBe('07:00');
+    // And the API answers her move of Tom's session 403.
+    const lisa = await page.request.post(
+      `/api/v1/workspaces/${week.workspaceId}/sessions/${week.sessions.lisa}/reschedule`,
+      {
+        data: {
+          localDate: week.date,
+          localStart: '13:00',
+          durationMinutes: 60,
+          notify: false,
+          version: 1,
+        },
+      },
+    );
+    expect(lisa.status()).toBe(403);
+    await expect(
+      page.getByRole('button', { name: copy.myCalendar.viewWeek, pressed: true }),
+    ).toBeVisible();
+  });
+
+  test('AC8: dragging Mark’s session asks first, Terug changes nothing, Verplaatsen moves it with the e-mail only when checked', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    await page.setViewportSize({ width: 1280, height: 1500 });
+    const week = await seed(page, context);
+    const t = wording(copy.workspaceCalendar, appLocale);
+    await page.goto(`/w/${week.slug}/calendar?date=${week.date}&view=week`);
+
+    const mark = blocks(page).filter({ hasText: 'Mark Jansen' });
+    await dragBlock(page, mark, 60);
+    const dialog = page.getByRole('dialog', { name: t.moveTitle.replace('{name}', 'Mark Jansen') });
+    await expect(dialog).toBeVisible();
+    // {old} → {new}, with the e-mail on by default for a session still to come.
+    const day = shortDate(week.date, appLocale);
+    expect(plain(await dialog.locator('#move-description').textContent())).toBe(
+      t.moveFromTo.replace('{from}', `${day} 07:00`).replace('{to}', `${day} 08:00`),
+    );
+    await expect(
+      dialog.getByRole('checkbox', {
+        name: copy.sessions.reschedule.notify.replace('{client}', 'Mark Jansen'),
+      }),
+    ).toBeChecked();
+    await expectNoAxeViolations(page, `Move by dragging in ${appLocale}`);
+
+    // Terug changes nothing.
+    await dialog.getByRole('button', { name: t.moveBack }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await startOf(page, week, week.sessions.mark)).toBe('07:00');
+
+    // Verplaatsen moves it, with the e-mail unchecked here; nothing else moves.
+    await dragBlock(page, mark, 60);
+    await dialog
+      .getByRole('checkbox', {
+        name: copy.sessions.reschedule.notify.replace('{client}', 'Mark Jansen'),
+      })
+      .uncheck();
+    // What reaches F020's reschedule says no e-mail (EM-04 only when the box is checked).
+    const reschedule = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        request.url().endsWith(`/sessions/${week.sessions.mark}/reschedule`),
+    );
+    await dialog.getByRole('button', { name: t.moveConfirm }).click();
+    expect((await reschedule).postDataJSON()).toMatchObject({ notify: false });
+    await expect(
+      page
+        .getByRole('status')
+        .filter({ hasText: t.moved.replace('{date}', day).replace('{time}', '08:00') }),
+    ).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await startOf(page, week, week.sessions.mark)).toBe('08:00');
+    expect(await startOf(page, week, week.sessions.lisa)).toBe('11:00');
+    // The week was loaded again: the block says its new time.
+    await expect(blocks(page).filter({ hasText: 'Mark Jansen' })).toHaveAttribute(
+      'aria-label',
+      /08:00.*09:00/,
+    );
+  });
+
+  test('AC8: a class date asks Alleen deze les or Deze en alle volgende lessen and applies the scope; a class date does not change day', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    await page.setViewportSize({ width: 1280, height: 1500 });
+    const week = await seed(page, context);
+    const t = wording(copy.workspaceCalendar, appLocale);
+    // Kracht is weekly: the date a week later is a date of the series, and so is the one after.
+    const next = shift(week.date, 7);
+    await page.goto(`/w/${week.slug}/calendar?date=${next}&view=week`);
+
+    const kracht = blocks(page)
+      .filter({ hasText: /Kracht/ })
+      .first();
+    // Not to another day: a class date has its day (CO-04 changes the time only), so nothing opens.
+    await dragBlock(page, kracht, 0, 150);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    await dragBlock(page, kracht, 30);
+    const dialog = page.getByRole('dialog', { name: t.moveTitle.replace('{name}', 'Kracht') });
+    await expect(dialog).toBeVisible();
+    const day = shortDate(next, appLocale);
+    expect(plain(await dialog.locator('#move-description').textContent())).toBe(
+      t.moveFromTo.replace('{from}', `${day} 10:00`).replace('{to}', `${day} 10:30`),
+    );
+    await expect(dialog.getByRole('radio', { name: copy.classes.edit.scopeThis })).toBeChecked();
+    // No e-mail for a class: nobody has booked yet.
+    await expect(dialog.getByRole('checkbox')).toHaveCount(0);
+    await expectNoAxeViolations(page, `Move a class date in ${appLocale}`);
+    await dialog.getByRole('radio', { name: copy.classes.edit.scopeFollowing }).check();
+    await dialog.getByRole('button', { name: t.moveConfirm }).click();
+    await expect(
+      page
+        .getByRole('status')
+        .filter({ hasText: t.moved.replace('{date}', day).replace('{time}', '10:30') }),
+    ).toBeVisible();
+
+    // This date and the ones after it moved; the one before did not.
+    expect(await startOf(page, week, week.sessions.kracht)).toBe('10:00');
+    const answer = (await (
+      await page.request.get(
+        `/api/v1/workspaces/${week.workspaceId}/calendar?from=${next}&to=${shift(next, 14)}`,
+      )
+    ).json()) as { items: { className?: string; startsAt: string }[] };
+    const times = answer.items
+      .filter((item) => item.className === 'Kracht')
+      .map((item) =>
+        new Intl.DateTimeFormat('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hourCycle: 'h23',
+          timeZone: 'Europe/Amsterdam',
+        }).format(new Date(item.startsAt)),
+      );
+    expect(times.filter((time) => time === '10:30').length).toBeGreaterThanOrEqual(2);
+    expect(times).not.toContain('10:00');
+  });
+
+  test('AC9: a session someone else changed meanwhile answers 409, the calendar says who and shows the week as it is now', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    await page.setViewportSize({ width: 1280, height: 1500 });
+    const week = await seed(page, context);
+    const t = wording(copy.workspaceCalendar, appLocale);
+    await page.goto(`/w/${week.slug}/calendar?date=${week.date}&view=week`);
+    await expect(blocks(page)).toHaveCount(5);
+
+    // Sarah moves her own session (Mark's) to 09:00 while John's page still shows 07:00.
+    await signInWithSession(context, week.sarah);
+    const moved = await page.request.post(
+      `/api/v1/workspaces/${week.workspaceId}/sessions/${week.sessions.mark}/reschedule`,
+      {
+        data: {
+          localDate: week.date,
+          localStart: '09:00',
+          durationMinutes: 60,
+          notify: false,
+          version: 1,
+        },
+      },
+    );
+    expect(moved.status()).toBe(200);
+    await signInWithSession(context, week.john);
+
+    await dragBlock(page, blocks(page).filter({ hasText: 'Mark Jansen' }), 60);
+    await page
+      .getByRole('dialog', { name: t.moveTitle.replace('{name}', 'Mark Jansen') })
+      .getByRole('button', { name: t.moveConfirm })
+      .click();
+    await expect(
+      page.getByRole('alert').filter({ hasText: t.moveChangedBy.replace('{name}', 'Sarah') }),
+    ).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    // The reloaded week: Mark is where Sarah put him, and John's move was not made.
+    await expect(blocks(page).filter({ hasText: 'Mark Jansen' })).toHaveAttribute(
+      'aria-label',
+      /09:00.*10:00/,
+    );
+    expect(await startOf(page, week, week.sessions.mark)).toBe('09:00');
   });
 
   test('AC15: the week renders within a second', async ({ page, context }) => {

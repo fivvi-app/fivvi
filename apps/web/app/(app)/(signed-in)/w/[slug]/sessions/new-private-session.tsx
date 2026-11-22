@@ -51,10 +51,25 @@ import {
 import { useSessionFormat } from './use-session-format';
 import { WhenFields, type WhenValue } from './when-fields';
 
-const OpenNewSession = createContext<(() => void) | null>(null);
+/** What a click or a drag on an empty moment of the calendar (WC-06) fills in: the slot, and the column's trainer. */
+export interface SlotPrefill {
+  /** `YYYY-MM-DD` in the workspace's time zone. */
+  localDate: string;
+  /** `HH:mm` in the workspace's time zone. */
+  localStart: string;
+  /** From a drag: the length of the selection, 15 to 240 minutes. */
+  durationMinutes?: number;
+  /** In the day view the trainer of the column; ignored for a person who plans for themself only. */
+  trainerId?: string;
+}
 
-/** Opens PS-01; `null` where the person may not plan sessions (no `session.private.manage.*`). */
-export function useOpenNewSession(): (() => void) | null {
+const OpenNewSession = createContext<((prefill?: SlotPrefill) => void) | null>(null);
+
+/**
+ * Opens PS-01, empty or filled in with a slot of the calendar; `null` where the person may not
+ * plan sessions (no `session.private.manage.*`).
+ */
+export function useOpenNewSession(): ((prefill?: SlotPrefill) => void) | null {
   return useContext(OpenNewSession);
 }
 
@@ -110,7 +125,11 @@ export function NewSessionProvider({
   ...props
 }: NewSessionProps & { children: ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [openFn] = useState(() => () => setOpen(true));
+  const [prefill, setPrefill] = useState<SlotPrefill | undefined>();
+  const [openFn] = useState(() => (slot?: SlotPrefill) => {
+    setPrefill(slot);
+    setOpen(true);
+  });
   const [saved, setSaved] = useState<Saved | null>(null);
 
   // The snackbar goes by itself; *Openen* is for the moment it is there. It also goes once the
@@ -130,6 +149,7 @@ export function NewSessionProvider({
       {open ? (
         <NewSessionPanel
           {...props}
+          {...(prefill ? { prefill } : {})}
           close={() => setOpen(false)}
           planned={(result) => {
             setOpen(false);
@@ -172,9 +192,15 @@ function NewSessionPanel({
   canAddClients: startCanAddClients,
   trainerWord: startTrainerWord,
   workspaces,
+  prefill,
   close,
   planned,
-}: NewSessionProps & { close: () => void; planned: (saved: Saved) => void }) {
+}: NewSessionProps & {
+  /** The slot of the calendar the panel was opened from (WC-06). */
+  prefill?: SlotPrefill;
+  close: () => void;
+  planned: (saved: Saved) => void;
+}) {
   // From the personal pages the person picks the workspace first; the rest follows the choice.
   const [chosenId, setChosenId] = useState(startId);
   const chosen = workspaces?.find((workspace) => workspace.workspaceId === chosenId);
@@ -189,12 +215,15 @@ function NewSessionPanel({
   const router = useRouter();
   const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' });
   const [client, setClient] = useState<Client | null>(null);
-  const [when, setWhen] = useState<WhenValue>({
-    localDate: '',
-    localStart: '',
-    durationMinutes: FIRST_DURATION,
-  });
+  const first: WhenValue = {
+    localDate: prefill?.localDate ?? '',
+    localStart: prefill?.localStart ?? '',
+    durationMinutes: prefill?.durationMinutes ?? FIRST_DURATION,
+  };
+  const [when, setWhen] = useState<WhenValue>(first);
   const [trainerId, setTrainerId] = useState('');
+  // The trainer the form started with: the slot's, or the person's own place.
+  const [startTrainerId, setStartTrainerId] = useState('');
   const [notify, setNotify] = useState(true);
   const [required, setRequired] = useState<{
     client?: boolean;
@@ -210,6 +239,7 @@ function NewSessionPanel({
   const timeZone = loaded.status === 'ready' ? loaded.context.timeZone : 'Europe/Amsterdam';
   const { day, time } = useSessionFormat(timeZone);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the slot is the form's start, not something it follows.
   useEffect(() => {
     let current = true;
     // Another workspace has its own clients, location and time zone.
@@ -221,7 +251,13 @@ function NewSessionPanel({
         if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
         return setLoaded({ status: 'failed' });
       }
-      setTrainerId(result.context.myTrainerId ?? '');
+      // The column's trainer of the day view, when the person may plan for them; else their own place.
+      const slotTrainer =
+        forAnyTrainer && prefill?.trainerId
+          ? result.context.trainers.find(({ id }) => id === prefill.trainerId)?.id
+          : undefined;
+      setTrainerId(slotTrainer ?? result.context.myTrainerId ?? '');
+      setStartTrainerId(slotTrainer ?? result.context.myTrainerId ?? '');
       setLoaded({ status: 'ready', context: result.context });
     });
     return () => {
@@ -232,11 +268,11 @@ function NewSessionPanel({
   const preview = previewTimes({ ...when, timeZone, now: new Date() });
   const dirty =
     client !== null ||
-    when.localDate !== '' ||
-    when.localStart !== '' ||
-    when.durationMinutes !== FIRST_DURATION ||
+    when.localDate !== first.localDate ||
+    when.localStart !== first.localStart ||
+    when.durationMinutes !== first.durationMinutes ||
     !notify ||
-    (loaded.status === 'ready' && trainerId !== (loaded.context.myTrainerId ?? ''));
+    (loaded.status === 'ready' && trainerId !== startTrainerId);
 
   function requestClose() {
     if (dirty) setDiscarding(true);

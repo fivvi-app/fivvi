@@ -79,6 +79,7 @@ export default async function WorkspaceCalendarPage({
         canMoveOwn: can('session.private.manage.own'),
         canChangeClasses: can('class.manage'),
         canSeeClients: can('clients.view'),
+        canManageCalendar: can('calendar.manage'),
         teamMemberId: workspace.teamMemberId,
       }}
     />

@@ -28,6 +28,8 @@ export interface CalendarAccess {
   canMoveOwn: boolean;
   canChangeClasses: boolean;
   canSeeClients: boolean;
+  /** `calendar.manage` (the Owner): the empty-slot menu (WC-06) and moving by dragging (WC-07). */
+  canManageCalendar: boolean;
   /** The signed-in person's own team-member ID: *Jij* and *own session*, never decided by name. */
   teamMemberId: string;
 }

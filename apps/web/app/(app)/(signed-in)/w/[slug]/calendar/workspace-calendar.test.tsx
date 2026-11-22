@@ -96,6 +96,7 @@ const access = {
   canMoveOwn: true,
   canChangeClasses: true,
   canSeeClients: true,
+  canManageCalendar: true,
   teamMemberId: 'm-paula',
 };
 
@@ -258,6 +259,52 @@ describe.each(locales)('F014 Agenda in %s', (locale) => {
       '2026-10-22',
     );
     expect(early.match(/>02:00</g)).toHaveLength(2);
+  });
+
+  /** The calendar of a person who can plan: with the class dialogs of the frame around it. */
+  const asPerson = (person: typeof access, shown: CalendarView, items = week.items) =>
+    render(
+      locale,
+      <ClassesProvider workspaceId="w1" slug="pilot-gym" teamMemberId="m-paula" trainerWord={words}>
+        <WorkspaceCalendarView
+          calendar={{ ...week, items }}
+          date="2026-09-22"
+          today="2026-09-22"
+          initialView={shown}
+          trainers={trainers}
+          slug="pilot-gym"
+          workspaceId="w1"
+          accountId="a1"
+          access={person}
+          trainerWord={words}
+        />
+      </ClassesProvider>,
+    );
+
+  it('AC7: the Owner’s columns take a click on an empty moment, in the week and in the day view', () => {
+    for (const shown of ['week', 'day'] as const) {
+      const html = asPerson(access, shown);
+      expect(html).toContain('cursor-cell');
+      expect(html).toMatch(/data-column="/);
+    }
+    // The list has no grid to click in.
+    expect(asPerson(access, 'list')).not.toContain('cursor-cell');
+  });
+
+  it('AC12: a Trainer’s columns take no click on an empty moment and no block is movable', () => {
+    const trainer = { ...access, canManageCalendar: false, canMoveAny: false };
+    for (const shown of ['week', 'day'] as const) {
+      const html = asPerson(trainer, shown);
+      expect(html).not.toContain('cursor-cell');
+      expect(html).not.toContain('data-movable=""');
+    }
+  });
+
+  it('WC-07: the Owner can drag a scheduled block, not a cancelled one, and nobody can in the list', () => {
+    const html = asPerson(access, 'week');
+    // Mark, Kracht, Lisa and Boxing are scheduled; the cancelled Kracht stays where it is.
+    expect(html.match(/data-movable=""/g)).toHaveLength(4);
+    expect(asPerson(access, 'list')).not.toContain('data-movable=""');
   });
 
   it('AC4: the day view has a column per trainer, Geen trainer only on a day that needs it', () => {
