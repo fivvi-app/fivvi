@@ -586,6 +586,61 @@ describe('E020 web kit', () => {
       expect(markup).toContain('left:calc(50% + 2px);width:calc(50% - 4px)');
     });
 
+    it('F014 WC-06, WC-07: it is a plain grid until the caller gives it a click or a drop to answer', () => {
+      const markup = html(grid);
+      expect(markup).not.toContain('cursor-cell');
+      expect(markup).not.toContain('data-movable=""');
+      expect(markup).toContain('data-column="mon"');
+    });
+
+    it('F014 WC-06: with a slot handler the columns take a click on an empty moment', () => {
+      const markup = html(
+        <WeekGrid
+          label="Week"
+          firstHour={7}
+          endHour={12}
+          hourLabel={() => 'x'}
+          onSelectSlot={() => undefined}
+          columns={[{ key: 'mon', header: 'ma 21', blocks: [] }]}
+        />,
+      );
+      expect(markup).toContain('cursor-cell');
+    });
+
+    it('F014 WC-07: only a block marked movable, with a drop handler, can be dragged', () => {
+      const columns = [
+        {
+          key: 'mon',
+          header: 'ma 21',
+          blocks: [
+            {
+              key: 'a',
+              startMinute: 540,
+              endMinute: 600,
+              lane: 0,
+              lanes: 1,
+              movable: true,
+              children: 'A',
+            },
+            { key: 'b', startMinute: 660, endMinute: 720, lane: 0, lanes: 1, children: 'B' },
+          ],
+        },
+      ];
+      const draw = (handler: boolean) =>
+        html(
+          <WeekGrid
+            label="Week"
+            firstHour={7}
+            endHour={13}
+            hourLabel={() => 'x'}
+            {...(handler ? { onMoveBlock: () => undefined } : {})}
+            columns={columns}
+          />,
+        );
+      expect(draw(true).match(/data-movable=""/g)).toHaveLength(1);
+      expect(draw(false)).not.toContain('data-movable=""');
+    });
+
     it('tints today and leaves the header text to the caller', () => {
       expect(html(grid).match(/data-today=""/g)).toHaveLength(2);
     });

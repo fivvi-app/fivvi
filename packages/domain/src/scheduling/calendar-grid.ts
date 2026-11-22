@@ -167,6 +167,13 @@ export interface WeekAxis {
   minute(date: string, instant: Date): number;
   /** The wall-clock hour the row of grid hour `gridHour` is marked with. */
   labelHour(gridHour: number): number;
+  /**
+   * The wall-clock time, `HH:mm`, of grid minute `gridMinute` in the column of `date`: the inverse
+   * of `minute()`, for a click or a drop on the grid (WC-06, WC-07). None where the grid holds no
+   * time: past the end of the column, or in the extra row the other days of a week with a clock
+   * change keep for the repeated hour.
+   */
+  wallTime(date: string, gridMinute: number): string | undefined;
   /** The length of a column: 1440, or 1500 / 1380 in a week with a clock change. */
   readonly totalMinutes: number;
 }
@@ -179,6 +186,8 @@ export function weekAxis(dates: readonly string[], timeZone: string): WeekAxis {
   // The wall clock of the other days moves from 03:00 on; the skipped hour (02:00–03:00) has no row.
   const gridOf = (wall: number) =>
     back ? (wall < 180 ? wall : wall + 60) : wall < 120 ? wall : wall < 180 ? 120 : wall - 60;
+  const clock = (minute: number) =>
+    `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
   return {
     totalMinutes,
     labelHour: (hour) =>
@@ -191,6 +200,22 @@ export function weekAxis(dates: readonly string[], timeZone: string): WeekAxis {
         return Math.round((instant.getTime() - start) / 60_000);
       }
       return shift === 0 ? minutesOf(wall.time) : gridOf(minutesOf(wall.time));
+    },
+    wallTime(date, gridMinute) {
+      if (gridMinute < 0 || gridMinute >= totalMinutes) return undefined;
+      if (date === changing) {
+        const start = localDayBounds(date, timeZone)?.start.getTime() ?? 0;
+        const wall = instantToWallClock(new Date(start + gridMinute * 60_000), timeZone);
+        return wall.date === date ? wall.time : undefined;
+      }
+      if (shift === 0) return clock(gridMinute);
+      if (back)
+        return gridMinute < 180
+          ? clock(gridMinute)
+          : gridMinute < 240
+            ? undefined
+            : clock(gridMinute - 60);
+      return clock(gridMinute < 120 ? gridMinute : gridMinute + 60);
     },
   };
 }

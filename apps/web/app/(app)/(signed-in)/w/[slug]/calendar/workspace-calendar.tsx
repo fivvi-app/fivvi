@@ -12,7 +12,14 @@ import {
 import { addDays } from '@fivvi/domain/zoned-time';
 import type { TrainerWordForms } from '@fivvi/i18n';
 import { Button } from '@fivvi/ui/components/button';
-import { sessionBlockVariants, WeekGrid, type WeekGridColumn } from '@fivvi/ui/kit/week-grid';
+import { Toast } from '@fivvi/ui/kit/toast';
+import {
+  sessionBlockVariants,
+  WeekGrid,
+  type WeekGridColumn,
+  type WeekGridMove,
+  type WeekGridSlot,
+} from '@fivvi/ui/kit/week-grid';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -32,8 +39,11 @@ import {
   type WorkspaceFilters,
   writeFilters,
 } from './calendar-filters';
+import { proposeMove } from './calendar-moves';
 import { shortcutFor } from './calendar-shortcuts';
+import { MoveDialog, type MoveOutcome } from './move-dialog';
 import { type CalendarAccess, type CalendarItem, QuickView } from './quick-view';
+import { type Slot, SlotMenu } from './slot-menu';
 
 export type CalendarView = 'day' | 'week' | 'list';
 type Shown = CalendarItem & { type: 'private' | 'group' };
@@ -45,14 +55,13 @@ const subscribeToWidth = (onChange: () => void) => {
   return () => query.removeEventListener('change', onChange);
 };
 
-/** Below 1024 px the list is the default view (WC-04); above it, the week. */
-function useDefaultView(): CalendarView {
-  const wide = useSyncExternalStore(
+/** The screen is 1024 px wide or more: the week is the default view and blocks can be dragged (WC-07). */
+function useWide(): boolean {
+  return useSyncExternalStore(
     subscribeToWidth,
     () => window.matchMedia(WIDE).matches,
     () => true,
   );
-  return wide ? 'week' : 'list';
 }
 
 const MAX_SIDE_BY_SIDE = 3;
@@ -102,7 +111,9 @@ export function WorkspaceCalendarView({
   const openNewSession = useOpenNewSession();
   // *Op een datum plannen* (F021) for the Owner; none for a person who may not manage classes.
   const openSchedule = useClassDialogs()?.openSchedule;
-  const defaultView = useDefaultView();
+  const wide = useWide();
+  // Below 1024 px the list is the default view (WC-04); above it, the week.
+  const defaultView: CalendarView = wide ? 'week' : 'list';
   const [chosen, setChosen] = useState<CalendarView | undefined>(initialView);
   const view = chosen ?? defaultView;
   const [filters, setFilters] = useState<WorkspaceFilters>(DEFAULT_FILTERS);
@@ -112,10 +123,22 @@ export function WorkspaceCalendarView({
     opener.current = document.activeElement as HTMLElement | null;
     setSelected(item);
   };
+  // WC-06: the empty moment the Owner clicked; WC-07: the block they dropped on another time.
+  const [slot, setSlot] = useState<Slot | null>(null);
+  const [move, setMove] = useState<{
+    item: Shown;
+    proposal: Extract<ReturnType<typeof proposeMove>, { ok: true }>;
+  } | null>(null);
+  const [notice, setNotice] = useState<{ text: string; warning: boolean } | null>(null);
   const [now, setNow] = useState<Date>();
   const key = filtersKey(accountId, workspaceId);
   // What this browser remembers is read once the page is there; the server draws the default.
   useEffect(() => setFilters(readFilters(browserStorage(), key)), [key]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 8_000);
+    return () => clearTimeout(timer);
+  }, [notice]);
   useEffect(() => {
     setNow(new Date());
     const timer = setInterval(() => setNow(new Date()), 60_000);
@@ -161,6 +184,64 @@ export function WorkspaceCalendarView({
     url.searchParams.set('view', next);
     window.history.replaceState(null, '', url);
   }
+
+  /** The day a grid column is on: the column itself in the week, the one day of the day view. */
+  const columnDate = (columnKey: string) => (view === 'day' ? date : columnKey);
+  const shortDay = (day: string) =>
+    dayText(day, { weekday: 'short', day: 'numeric', month: 'short' });
+  // The Owner (`calendar.manage`) plans from an empty moment and, on a wide screen, moves by dragging.
+  const canPlanAtSlot = access.canManageCalendar && Boolean(openNewSession ?? openSchedule);
+  const canDrag = access.canManageCalendar && wide && view !== 'list';
+
+  function selectSlot({ columnKey, startMinute, endMinute, dragged }: WeekGridSlot) {
+    const localDate = columnDate(columnKey);
+    const localStart = axis.wallTime(localDate, startMinute);
+    if (!localStart) return;
+    const length = endMinute - startMinute;
+    setSlot({
+      localDate,
+      localStart,
+      ...(dragged && length >= 15 && length <= 240 ? { durationMinutes: length } : {}),
+      // In the day view the column's trainer; the *Geen trainer* column has none to fill in.
+      ...(view === 'day' && columnKey !== NO_TRAINER ? { trainerId: columnKey } : {}),
+    });
+  }
+
+  function dropBlock({ blockKey, columnKey, startMinute }: WeekGridMove) {
+    const item = all.find((entry) => entry.id === blockKey);
+    const start = axis.wallTime(columnDate(columnKey), startMinute);
+    if (!item || !start) return;
+    const proposal = proposeMove(
+      item,
+      { date: columnDate(columnKey), time: start },
+      timeZone,
+      new Date(),
+    );
+    if (proposal.ok && !proposal.unchanged) setMove({ item, proposal });
+  }
+
+  const outcome: MoveOutcome = {
+    moved: (to) => {
+      setMove(null);
+      setNotice({ text: t('moved', { date: shortDay(to.date), time: to.time }), warning: false });
+      router.refresh();
+      // The drag is counted (session_moved_by_drag: the workspace and the platform only).
+      void fetch(`/w/${slug}/calendar/moved`, { method: 'POST' }).catch(() => undefined);
+    },
+    changed: (by, cancelled) => {
+      setMove(null);
+      setNotice({
+        text: cancelled
+          ? t('moveCancelled')
+          : by
+            ? t('moveChangedBy', { name: by })
+            : t('moveChanged'),
+        warning: true,
+      });
+      // The reloaded week: the item as it is now, wherever it went.
+      router.refresh();
+    },
+  };
 
   // T, ← →, D, W, L and N, only while focus is in the calendar (WCAG 2.1.4), see `shortcutFor`.
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -288,6 +369,7 @@ export function WorkspaceCalendarView({
             endMinute,
             lane,
             lanes,
+            movable: canDrag && item.status === 'scheduled',
             children: block(item),
           })),
           ...cell.more.map((more) => ({
@@ -497,7 +579,7 @@ export function WorkspaceCalendarView({
             <p>{view === 'day' ? t('emptyDay') : t('emptyWeek')}</p>
             <div className="flex flex-wrap gap-2">
               {openNewSession ? (
-                <Button type="button" variant="outline" onClick={openNewSession}>
+                <Button type="button" variant="outline" onClick={() => openNewSession()}>
                   {t('newPrivate')}
                 </Button>
               ) : null}
@@ -522,6 +604,20 @@ export function WorkspaceCalendarView({
             endHour={layout.endHour}
             hourLabel={(hour) => `${pad(axis.labelHour(hour))}:00`}
             {...(view === 'day' && layout.columns.length > 5 ? { minColumnRem: 8 } : {})}
+            {...(canPlanAtSlot ? { onSelectSlot: selectSlot } : {})}
+            {...(canDrag
+              ? {
+                  onMoveBlock: dropBlock,
+                  placeLabel: (columnKey: string, minute: number) =>
+                    axis.wallTime(columnDate(columnKey), minute),
+                  // A private session goes to another day of the week; a class date keeps its
+                  // day (CO-04 has no date), and no block goes to another trainer's column
+                  // (F023/F024 add that).
+                  acceptsDrop: (blockKey: string) =>
+                    view === 'week' &&
+                    all.find((entry) => entry.id === blockKey)?.type === 'private',
+                }
+              : {})}
           />
         ) : null}
 
@@ -621,6 +717,45 @@ export function WorkspaceCalendarView({
           </div>
         ) : null}
       </div>
+      {slot ? (
+        <SlotMenu
+          slot={slot}
+          day={shortDay(slot.localDate)}
+          onClose={() => setSlot(null)}
+          {...(openNewSession
+            ? {
+                onPrivate: () => {
+                  setSlot(null);
+                  openNewSession(slot);
+                },
+              }
+            : {})}
+          {...(openSchedule
+            ? {
+                onGroup: () => {
+                  setSlot(null);
+                  openSchedule(undefined, {
+                    localDate: slot.localDate,
+                    localStart: slot.localStart,
+                  });
+                },
+              }
+            : {})}
+        />
+      ) : null}
+      {move ? (
+        <MoveDialog
+          workspaceId={workspaceId}
+          item={move.item}
+          proposal={move.proposal}
+          name={nameOf(move.item)}
+          timeZone={timeZone}
+          ownSession={move.item.trainer?.id === access.teamMemberId}
+          outcome={outcome}
+          onClose={() => setMove(null)}
+        />
+      ) : null}
+      {notice ? <Toast tone={notice.warning ? 'warning' : 'default'}>{notice.text}</Toast> : null}
       <QuickView
         item={selected}
         slug={slug}

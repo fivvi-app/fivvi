@@ -1094,6 +1094,18 @@
         <item quantity="other">%1$d sessies meer, open de dag</item>
     </plurals>
     <string name="workspace_calendar_move">Verplaatsen</string>
+    <string name="workspace_calendar_move_back">Terug</string>
+    <string name="workspace_calendar_move_cancelled">Dit item is geannuleerd en kan niet worden verplaatst. We hebben de agenda bijgewerkt.</string>
+    <string name="workspace_calendar_move_changed">Dit item is net gewijzigd. We hebben de agenda bijgewerkt.</string>
+    <string name="workspace_calendar_move_changed_by">Dit item is net gewijzigd door %1$s. We hebben de agenda bijgewerkt.</string>
+    <string name="workspace_calendar_move_confirm">Verplaatsen</string>
+    <string name="workspace_calendar_move_from_to">%1$s → %2$s</string>
+    <string name="workspace_calendar_move_past">Dit tijdstip ligt in het verleden.</string>
+    <string name="workspace_calendar_move_past_blocked">Een les met boekingen kan niet naar het verleden worden verplaatst.</string>
+    <string name="workspace_calendar_move_title">%1$s verplaatsen?</string>
+    <string name="workspace_calendar_moved">Verplaatst naar %1$s %2$s.</string>
+    <string name="workspace_calendar_new_at">Nieuw op %1$s, %2$s</string>
+    <string name="workspace_calendar_new_at_hint">Wat wil je plannen?</string>
     <string name="workspace_calendar_new_group">+ Groepsles</string>
     <string name="workspace_calendar_new_private">+ Privésessie</string>
     <string name="workspace_calendar_no_trainer">Geen %1$s</string>

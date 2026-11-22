@@ -873,6 +873,18 @@
         <item quantity="other">%1$d more sessions, open the day</item>
     </plurals>
     <string name="workspace_calendar_move">Move</string>
+    <string name="workspace_calendar_move_back">Back</string>
+    <string name="workspace_calendar_move_cancelled">This item is cancelled and can\'t be moved. We updated the calendar.</string>
+    <string name="workspace_calendar_move_changed">This item was just changed. We updated the calendar.</string>
+    <string name="workspace_calendar_move_changed_by">This item was just changed by %1$s. We updated the calendar.</string>
+    <string name="workspace_calendar_move_confirm">Move</string>
+    <string name="workspace_calendar_move_from_to">%1$s → %2$s</string>
+    <string name="workspace_calendar_move_past">This time is in the past.</string>
+    <string name="workspace_calendar_move_past_blocked">A class with bookings can\'t be moved into the past.</string>
+    <string name="workspace_calendar_move_title">Move %1$s?</string>
+    <string name="workspace_calendar_moved">Moved to %1$s %2$s.</string>
+    <string name="workspace_calendar_new_at">New on %1$s, %2$s</string>
+    <string name="workspace_calendar_new_at_hint">What do you want to plan?</string>
     <string name="workspace_calendar_new_group">+ Group class</string>
     <string name="workspace_calendar_new_private">+ Private session</string>
     <string name="workspace_calendar_no_trainer">No %1$s</string>

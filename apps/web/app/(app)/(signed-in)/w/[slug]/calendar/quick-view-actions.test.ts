@@ -9,6 +9,7 @@ const owner: CalendarAccess = {
   canMoveOwn: true,
   canChangeClasses: true,
   canSeeClients: true,
+  canManageCalendar: true,
   teamMemberId: 'm-john',
 };
 const trainer: CalendarAccess = {
@@ -16,6 +17,7 @@ const trainer: CalendarAccess = {
   canMoveOwn: true,
   canChangeClasses: false,
   canSeeClients: true,
+  canManageCalendar: false,
   teamMemberId: 'm-sarah',
 };
 const session = (trainerId: string | undefined, overrides = {}) => ({

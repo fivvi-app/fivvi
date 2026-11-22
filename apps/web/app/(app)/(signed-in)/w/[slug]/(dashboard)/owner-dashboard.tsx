@@ -2,7 +2,7 @@ import type { Schemas } from '@fivvi/contract';
 import type { TrainerWordForms } from '@fivvi/i18n';
 import { Button } from '@fivvi/ui/components/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@fivvi/ui/components/card';
-import { sessionBlockVariants } from '@fivvi/ui/kit/week-grid';
+import { sessionBlockVariants } from '@fivvi/ui/kit/session-block';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';

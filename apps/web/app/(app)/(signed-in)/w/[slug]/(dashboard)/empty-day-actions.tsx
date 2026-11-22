@@ -18,7 +18,7 @@ export function EmptyDayActions() {
   return (
     <div className="flex flex-wrap gap-2">
       {openNewSession ? (
-        <Button type="button" variant="outline" onClick={openNewSession}>
+        <Button type="button" variant="outline" onClick={() => openNewSession()}>
           {t('newPrivate')}
         </Button>
       ) : null}
