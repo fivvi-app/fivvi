@@ -5,9 +5,13 @@ import FivviUI
 
 /// TD-01 *Vandaag* (F013): the large title with the date above it and the summary under it, no rings; the *Mijn dag* card;
 /// the next item as the gradient card; every other item in time order; the *Morgen* line. Loading is skeleton rows,
-/// the day refreshes by pull, on the foreground and on the OS's time-change signals (midnight rolls it over).
+/// the day refreshes by pull, on the foreground and on the OS's time-change signals (midnight rolls it over). An Owner
+/// who trains in a workspace with a team has *Mijn dag | Hele studio* under the title (F014): the same screen with the
+/// workspace's day, a lane per trainer, in place of the personal one.
 struct TodayView: View {
     let model: TodayViewModel
+    /// The Owner's *Mijn dag | Hele studio* (F014): the control, and the workspace's day.
+    let studio: StudioDayModel
     /// *Plannen* may open PS-04: the person may plan sessions here, and the phone is online.
     let canPlan: Bool
     let onPlan: (Date) -> Void
@@ -18,22 +22,33 @@ struct TodayView: View {
 
     var body: some View {
         LargeTitleScreen(
-            title: catalog[.todayTitle], eyebrow: model.eyebrow, subtitle: model.summaryText,
-            titleIdentifier: "today.title"
+            title: catalog[.todayTitle], eyebrow: model.eyebrow,
+            subtitle: studio.showsToggle ? nil : model.summaryText, titleIdentifier: "today.title"
         ) {
             banners
-            switch model.state {
-            case .loading:
-                SkeletonRows(label: catalog[.commonLoading], id: "today.loading")
-            case .failed:
-                retry
-            case .loaded:
-                loaded
+            if studio.showsToggle { scopeControl }
+            if studio.isStudio {
+                StudioDayView(model: studio, onOpen: onOpen)
+            } else {
+                switch model.state {
+                case .loading:
+                    SkeletonRows(label: catalog[.commonLoading], id: "today.loading")
+                case .failed:
+                    retry
+                case .loaded:
+                    loaded
+                }
             }
         }
-        .refreshable { await model.refresh() }
+        .refreshable {
+            await model.refresh()
+            await studio.refresh()
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
-            Task { await model.load() }
+            Task {
+                await model.load()
+                if studio.isStudio { await studio.load() }
+            }
         }
     }
 
@@ -47,9 +62,37 @@ struct TodayView: View {
                     .accessibilityIdentifier("today.notice.dismiss")
             }
         }
-        if let offline = model.offlineText { StatusMessage(text: offline, kind: .info, id: "today.offline") }
-        if model.updateFailed { retry }
+        // The personal day's own states belong to Mijn dag: the studio shows its own.
+        if !studio.isStudio {
+            if let offline = model.offlineText { StatusMessage(text: offline, kind: .info, id: "today.offline") }
+            if model.updateFailed { retry }
+        }
         if let hint = model.timeZoneHint { StatusMessage(text: hint, kind: .info, id: "today.timeZoneHint") }
+    }
+
+    /// *Mijn dag | Hele studio* and the line under it: the summary of Mijn dag, or what the studio is.
+    private var scopeControl: some View {
+        VStack(alignment: .leading, spacing: Tokens.Spacing.space3) {
+            Picker(
+                catalog[.todayScopeLabel],
+                selection: Binding(
+                    get: { studio.scope }, set: { scope in Task { await studio.select(scope) } }
+                )
+            ) {
+                Text(studio.scopeMineText).tag(StudioDayModel.Scope.mine)
+                Text(studio.scopeStudioText).tag(StudioDayModel.Scope.studio)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityLabel(catalog[.todayScopeLabel])
+            .accessibilityIdentifier("today.scope")
+            if let line = studio.isStudio ? studio.line : model.summaryText {
+                Text(line)
+                    .font(.system(Tokens.TextStyle.subhead))
+                    .foregroundStyle(Tokens.Colors.textSecondary)
+                    .padding(.horizontal, Tokens.Spacing.space1)
+                    .accessibilityIdentifier("today.scope.line")
+            }
+        }
     }
 
     private var retry: some View {

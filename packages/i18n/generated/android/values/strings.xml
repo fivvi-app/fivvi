@@ -521,6 +521,32 @@
     <string name="my_day_app_removed">Je hebt geen toegang meer tot %1$s.</string>
     <string name="my_day_app_retry">Opnieuw</string>
     <string name="my_day_app_route">Route vandaag</string>
+    <!-- Accessibility label of the segmented control Mijn dag | Hele studio on Vandaag (the Owner of a workspace with a team). -->
+    <string name="my_day_app_scope_label">Weergave</string>
+    <!-- Segment of the control on Vandaag: the Owner’s own day across workspaces. -->
+    <string name="my_day_app_scope_mine">Mijn dag</string>
+    <!-- Segment of the control on Vandaag: the whole workspace’s day, one lane per trainer. -->
+    <string name="my_day_app_scope_studio">Hele studio</string>
+    <!-- Accessible name of a session block in a trainer’s lane: {trainer}: {title} {start}. -->
+    <string name="my_day_app_studio_block">%3$s: %2$s %1$s</string>
+    <!-- Head of the team card: the busiest moment of the day, {count} sessions at once. -->
+    <string name="my_day_app_studio_busiest">Drukst %2$s–%3$s · %1$s tegelijk</string>
+    <!-- Line under the control on Hele studio; {words} is the workspace’s word for the people who teach. -->
+    <string name="my_day_app_studio_line">Alles bij %2$s vandaag, van alle %1$s.</string>
+    <!-- Head of the team card when no two sessions overlap. -->
+    <string name="my_day_app_studio_no_overlap">Geen overlap</string>
+    <!-- Label of the lane (and the row) of sessions that have no trainer yet. -->
+    <string name="my_day_app_studio_no_trainer">Geen %1$s</string>
+    <!-- Line on the next card of Hele studio: {Word}: {name}; the name is Jij’s lowercase form for the Owner’s own session. -->
+    <string name="my_day_app_studio_trainer">%1$s: %2$s</string>
+    <!-- Head of the team card with two or more people teaching today: {count} {words}, with the workspace’s word. -->
+    <string name="my_day_app_studio_trainers_many">%1$s %2$s</string>
+    <!-- Head of the team card with one person teaching today: {count} {word}, with the workspace’s word. -->
+    <string name="my_day_app_studio_trainers_one">%1$s %2$s</string>
+    <!-- Label of the signed-in Owner’s own lane on Hele studio. -->
+    <string name="my_day_app_studio_you">Jij</string>
+    <!-- The Owner’s own session on the next card of Hele studio: Trainer: jij. -->
+    <string name="my_day_app_studio_you_lower">jij</string>
     <plurals name="my_day_app_summary">
         <item quantity="one">%1$d sessie · %3$s–%4$s · %2$s klaar</item>
         <item quantity="other">%1$d sessies · %3$s–%4$s · %2$s klaar</item>

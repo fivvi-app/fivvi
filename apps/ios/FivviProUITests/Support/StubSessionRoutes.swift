@@ -82,7 +82,8 @@ final class StubSessionRoutes: @unchecked Sendable {
     }
 
     var trainers: [[String: Any]] {
-        [["id": Self.myMemberID, "name": myName], ["id": Self.otherMemberID, "name": Self.otherTrainerName]]
+        let own: [String: Any] = ["id": Self.myMemberID, "name": myName]
+        return signIn.hasTeam ? [own, ["id": Self.otherMemberID, "name": Self.otherTrainerName]] : [own]
     }
 
     private func session(

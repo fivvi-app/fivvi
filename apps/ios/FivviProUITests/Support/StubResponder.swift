@@ -200,11 +200,8 @@ final class Responder: @unchecked Sendable {
         case ("POST", "/api/v1/sign-out"):
             let works = authorization == "Bearer \(signIn.token)"
             send(connection, status: works ? 204 : 401, json: works ? nil : Self.unauthorized)
-        case ("GET", "/api/v1/me/day"):
-            let date = query["date"] ?? ""
-            let works = authorization == "Bearer \(signIn.token)"
-            let reply = works ? personalRoutes.respond(date: date) : (401, Self.notSignedIn)
-            send(connection, status: reply.0, json: reply.1)
+        case ("GET", _) where Self.isDayRoute(path):
+            respondToDay(connection, path: path, date: query["date"] ?? "", authorization: authorization)
         case (_, _) where Self.isAccountRoute(method: method, path: path):
             respondToAccountRoute(
                 connection, method: method, path: path, authorization: authorization, fields: stringFields
@@ -215,6 +212,24 @@ final class Responder: @unchecked Sendable {
                 : clientReply(method: method, path: path, query: query, body: json, authorization: authorization)
             answerClientRoute(connection, method: method, path: path, reply: reply)
         }
+    }
+
+    /// The day routes: the person's own (`GET /api/v1/me/day`, F013) and a workspace's
+    /// (`GET /api/v1/workspaces/{id}/day`, F014).
+    static func isDayRoute(_ path: String) -> Bool {
+        path == "/api/v1/me/day" || path.hasPrefix("/api/v1/workspaces/") && path.hasSuffix("/day")
+    }
+
+    func respondToDay(_ connection: NWConnection, path: String, date: String, authorization: String?) {
+        let reply: (Int, [String: Any])
+        if authorization != "Bearer \(signIn.token)" {
+            reply = (401, Self.notSignedIn)
+        } else if path == "/api/v1/me/day" {
+            reply = personalRoutes.respond(date: date)
+        } else {
+            reply = personalRoutes.respondWorkspaceDay(date: date, ownName: signIn.name ?? "Owner")
+        }
+        send(connection, status: reply.0, json: reply.1)
     }
 
     /// Answers a client route, unless reads of one client are on hold: then when they are released.

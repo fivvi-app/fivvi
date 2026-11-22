@@ -8086,6 +8086,240 @@
         }
       }
     },
+    "myDay.app.scopeLabel" : {
+      "comment" : "Accessibility label of the segmented control Mijn dag | Hele studio on Vandaag (the Owner of a workspace with a team).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weergave"
+          }
+        }
+      }
+    },
+    "myDay.app.scopeMine" : {
+      "comment" : "Segment of the control on Vandaag: the Owner’s own day across workspaces.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My day"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mijn dag"
+          }
+        }
+      }
+    },
+    "myDay.app.scopeStudio" : {
+      "comment" : "Segment of the control on Vandaag: the whole workspace’s day, one lane per trainer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whole studio"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hele studio"
+          }
+        }
+      }
+    },
+    "myDay.app.studioBlock" : {
+      "comment" : "Accessible name of a session block in a trainer’s lane: {trainer}: {title} {start}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%3$@: %2$@ %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%3$@: %2$@ %1$@"
+          }
+        }
+      }
+    },
+    "myDay.app.studioBusiest" : {
+      "comment" : "Head of the team card: the busiest moment of the day, {count} sessions at once.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Busiest %2$@–%3$@ · %1$@ at once"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drukst %2$@–%3$@ · %1$@ tegelijk"
+          }
+        }
+      }
+    },
+    "myDay.app.studioLine" : {
+      "comment" : "Line under the control on Hele studio; {words} is the workspace’s word for the people who teach.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything at %2$@ today, from all %1$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles bij %2$@ vandaag, van alle %1$@."
+          }
+        }
+      }
+    },
+    "myDay.app.studioNoOverlap" : {
+      "comment" : "Head of the team card when no two sessions overlap.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No overlap"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen overlap"
+          }
+        }
+      }
+    },
+    "myDay.app.studioNoTrainer" : {
+      "comment" : "Label of the lane (and the row) of sessions that have no trainer yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen %1$@"
+          }
+        }
+      }
+    },
+    "myDay.app.studioTrainer" : {
+      "comment" : "Line on the next card of Hele studio: {Word}: {name}; the name is Jij’s lowercase form for the Owner’s own session.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "myDay.app.studioTrainersMany" : {
+      "comment" : "Head of the team card with two or more people teaching today: {count} {words}, with the workspace’s word.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "myDay.app.studioTrainersOne" : {
+      "comment" : "Head of the team card with one person teaching today: {count} {word}, with the workspace’s word.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "myDay.app.studioYou" : {
+      "comment" : "Label of the signed-in Owner’s own lane on Hele studio.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jij"
+          }
+        }
+      }
+    },
+    "myDay.app.studioYouLower" : {
+      "comment" : "The Owner’s own session on the next card of Hele studio: Trainer: jij.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "you"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "jij"
+          }
+        }
+      }
+    },
     "myDay.app.summary" : {
       "extractionState" : "manual",
       "localizations" : {
