@@ -72,7 +72,7 @@ test.describe('F014 AC15 the pilot-shaped week on a preview', () => {
     appLocale,
     messages: copy,
   }, testInfo) => {
-    if (!target || calendarTargetRefusal(target)) return;
+    if (!target) return; // the describe-level skips above cover the refused targets
     const environment = signInLogEnvironment(target, process.env.BUDGETS_RAILWAY_ENVIRONMENT);
     await signInWithLog(page, environment, copy);
 
@@ -94,7 +94,8 @@ test.describe('F014 AC15 the pilot-shaped week on a preview', () => {
     const blocks = page.getByRole('main').locator('button[aria-haspopup="dialog"]');
 
     // As the budgets of the site: a run on a busy network is slower, never faster, so a week that is
-    // over a budget is measured again and the best run counts; every run is in the result.
+    // over a budget is measured again; the first run within both budgets counts, else the closest one,
+    // and every run is in the result.
     const timing: CalendarTiming = { locale: appLocale, sessions: 0, requestMs: [], renderMs: [] };
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       const requested = Date.now();

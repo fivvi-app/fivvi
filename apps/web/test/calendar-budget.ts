@@ -197,7 +197,8 @@ const listed = (runs: readonly number[]) => runs.map((ms) => Math.round(ms)).joi
 
 /**
  * The result of a run as Markdown, short enough to paste on the PR: one line per language with the
- * best run and every run of the request and of the render, and the verdict.
+ * counted run (the first within both budgets, else the closest) and every run of the request and of
+ * the render, and the verdict.
  */
 export function summarizeCalendarTiming({
   target,
