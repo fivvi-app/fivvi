@@ -23,8 +23,11 @@ import { e2eRun } from './test/e2e-run';
 
 const ci = Boolean(process.env.CI);
 
-/** The Lighthouse budgets of the public website (F064 AC15): a run of their own, `pnpm test:budgets`. */
-const BUDGET_SPEC = /site-budgets\.spec\.ts$/;
+/**
+ * The budgets: the Lighthouse budgets of the public website (F064 AC15) and the timing of the
+ * workspace calendar's pilot week on a preview (F014 AC15, #1543): a run of their own, `pnpm test:budgets`.
+ */
+const BUDGET_SPEC = /(site|calendar)-budgets\.spec\.ts$/;
 
 /**
  * `pnpm test:budgets` sets E2E_BUDGETS: the run is the `budgets-*` projects and nothing else. The
@@ -33,7 +36,8 @@ const BUDGET_SPEC = /site-budgets\.spec\.ts$/;
  *
  * `BUDGETS_BASE_URL` (a deployed site, such as a PR's Railway preview) points the budgets at that
  * address instead of the local build: no web server and no database start, the go-live proxy
- * (e2e/go-live-proxy.ts) sits in front of the address. It implies the budgets run.
+ * (e2e/go-live-proxy.ts) sits in front of the address of the website's budgets. It implies the
+ * budgets run. The calendar's budget (`calendar-budgets.spec.ts`) is timed only on such an address.
  */
 const budgetsTargetUrl = budgetsTarget(process.env.BUDGETS_BASE_URL);
 const budgets = Boolean(process.env.E2E_BUDGETS) || budgetsTargetUrl !== undefined;
