@@ -15437,6 +15437,42 @@
         }
       }
     },
+    "workspaceDashboard.addGroup" : {
+      "comment" : "Button of the new-workspace welcome on the Dashboard (WC-01) that opens the dialog to plan a class date (F021). Group class: the glossary word for a class (groepsles).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add group class"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groepsles toevoegen"
+          }
+        }
+      }
+    },
+    "workspaceDashboard.addPrivate" : {
+      "comment" : "Button of the new-workspace welcome on the Dashboard (WC-01) that opens the dialog to plan a private session (PS-01).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add private session"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privésessie toevoegen"
+          }
+        }
+      }
+    },
     "workspaceDashboard.assign" : {
       "comment" : "Button of an Aandacht nodig row that opens the session to give it a trainer (GLOSSARY §4.1: toewijzen, never koppelen).",
       "extractionState" : "manual",
@@ -15905,6 +15941,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vandaag · %1$@"
+          }
+        }
+      }
+    },
+    "workspaceDashboard.welcome" : {
+      "comment" : "Shown on the Dashboard of a new workspace, where nothing has ever been planned, instead of the empty-day text (WC-01). Two sentences; the second points at the two buttons that follow (class timetable, private session).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to Fivvi. Start with your class timetable or a private session."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welkom bij Fivvi. Begin met je lesrooster of een privésessie."
           }
         }
       }

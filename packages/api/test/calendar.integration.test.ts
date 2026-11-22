@@ -75,6 +75,7 @@ interface DayBody {
   timeZone: string;
   items: Item[];
   attention: Item[];
+  hasSessions: boolean;
   busiest?: { startsAt: string; endsAt: string; timeZone: string; atOnce: number };
 }
 
@@ -874,6 +875,73 @@ describe('F014 the workspace calendar and day through the API', () => {
       });
     });
 
+    describe('#1544: hasSessions tells a new workspace from one with nothing today', () => {
+      /** A workspace of its own with John as Owner, and nothing planned in it. */
+      async function newWorkspace(label: string) {
+        const workspace = await createWorkspace(admin.db, { label });
+        const owner = await createAccount(admin.db, { label: `${label}-owner` });
+        await addTeamRole(admin.db, {
+          workspaceId: workspace.id,
+          accountId: owner.id,
+          role: 'owner',
+          trainsHere: true,
+        });
+        return { workspace, owner, trainer: await profileOf(workspace.id, owner.id) };
+      }
+
+      const hasSessions = async (workspaceId: string, who: { id: string }) =>
+        ((await (await day(workspaceId, '', who)).json()) as DayBody).hasSessions;
+
+      it('is false for a workspace with no session ever, even when another workspace has some', async () => {
+        const w = await world();
+        const fresh = await newWorkspace('brand-new');
+
+        const body = (await (await day(fresh.workspace.id, '', fresh.owner)).json()) as DayBody;
+
+        expect(body).toMatchObject({ items: [], attention: [], hasSessions: false });
+        // The seeded gym next door has sessions: they are not this workspace's.
+        expect(await hasSessions(w.gym.id, w.john)).toBe(true);
+      });
+
+      it('is true for any session of the workspace: a past one, a cancelled one, a planned one', async () => {
+        const past = await newWorkspace('only-past');
+        await addSession(admin.db, {
+          workspaceId: past.workspace.id,
+          trainerProfileId: past.trainer,
+          startsAt: zonedTime('2026-08-04T10:00'),
+        });
+        const cancelled = await newWorkspace('only-cancelled');
+        await addSession(admin.db, {
+          workspaceId: cancelled.workspace.id,
+          trainerProfileId: cancelled.trainer,
+          status: 'cancelled',
+          startsAt: zonedTime('2026-10-20T10:00'),
+        });
+        const planned = await newWorkspace('only-planned');
+        await addSession(admin.db, {
+          workspaceId: planned.workspace.id,
+          trainerProfileId: planned.trainer,
+          startsAt: zonedTime('2026-12-01T10:00'),
+        });
+
+        // Nothing today in any of them: the day is empty, the workspace is not new.
+        for (const { workspace, owner } of [past, cancelled, planned]) {
+          const body = (await (await day(workspace.id, '', owner)).json()) as DayBody;
+          expect(body.items).toEqual([]);
+          expect(body.hasSessions).toBe(true);
+        }
+      });
+
+      it('is true on a day with rows too', async () => {
+        const w = await world();
+
+        const body = (await (await day(w.gym.id, 'date=2026-09-22', w.john)).json()) as DayBody;
+
+        expect(body.items.length).toBeGreaterThan(0);
+        expect(body.hasSessions).toBe(true);
+      });
+    });
+
     it('names the class in the viewer’s language', async () => {
       const w = await world();
       await addSession(admin.db, {
@@ -920,6 +988,12 @@ describe('F014 the workspace calendar and day through the API', () => {
         operationId: 'getWorkspaceDay',
         'x-access': access('calendar.manage', ['owner']),
       });
+    });
+
+    it('#1544: hasSessions is a required boolean of the day', () => {
+      const schema = contract.components.schemas.WorkspaceDay;
+      expect(schema.required).toContain('hasSessions');
+      expect(schema.properties.hasSessions.type).toBe('boolean');
     });
 
     it('#1538: the day names its busiest moment as UTC instants with the zone and a count, none when absent', () => {

@@ -78,6 +78,7 @@ const day = (overrides: Partial<Schemas['WorkspaceDay']> = {}): Schemas['Workspa
   timeZone: 'Europe/Amsterdam',
   items: [mark, kracht, lisa, krachtCancelled],
   attention: [boxing],
+  hasSessions: true,
   ...overrides,
 });
 
@@ -279,6 +280,31 @@ describe.each(locales)('F014 the Owner’s Dashboard in %s', (locale) => {
     expect(html).not.toContain('<table');
     expect(text(html)).toContain(copy.attentionTitle);
     expect(text(html)).toContain(copy.toCalendar);
+  });
+
+  it('#1544: a new workspace, with no session ever, welcomes the Owner instead of the empty-day text', () => {
+    const html = draw({ items: [], attention: [], hasSessions: false });
+
+    expect(text(html)).toContain(copy.welcome);
+    expect(text(html)).not.toContain(copy.emptyDay.replace('{workspace}', 'Pilot Gym'));
+    expect(text(html)).not.toContain(copy.sessionsToday);
+    // The rest of the page stays: Aandacht nodig (nothing open) and the way to the Agenda.
+    expect(text(html)).toContain(copy.attentionTitle);
+    expect(text(html)).toContain(copy.toCalendar);
+  });
+
+  it('#1544: a workspace with sessions but none today keeps the empty-day text, not the welcome', () => {
+    const html = draw({ items: [], hasSessions: true });
+
+    expect(text(html)).toContain(copy.emptyDay.replace('{workspace}', 'Pilot Gym'));
+    expect(text(html)).not.toContain(copy.welcome);
+  });
+
+  it('#1544: the welcome never replaces a day that has rows', () => {
+    const html = draw({ hasSessions: false });
+
+    expect(text(html)).toContain(copy.sessionsToday);
+    expect(text(html)).not.toContain(copy.welcome);
   });
 
   it('Mijn dag | workspace: the toggle opens the Owner’s own day, the workspace is the current one', () => {

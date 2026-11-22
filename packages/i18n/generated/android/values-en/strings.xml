@@ -903,6 +903,8 @@
     <string name="workspace_calendar_type_private_session">Private session</string>
     <string name="workspace_calendar_when">%1$s · %3$s–%2$s</string>
     <string name="workspace_calendar_you">You</string>
+    <string name="workspace_dashboard_add_group">Add group class</string>
+    <string name="workspace_dashboard_add_private">Add private session</string>
     <string name="workspace_dashboard_assign">Assign</string>
     <string name="workspace_dashboard_assign_label">Assign: %1$s</string>
     <string name="workspace_dashboard_attention_no_trainer">%2$s, %1$s %3$s: no %4$s yet</string>
@@ -930,6 +932,7 @@
     <string name="workspace_dashboard_title">Dashboard</string>
     <string name="workspace_dashboard_to_calendar">Go to calendar</string>
     <string name="workspace_dashboard_today">Today · %1$s</string>
+    <string name="workspace_dashboard_welcome">Welcome to Fivvi. Start with your class timetable or a private session.</string>
     <string name="workspace_nav_booking_links">Booking links</string>
     <string name="workspace_nav_calendar">Calendar</string>
     <string name="workspace_nav_classes">Classes</string>

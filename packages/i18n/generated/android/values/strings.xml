@@ -1124,6 +1124,10 @@
     <string name="workspace_calendar_type_private_session">Privésessie</string>
     <string name="workspace_calendar_when">%1$s · %3$s–%2$s</string>
     <string name="workspace_calendar_you">Jij</string>
+    <!-- Button of the new-workspace welcome on the Dashboard (WC-01) that opens the dialog to plan a class date (F021). Group class: the glossary word for a class (groepsles). -->
+    <string name="workspace_dashboard_add_group">Groepsles toevoegen</string>
+    <!-- Button of the new-workspace welcome on the Dashboard (WC-01) that opens the dialog to plan a private session (PS-01). -->
+    <string name="workspace_dashboard_add_private">Privésessie toevoegen</string>
     <!-- Button of an Aandacht nodig row that opens the session to give it a trainer (GLOSSARY §4.1: toewijzen, never koppelen). -->
     <string name="workspace_dashboard_assign">Toewijzen</string>
     <!-- Accessible name of the Toewijzen button: the word first, then the row it belongs to. -->
@@ -1164,6 +1168,8 @@
     <string name="workspace_dashboard_to_calendar">Naar de agenda</string>
     <!-- Line above the Dashboard: "VANDAAG · DINSDAG 22 SEPTEMBER" (the screen sets it in capitals). {date} is the weekday and date in the reader's language. -->
     <string name="workspace_dashboard_today">Vandaag · %1$s</string>
+    <!-- Shown on the Dashboard of a new workspace, where nothing has ever been planned, instead of the empty-day text (WC-01). Two sentences; the second points at the two buttons that follow (class timetable, private session). -->
+    <string name="workspace_dashboard_welcome">Welkom bij Fivvi. Begin met je lesrooster of een privésessie.</string>
     <string name="workspace_nav_booking_links">Boekingslinks</string>
     <string name="workspace_nav_calendar">Agenda</string>
     <string name="workspace_nav_classes">Lessen</string>
