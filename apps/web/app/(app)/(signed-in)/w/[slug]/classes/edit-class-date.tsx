@@ -42,18 +42,21 @@ export function EditClassDate({
   workspaceId,
   session,
   ownDate,
+  startOpen = false,
 }: {
   workspaceId: string;
   session: Session;
   /** The date's trainer is the signed-in person: PS-07 says "Je hebt dan al iets". */
   ownDate: boolean;
+  /** The dialog is open from the start (`?edit=1`). */
+  startOpen?: boolean;
 }) {
   const t = useTranslations('classes.edit');
   const date = useTranslations('classes.date');
   const e = useTranslations('classes.edit.errors');
   const router = useRouter();
   const { day, localDate } = useSessionFormat(session.timeZone);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const [version, setVersion] = useState(session.version);
   const [value, setValue] = useState(() => valuesOf(session));
   const [errors, setErrors] = useState<Extract<EditDateResult, { reason: 'fields' }> | null>(null);

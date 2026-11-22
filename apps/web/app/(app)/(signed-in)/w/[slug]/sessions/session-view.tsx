@@ -23,6 +23,7 @@ export function SessionView({
   defaultLocale,
   canMove,
   teamMemberId,
+  startMoving = false,
   trainerWord,
 }: {
   workspaceId: string;
@@ -38,6 +39,8 @@ export function SessionView({
    * it is the session's trainer's ID, and PS-07 words the warning for themself; never by name.
    */
   teamMemberId: string;
+  /** PS-05 opens at once (the calendar's *Verplaatsen*). */
+  startMoving?: boolean;
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('sessions.page');
@@ -92,6 +95,7 @@ export function SessionView({
               client={client}
               defaultLocale={defaultLocale}
               ownSession={ownSession}
+              startOpen={startMoving}
             />
           ) : null}
           <Button asChild variant="outline">

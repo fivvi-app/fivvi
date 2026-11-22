@@ -2,11 +2,13 @@ import { AMSTERDAM } from '@fivvi/testing/clock';
 import { describe, expect, it } from 'vitest';
 import {
   type CalendarFilters,
+  capOverlaps,
   clockChangeOn,
   filterCalendarItems,
   layoutOverlaps,
   mondayOf,
   placeInDay,
+  weekAxis,
   weekDates,
 } from './calendar-grid.ts';
 
@@ -156,5 +158,74 @@ describe('F013 AC10: the filters', () => {
     expect(ids(filterCalendarItems(items, { ...all, hiddenWorkspaceIds: ['gone'] }))).toHaveLength(
       4,
     );
+  });
+});
+
+// F014 (spec #458, ticket #529): the hour axis of a week with a clock change, and the cap on
+// blocks side by side.
+describe('F014 AC13: repeated and skipped hours', () => {
+  const at = (iso: string) => new Date(iso);
+
+  it('an ordinary week has the wall clock as its axis', () => {
+    const axis = weekAxis(weekDates('2026-09-22'), AMSTERDAM);
+    expect(axis.minute('2026-09-22', at('2026-09-22T08:00:00Z'))).toBe(600);
+    expect(axis.labelHour(10)).toBe(10);
+    expect(axis.totalMinutes).toBe(1440);
+  });
+
+  it('a week that ends with the clocks going back shows 02:00 twice, on 25 October', () => {
+    const axis = weekAxis(weekDates('2026-10-25'), AMSTERDAM);
+    expect(axis.totalMinutes).toBe(1500);
+    // 02:30 summer time (00:30Z), 02:30 winter time (01:30Z), then 03:00 (02:00Z).
+    expect(axis.minute('2026-10-25', at('2026-10-25T00:30:00Z'))).toBe(150);
+    expect(axis.minute('2026-10-25', at('2026-10-25T01:30:00Z'))).toBe(210);
+    expect(axis.minute('2026-10-25', at('2026-10-25T02:00:00Z'))).toBe(240);
+    expect([2, 3, 4].map(axis.labelHour)).toEqual([2, 2, 3]);
+    // The other days keep their hours, one row lower from 03:00 on: Tuesday 10:00 is 09:00Z.
+    expect(axis.minute('2026-10-20', at('2026-10-20T08:00:00Z'))).toBe(660);
+    expect(axis.labelHour(11)).toBe(10);
+  });
+
+  it('a week that ends with the clocks going forward skips 02:00, on 28 March', () => {
+    const axis = weekAxis(weekDates('2027-03-28'), AMSTERDAM);
+    expect(axis.totalMinutes).toBe(1380);
+    // 01:30 (00:30Z), then 03:30 summer time (01:30Z) comes straight after 02:30's row would have.
+    expect(axis.minute('2027-03-28', at('2027-03-28T00:30:00Z'))).toBe(90);
+    expect(axis.minute('2027-03-28', at('2027-03-28T01:30:00Z'))).toBe(150);
+    expect([1, 2].map(axis.labelHour)).toEqual([1, 3]);
+    expect(axis.minute('2027-03-23', at('2027-03-23T09:00:00Z'))).toBe(540);
+    expect(axis.labelHour(9)).toBe(10);
+  });
+
+  it('a session that runs past midnight ends at the end of its own day', () => {
+    const axis = weekAxis(weekDates('2026-10-25'), AMSTERDAM);
+    expect(axis.minute('2026-10-25', at('2026-10-25T23:30:00Z'))).toBe(1500);
+    expect(axis.minute('2026-10-20', at('2026-10-20T23:30:00Z'))).toBe(1500);
+  });
+});
+
+describe('F014 WC-02: up to 3 overlapping blocks, then +{n} meer', () => {
+  const block = (startMinute: number, endMinute: number) => ({ startMinute, endMinute });
+
+  it('leaves a group of up to 3 as it is', () => {
+    const placed = layoutOverlaps([block(600, 660), block(600, 660), block(600, 660)]);
+    expect(capOverlaps(placed, 3)).toEqual({ shown: placed, more: [] });
+  });
+
+  it('shows 3 lanes of a bigger group and counts the rest in a lane of their own', () => {
+    const placed = layoutOverlaps([
+      block(600, 660),
+      block(600, 660),
+      block(600, 660),
+      block(615, 660),
+      block(630, 700),
+      block(800, 860),
+    ]);
+    const { shown, more } = capOverlaps(placed, 3);
+    expect(shown.filter((entry) => entry.startMinute === 600)).toHaveLength(3);
+    expect(shown.filter((entry) => entry.lanes === 4)).toHaveLength(3);
+    expect(more).toEqual([{ startMinute: 615, endMinute: 700, count: 2, lane: 3, lanes: 4 }]);
+    // The block that overlaps nothing keeps the whole width.
+    expect(shown.find((entry) => entry.startMinute === 800)).toMatchObject({ lane: 0, lanes: 1 });
   });
 });

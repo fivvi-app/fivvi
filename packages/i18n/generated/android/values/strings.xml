@@ -1072,9 +1072,50 @@
     <string name="welcome_workspace_name_hint">Bijvoorbeeld John\'s Gym</string>
     <!-- Label of the field for the name of the gym or business on TW-11. The workspace itself, worded as the person's own business (GLOSSARY §4.1: prefer this over the word werkruimte). -->
     <string name="welcome_workspace_name_label">Naam van je sportschool of bedrijf</string>
+    <plurals name="workspace_calendar_booked_line">
+        <item quantity="one">%1$s/%2$s geboekt · %3$d plek vrij</item>
+        <item quantity="other">%1$s/%2$s geboekt · %3$d plekken vrij</item>
+    </plurals>
+    <string name="workspace_calendar_change">Wijzigen</string>
+    <string name="workspace_calendar_changed_from_series">Aangepast t.o.v. de reeks</string>
+    <string name="workspace_calendar_client_profile">Klantprofiel</string>
+    <string name="workspace_calendar_close">Sluiten</string>
+    <string name="workspace_calendar_column_location">Locatie</string>
+    <string name="workspace_calendar_column_trainer">%1$s</string>
+    <string name="workspace_calendar_empty_day">Geen sessies op deze dag.</string>
+    <string name="workspace_calendar_empty_week">Nog niets gepland deze week.</string>
+    <string name="workspace_calendar_error_title">De agenda kon niet laden.</string>
+    <string name="workspace_calendar_filter_trainers">%1$s</string>
+    <string name="workspace_calendar_legend_needs_action">actie nodig</string>
+    <string name="workspace_calendar_legend_scheduled">gepland</string>
+    <string name="workspace_calendar_more">+%1$s meer</string>
+    <plurals name="workspace_calendar_more_hint">
+        <item quantity="one">%1$d sessie meer, open de dag</item>
+        <item quantity="other">%1$d sessies meer, open de dag</item>
+    </plurals>
+    <string name="workspace_calendar_move">Verplaatsen</string>
+    <string name="workspace_calendar_new_group">+ Groepsles</string>
+    <string name="workspace_calendar_new_private">+ Privésessie</string>
+    <string name="workspace_calendar_no_trainer">Geen %1$s</string>
+    <string name="workspace_calendar_no_trainer_mark">! Nog geen %1$s</string>
+    <string name="workspace_calendar_open">Openen</string>
+    <string name="workspace_calendar_quick_view">Snelle weergave</string>
+    <string name="workspace_calendar_retry">Opnieuw proberen</string>
+    <string name="workspace_calendar_series_line">Elke %2$s %1$s</string>
+    <string name="workspace_calendar_shortcut_list">T: vandaag · ← →: vorige of volgende · D, W, L: dag, week of lijst · N: nieuw</string>
+    <string name="workspace_calendar_shortcuts">Sneltoetsen</string>
+    <string name="workspace_calendar_spoken_booked">%1$s van %2$s geboekt</string>
+    <string name="workspace_calendar_title">Agenda</string>
+    <string name="workspace_calendar_today_mark">Vandaag</string>
+    <string name="workspace_calendar_trainer_line">%1$s: %2$s</string>
+    <string name="workspace_calendar_type_group_class">Groepsles</string>
+    <string name="workspace_calendar_type_private_session">Privésessie</string>
+    <string name="workspace_calendar_when">%1$s · %3$s–%2$s</string>
+    <string name="workspace_calendar_you">Jij</string>
     <!-- Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive. -->
     <string name="workspace_home_description">Hier komt binnenkort het overzicht van je sportschool of bedrijf.</string>
     <string name="workspace_nav_booking_links">Boekingslinks</string>
+    <string name="workspace_nav_calendar">Agenda</string>
     <string name="workspace_nav_classes">Lessen</string>
     <string name="workspace_nav_clients">Klanten</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->

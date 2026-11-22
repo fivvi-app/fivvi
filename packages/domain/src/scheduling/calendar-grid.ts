@@ -100,6 +100,101 @@ export function layoutOverlaps<T extends OverlapBlock>(
   return placed;
 }
 
+/** The blocks shown, and for each stretch with more blocks side by side than fit, the ones left out. */
+export interface CappedOverlaps<T> {
+  readonly shown: (T & { readonly lane: number; readonly lanes: number })[];
+  /** *+{n} meer*: a lane of its own beside the shown ones, from the first hidden block to the last. */
+  readonly more: readonly {
+    readonly startMinute: number;
+    readonly endMinute: number;
+    readonly count: number;
+    readonly lane: number;
+    readonly lanes: number;
+  }[];
+}
+
+/**
+ * Up to `max` blocks side by side (WC-02: 3), then *+{n} meer*: of a group of overlapping blocks
+ * (as `layoutOverlaps` laid them out) that needs more lanes, the first `max` lanes stay and the
+ * others are counted in one more lane, which the shown blocks leave room for.
+ */
+export function capOverlaps<T extends OverlapBlock & { lane: number; lanes: number }>(
+  placed: readonly T[],
+  max: number,
+): CappedOverlaps<T> {
+  const shown: CappedOverlaps<T>['shown'] = [];
+  const more: {
+    startMinute: number;
+    endMinute: number;
+    count: number;
+    lane: number;
+    lanes: number;
+  }[] = [];
+  const groups: T[][] = [];
+  let groupEnd = -1;
+  for (const block of placed) {
+    if (groups.length === 0 || block.startMinute >= groupEnd) groups.push([]);
+    groups[groups.length - 1]?.push(block);
+    groupEnd = Math.max(groupEnd, block.endMinute);
+  }
+  for (const group of groups) {
+    const hidden = group.filter(({ lane }) => lane >= max);
+    if (hidden.length === 0) {
+      shown.push(...group);
+      continue;
+    }
+    for (const block of group) if (block.lane < max) shown.push({ ...block, lanes: max + 1 });
+    more.push({
+      startMinute: Math.min(...hidden.map(({ startMinute }) => startMinute)),
+      endMinute: Math.max(...hidden.map(({ endMinute }) => endMinute)),
+      count: hidden.length,
+      lane: max,
+      lanes: max + 1,
+    });
+  }
+  return { shown, more };
+}
+
+/**
+ * The hours of a week's grid (WC-02, AC13): rows follow the clock, except that a week with a clock
+ * change has the hour that is repeated (25 October) as a second row, and the hour that is skipped
+ * (28 March) as none, so a block's height is its real duration. A grid minute counts from the
+ * start of the day: on the changing day in elapsed time, on the other days in wall-clock time
+ * moved by the change from 03:00 on.
+ */
+export interface WeekAxis {
+  /** The grid minute of `instant` in the column of `date`; the end of the column for a later day. */
+  minute(date: string, instant: Date): number;
+  /** The wall-clock hour the row of grid hour `gridHour` is marked with. */
+  labelHour(gridHour: number): number;
+  /** The length of a column: 1440, or 1500 / 1380 in a week with a clock change. */
+  readonly totalMinutes: number;
+}
+
+export function weekAxis(dates: readonly string[], timeZone: string): WeekAxis {
+  const changing = dates.find((date) => clockChangeOn(date, timeZone));
+  const back = changing !== undefined && clockChangeOn(changing, timeZone) === 'back';
+  const shift = changing === undefined ? 0 : back ? 60 : -60;
+  const totalMinutes = MINUTES_PER_DAY + shift;
+  // The wall clock of the other days moves from 03:00 on; the skipped hour (02:00–03:00) has no row.
+  const gridOf = (wall: number) =>
+    back ? (wall < 180 ? wall : wall + 60) : wall < 120 ? wall : wall < 180 ? 120 : wall - 60;
+  return {
+    totalMinutes,
+    labelHour: (hour) =>
+      back ? (hour < 3 ? hour : hour - 1) : shift === 0 || hour < 2 ? hour : hour + 1,
+    minute(date, instant) {
+      const wall = instantToWallClock(instant, timeZone);
+      if (wall.date !== date) return totalMinutes;
+      if (date === changing) {
+        const start = localDayBounds(date, timeZone)?.start.getTime() ?? 0;
+        return Math.round((instant.getTime() - start) / 60_000);
+      }
+      return shift === 0 ? minutesOf(wall.time) : gridOf(minutesOf(wall.time));
+    },
+  };
+}
+
 /** The filters of a personal calendar: what is switched off, so what is new is shown. */
 export interface CalendarFilters {
   readonly hiddenTypes: readonly ('private' | 'group')[];

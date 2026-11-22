@@ -25,6 +25,7 @@ export function ClassDateView({
   canManage,
   canCopyLink,
   ownDate,
+  startEditing = false,
   trainerWord,
 }: {
   workspaceId: string;
@@ -36,6 +37,8 @@ export function ClassDateView({
   canCopyLink: boolean;
   /** The date's trainer is the signed-in person: PS-07 says "Je hebt dan al iets". */
   ownDate: boolean;
+  /** CO-04 opens at once (`?edit=1`, the calendar's *Wijzigen*), for the Owner. */
+  startEditing?: boolean;
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('classes');
@@ -65,7 +68,12 @@ export function ClassDateView({
               <CopyBookingLink workspaceId={workspaceId} sessionId={session.id} />
             ) : null}
             {canManage ? (
-              <EditClassDate workspaceId={workspaceId} session={session} ownDate={ownDate} />
+              <EditClassDate
+                workspaceId={workspaceId}
+                session={session}
+                ownDate={ownDate}
+                startOpen={startEditing}
+              />
             ) : null}
           </div>
         ) : null}

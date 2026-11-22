@@ -46,6 +46,7 @@ export function RescheduleSession({
   client,
   defaultLocale,
   ownSession,
+  startOpen = false,
 }: {
   workspaceId: string;
   session: Session;
@@ -54,10 +55,12 @@ export function RescheduleSession({
   defaultLocale: Locale;
   /** The signed-in person is the session's trainer: PS-07 says "Je hebt dan al iets". */
   ownSession: boolean;
+  /** The dialog is open from the start (`?move=1`). */
+  startOpen?: boolean;
 }) {
   const t = useTranslations('sessions.page');
   const { day, time } = useSessionFormat(session.timeZone);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const [moved, setMoved] = useState<{ message: string; session: Session } | null>(null);
   // The page reloads after a move; until it has, the session the person moved is the newest one.
   const current = moved && moved.session.version > session.version ? moved.session : session;

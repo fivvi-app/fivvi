@@ -26,6 +26,8 @@ export interface WeekGridColumn {
   header: ReactNode;
   /** Today's column is tinted. */
   today?: boolean;
+  /** The minute of the now-line, in grid minutes from the start of the day; none for a column that is not today. */
+  nowMinute?: number;
   blocks: readonly WeekGridBlock[];
 }
 
@@ -42,6 +44,7 @@ export function WeekGrid({
   endHour,
   hourLabel,
   label,
+  minColumnRem,
   className,
 }: {
   columns: readonly WeekGridColumn[];
@@ -53,6 +56,8 @@ export function WeekGrid({
   hourLabel: (hour: number) => string;
   /** What screen readers call the grid. */
   label: string;
+  /** A column never gets narrower than this, in rem: more columns than fit scroll inside the grid (WC-03: more than 5). */
+  minColumnRem?: number;
   className?: string;
 }) {
   const hours = Array.from({ length: endHour - firstHour }, (_, index) => firstHour + index);
@@ -69,7 +74,12 @@ export function WeekGrid({
       tabIndex={0}
       className={cn('overflow-x-auto rounded-xl border bg-card', className)}
     >
-      <div className={columns.length > 2 ? 'min-w-176' : undefined}>
+      <div
+        className={columns.length > 2 && !minColumnRem ? 'min-w-176' : undefined}
+        style={
+          minColumnRem ? { minWidth: `${3.25 + columns.length * minColumnRem}rem` } : undefined
+        }
+      >
         <div
           data-slot="week-grid-header"
           className="sticky top-0 z-10 grid border-b bg-card"
@@ -117,6 +127,14 @@ export function WeekGrid({
               data-today={column.today ? '' : undefined}
               className="relative border-s data-today:bg-accent/5"
             >
+              {column.nowMinute === undefined ? null : (
+                <span
+                  data-slot="week-grid-now"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-accent-text"
+                  style={{ top: (column.nowMinute - firstHour * 60) * MINUTE_PX }}
+                />
+              )}
               {column.blocks.map((block) => (
                 <div
                   key={block.key}
