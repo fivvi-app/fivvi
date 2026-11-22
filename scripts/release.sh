@@ -7,13 +7,16 @@
 #                                  reads a secret
 #   release.sh build-number        prints the build number of this run, the same for every platform of the run: the run
 #                                  number plus a fixed offset (CFBundleVersion and versionCode). A re-run is refused
-#   release.sh tests ios <nl|en>   the iOS suite of one locale on this commit: pnpm test:ios build (SwiftLint, checks and the
-#                                  build for testing), then pnpm test:ios test <locale> --retry-failed: a failed UI test is
-#                                  retried once, on the same simulator, and the run passes when it passes then (#1433; CI never
-#                                  retries a failed test, test-ios.sh has the rules). The workflow runs it once per locale,
-#                                  each in a job of its own like CI's `iOS tests (nl)` and `(en)`, because both locales on one
-#                                  simulator no longer fit the job's timeout (E017). The locale is required: no caller runs
-#                                  both at once any more
+#   release.sh tests ios <nl|en> <1|2>  the iOS suite of one part of one locale on this commit: pnpm test:ios build (SwiftLint,
+#                                  checks and the build for testing), then pnpm test:ios test <locale> --shard <part>/2
+#                                  --retry-failed: half of the locale's test classes, as CI's `iOS tests (nl 1/2)` runs them
+#                                  (#1447), and a failed UI test of the part is retried once, on the same simulator, and the
+#                                  run passes when it passes then (#1433; CI never retries a failed test, test-ios.sh has the
+#                                  rules). The workflow runs it once per locale and part, each in a job of its own like CI's
+#                                  `iOS tests (nl 1/2)` ... `(en 2/2)`: both locales on one simulator outgrew the job's
+#                                  timeout (E017), and then one locale in one xcodebuild outgrew the deadline of
+#                                  test-ios.sh (#1403). The locale and the part are required: no caller runs the whole locale
+#                                  or both at once any more
 #   release.sh tests android       the Android unit and Compose UI tests on this commit: pnpm test:android (ktlint and the
 #                                  checks, the build, the unit tests in nl-NL and en, the release bundle and the Compose UI
 #                                  tests on an emulator). The workflow runs it in its own job, like CI's `Android tests`
@@ -23,7 +26,7 @@
 #                                  requires both platforms in nl and en. Each stops at its first failure; a job that needs
 #                                  these never starts, so nothing is uploaded
 #   release.sh runners <part>...   the last job of a run (#437). The parts are the lines of `ios-parts.sh job`, `<job>=<result>`,
-#                                  for "iOS tests (nl)", "iOS tests (en)" and "iOS release". Says, as an error and in the run's summary, that a job
+#                                  for the four parts "iOS tests (nl 1/2)" ... "iOS tests (en 2/2)" and "iOS release". Says, as an error and in the run's summary, that a job
 #                                  got no GitHub-hosted macOS runner (`<job>=unacquired`: cancelled with no runner and no
 #                                  step), so nothing ran and a new run is the remedy, not a timeout or a test failure. Exits 1
 #                                  then; otherwise prints one plain line and exits 0, and says nothing about runners for a
@@ -68,10 +71,11 @@ suite() {
 tests() {
   case "$1" in
     ios)
-      [ $# -eq 2 ] || usage
+      [ $# -eq 3 ] || usage
       [ "$2" = nl ] || [ "$2" = en ] || usage
+      [ "$3" = 1 ] || [ "$3" = 2 ] || usage
       suite pnpm test:ios build
-      suite pnpm test:ios test "$2" --retry-failed
+      suite pnpm test:ios test "$2" --shard "$3/2" --retry-failed
       ;;
     android)
       [ $# -eq 1 ] || usage
@@ -98,7 +102,7 @@ runners() {
   local part missing=0
   for part in "$@"; do
     case "$part" in
-      "iOS tests (nl)=unacquired" | "iOS tests (en)=unacquired")
+      "iOS tests (nl 1/2)=unacquired" | "iOS tests (nl 2/2)=unacquired" | "iOS tests (en 1/2)=unacquired" | "iOS tests (en 2/2)=unacquired")
         no_runner "${part%=*}" "nothing was built or uploaded" "" ""
         missing=1
         ;;

@@ -141,43 +141,59 @@ describe('E017 AC3: the native suites run first, in both locales', () => {
     fake('xcodebuild');
     fake('security');
     fake('sentry-cli');
-    const result = run(RELEASE, ['tests', 'ios', 'nl'], DISPATCH_ON_MAIN);
+    const result = run(RELEASE, ['tests', 'ios', 'nl', '1'], DISPATCH_ON_MAIN);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /test:ios build/);
     assert.deepEqual(calls(), ['pnpm test:ios build']);
   });
 
-  it("E017 AC3: one locale: the build, then that locale's tests, and passes when both pass", () => {
+  it("E017 AC3 #1403: one part of one locale: the build, then that part's tests, and passes when both pass", () => {
     fake('pnpm');
     for (const locale of ['nl', 'en']) {
-      writeFileSync(log, '');
-      const result = run(RELEASE, ['tests', 'ios', locale], DISPATCH_ON_MAIN);
-      assert.equal(result.status, 0, result.stderr);
-      // The two steps of CI's `iOS build` and `iOS tests (<locale>)`, in one job: no other locale, no all-in-one run. Only
-      // the release retries a failed UI test, once (#1433); CI's own calls stay without the flag.
-      assert.deepEqual(calls(), [
-        'pnpm test:ios build',
-        `pnpm test:ios test ${locale} --retry-failed`,
-      ]);
+      for (const part of ['1', '2']) {
+        writeFileSync(log, '');
+        const result = run(RELEASE, ['tests', 'ios', locale, part], DISPATCH_ON_MAIN);
+        assert.equal(result.status, 0, result.stderr);
+        // The two steps of CI's `iOS build` and `iOS tests (<locale> <part>/2)`, in one job: no other locale or part, no
+        // all-in-one run. Only the release retries a failed UI test, once (#1433); CI's own calls stay without the flag.
+        assert.deepEqual(calls(), [
+          'pnpm test:ios build',
+          `pnpm test:ios test ${locale} --shard ${part}/2 --retry-failed`,
+        ]);
+      }
     }
   });
 
   it('E017 AC3: the tests of the locale do not start after a failed build, and a failed test run fails the suite', () => {
     fake('pnpm', '[ "$2" != build ] || exit 1');
-    assert.notEqual(run(RELEASE, ['tests', 'ios', 'en'], DISPATCH_ON_MAIN).status, 0);
+    assert.notEqual(run(RELEASE, ['tests', 'ios', 'en', '2'], DISPATCH_ON_MAIN).status, 0);
     assert.deepEqual(calls(), ['pnpm test:ios build']);
 
     writeFileSync(log, '');
     fake('pnpm', '[ "$2" != test ] || exit 1');
-    const result = run(RELEASE, ['tests', 'ios', 'en'], DISPATCH_ON_MAIN);
+    const result = run(RELEASE, ['tests', 'ios', 'en', '2'], DISPATCH_ON_MAIN);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /test:ios test en/);
-    assert.deepEqual(calls(), ['pnpm test:ios build', 'pnpm test:ios test en --retry-failed']);
+    assert.deepEqual(calls(), [
+      'pnpm test:ios build',
+      'pnpm test:ios test en --shard 2/2 --retry-failed',
+    ]);
   });
 
-  it('E017 AC3: iOS needs a locale of nl or en: none, another one or two is an error that runs nothing', () => {
+  it('E017 AC3 #1403: iOS needs a locale of nl or en and a part of 1 or 2: anything else is an error that runs nothing', () => {
     fake('pnpm');
-    for (const args of [[], ['de'], ['nl-NL'], [''], ['nl', 'en']]) {
+    for (const args of [
+      [],
+      ['nl'], // the whole locale in one run no longer fits the deadline
+      ['de', '1'],
+      ['nl-NL', '1'],
+      ['', '1'],
+      ['nl', 'en'],
+      ['nl', '0'],
+      ['nl', '3'],
+      ['nl', '1/2'],
+      ['nl', '1', '2'],
+    ]) {
       const result = run(RELEASE, ['tests', 'ios', ...args], DISPATCH_ON_MAIN);
       assert.notEqual(result.status, 0, `ios ${args.join(' ')}`);
       assert.match(result.stderr, /release\.sh/);
@@ -785,7 +801,10 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
       ios,
     } = jobs();
     assert.match(tests, /^ {4}needs: prepare$/m);
-    assert.match(tests, /run: scripts\/release\.sh tests ios \$\{\{ matrix\.locale \}\}/);
+    assert.match(
+      tests,
+      /run: scripts\/release\.sh tests ios \$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}$/m,
+    );
     // The native suites of both platforms run first (spec #169, AC3): the secret job waits for the iOS and the Android
     // tests, so a failing Android suite uploads no iOS build either. #191's Android job needs both as well.
     assert.match(androidTests, /^ {4}needs: prepare$/m);
@@ -844,11 +863,18 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     );
   });
 
-  it('E017 AC3: the iOS tests run in both locales, one job each: a matrix of nl and en, and the release job waits for both', () => {
+  it('E017 AC3 #1403: the iOS tests run in both locales, each in two parts, one job each: a matrix of nl and en by 1 and 2, and the release job waits for all four', () => {
     const { 'ios-tests': tests, ios, runners } = jobs();
-    assert.match(tests, /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\)$/m);
+    assert.match(
+      tests,
+      /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/2\)$/m,
+    );
     assert.match(tests, /^ {6}fail-fast: false$/m);
     assert.match(tests, /^ {8}locale: \[nl, en\]$/m);
+    assert.match(tests, /^ {8}shard: \[1, 2\]$/m);
+    // The same matrix as the one of CI, whose parts the two lanes deal out the same way.
+    const ciTests = readFileSync(join(WORKFLOWS, 'ci.yml'), 'utf8');
+    assert.match(ciTests, /^ {8}locale: \[nl, en\]\n {8}shard: \[1, 2\]$/m);
     // `needs` on a matrix job waits for every leg and needs all of them to succeed, so a failing locale stops the release.
     assert.match(ios, /^ {4}needs: \[prepare, ios-tests, android-tests, android-maestro\]$/m);
     assert.ok(
@@ -859,39 +885,43 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     // The script runs the build and the tests of one locale; no single-language narrowing by variable or flag.
     const script = readFileSync(join(ROOT, 'scripts/release.sh'), 'utf8');
     assert.match(script, /suite pnpm test:ios build/);
-    assert.match(script, /suite pnpm test:ios test "\$2" --retry-failed/);
+    assert.match(script, /suite pnpm test:ios test "\$2" --shard "\$3\/2" --retry-failed/);
     assert.ok(!/IOS_[A-Z_]*LOCALE|--locale|only-test-configuration/.test(script + workflow));
   });
 
-  it('E017 AC3: each iOS test job keeps its own result bundle, named by its locale', () => {
+  it('E017 AC3 #1403: each iOS test job keeps its own result bundle, named by its locale and part', () => {
     const upload = steps(jobs()['ios-tests']).find((step) => step.name === 'Upload test results');
-    assert.match(upload.text, /^ {10}name: ios-release-test-results-\$\{\{ matrix\.locale \}\}$/m);
+    assert.match(
+      upload.text,
+      /^ {10}name: ios-release-test-results-\$\{\{ matrix\.locale \}\}-\$\{\{ matrix\.shard \}\}of2$/m,
+    );
     assert.match(upload.text, /apps\/ios\/\.build\/TestResults-\*\.xcresult/);
     assert.match(upload.text, /apps\/ios\/\.build\/build-for-testing\.log/);
   });
 
-  it("E017 AC3: the job timeout holds the build, one locale's tests and the retry of its failed UI tests (#1433)", () => {
+  it("E017 AC3 #1403: the job timeout holds the build, one part's tests and the retry of its failed UI tests (#1433)", () => {
     const minutes = (job) => Number(job.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
     const ci = readFileSync(join(WORKFLOWS, 'ci.yml'), 'utf8');
     const ciJobs = (id) => ci.slice(ci.indexOf(`\n  ${id}:\n`) + 1).split(/\n  [a-z-]+:\n/)[0];
     const build = minutes(ciJobs('ios-build'));
     const testsOfCi = minutes(ciJobs('ios-tests'));
-    // The retry's deadline, the enumeration's that shows the first run complete before it, and the grace of each, as
-    // scripts/test-ios.sh has them, plus a minute for what the job spends around the retry (the reports, the summary); the
-    // retry boots nothing and settles nothing.
+    // What the release budgets on top of CI's part, as scripts/test-ios.sh has the numbers: the count of the part's tests before the
+    // run (select_shard: the enumeration's deadline and grace, twice when the first try gives nothing), then the retry's
+    // deadline and grace, plus a minute for what the job spends around the retry (the reports, the summary); the retry
+    // boots nothing and settles nothing, and counts nothing again (the part was counted when it was chosen).
     const testIos = readFileSync(join(ROOT, 'scripts/test-ios.sh'), 'utf8');
     const seconds = (name) => Number(testIos.match(new RegExp(`IOS_${name}:-(\\d+)`))[1]);
     const retry = Math.ceil(
-      (seconds('ENUMERATE_DEADLINE') +
+      (2 * (seconds('ENUMERATE_DEADLINE') + seconds('TEST_DEADLINE_GRACE')) +
         seconds('RETRY_DEADLINE') +
-        2 * seconds('TEST_DEADLINE_GRACE') +
+        seconds('TEST_DEADLINE_GRACE') +
         60) /
         60,
     );
     const timeout = minutes(jobs()['ios-tests']);
     assert.ok(
       timeout >= build + testsOfCi + retry,
-      `${timeout} minutes for a build (${build}), the tests of one locale (${testsOfCi}) and a retry (${retry})`,
+      `${timeout} minutes for a build (${build}), the tests of one part (${testsOfCi}), its count and a retry (${retry})`,
     );
     // The comment above the timeout shows the sum, and it is the one this test checks: setup + build + tests + retry.
     const comment = jobs()['ios-tests'].match(/(?:^ {4}#.*\n)+ {4}timeout-minutes:/m)[0];
@@ -907,6 +937,17 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     for (const name of ['RETRY_DEADLINE', 'ENUMERATE_DEADLINE']) {
       assert.ok(comment.includes(`${seconds(name)} s`), `${name} in the comment`);
     }
+    // A part runs under the one deadline of test-ios.sh, as CI's part does (#1447), so it holds the same 44 minutes: the
+    // timeout of CI's parts is what the comment adds, and no more than the deadline alone would need.
+    assert.equal(
+      testsOfCi,
+      Math.ceil((seconds('TEST_DEADLINE') + seconds('TEST_DEADLINE_GRACE') + 310 + 120) / 60),
+      "CI's part timeout is the deadline, its grace, the boot and the other steps, and 2 minutes",
+    );
+  });
+
+  it('E017 #1403: the release pins its iOS test timeout to the parts it runs: 80 minutes for build, one part, its count (two tries) and one retry', () => {
+    assert.equal(Number(jobs()['ios-tests'].match(/^ {4}timeout-minutes: (\d+)$/m)[1]), 80);
   });
 
   it('E017 #1433: only the release retries failed UI tests: CI never passes --retry-failed', () => {
@@ -918,7 +959,7 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
         `${file} runs the suite itself`,
       );
     const script = readFileSync(join(ROOT, 'scripts/release.sh'), 'utf8');
-    assert.match(script, /suite pnpm test:ios test "\$2" --retry-failed/);
+    assert.match(script, /suite pnpm test:ios test "\$2" --shard "\$3\/2" --retry-failed/);
   });
 });
 
@@ -1136,28 +1177,28 @@ describe('E017 AC7: secrets stay in the release job', () => {
 });
 
 describe('#437 E017: a job that got no hosted macOS runner is named as that', () => {
-  const NO_TESTS = (locale) =>
-    `iOS tests (${locale}) got no GitHub-hosted macOS runner; nothing was built or uploaded; start a new Release run (not Re-run)`;
+  const NO_TESTS = (part) =>
+    `iOS tests (${part}) got no GitHub-hosted macOS runner; nothing was built or uploaded; start a new Release run (not Re-run)`;
   const NO_RELEASE =
     'iOS release got no GitHub-hosted macOS runner (if nobody cancelled the run); nothing was signed or uploaded for iOS; start a new Release run (not Re-run)';
 
-  it('iOS tests (nl)=unacquired: the error says no runner and to start a new run, and the run fails', () => {
+  it('iOS tests (nl 1/2)=unacquired: the error says no runner and to start a new run, and the run fails', () => {
     const result = run(RELEASE, [
       'runners',
-      'iOS tests (nl)=unacquired',
-      'iOS tests (en)=success',
+      'iOS tests (nl 1/2)=unacquired',
+      'iOS tests (en 2/2)=success',
       'iOS release=skipped',
     ]);
     assert.equal(result.status, 1, result.stderr);
-    assert.ok(result.stdout.split('\n').includes(`::error::${NO_TESTS('nl')}`), result.stdout);
-    assert.ok(!/iOS release got no|iOS tests \(en\) got no/.test(result.stdout));
+    assert.ok(result.stdout.split('\n').includes(`::error::${NO_TESTS('nl 1/2')}`), result.stdout);
+    assert.ok(!/iOS release got no|iOS tests \(en 2\/2\) got no/.test(result.stdout));
   });
 
   it('iOS release=unacquired: the error says nothing was signed and that Android may be out', () => {
     const result = run(RELEASE, [
       'runners',
-      'iOS tests (nl)=success',
-      'iOS tests (en)=success',
+      'iOS tests (nl 1/2)=success',
+      'iOS tests (en 2/2)=success',
       'iOS release=unacquired',
     ]);
     assert.equal(result.status, 1, result.stderr);
@@ -1173,25 +1214,41 @@ describe('#437 E017: a job that got no hosted macOS runner is named as that', ()
   it('every job unacquired: each is named, the language of the tests by its name, and the run fails', () => {
     const result = run(RELEASE, [
       'runners',
-      'iOS tests (nl)=unacquired',
-      'iOS tests (en)=unacquired',
+      'iOS tests (nl 1/2)=unacquired',
+      'iOS tests (en 2/2)=unacquired',
       'iOS release=unacquired',
     ]);
     assert.equal(result.status, 1);
     assert.equal(result.stdout.split('\n').filter((l) => l.startsWith('::error::')).length, 3);
   });
 
+  it('#1403: each of the four parts is named when it got no runner, the others stay quiet', () => {
+    const parts = ['nl 1/2', 'nl 2/2', 'en 1/2', 'en 2/2'];
+    for (const missing of parts) {
+      const result = run(RELEASE, [
+        'runners',
+        ...parts.map(
+          (part) => `iOS tests (${part})=${part === missing ? 'unacquired' : 'success'}`,
+        ),
+        'iOS release=skipped',
+      ]);
+      assert.equal(result.status, 1, `${missing}: ${result.stderr}`);
+      assert.ok(result.stdout.includes(`::error::${NO_TESTS(missing)}`), result.stdout);
+      assert.equal(result.stdout.split('\n').filter((l) => l.startsWith('::error::')).length, 1);
+    }
+  });
+
   it('the same sentence goes into the step summary, when GITHUB_STEP_SUMMARY is set', () => {
     const summary = join(work, 'summary.md');
     writeFileSync(summary, 'Build number 107\n');
-    run(RELEASE, ['runners', 'iOS tests (en)=unacquired'], { GITHUB_STEP_SUMMARY: summary });
-    assert.equal(readFileSync(summary, 'utf8'), `Build number 107\n${NO_TESTS('en')}\n`);
+    run(RELEASE, ['runners', 'iOS tests (en 2/2)=unacquired'], { GITHUB_STEP_SUMMARY: summary });
+    assert.equal(readFileSync(summary, 'utf8'), `Build number 107\n${NO_TESTS('en 2/2')}\n`);
     run(RELEASE, ['runners', 'iOS release=unacquired'], { GITHUB_STEP_SUMMARY: summary });
     assert.ok(readFileSync(summary, 'utf8').includes(`${NO_RELEASE}; `));
   });
 
   it('works without GITHUB_STEP_SUMMARY', () => {
-    const result = run(RELEASE, ['runners', 'iOS tests (nl)=unacquired']);
+    const result = run(RELEASE, ['runners', 'iOS tests (nl 1/2)=unacquired']);
     assert.equal(result.status, 1);
     assert.equal(result.stderr, '');
   });
@@ -1200,10 +1257,10 @@ describe('#437 E017: a job that got no hosted macOS runner is named as that', ()
     const summary = join(work, 'summary.md');
     writeFileSync(summary, '');
     for (const parts of [
-      ['iOS tests (nl)=cancelled', 'iOS tests (en)=success', 'iOS release=skipped'],
-      ['iOS tests (nl)=success', 'iOS tests (en)=failure', 'iOS release=skipped'],
-      ['iOS tests (nl)=success', 'iOS tests (en)=success', 'iOS release=failure'],
-      ['iOS tests (nl)=success', 'iOS tests (en)=success', 'iOS release=success'],
+      ['iOS tests (nl 1/2)=cancelled', 'iOS tests (en 2/2)=success', 'iOS release=skipped'],
+      ['iOS tests (nl 1/2)=success', 'iOS tests (en 2/2)=failure', 'iOS release=skipped'],
+      ['iOS tests (nl 1/2)=success', 'iOS tests (en 2/2)=success', 'iOS release=failure'],
+      ['iOS tests (nl 1/2)=success', 'iOS tests (en 2/2)=success', 'iOS release=success'],
     ]) {
       const result = run(RELEASE, ['runners', ...parts], { GITHUB_STEP_SUMMARY: summary });
       assert.equal(result.status, 0, `${parts}: ${result.stderr}`);
@@ -1213,10 +1270,14 @@ describe('#437 E017: a job that got no hosted macOS runner is named as that', ()
   });
 
   it('a leg of the tests that got a runner and failed does not hide the other one that got none', () => {
-    const result = run(RELEASE, ['runners', 'iOS tests (nl)=failure', 'iOS tests (en)=unacquired']);
+    const result = run(RELEASE, [
+      'runners',
+      'iOS tests (nl 1/2)=failure',
+      'iOS tests (en 2/2)=unacquired',
+    ]);
     assert.equal(result.status, 1, result.stderr);
-    assert.ok(result.stdout.includes(`::error::${NO_TESTS('en')}`), result.stdout);
-    assert.ok(!/iOS tests \(nl\) got no/.test(result.stdout));
+    assert.ok(result.stdout.includes(`::error::${NO_TESTS('en 2/2')}`), result.stdout);
+    assert.ok(!/iOS tests \(nl 1\/2\) got no/.test(result.stdout));
   });
 
   it('the old, single name of the tests no longer counts: a part must name its language', () => {
@@ -1275,8 +1336,11 @@ describe('#437 E017: the iOS jobs run on the image and Xcode that CI tests the a
     assert.ok(!/^ {6}[a-z-]+: write/m.test(runners), 'no write permission');
     assert.ok(!runners.includes('secrets.'));
     assert.ok(!/^ {4}environment:/m.test(runners));
-    assert.match(runners, /scripts\/ios-parts\.sh job "iOS tests \(nl\)" "\$TESTS"/);
-    assert.match(runners, /scripts\/ios-parts\.sh job "iOS tests \(en\)" "\$TESTS"/);
+    for (const part of ['nl 1/2', 'nl 2/2', 'en 1/2', 'en 2/2'])
+      assert.ok(
+        runners.includes(`scripts/ios-parts.sh job "iOS tests (${part})" "$TESTS"`),
+        `the job looks up ${part}`,
+      );
     assert.match(runners, /scripts\/ios-parts\.sh job "iOS release"/);
     assert.match(runners, /scripts\/release\.sh runners/);
     assert.match(runners, /needs\.ios-tests\.result/);
@@ -1287,9 +1351,13 @@ describe('#437 E017: the iOS jobs run on the image and Xcode that CI tests the a
 
   it('the names the job looks for are the names of the iOS jobs', () => {
     const { 'ios-tests': tests, ios } = jobs();
-    // The matrix names its legs `iOS tests (nl)` and `iOS tests (en)`, which `runners` reads one by one.
-    assert.match(tests, /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\)$/m);
+    // The matrix names its legs `iOS tests (nl 1/2)` to `iOS tests (en 2/2)`, which `runners` reads one by one.
+    assert.match(
+      tests,
+      /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/2\)$/m,
+    );
     assert.match(tests, /^ {8}locale: \[nl, en\]$/m);
+    assert.match(tests, /^ {8}shard: \[1, 2\]$/m);
     assert.match(ios, /^ {4}name: iOS release$/m);
   });
 });

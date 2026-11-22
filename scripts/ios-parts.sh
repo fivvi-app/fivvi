@@ -39,8 +39,8 @@
 #       stderr, still exits 0 and prints `[]` (no retry: the gate then fails as it would have).
 #
 #   ios-parts.sh job <name> <result>     (Release, #437)
-#       one job of the run: <name> is its name ("iOS tests (nl)", "iOS tests (en)", "iOS release") and <result> the
-#       needs.<job>.result of the workflow job it belongs to. For a matrix job (Release's "iOS tests", one job per language) that
+#       one job of the run: <name> is its name ("iOS tests (nl 1/2)", "(nl 2/2)", "(en 1/2)", "(en 2/2)", "iOS release") and <result> the
+#       needs.<job>.result of the workflow job it belongs to. For a matrix job (Release's "iOS tests", one job per language and part) that
 #       is the combined result of all its legs, so the leg is looked up by its own name. Prints `<name>=unacquired` when the
 #       job named was cancelled with no runner and no step, or when the result is abandoned and the job is not listed (or
 #       the jobs can't be read); an abandoned result for a job that ran prints that job's own conclusion; any other result
