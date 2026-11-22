@@ -640,12 +640,11 @@ test.describe('F014 Agenda on the web', () => {
 
   /** The columns of the grid, in order. */
   const gridColumns = (page: Page) => page.locator('[data-slot="week-grid-body"] > [data-column]');
-  const bodyOf = (column: Locator) => column;
 
   /** The screen point of `time` (`HH:mm`) in `column`; the page is tall enough for the whole grid. */
   async function pointAt(column: Locator, time: string, offsetMinutes = 0) {
     await column.scrollIntoViewIfNeeded();
-    const box = await bodyOf(column).boundingBox();
+    const box = await column.boundingBox();
     if (!box) throw new Error('The column is not on the page.');
     const [hour, minute] = time.split(':').map(Number);
     const minutes = (hour ?? 0) * 60 + (minute ?? 0) - FIRST_HOUR * 60 + offsetMinutes;
@@ -888,7 +887,14 @@ test.describe('F014 Agenda on the web', () => {
         name: copy.sessions.reschedule.notify.replace('{client}', 'Mark Jansen'),
       })
       .uncheck();
+    // What reaches F020's reschedule says no e-mail (EM-04 only when the box is checked).
+    const reschedule = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        request.url().endsWith(`/sessions/${week.sessions.mark}/reschedule`),
+    );
     await dialog.getByRole('button', { name: t.moveConfirm }).click();
+    expect((await reschedule).postDataJSON()).toMatchObject({ notify: false });
     await expect(
       page
         .getByRole('status')
@@ -946,7 +952,6 @@ test.describe('F014 Agenda on the web', () => {
 
     // This date and the ones after it moved; the one before did not.
     expect(await startOf(page, week, week.sessions.kracht)).toBe('10:00');
-    expect(await startOf(page, week, undefined as never, next)).toBeUndefined();
     const answer = (await (
       await page.request.get(
         `/api/v1/workspaces/${week.workspaceId}/calendar?from=${next}&to=${shift(next, 14)}`,

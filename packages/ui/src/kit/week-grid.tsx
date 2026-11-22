@@ -114,7 +114,8 @@ export function WeekGrid({
   onMoveBlock?: (move: WeekGridMove) => void;
   /**
    * The mark shown while dragging for the place the block would land on, e.g. `08:00`; `undefined`
-   * where the grid holds no time (a skipped hour), which is no place to land on.
+   * where the grid holds no time (a skipped hour), which is no place to land on. Without it every
+   * place is one to land on and no mark is shown.
    */
   placeLabel?: (columnKey: string, minute: number) => string | undefined;
   /** Whether a block may land in another column than its own; without it every column does. */
@@ -262,7 +263,8 @@ export function WeekGrid({
           point &&
           (point.columnKey === columnKey ||
             (live.current.acceptsDrop?.(block.key, columnKey, point.columnKey) ?? true)) &&
-          live.current.placeLabel?.(point.columnKey, startMinute) !== undefined;
+          (!live.current.placeLabel ||
+            live.current.placeLabel(point.columnKey, startMinute) !== undefined);
         target = point && allowed ? { columnKey: point.columnKey, startMinute } : null;
         show();
       },

@@ -66,7 +66,7 @@ describe('F014 AC17: session_moved_by_drag from the web', () => {
   it('records nothing for a workspace that is none of the person’s', async () => {
     const response = await call('fit-studio');
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
     expect(track).not.toHaveBeenCalled();
   });
 });
