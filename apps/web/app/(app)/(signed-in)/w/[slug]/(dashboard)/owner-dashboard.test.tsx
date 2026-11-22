@@ -156,6 +156,15 @@ describe.each(locales)('F014 the Owner’s Dashboard in %s', (locale) => {
     );
   });
 
+  it('AC10: a class block says its time and places through the catalog’s separator', () => {
+    const html = draw({ items: [mark, kracht] });
+
+    const detail = copy.blockDetail
+      .replace('{time}', '10:00')
+      .replace('{booked}', shared.blockBooked.replace('{booked}', '0').replace('{capacity}', '8'));
+    expect(text(html)).toContain(detail);
+  });
+
   it('AC10: the cancelled session stays in its lane, struck through, with its word', () => {
     const html = draw();
 

@@ -1,6 +1,7 @@
 import { trainerWordForms } from '@fivvi/i18n';
-import type { Metadata } from 'next';
+import type { Metadata, Route } from 'next';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
 import { catalogLocale } from '../../../../../../i18n/config';
 import { apiClient } from '../../../../../../server/api';
@@ -20,12 +21,15 @@ export async function generateMetadata({ params }: PageProps<'/w/[slug]'>): Prom
  * The Owner's *Dashboard* (`/w/{slug}`, F014 WC-01): today in the workspace, read in one request
  * from `GET /v1/workspaces/{workspaceId}/day` (the rows of the day and *Aandacht nodig*). It is
  * the Owner's (`calendar.manage`): a Trainer's home is *Mijn dag* (F013), and the signed-in home
- * sends them there; a Trainer who opens this address sees the no-permission page. The toggle
+ * sends them there, as does this address (`my-day`, which also remembers the workspace, F012 AC4);
+ * a team member who does not train sees the no-permission page. The toggle
  * *Mijn dag | {workspace}* is for an Owner with a trainer profile who has a team.
  */
 export default async function WorkspaceDashboardPage({ params }: PageProps<'/w/[slug]'>) {
   const workspace = await workspaceOf((await params).slug);
   if (!workspace.capabilities.includes('calendar.manage')) {
+    // A Trainer's home is *Mijn dag* (F013): `my-day` remembers this workspace and opens it.
+    if (await currentTrainsAnywhere()) redirect(`/w/${workspace.slug}/my-day` as Route);
     return <NoPermission workspace={workspace.name} />;
   }
   const cookie = (await headers()).get('cookie');

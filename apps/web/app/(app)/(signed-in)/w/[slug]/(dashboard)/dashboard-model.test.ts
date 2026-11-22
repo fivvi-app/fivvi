@@ -117,7 +117,12 @@ describe('the type words', () => {
 describe('the lanes', () => {
   it('has one lane per trainer, the Owner first, and one last for what has no trainer', () => {
     const boxing: Item = { ...kracht, id: 's-boxing', trainer: undefined, className: 'Boxing' };
-    const timeline = laneTimeline([lisa, base, boxing, kracht], 'Europe/Amsterdam', 'm-noor');
+    const timeline = laneTimeline(
+      [lisa, base, boxing, kracht],
+      '2026-09-22',
+      'Europe/Amsterdam',
+      'm-noor',
+    );
     expect(timeline?.lanes.map((lane) => lane.trainer?.name ?? null)).toEqual([
       'Noor',
       'Sven',
@@ -127,7 +132,7 @@ describe('the lanes', () => {
   });
 
   it('runs from the first full hour to the last full hour of the day, on the clock', () => {
-    const timeline = laneTimeline(day, 'Europe/Amsterdam', 'm-sven');
+    const timeline = laneTimeline(day, '2026-09-22', 'Europe/Amsterdam', 'm-sven');
     // 07:00 to 19:00 with the cancelled evening class, a mark at both ends too.
     expect(timeline).toMatchObject({ firstHour: 7, endHour: 19 });
     expect(timeline?.hours.map((hour) => hour.label)).toEqual(
@@ -136,7 +141,7 @@ describe('the lanes', () => {
   });
 
   it('places a block by its start and length as a share of the day shown', () => {
-    const timeline = laneTimeline(day, 'Europe/Amsterdam', 'm-sven');
+    const timeline = laneTimeline(day, '2026-09-22', 'Europe/Amsterdam', 'm-sven');
     const sven = timeline?.lanes.find((lane) => lane.trainer?.id === 'm-sven');
     const block = sven?.blocks.find((entry) => entry.item.id === 's-kracht');
     // 10:00 to 11:00 of 07:00 to 19:00.
@@ -146,7 +151,12 @@ describe('the lanes', () => {
 
   it('puts sessions at the same time of one trainer side by side, in rows of the lane', () => {
     const together: Item = { ...kracht, id: 's-together', startsAt: base.startsAt };
-    const timeline = laneTimeline([base, together, kracht], 'Europe/Amsterdam', 'm-sven');
+    const timeline = laneTimeline(
+      [base, together, kracht],
+      '2026-09-22',
+      'Europe/Amsterdam',
+      'm-sven',
+    );
     const lane = timeline?.lanes[0];
     expect(lane?.rows).toBe(2);
     expect(lane?.blocks.find((block) => block.item.id === 's-mark')?.row).toBe(0);
@@ -155,7 +165,7 @@ describe('the lanes', () => {
   });
 
   it('is nothing for a day without sessions', () => {
-    expect(laneTimeline([], 'Europe/Amsterdam', 'm-sven')).toBeUndefined();
+    expect(laneTimeline([], '2026-09-22', 'Europe/Amsterdam', 'm-sven')).toBeUndefined();
   });
 });
 

@@ -896,6 +896,7 @@
     <string name="workspace_dashboard_attention_no_trainer">%2$s, %1$s %3$s: no %4$s yet</string>
     <string name="workspace_dashboard_attention_none">Nothing open. Everything is up to date.</string>
     <string name="workspace_dashboard_attention_title">Needs attention</string>
+    <string name="workspace_dashboard_block_detail">%2$s · %1$s</string>
     <string name="workspace_dashboard_column_occupancy">Occupancy</string>
     <string name="workspace_dashboard_column_session">Session</string>
     <string name="workspace_dashboard_column_time">Time</string>
@@ -921,6 +922,7 @@
     <string name="workspace_nav_calendar">Calendar</string>
     <string name="workspace_nav_classes">Classes</string>
     <string name="workspace_nav_clients">Clients</string>
+    <string name="workspace_nav_dashboard">Dashboard</string>
     <string name="workspace_nav_label">Main navigation</string>
     <string name="workspace_nav_my_calendar">My calendar</string>
     <string name="workspace_nav_my_day">My day</string>

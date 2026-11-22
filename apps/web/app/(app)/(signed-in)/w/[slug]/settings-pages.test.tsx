@@ -41,6 +41,36 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     expect(html).toContain('<hr id="page"/>');
   });
 
+  it('F014: an Owner’s navigation leads with the Dashboard of the workspace, a Trainer’s has none', () => {
+    const frame = (capabilities: typeof OWNER, teamRole: 'owner' | 'trainer') =>
+      render(
+        locale,
+        <WorkspaceFrame
+          name="John's Gym"
+          slug="johns-gym"
+          teamRole={teamRole}
+          workspaces={[]}
+          canCreateWorkspace={false}
+          capabilities={capabilities}
+          personName={null}
+        >
+          <hr />
+        </WorkspaceFrame>,
+      );
+    const owner = frame([...OWNER, 'calendar.read', 'calendar.manage'], 'owner');
+    const trainer = frame([...TRAINER, 'calendar.read'], 'trainer');
+
+    expect(owner).toMatch(
+      new RegExp(
+        `href="/w/johns-gym"[^>]*>${NAV_ICON}<span[^>]*>${copy.workspaceNav.dashboard}</span>`,
+      ),
+    );
+    expect(owner.indexOf(copy.workspaceNav.dashboard)).toBeLessThan(
+      owner.indexOf(copy.workspaceNav.calendar),
+    );
+    expect(trainer).not.toContain(copy.workspaceNav.dashboard);
+  });
+
   it('F003: the sidebar header shows the workspace name and the role label, as plain text', () => {
     const owner = render(
       locale,

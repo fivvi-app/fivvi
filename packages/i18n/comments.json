@@ -273,6 +273,7 @@
   "workspaceDashboard.assign": "Button of an Aandacht nodig row that opens the session to give it a trainer (GLOSSARY §4.1: toewijzen, never koppelen).",
   "workspaceDashboard.assignLabel": "Accessible name of the Toewijzen button: the word first, then the row it belongs to.",
   "workspaceDashboard.attentionNoTrainer": "A row of Aandacht nodig: a class date or private session in the next 14 days without a trainer. {name} is \"Boxing\" or \"Privé · Mark Jansen\", {date} and {time} the day and start time. {word} is the workspace's word for the people who teach (F068).",
+  "workspaceDashboard.blockDetail": "Second line of a class block in the lanes: the start time and the places taken, e.g. \"10:00 · 3/8\". Keep the separator.",
   "workspaceDashboard.columnOccupancy": "Column of Nog vandaag: places taken of a class, or the location of a private session.",
   "workspaceDashboard.emptyDay": "Shown on the Dashboard when nothing is scheduled today. {workspace} is the workspace name.",
   "workspaceDashboard.fraction": "A count out of a total on a tile, e.g. 3/5. Keep the slash.",

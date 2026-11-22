@@ -15321,6 +15321,24 @@
         }
       }
     },
+    "workspaceDashboard.blockDetail" : {
+      "comment" : "Second line of a class block in the lanes: the start time and the places taken, e.g. \"10:00 · 3/8\". Keep the separator.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ · %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ · %1$@"
+          }
+        }
+      }
+    },
     "workspaceDashboard.columnOccupancy" : {
       "comment" : "Column of Nog vandaag: places taken of a class, or the location of a private session.",
       "extractionState" : "manual",
@@ -15751,6 +15769,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Klanten"
+          }
+        }
+      }
+    },
+    "workspaceNav.dashboard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dashboard"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dashboard"
           }
         }
       }

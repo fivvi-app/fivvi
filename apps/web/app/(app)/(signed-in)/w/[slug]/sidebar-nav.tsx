@@ -35,6 +35,14 @@ const icons = {
     <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
   ),
   settings: <path d="M4 20l1-4.5L16 4.5l3.5 3.5-11 11z" />,
+  // The prototype's `today` icon (`app.js`): the Dashboard.
+  today: (
+    <>
+      <rect x="3.5" y="5" width="17" height="15" rx="3.5" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+      <rect x="8" y="13" width="4" height="4" rx="1" fill="currentColor" stroke="none" />
+    </>
+  ),
   // The prototype's `sun` and `cal` icons (`app.js`): *Mijn dag* and *Mijn agenda*.
   day: (
     <>
@@ -54,6 +62,8 @@ const icons = {
 export type NavItem = {
   href: string;
   base?: string;
+  /** The link is the current page only on its own address: the Dashboard, whose path every page of the workspace is below. */
+  exact?: boolean;
   label: string;
   icon: keyof typeof icons;
   /** The pages of the section, listed under it. */
@@ -92,8 +102,12 @@ export function SidebarNav({
 }) {
   const pathname = usePathname();
   // `page` only on the page the link goes to; `true` on a link whose section holds the page.
-  const current = (href: string, base = href) =>
-    pathname === href ? ('page' as const) : within(pathname, base) ? ('true' as const) : undefined;
+  const current = (href: string, base = href, exact = false) =>
+    pathname === href
+      ? ('page' as const)
+      : !exact && within(pathname, base)
+        ? ('true' as const)
+        : undefined;
 
   const list = (sections: readonly NavItem[]) => (
     <div className="grid gap-px">
@@ -101,7 +115,7 @@ export function SidebarNav({
         <div key={item.href} className="grid gap-px">
           <Link
             href={item.href as Route}
-            aria-current={current(item.href, item.base)}
+            aria-current={current(item.href, item.base, item.exact)}
             className={`${link} h-11 md:h-8.5 aria-[current]:[&>svg]:text-accent-text`}
           >
             <svg

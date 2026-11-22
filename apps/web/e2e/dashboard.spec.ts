@@ -304,9 +304,62 @@ test.describe('F014 the Owner’s Dashboard on the web', () => {
     // The toggle: John trains and has a team; Mijn dag is his own day (F013).
     const toggle = page.getByRole('navigation', { name: t.scopeLabel });
     await expect(toggle.getByRole('link', { name: GYM })).toHaveAttribute('aria-current', 'page');
+    const sidebar = page.getByRole('navigation', { name: copy.workspaceNav.label });
+    await expect(sidebar.getByRole('link', { name: copy.workspaceNav.dashboard })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
     await toggle.getByRole('link', { name: copy.workspaceNav.myDay }).click();
     await expect(page).toHaveURL('/me/day');
     await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
+
+    // The way back is there on both sides (the prototype): the toggle on Mijn dag and the
+    // Dashboard in the sidebar, which is not the current page here.
+    await expect(page.getByRole('navigation', { name: t.scopeLabel })).toBeVisible();
+    await expect(
+      page
+        .getByRole('navigation', { name: t.scopeLabel })
+        .getByRole('link', { name: copy.workspaceNav.myDay }),
+    ).toHaveAttribute('aria-current', 'page');
+    await expectNoAxeViolations(page, `Mijn dag of an Owner with a team in ${appLocale}`);
+    await expect(
+      sidebar.getByRole('link', { name: copy.workspaceNav.dashboard }),
+    ).not.toHaveAttribute('aria-current', 'page');
+    await page
+      .getByRole('navigation', { name: t.scopeLabel })
+      .getByRole('link', { name: GYM })
+      .click();
+    await expect(page).toHaveURL(`/w/${week.slug}`);
+    await expect(page.getByRole('heading', { level: 1, name: t.title })).toBeVisible();
+    await page.goBack();
+    await sidebar.getByRole('link', { name: copy.workspaceNav.dashboard }).click();
+    await expect(page).toHaveURL(`/w/${week.slug}`);
+    await expect(page.getByRole('heading', { level: 1, name: t.title })).toBeVisible();
+  });
+
+  test('A Trainer’s home stays Mijn dag: opening the workspace address lands there, and the Dashboard is not in the Trainer’s navigation', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const gym = await team(page, context);
+    await context.clearCookies();
+    await signInWithSession(context, gym.sarah);
+    await page.goto(`/w/${gym.slug}`);
+
+    await expect(page).toHaveURL('/me/day');
+    await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
+    await expect(page.getByRole('heading', { name: copy.noPermission.title })).toHaveCount(0);
+    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page
+        .getByRole('navigation', { name: copy.workspaceNav.label })
+        .getByRole('link', { name: copy.workspaceNav.dashboard }),
+    ).toHaveCount(0);
+    // Nobody but the Owner has the toggle: Mijn dag is the Trainer's whole day.
+    await expect(
+      page.getByRole('navigation', { name: copy.workspaceDashboard.scopeLabel }),
+    ).toHaveCount(0);
   });
 
   test('Design: a workspace with private sessions only has no Groepsplekken tile and no type words, and the phone has no page scroll', async ({
@@ -355,6 +408,16 @@ test.describe('F014 the Owner’s Dashboard on the web', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: t.title })).toBeVisible();
     await expect(page.getByRole('navigation', { name: t.scopeLabel })).toHaveCount(0);
+    // Nor on Mijn dag, where the sidebar still leads back to the Dashboard.
+    await page.goto('/me/day');
+    await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: t.scopeLabel })).toHaveCount(0);
+    await expect(
+      page
+        .getByRole('navigation', { name: copy.workspaceNav.label })
+        .getByRole('link', { name: copy.workspaceNav.dashboard }),
+    ).toBeVisible();
+    await page.goto(`/w/${gym.slug}`);
     // An empty day: the text and the two ways to plan something, no tiles or lanes.
     await expect(inMain(page).getByText(t.emptyDay.replace('{workspace}', GYM))).toBeVisible();
     const main = page.getByRole('main');

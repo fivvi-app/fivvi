@@ -259,7 +259,8 @@ test.describe('F023 PS-07 double booking on the web', () => {
   }) => {
     const { tom, slug } = await team();
     await signInWithSession(context, tom);
-    await page.goto(`/w/${slug}`);
+    // A Trainer's address of the workspace opens Mijn dag (F014), which plans in a workspace of her choice (F013): PS-01 of this workspace is opened from a page of it.
+    await page.goto(`/w/${slug}/clients`);
     const workspaceId = await gymId(page.request);
     const mark = await seedClient(page.request, workspaceId, 'Mark Jansen');
     await seedClient(page.request, workspaceId, 'Anna de Vries');

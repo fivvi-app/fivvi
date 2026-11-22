@@ -82,19 +82,18 @@ const pad = (hour: number) => String(hour).padStart(2, '0');
  * The lanes of *Vandaag bij {workspace}* (WC-01): one per trainer, the signed-in person's first
  * and the sessions without a trainer last, on one time axis from the first full hour of the day's
  * first session to the last full hour of its last (at least four hours). Sessions of one trainer
- * at the same time are laid under each other in the lane (`layoutOverlaps`). The day's date is
- * the one of its first session; the axis follows the clock of `timeZone`, also on the day the
+ * at the same time are laid under each other in the lane (`layoutOverlaps`). The axis is the
+ * day's (`date`, `YYYY-MM-DD`) and follows the clock of `timeZone`, also on the day the
  * clocks change (`weekAxis`).
  */
 export function laneTimeline(
   items: readonly DaySession[],
+  date: string,
   timeZone: string,
   ownTeamMemberId: string,
 ): LaneTimeline | undefined {
   const shown = items.filter((item) => item.type !== 'open_gym');
-  const first = shown[0];
-  if (!first) return undefined;
-  const date = new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(first.startsAt));
+  if (shown.length === 0) return undefined;
   const axis = weekAxis([date], timeZone);
   const placed = shown.map((item) => ({
     item,

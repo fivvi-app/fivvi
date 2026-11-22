@@ -2,6 +2,7 @@ import type { Schemas } from '@fivvi/contract';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { type DateTimeFormatOptions, useFormatter, useTranslations } from 'next-intl';
+import { ScopeToggle } from '../../../w/[slug]/scope-toggle';
 import { useSessionFormat } from '../../../w/[slug]/sessions/use-session-format';
 import { TimeZoneHint } from '../time-zone-hint';
 
@@ -25,7 +26,16 @@ const rowClass = 'flex min-h-11 items-start gap-3 rounded-lg px-3 py-2 hover:bg-
  * are Dutch time, the only zone of the personal scope (`day.timeZone`); a browser in another zone
  * gets the hint that says so.
  */
-export function MyDayView({ day, now }: { day: Day; now: Date }) {
+export function MyDayView({
+  day,
+  now,
+  workspace,
+}: {
+  day: Day;
+  now: Date;
+  /** The workspace of the Owner's Dashboard, given when the toggle *Mijn dag | {workspace}* is shown (F014). */
+  workspace?: { slug: string; name: string };
+}) {
   const t = useTranslations('myDay');
   const format = useFormatter();
   const when = useSessionFormat(day.timeZone);
@@ -122,6 +132,10 @@ export function MyDayView({ day, now }: { day: Day; now: Date }) {
           <p className="text-sm font-medium">{summary}</p>
           <TimeZoneHint zone={day.timeZone} />
         </header>
+
+        {workspace ? (
+          <ScopeToggle current="me" slug={workspace.slug} workspace={workspace.name} />
+        ) : null}
 
         {next && day.next ? (
           <section className="grid gap-1 rounded-xl border bg-card p-2">

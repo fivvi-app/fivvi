@@ -1120,6 +1120,8 @@
     <string name="workspace_dashboard_attention_no_trainer">%2$s, %1$s %3$s: nog geen %4$s</string>
     <string name="workspace_dashboard_attention_none">Niets open. Alles is bijgewerkt.</string>
     <string name="workspace_dashboard_attention_title">Aandacht nodig</string>
+    <!-- Second line of a class block in the lanes: the start time and the places taken, e.g. "10:00 · 3/8". Keep the separator. -->
+    <string name="workspace_dashboard_block_detail">%2$s · %1$s</string>
     <!-- Column of Nog vandaag: places taken of a class, or the location of a private session. -->
     <string name="workspace_dashboard_column_occupancy">Bezetting</string>
     <string name="workspace_dashboard_column_session">Sessie</string>
@@ -1154,6 +1156,7 @@
     <string name="workspace_nav_calendar">Agenda</string>
     <string name="workspace_nav_classes">Lessen</string>
     <string name="workspace_nav_clients">Klanten</string>
+    <string name="workspace_nav_dashboard">Dashboard</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->
     <string name="workspace_nav_label">Hoofdnavigatie</string>
     <string name="workspace_nav_my_calendar">Mijn agenda</string>

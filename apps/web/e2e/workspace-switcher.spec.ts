@@ -237,6 +237,32 @@ test.describe('F012 the scope switcher on the web', () => {
     );
   });
 
+  test('AC4: switching to a workspace where I am a Trainer opens Mijn dag there, and the browser remembers it', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const { sarah, gymSlug, personalSlug } = await sarahOnTwoTeams();
+    await signInWithSession(context, sarah);
+    await page.goto(`/w/${personalSlug}`);
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.workspaceDashboard.title }),
+    ).toBeVisible();
+    await expectRemembered(context, personalSlug);
+
+    // A Trainer's home in a workspace is Mijn dag (F013, F014): the switcher lands there, not on a page she may not use.
+    await switcher(page, `${PERSONAL} · ${copy.roles.owner}`).click();
+    await page.getByRole('menuitemradio', { name: `${GYM} · ${copy.roles.trainer}` }).click();
+    await expect(page).toHaveURL('/me/day');
+    await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
+    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(page.getByRole('heading', { name: copy.noPermission.title })).toHaveCount(0);
+    await expectRemembered(context, gymSlug);
+    await page.goto('/home');
+    await expect(page).toHaveURL('/me/day');
+    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+  });
+
   test('AC5: removed from the remembered workspace', async ({ page, context, messages: copy }) => {
     const { sarah, gymSlug, personalSlug } = await sarahOnTwoTeams();
     await signInWithSession(context, sarah);

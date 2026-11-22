@@ -7,6 +7,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { TimeZoneHint } from '../../../me/(personal)/time-zone-hint';
+import { ScopeToggle } from '../scope-toggle';
 import { useSessionFormat } from '../sessions/use-session-format';
 import {
   type DaySession,
@@ -59,7 +60,6 @@ export function OwnerDashboard({
 }) {
   const t = useTranslations('workspaceDashboard');
   const calendar = useTranslations('workspaceCalendar');
-  const nav = useTranslations('workspaceNav');
   const shared = useTranslations('myCalendar');
   const format = useFormatter();
   const when = useSessionFormat(day.timeZone);
@@ -68,7 +68,7 @@ export function OwnerDashboard({
   const figures = dayFigures(items, current);
   const mixed = hasMixedKinds(items);
   const upcoming = stillToday(items, current) as Shown[];
-  const lanes = laneTimeline(items, day.timeZone, teamMemberId);
+  const lanes = laneTimeline(items, day.date, day.timeZone, teamMemberId);
   const todayLabel = format.dateTime(new Date(`${day.date}T12:00:00Z`), {
     timeZone: 'UTC',
     weekday: 'long',
@@ -112,7 +112,7 @@ export function OwnerDashboard({
     if (item.status === 'cancelled') return shared('cancelled');
     const line =
       item.type === 'group'
-        ? `${when.time(item.startsAt)} · ${booked(item)}`
+        ? t('blockDetail', { time: when.time(item.startsAt), booked: booked(item) })
         : when.time(item.startsAt);
     return mixed ? shared('block', { type: typeOf(item), name: line }) : line;
   }
@@ -140,18 +140,7 @@ export function OwnerDashboard({
           <TimeZoneHint zone={day.timeZone} />
         </header>
 
-        {showToggle ? (
-          <nav aria-label={t('scopeLabel')} className="flex gap-1">
-            <Button asChild variant="ghost">
-              <Link href="/me/day">{nav('myDay')}</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href={`/w/${slug}` as Route} aria-current="page">
-                {workspace}
-              </Link>
-            </Button>
-          </nav>
-        ) : null}
+        {showToggle ? <ScopeToggle current="workspace" slug={slug} workspace={workspace} /> : null}
 
         {items.length === 0 ? (
           <div className="grid justify-items-start gap-2">
