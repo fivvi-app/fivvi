@@ -83,7 +83,7 @@ describe('F014 AC15 calendarTargetRefusal', () => {
   it.each([
     'https://fivvi.app',
     'https://www.fivvi.app',
-    'https://web-production-d3fe2.up.railway.app',
+    'https://web-production-fake.up.railway.app',
     'https://web-staging-1a2b.up.railway.app',
     'https://web-fivvi-pr-12.up.railway.app.evil.example',
     'https://evil.example/web-fivvi-pr-12.up.railway.app',
@@ -112,8 +112,8 @@ describe('F014 AC15 signInLogEnvironment', () => {
     ['PRODUCTION', 'https://fivvi.app'],
     ['development', 'https://fivvi.app'],
     ['development', 'https://www.fivvi.app'],
-    ['development', 'https://web-production-d3fe2.up.railway.app'],
-    ['fivvi-pr-1', 'https://web-production-d3fe2.up.railway.app'],
+    ['development', 'https://web-production-fake.up.railway.app'],
+    ['fivvi-pr-1', 'https://web-production-fake.up.railway.app'],
     // An environment ID, or any name that is not development or fivvi-pr-<n>:
     ['5ac2d844-191a-4671-9632-50b66817f648', preview],
     ['fivvi-pr-12 ; production', preview],
