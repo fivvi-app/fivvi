@@ -180,18 +180,23 @@ export async function findSession(
   const location = await findLocation(scope, locationId);
   // The composite foreign key keeps the location in the workspace and not null: it is there.
   if (!location) throw new Error('The location of a session was not found.');
+  // A trainer who was removed from the team keeps their profile (F023), so past sessions still show
+  // who taught them: the team member is gone, the profile holds who it was.
   const [trainer] = trainerProfileId
     ? await db
-        .select({ id: teamMembers.id, name: authUsers.name })
+        .select({
+          id: sql<string>`coalesce(${teamMembers.id}, ${trainerProfiles.removedTeamMemberId})`,
+          name: sql<string>`coalesce(${authUsers.name}, ${trainerProfiles.removedName}, '')`,
+        })
         .from(trainerProfiles)
-        .innerJoin(
+        .leftJoin(
           teamMembers,
           and(
             eq(teamMembers.organizationId, trainerProfiles.organizationId),
             eq(teamMembers.id, trainerProfiles.teamMemberId),
           ),
         )
-        .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+        .leftJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
         .where(
           and(
             eq(trainerProfiles.organizationId, scope.workspaceId),
@@ -271,7 +276,8 @@ export async function findSession(
   return {
     ...session,
     location,
-    trainer: trainer ?? null,
+    // A profile whose team member went another way (the account was purged) names nobody.
+    trainer: trainer?.id ? trainer : null,
     groupClass: groupClass ?? null,
     series: series
       ? {
@@ -390,8 +396,8 @@ export interface SessionTrainerAssignment {
   readonly sessionId: string;
   /** The version the person read. The session is changed only if it still has it. */
   readonly expectedVersion: number;
-  /** The new trainer profile (`findTrainer`), not the team-member ID. */
-  readonly trainerProfileId: string;
+  /** The new trainer profile (`findTrainer`), not the team-member ID; `null` for *Trainer nodig*. */
+  readonly trainerProfileId: string | null;
   /** What the date differs in from its series after the change; left out: not touched (a private session). */
   readonly detachedFields?: readonly string[];
   /** The team-member record of the person who assigns. */
@@ -428,6 +434,57 @@ export async function assignSessionTrainer(
     .returning({ id: sessions.id });
   if (!changed) return undefined;
   return findSession(scope, changed.id);
+}
+
+/**
+ * A scheduled private session or class date of a trainer that has not started: what the removal of
+ * the trainer hands over or clears (F023). `detachedFields` and `inSeries` are what a date of a
+ * series says it keeps of its own.
+ */
+export interface TrainerFutureSession {
+  readonly id: string;
+  readonly type: 'private' | 'group';
+  readonly startsAt: Date;
+  readonly version: number;
+  readonly inSeries: boolean;
+  readonly detachedFields: string[];
+}
+
+/**
+ * The scheduled private sessions and class dates of the trainer profile in the scope's workspace
+ * that start after `now`, soonest first, each locked until the transaction ends so nothing changes
+ * them between the read and the handover that writes them (F023). Cancelled sessions and Open Gym
+ * are not listed; a session of another workspace is never (the scope and RLS).
+ */
+export async function listFutureSessionsOfTrainer(
+  scope: WorkspaceScope,
+  trainerProfileId: string,
+  now: Date,
+): Promise<TrainerFutureSession[]> {
+  const rows = await executorOf(scope)
+    .select({
+      id: sessions.id,
+      type: sessions.type,
+      startsAt: sessions.startsAt,
+      version: sessions.version,
+      seriesId: sessions.seriesId,
+      detachedFields: sessions.detachedFields,
+    })
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.organizationId, scope.workspaceId),
+        eq(sessions.trainerProfileId, trainerProfileId),
+        eq(sessions.status, 'scheduled'),
+        gt(sessions.startsAt, now),
+        ne(sessions.type, 'open_gym'),
+      ),
+    )
+    .orderBy(asc(sessions.startsAt), asc(sessions.id))
+    .for('update');
+  return rows.flatMap(({ seriesId, type, ...row }) =>
+    type === 'open_gym' ? [] : [{ ...row, type, inSeries: seriesId !== null }],
+  );
 }
 
 /**

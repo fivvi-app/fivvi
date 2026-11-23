@@ -324,7 +324,7 @@ describe('F020 sessions and session participants tables', () => {
     ).toBeUndefined();
   });
 
-  it('AC12: removing a team member clears the trainer and the creator of their sessions and keeps the sessions', async () => {
+  it('AC12: removing a team member clears the creator of their sessions, keeps the sessions and keeps their trainer profile as a former trainer (F023)', async () => {
     const { gym, sarah, profileId } = await gymWithSarah();
     const session = await addSession(admin.db, {
       workspaceId: gym.id,
@@ -335,12 +335,18 @@ describe('F020 sessions and session participants tables', () => {
     await admin.db.delete(teamMembers).where(eq(teamMembers.id, sarah.id));
 
     const [stored] = await admin.db.select().from(sessions).where(eq(sessions.id, session.id));
-    // Only the two columns are cleared: the session is still the workspace's.
+    // Only the creator is cleared: the session is still the workspace's, and its trainer is the
+    // former trainer, whose profile stays without the link to the team member.
     expect(stored).toMatchObject({
       organizationId: gym.id,
-      trainerProfileId: null,
+      trainerProfileId: profileId,
       createdByTeamMemberId: null,
     });
+    const [profile] = await admin.db
+      .select()
+      .from(trainerProfiles)
+      .where(eq(trainerProfiles.id, profileId));
+    expect(profile).toMatchObject({ organizationId: gym.id, teamMemberId: null });
     expect(
       await admin.db
         .select()

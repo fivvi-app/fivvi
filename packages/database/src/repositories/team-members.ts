@@ -1,5 +1,5 @@
-import { and, asc, eq } from 'drizzle-orm';
-import { authUsers, teamMembers } from '../schema/index.ts';
+import { and, asc, eq, sql } from 'drizzle-orm';
+import { authUsers, groupClasses, teamMembers, trainerProfiles } from '../schema/index.ts';
 import { executorOf, type TeamRole, type WorkspaceScope } from '../tenant-scope.ts';
 
 // The team of a workspace, through a workspace scope (F003, spec #171). Each function names the
@@ -65,14 +65,58 @@ export async function findTeamMember(
 }
 
 /**
- * Deletes the team-member record and nothing else. `false` when no such record is in the scope's
- * workspace. The caller has decided the account may remove and the rule of the last Owner holds.
+ * Removes the team-member record, and with it the person's team access; nothing of the account goes.
+ * A trainer profile the person has stays as a *former trainer* (F023), so the sessions they taught
+ * still show who it was: it records when, the team-member ID and the name the account has now, and
+ * the record's removal clears its link to the team member (the foreign key's `ON DELETE SET NULL
+ * ("team_member_id")`). The classes that had them as their usual trainer have none from now on.
+ * `false` when no such record is in the scope's workspace. The caller has decided the account may
+ * remove, the rule of the last Owner holds and the person's future sessions are dealt with.
  */
 export async function deleteTeamMember(
   scope: WorkspaceScope,
   teamMemberId: string,
 ): Promise<boolean> {
-  const deleted = await executorOf(scope)
+  const db = executorOf(scope);
+  const [profile] = await db
+    .select({ id: trainerProfiles.id, name: authUsers.name })
+    .from(trainerProfiles)
+    .innerJoin(
+      teamMembers,
+      and(
+        eq(teamMembers.organizationId, trainerProfiles.organizationId),
+        eq(teamMembers.id, trainerProfiles.teamMemberId),
+      ),
+    )
+    .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+    .where(
+      and(
+        eq(trainerProfiles.organizationId, scope.workspaceId),
+        eq(trainerProfiles.teamMemberId, teamMemberId),
+      ),
+    )
+    .limit(1);
+  if (profile) {
+    await db
+      .update(trainerProfiles)
+      .set({ removedAt: sql`now()`, removedTeamMemberId: teamMemberId, removedName: profile.name })
+      .where(
+        and(
+          eq(trainerProfiles.organizationId, scope.workspaceId),
+          eq(trainerProfiles.id, profile.id),
+        ),
+      );
+    await db
+      .update(groupClasses)
+      .set({ defaultTrainerProfileId: null })
+      .where(
+        and(
+          eq(groupClasses.organizationId, scope.workspaceId),
+          eq(groupClasses.defaultTrainerProfileId, profile.id),
+        ),
+      );
+  }
+  const deleted = await db
     .delete(teamMembers)
     .where(and(eq(teamMembers.organizationId, scope.workspaceId), eq(teamMembers.id, teamMemberId)))
     .returning({ id: teamMembers.id });

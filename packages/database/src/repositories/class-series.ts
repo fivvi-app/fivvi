@@ -192,6 +192,52 @@ export async function updateClassSeries(
   return findClassSeries(scope, seriesId);
 }
 
+/**
+ * The IDs of the series of the scope's workspace that have the trainer profile as their regular
+ * trainer and have not ended: no end, or an end on or after `today` (a local date) (F023).
+ */
+export async function listActiveSeriesOfTrainer(
+  scope: WorkspaceScope,
+  trainerProfileId: string,
+  today: string,
+): Promise<string[]> {
+  const rows = await executorOf(scope)
+    .select({ id: classSeries.id })
+    .from(classSeries)
+    .where(
+      and(
+        eq(classSeries.organizationId, scope.workspaceId),
+        eq(classSeries.trainerProfileId, trainerProfileId),
+        or(isNull(classSeries.endsOn), gte(classSeries.endsOn, today)),
+      ),
+    )
+    .orderBy(asc(classSeries.startsOn), asc(classSeries.id));
+  return rows.map(({ id }) => id);
+}
+
+/**
+ * Takes the regular trainer off the series (*Trainer nodig* from now on, so the dates the calendar
+ * fills later have none) and raises their version, for the removal of the trainer (F023). Returns
+ * how many it changed; a series of another workspace is never touched (the scope and RLS).
+ */
+export async function clearSeriesTrainer(
+  scope: WorkspaceScope,
+  seriesIds: readonly string[],
+): Promise<number> {
+  if (seriesIds.length === 0) return 0;
+  const updated = await executorOf(scope)
+    .update(classSeries)
+    .set({ trainerProfileId: null, version: sql`${classSeries.version} + 1` })
+    .where(
+      and(
+        eq(classSeries.organizationId, scope.workspaceId),
+        inArray(classSeries.id, [...seriesIds]),
+      ),
+    )
+    .returning({ id: classSeries.id });
+  return updated.length;
+}
+
 /** A date a series already has: what the domain rules need to leave it alone or update it. */
 export interface SeriesDateRow {
   readonly id: string;

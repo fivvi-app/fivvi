@@ -12,7 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { authUsers } from './auth.ts';
 import { businessTable } from './business-table.ts';
-import { timestamps } from './columns.ts';
+import { instant, timestamps } from './columns.ts';
 
 /**
  * What a team member is in a workspace (`GLOSSARY.md`, `PRODUCT.md §9`). Being a client is not a
@@ -88,15 +88,26 @@ export const clients = businessTable(
 );
 
 /**
- * Who trains in a workspace (F005): a row means "this team member trains here", and holds nothing
- * else in M2. Every Trainer has one; an Owner has one when they also train, and only they switch it.
- * The composite foreign key removes it with the team-member record (F003's removal), so the account
- * and its name stay and nothing of a removed person's training is left behind.
+ * Who trains in a workspace (F005): a row means "this team member trains here". Every Trainer has
+ * one; an Owner has one when they also train, and only they switch it.
+ *
+ * When a team member is removed (F003, F023) the row stays, as *a former trainer*, so past
+ * sessions still show who taught them: `team_member_id` is cleared (the migration writes
+ * `ON DELETE SET NULL ("team_member_id")`, which only clears that column; Drizzle cannot), and
+ * `removed_at`, `removed_team_member_id` and `removed_name` say when and who it was (set by
+ * `deleteTeamMember` just before the record goes, the name as the account had it then). Nothing
+ * points at a former trainer but the sessions that were already theirs and have started: the removal
+ * hands over or clears the rest. They are anonymised 24 months after the membership ended (R9,
+ * `FORMER_TRAINER`). A person who is added again gets a new team-member record and a new profile.
+ * When the Owner stops training (`setTrainerProfile`) the row is deleted, as before.
  */
 export const trainerProfiles = businessTable(
   'trainer_profiles',
   {
-    teamMemberId: uuid('team_member_id').notNull(),
+    teamMemberId: uuid('team_member_id'),
+    removedAt: instant('removed_at'),
+    removedTeamMemberId: uuid('removed_team_member_id'),
+    removedName: text('removed_name'),
     ...timestamps(),
   },
   (table) => [
@@ -105,7 +116,7 @@ export const trainerProfiles = businessTable(
       name: 'trainer_profiles_team_member_fk',
       columns: [table.organizationId, table.teamMemberId],
       foreignColumns: [teamMembers.organizationId, teamMembers.id],
-    }).onDelete('cascade'),
+    }),
   ],
 );
 
