@@ -397,7 +397,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     ],
     onDelete: 'anonymize',
     retention: 'FORMER_TRAINER',
-    note: 'A weekly series of a class (F022). A series that has not ended is handed to another trainer or left without one when its trainer is removed from the team (F023); a series that has ended keeps the former trainer’s profile, with the name it had. The series stays with the workspace, as its dates do.',
+    note: 'A weekly series of a class (F022). A series that has not ended has no regular trainer from then on (Trainer nodig) when its trainer is removed from the team (F023); a series that has ended keeps the former trainer’s profile, with the name it had. The series stays with the workspace, as its dates do.',
   },
   {
     table: 'sessions',

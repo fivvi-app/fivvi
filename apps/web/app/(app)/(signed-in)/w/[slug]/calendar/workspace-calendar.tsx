@@ -44,6 +44,7 @@ import { shortcutFor } from './calendar-shortcuts';
 import { MoveDialog, type MoveOutcome } from './move-dialog';
 import { type CalendarAccess, type CalendarItem, QuickView } from './quick-view';
 import { type Slot, SlotMenu } from './slot-menu';
+import { slotTrainerId } from './slot-trainer';
 
 export type CalendarView = 'day' | 'week' | 'list';
 type Shown = CalendarItem & { type: 'private' | 'group' };
@@ -208,14 +209,12 @@ export function WorkspaceCalendarView({
     const localStart = axis.wallTime(localDate, startMinute);
     if (!localStart) return;
     const length = endMinute - startMinute;
+    const trainerId = slotTrainerId({ view, columnKey, former });
     setSlot({
       localDate,
       localStart,
       ...(dragged && length >= 15 && length <= 240 ? { durationMinutes: length } : {}),
-      // In the day view the column's trainer; the *Geen trainer* column and a former trainer's have none to fill in.
-      ...(view === 'day' && columnKey !== NO_TRAINER && !former.some(({ id }) => id === columnKey)
-        ? { trainerId: columnKey }
-        : {}),
+      ...(trainerId ? { trainerId } : {}),
     });
   }
 
