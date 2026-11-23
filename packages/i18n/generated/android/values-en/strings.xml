@@ -851,6 +851,35 @@
     <string name="team_errors_generic">Something went wrong. Try again.</string>
     <string name="team_errors_last_owner">%1$s needs at least one owner.</string>
     <string name="team_errors_no_connection">No connection. Check your internet and try again.</string>
+    <plurals name="team_handover_classes_count">
+        <item quantity="one">%1$d group class</item>
+        <item quantity="other">%1$d group classes</item>
+    </plurals>
+    <string name="team_handover_classes_label">Hand classes over to</string>
+    <plurals name="team_handover_done">
+        <item quantity="one">%1$d session or class has been handed over.</item>
+        <item quantity="other">%1$d sessions and classes have been handed over.</item>
+    </plurals>
+    <plurals name="team_handover_done_cancelled">
+        <item quantity="one">%1$d private session was cancelled.</item>
+        <item quantity="other">%1$d private sessions were cancelled.</item>
+    </plurals>
+    <plurals name="team_handover_later">
+        <item quantity="one">After that: %2$d session gets %1$s needed. You assign it later under Needs attention.</item>
+        <item quantity="other">After that: %2$d sessions get %1$s needed. You assign them later under Needs attention.</item>
+    </plurals>
+    <string name="team_handover_next_two_weeks">The next 2 weeks: %1$s.</string>
+    <string name="team_handover_nobody">Nobody</string>
+    <string name="team_handover_nobody_note">With nobody: classes get %1$s needed, private sessions are cancelled and those clients get an email.</string>
+    <string name="team_handover_notify">Notify clients by email</string>
+    <string name="team_handover_parts_join">%1$s and %2$s</string>
+    <plurals name="team_handover_private_count">
+        <item quantity="one">%1$d private session</item>
+        <item quantity="other">%1$d private sessions</item>
+    </plurals>
+    <string name="team_handover_private_label">Hand private sessions over to</string>
+    <string name="team_handover_series_note">A weekly class that %1$s is the regular %2$s of has no regular %2$s after that.</string>
+    <string name="team_handover_submit">Hand over and remove</string>
     <string name="team_invitations_gone">This invitation is no longer there.</string>
     <string name="team_invitations_send_again">Send again</string>
     <string name="team_invitations_sent_again">Invitation sent again</string>

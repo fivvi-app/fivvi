@@ -1804,6 +1804,22 @@
       "lastOwner": "{workspace} needs at least one owner.",
       "noConnection": "No connection. Check your internet and try again."
     },
+    "handover": {
+      "classesCount": "{count, plural, one {# group class} other {# group classes}}",
+      "classesLabel": "Hand classes over to",
+      "done": "{count, plural, one {# session or class has} other {# sessions and classes have}} been handed over.",
+      "doneCancelled": "{count, plural, one {# private session was} other {# private sessions were}} cancelled.",
+      "later": "{count, plural, one {After that: # session gets {Word} needed. You assign it later under Needs attention.} other {After that: # sessions get {Word} needed. You assign them later under Needs attention.}}",
+      "nextTwoWeeks": "The next 2 weeks: {parts}.",
+      "nobody": "Nobody",
+      "nobodyNote": "With nobody: classes get {Word} needed, private sessions are cancelled and those clients get an email.",
+      "notify": "Notify clients by email",
+      "partsJoin": "{first} and {second}",
+      "privateCount": "{count, plural, one {# private session} other {# private sessions}}",
+      "privateLabel": "Hand private sessions over to",
+      "seriesNote": "A weekly class that {name} is the regular {word} of has no regular {word} after that.",
+      "submit": "Hand over and remove"
+    },
     "invitations": {
       "gone": "This invitation is no longer there.",
       "sendAgain": "Send again",

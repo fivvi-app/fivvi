@@ -1804,6 +1804,22 @@
       "lastOwner": "{workspace} moet minstens één eigenaar houden.",
       "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw."
     },
+    "handover": {
+      "classesCount": "{count, plural, one {# groepsles} other {# groepslessen}}",
+      "classesLabel": "Lessen overdragen aan",
+      "done": "{count, plural, one {# sessie of les is} other {# sessies en lessen zijn}} overgedragen.",
+      "doneCancelled": "{count, plural, one {# privésessie is} other {# privésessies zijn}} geannuleerd.",
+      "later": "{count, plural, one {Daarna: # sessie krijgt {Word} nodig. Je wijst die later toe bij Aandacht nodig.} other {Daarna: # sessies krijgen {Word} nodig. Je wijst ze later toe bij Aandacht nodig.}}",
+      "nextTwoWeeks": "De komende 2 weken: {parts}.",
+      "nobody": "Niemand",
+      "nobodyNote": "Met niemand: lessen krijgen {Word} nodig, privésessies worden geannuleerd en die klanten krijgen een e-mail.",
+      "notify": "Klanten informeren per e-mail",
+      "partsJoin": "{first} en {second}",
+      "privateCount": "{count, plural, one {# privésessie} other {# privésessies}}",
+      "privateLabel": "Privésessies overdragen aan",
+      "seriesNote": "Een wekelijkse les waarvan {name} de vaste {word} is, heeft daarna geen vaste {word}.",
+      "submit": "Overdragen en verwijderen"
+    },
     "invitations": {
       "gone": "Deze uitnodiging staat er niet meer.",
       "sendAgain": "Opnieuw sturen",

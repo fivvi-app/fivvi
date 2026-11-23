@@ -38,6 +38,7 @@ export const tuesday = () => ahead(2, 3);
 export interface SessionBody {
   id: string;
   version: number;
+  status?: string;
   startsAt: string;
   trainer?: { id: string; name: string };
 }
@@ -215,4 +216,37 @@ export async function trainerChangeEmail(address: string, trainer: string) {
     .toBe(true);
   if (!found) throw new Error('No trainer-change email.');
   return found;
+}
+
+/** The `YYYY-MM-DD` `days` days from today (UTC; at least two days keep clear of the day's edge). */
+export const inDays = (days: number) => isoDay(Date.now() + days * DAY);
+
+/** A Kracht class with `trainerId` as its trainer and no dates yet. */
+export async function seedKrachtClass(request: APIRequestContext, base: string, trainerId: string) {
+  return (
+    (await created(request, `${base}/group-classes`, {
+      nameNl: 'Kracht',
+      nameEn: 'Strength',
+      capacity: 12,
+      durationMinutes: 60,
+      trainerId,
+    })) as { groupClass: { id: string } }
+  ).groupClass.id;
+}
+
+/** One date of the class at 18:00, with `trainerId` teaching. */
+export async function seedClassDate(
+  request: APIRequestContext,
+  base: string,
+  classId: string,
+  localDate: string,
+  trainerId: string,
+) {
+  return (
+    (await created(request, `${base}/group-classes/${classId}/dates`, {
+      localDate,
+      localStart: '18:00',
+      trainerId,
+    })) as { id: string }
+  ).id;
 }

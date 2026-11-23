@@ -1046,6 +1046,35 @@
     <string name="team_errors_last_owner">%1$s moet minstens één eigenaar houden.</string>
     <!-- Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed. -->
     <string name="team_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <plurals name="team_handover_classes_count">
+        <item quantity="one">%1$d groepsles</item>
+        <item quantity="other">%1$d groepslessen</item>
+    </plurals>
+    <string name="team_handover_classes_label">Lessen overdragen aan</string>
+    <plurals name="team_handover_done">
+        <item quantity="one">%1$d sessie of les is overgedragen.</item>
+        <item quantity="other">%1$d sessies en lessen zijn overgedragen.</item>
+    </plurals>
+    <plurals name="team_handover_done_cancelled">
+        <item quantity="one">%1$d privésessie is geannuleerd.</item>
+        <item quantity="other">%1$d privésessies zijn geannuleerd.</item>
+    </plurals>
+    <plurals name="team_handover_later">
+        <item quantity="one">Daarna: %2$d sessie krijgt %1$s nodig. Je wijst die later toe bij Aandacht nodig.</item>
+        <item quantity="other">Daarna: %2$d sessies krijgen %1$s nodig. Je wijst ze later toe bij Aandacht nodig.</item>
+    </plurals>
+    <string name="team_handover_next_two_weeks">De komende 2 weken: %1$s.</string>
+    <string name="team_handover_nobody">Niemand</string>
+    <string name="team_handover_nobody_note">Met niemand: lessen krijgen %1$s nodig, privésessies worden geannuleerd en die klanten krijgen een e-mail.</string>
+    <string name="team_handover_notify">Klanten informeren per e-mail</string>
+    <string name="team_handover_parts_join">%1$s en %2$s</string>
+    <plurals name="team_handover_private_count">
+        <item quantity="one">%1$d privésessie</item>
+        <item quantity="other">%1$d privésessies</item>
+    </plurals>
+    <string name="team_handover_private_label">Privésessies overdragen aan</string>
+    <string name="team_handover_series_note">Een wekelijkse les waarvan %1$s de vaste %2$s is, heeft daarna geen vaste %2$s.</string>
+    <string name="team_handover_submit">Overdragen en verwijderen</string>
     <string name="team_invitations_gone">Deze uitnodiging staat er niet meer.</string>
     <string name="team_invitations_send_again">Opnieuw sturen</string>
     <string name="team_invitations_sent_again">Uitnodiging opnieuw verstuurd</string>

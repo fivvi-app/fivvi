@@ -1,4 +1,4 @@
-import { locales, messages } from '@fivvi/i18n';
+import { locales, messages, trainerWordForms } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { escapeHtml, render } from '../../../../../../test/render';
 import { TeamList } from './team-list';
@@ -25,6 +25,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
         canManage={canManage}
         trainerIds={trainerIds}
         currentEmail="john@example.com"
+        trainerWord={trainerWordForms('trainer', locale)}
       />,
     );
   /** The role menu of a person: the select named after them, with its options and the chosen one. */
@@ -177,6 +178,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
           canManage
           trainerIds={[]}
           currentEmail="john@example.com"
+          trainerWord={trainerWordForms('trainer', locale)}
           canInvite
           invitations={invitations}
           defaultLocale="nl-NL"
