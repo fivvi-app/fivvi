@@ -51,7 +51,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | [F011](https://github.com/fivvi-app/fivvi/issues/422) | Trainer Invitations: the Owner invites a trainer by email from *Trainers* (name, address, language of the email) and sees, resends and withdraws the pending invitations; the invited person signs in with that address and accepts or declines on the invitation page, a client's own account included | IMPLEMENTED | Must | M3 | F003, F004, E006 | ✅ | ✅ | §49 |
 | [F012](https://github.com/fivvi-app/fivvi/issues/423) | Multi-Workspace Trainer: a scope switcher on the web (sidebar header) and in the iOS and Android apps (Profiel → Mijn werkruimtes), each opening that workspace's role home; the last workspace is remembered per device; an allowlisted account can create another workspace | IMPLEMENTED | Must | M3 (+ iOS/Android: workspace switch in the profile) | F003, F005 | ✅ | ✅ | §4, §6 |
 | F013 | Personal Trainer Calendar | IN PROGRESS | Must | M4 (+ iOS/Android) | F012, F020 | ⬜ | ⬜ | §45–§48, §78 (type labels and filters) |
-| F014 | Workspace Calendar | IN PROGRESS | Must | M4 | F020 | ⬜ | ⬜ | §45, §48, §78 (type and trainer filters) |
+| [F014](https://github.com/fivvi-app/fivvi/issues/458) | Workspace Calendar: the workspace calendar on the web (week and month, filters, dashboard) and the Owner's Mijn dag \| Hele studio on Vandaag on web, iOS and Android | IMPLEMENTED | Must | M4 | F020 | ✅ | ✅ | §45, §48, §78 (type and trainer filters) |
 
 ### Locations
 

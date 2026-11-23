@@ -66,6 +66,8 @@ import app.fivvi.pro.personal.PersonalRows
 import app.fivvi.pro.personal.PersonalUnavailable
 import app.fivvi.pro.personal.ProTab
 import app.fivvi.pro.personal.ProTabs
+import app.fivvi.pro.personal.StudioDayViewModel
+import app.fivvi.pro.personal.StudioWorkspace
 import app.fivvi.pro.personal.TodayTab
 import app.fivvi.pro.personal.TodayViewModel
 import app.fivvi.pro.sessions.NewSessionFlow
@@ -229,6 +231,16 @@ class MainActivity : ComponentActivity() {
                 stillSignedIn = { dependencies.session.state.value.let { it.signedIn && "${it.generation}" == key } },
             )
         }
+        // The Owner's *Mijn dag | Hele studio* (F014): the workspace's day, for a workspace with a team. A 403 of the day tells the
+        // capability helper, which hides the control and reads the account again.
+        val studio = viewModel(key = "studio-$key") {
+            StudioDayViewModel(
+                dependencies.workspacesApi,
+                dependencies.trainersApi,
+                dependencies.clock::instant,
+                onForbidden = { capabilities.forbidden(it, MeWorkspace.Capabilities.CALENDAR_PERIOD_MANAGE) },
+            )
+        }
         val meState by me.state.collectAsStateWithLifecycle()
         val accountName by me.accountName.collectAsStateWithLifecycle()
         val signingOut by me.signingOut.collectAsStateWithLifecycle()
@@ -246,6 +258,15 @@ class MainActivity : ComponentActivity() {
         val screens = rememberSaveableStateHolder()
         val shown = (meState as? MeState.Loaded)?.destination as? HomeDestination.Workspace
         val allowed by capabilities.capabilities.collectAsStateWithLifecycle()
+        // *Mijn dag | Hele studio* follows the workspace shown and what the API lists for the person there.
+        val mayManageCalendar =
+            shown != null && allowed.mayShow(shown.id, MeWorkspace.Capabilities.CALENDAR_PERIOD_MANAGE)
+        LaunchedEffect(shown?.id, mayManageCalendar) { studio.configure(shown?.id, mayManageCalendar) }
+        val studioWorkspace = shown?.let { workspace ->
+            listed?.firstOrNull { it.id == workspace.id }?.let {
+                StudioWorkspace(workspace.id, workspace.name, workspace.teamMemberId, it.trainerWord)
+            }
+        }
         // Klanten (TM-02) of the workspace shown: only while the API lists `clients.view` there (F004 AC10).
         val mayViewClients = shown != null && allowed.mayShow(shown.id, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW)
         // The **+** shows *Privésessie* for whoever the API lists `session.private.manage.own` or `.any` for there (F020)
@@ -461,6 +482,8 @@ class MainActivity : ComponentActivity() {
             when (selected) {
                 ProTab.TODAY -> TodayTab(
                     today,
+                    studio,
+                    studioWorkspace,
                     // A row opens TD-02 or TD-03 in the workspace of its item, whichever is the current one (F013 AC4).
                     onOpen = { row ->
                         if (row.isGroup) classDateOpenings++ else sessionOpenings++

@@ -56,8 +56,25 @@ class FakeWorkspacesApi : WorkspacesApi {
         surface: WorkspacesApi.SurfaceGetWorkspaceCalendar?,
     ): Response<WorkspaceCalendar> = error("FakeWorkspacesApi.getWorkspaceCalendar is not expected in this test")
 
-    override suspend fun getWorkspaceDay(workspaceId: UUID, date: String?): Response<WorkspaceDay> =
-        error("FakeWorkspacesApi.getWorkspaceDay is not expected in this test")
+    /** The day `GET …/day` answers (F014); without one the call is not expected. */
+    var workspaceDay: WorkspaceDay? = null
+
+    /** While set, the day call answers with this status (403, 404), as for a person who may not read it. */
+    var dayStatus: Int? = null
+
+    /** While set, the day call fails with this exception (no connection). */
+    var dayFailure: Exception? = null
+
+    /** Every day asked for: the workspace and the date (`null`: today in the workspace). */
+    val dayRequests = mutableListOf<Pair<UUID, String?>>()
+
+    override suspend fun getWorkspaceDay(workspaceId: UUID, date: String?): Response<WorkspaceDay> {
+        dayRequests += workspaceId to date
+        dayFailure?.let { throw it }
+        dayStatus?.let { return Response.error(it, "{}".toResponseBody()) }
+        val day = workspaceDay ?: error("FakeWorkspacesApi.getWorkspaceDay is not expected in this test")
+        return Response.success(day)
+    }
 
     override suspend fun recordWorkspaceSwitch(
         workspaceId: UUID,

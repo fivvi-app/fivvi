@@ -58,7 +58,11 @@ class WorkspaceCapabilities(private val api: MeApi) : ViewModel() {
      * account again; any other answer changes nothing. A read that fails leaves the action hidden.
      */
     fun onResponse(response: Response<*>, workspaceId: UUID, capability: MeWorkspace.Capabilities) {
-        if (response.code() != HTTP_FORBIDDEN) return
+        if (response.code() == HTTP_FORBIDDEN) forbidden(workspaceId, capability)
+    }
+
+    /** A call that [capability] guards in [workspaceId] was refused (403): the action is hidden and the account read again. */
+    fun forbidden(workspaceId: UUID, capability: MeWorkspace.Capabilities) {
         _capabilities.update { it.without(workspaceId, capability) }
         reading?.cancel()
         reading = viewModelScope.launch { read()?.let(::replace) }

@@ -67,11 +67,14 @@ fun rememberDeviceZone(onTimeChanged: () -> Unit): ZoneId {
 /**
  * The first tab (F013): Vandaag reads the day on opening, on foreground (with the account, so a workspace the person lost
  * shows its notice) and on the OS's time-change signals, and holds its own countdown. [onPlan] is `null` where the person may
- * not plan sessions in the current workspace.
+ * not plan sessions in the current workspace. [studio] holds the Owner's *Mijn dag | Hele studio* (F014): it is read on the same
+ * occasions, and [studioWorkspace] is the workspace it is of (`null` while the account isn't read).
  */
 @Composable
 fun TodayTab(
     model: TodayViewModel,
+    studio: StudioDayViewModel,
+    studioWorkspace: StudioWorkspace?,
     onOpen: (PersonalRow) -> Unit,
     onRoute: (String) -> Unit,
     onPlan: ((OffsetDateTime) -> Unit)?,
@@ -80,14 +83,22 @@ fun TodayTab(
     modifier: Modifier = Modifier,
 ) {
     val state by model.state.collectAsStateWithLifecycle()
-    val zone = rememberDeviceZone(model::load)
+    val studioState by studio.state.collectAsStateWithLifecycle()
+    val zone = rememberDeviceZone {
+        model.load()
+        if (studio.state.value.isStudio) studio.load()
+    }
     val now: Instant = rememberTicking(model::now)
     LaunchedEffect(model) { model.load() }
     OnForeground(model::refresh)
+    OnForeground(studio::refresh)
     TodayScreen(
         state,
         TodayActions(
-            onRefresh = model::refresh,
+            onRefresh = {
+                model.refresh()
+                studio.refresh()
+            },
             onOpen = onOpen,
             onRoute = onRoute,
             onPlan = onPlan,
@@ -98,5 +109,6 @@ fun TodayTab(
         deviceZone = zone,
         now = now,
         modifier = modifier,
+        studio = studioWorkspace?.let { StudioUi(studioState, it, studio::select) },
     )
 }
