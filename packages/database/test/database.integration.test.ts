@@ -7,7 +7,7 @@ import {
   type TestDatabase,
   withRollback,
 } from '@fivvi/testing/database';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -900,9 +900,11 @@ describe('E004 database', () => {
           '2026-11-05',
           '2026-11-06',
         ]);
+        // Every session is scheduled but the one the client called off (F026 AC16).
+        expect(week.filter(({ status }) => status === 'cancelled')).toHaveLength(1);
         for (const session of week) {
           expect(session).toMatchObject({
-            status: 'scheduled',
+            status: session.status === 'cancelled' ? 'cancelled' : 'scheduled',
             type: 'private',
             capacity: 1,
             location: "John's Gym",
@@ -918,6 +920,77 @@ describe('E004 database', () => {
             sql`${sessionParticipants.sessionId} in (select id from sessions where type = 'private')`,
           ),
         ).toBe(week.length + 4 + 30);
+      });
+    });
+
+    it('AC16 (F026): gives the synthetic week one private session the client cancelled, recorded as the API records it', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+
+        const cancelled = await rows<{
+          id: string;
+          status: string;
+          version: number;
+          cancelledAt: string | null;
+          initiator: string | null;
+          cancelledBy: string | null;
+          startsAt: string;
+          message: string | null;
+          trainer: string;
+          place: string;
+          history: { from: string | null; to: string; initiatedBy: string | null; actor: string }[];
+        }>(
+          tx,
+          sql`select s.id, s.status, s.version,
+                     to_char(s.cancelled_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI') as "cancelledAt",
+                     s.cancellation_initiator as initiator,
+                     u.name as "cancelledBy",
+                     to_char(s.starts_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI') as "startsAt",
+                     s.cancellation_message as message,
+                     tu.name as trainer,
+                     sp.attendance_status as place,
+                     (select json_agg(json_build_object(
+                         'from', h.from_status, 'to', h.to_status,
+                         'initiatedBy', h.initiated_by, 'actor', h.actor_type) order by h.changed_at)
+                        from session_participant_status_changes h
+                        where h.session_participant_id = sp.id) as history
+              from sessions s
+              join organizations o on o.id = s.organization_id and o.slug = 'johns-gym'
+              join session_participants sp on sp.session_id = s.id
+              left join team_members tm on tm.id = s.cancelled_by_team_member_id
+              left join auth_users u on u.id = tm.account_id
+              join trainer_profiles tp on tp.id = s.trainer_profile_id
+              join team_members ttm on ttm.id = tp.team_member_id
+              join auth_users tu on tu.id = ttm.account_id
+              where s.type = 'private' and s.starts_at >= timestamptz '2026-11-01 00:00+00'
+                and s.status = 'cancelled'`,
+        );
+
+        expect(cancelled).toHaveLength(1);
+        expect(cancelled[0]).toMatchObject({
+          status: 'cancelled',
+          version: 2,
+          initiator: 'client',
+          // Friday 6 November 16:00 in Amsterdam is 15:00 UTC; cancelled two days before.
+          startsAt: '2026-11-06T15:00',
+          cancelledAt: '2026-11-04T15:00',
+          cancelledBy: 'Sarah',
+          trainer: 'Sarah',
+          place: 'cancelled',
+          message: null,
+          history: [
+            { from: null, to: 'booked', initiatedBy: null, actor: 'system' },
+            { from: 'booked', to: 'cancelled', initiatedBy: 'client', actor: 'team_member' },
+          ],
+        });
+      });
+    });
+
+    it('AC16 (F026): seeds no cancellation in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true, now: WEDNESDAY });
+
+        expect(await tx.$count(sessions, isNotNull(sessions.cancelledAt))).toBe(0);
       });
     });
 
@@ -1772,7 +1845,9 @@ describe('E004 database', () => {
           tx,
           sql`select l.from_status::text, l.to_status::text, l.actor_type::text, l.source::text, l.initiated_by::text,
                      (l.to_status = sp.attendance_status or l.to_status = 'booked') as same
-              from session_participant_status_changes l join session_participants sp on sp.id = l.session_participant_id`,
+              from session_participant_status_changes l join session_participants sp on sp.id = l.session_participant_id
+              -- The class dates of F025 only: the private session the client cancelled (F026 AC16) has its own lines, by the trainer who recorded it.
+              join sessions s on s.id = sp.session_id and s.type = 'group'`,
         );
         expect(lines.every((line) => line.same)).toBe(true);
         expect(

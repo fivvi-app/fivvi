@@ -473,6 +473,15 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     }),
   },
 
+  // Cancelling a private session (F026): the cancel names the seeded session at the version it has,
+  // for the client (nobody is emailed). Each call gets a session of its own: a cancelled session stays so.
+  cancelPrivateSession: {
+    seed: aSessionOfTheCaller,
+    reseedForEachCall: true,
+    params: { sessionId: 'session' },
+    body: { initiator: 'client', notify: false, version: 1 },
+  },
+
   // The role change (F004): it names the seeded team member and asks for the role it already has.
   changeTeamMemberRole: {
     seed: aTeamMember,

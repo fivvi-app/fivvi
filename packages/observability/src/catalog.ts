@@ -140,6 +140,14 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     language_mode: property.enum(['visitor', 'nl', 'en']),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F026: a team member cancelled a private session. The workspace ID, the platform and who it came
+  // from (`client` or `workspace`) only (the team member's account UUID is the distinct ID): no
+  // session, client or trainer ID, name, email address, message, date or time.
+  private_session_cancelled: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+    initiator: property.enum(['client', 'workspace']),
+  },
   // F020: a team member rescheduled a private session. The workspace ID and the surface only, as
   // for `private_session_created`: no session or client ID, name, email address, trainer, or the
   // old or new date or time.

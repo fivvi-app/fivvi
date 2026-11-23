@@ -31,6 +31,12 @@ export const sessionType = pgEnum('session_type', ['private', 'group', 'open_gym
  */
 export const sessionStatus = pgEnum('session_status', ['scheduled', 'cancelled']);
 
+/**
+ * Who a cancellation of a session came from (F026, PS-06 *De klant* / *Wij*): the client called it
+ * off, or the workspace did. M11 reads it with the time to apply the cancellation policy.
+ */
+export const cancellationInitiator = pgEnum('cancellation_initiator', ['client', 'workspace']);
+
 /** What became of a participant's place (F025 attendance, F026 cancellations); `booked` at the start. */
 export const attendanceStatus = pgEnum('attendance_status', [
   'booked',
@@ -66,6 +72,13 @@ export const attendanceStatus = pgEnum('attendance_status', [
  *   per series, so the daily task can never make a date twice); `detached_fields` lists what was
  *   changed on this date alone (`time`, `trainer`, `capacity`, `location`), which a change of the
  *   series from a date on leaves alone.
+ * - `cancelled_at`, `cancelled_by_team_member_id` and `cancellation_initiator` are the record of a
+ *   cancellation (F026): when (UTC), which team member clicked, and who it came from. All three are
+ *   empty until the session is cancelled; the time and the initiator come together (a check). The
+ *   team member is cleared the same way as the planner when they are removed (the migration writes
+ *   `ON DELETE SET NULL (cancelled_by_team_member_id)`). `cancellation_message` is the optional
+ *   text the Owner sent with a class date's cancellation, as typed and kept because it was sent;
+ *   a private session has none. There is no undo: the record is never cleared.
  * - `version` starts at 1 and is raised by every change, for optimistic concurrency (reschedule,
  *   AC8 of the spec): the writer says which version it read.
  *
@@ -89,6 +102,10 @@ export const sessions = businessTable(
     version: integer('version').notNull().default(1),
     createdByTeamMemberId: uuid('created_by_team_member_id'),
     updatedByTeamMemberId: uuid('updated_by_team_member_id'),
+    cancelledAt: instant('cancelled_at'),
+    cancelledByTeamMemberId: uuid('cancelled_by_team_member_id'),
+    cancellationInitiator: cancellationInitiator('cancellation_initiator'),
+    cancellationMessage: text('cancellation_message'),
     ...timestamps(),
   },
   (table) => [
@@ -148,6 +165,17 @@ export const sessions = businessTable(
       columns: [table.organizationId, table.updatedByTeamMemberId],
       foreignColumns: [teamMembers.organizationId, teamMembers.id],
     }),
+    foreignKey({
+      name: 'sessions_cancelled_by_fk',
+      columns: [table.organizationId, table.cancelledByTeamMemberId],
+      foreignColumns: [teamMembers.organizationId, teamMembers.id],
+    }),
+    // The time and the initiator of a cancellation come together; who clicked and the message only with them.
+    check(
+      'sessions_cancellation_record_complete',
+      sql`(${table.cancelledAt} IS NULL) = (${table.cancellationInitiator} IS NULL)
+        AND (${table.cancelledAt} IS NOT NULL OR (${table.cancelledByTeamMemberId} IS NULL AND ${table.cancellationMessage} IS NULL))`,
+    ),
     // The daily task that keeps class series 12 weeks ahead (F022, E012) adds the missing dates of
     // every workspace as the cron role, which sets no workspace context. It may insert and nothing
     // else (the privileges list grants INSERT only): it reads no session, and cannot change one.

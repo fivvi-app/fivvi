@@ -13,6 +13,7 @@ import {
   offers,
   offerVersions,
   organizations,
+  sessionParticipantStatusChanges,
   sessionParticipants,
   sessions,
   teamMembers,
@@ -587,6 +588,8 @@ interface SeedSession {
   readonly minutes: number;
   readonly trainer: string;
   readonly client: string;
+  /** The client called it off (F026 AC16): cancelled two days before, by the trainer, at the client's request. */
+  readonly cancelledByClient?: true;
 }
 
 /** The synthetic week of John's Gym (F020 AC15): John, Sarah and Tom each train; every client comes. */
@@ -653,6 +656,7 @@ const SEED_SESSIONS: readonly SeedSession[] = [
     minutes: 60,
     trainer: 'trainer@example.com',
     client: 'sophie.bakker@example.com',
+    cancelledByClient: true,
   },
 ];
 
@@ -790,12 +794,17 @@ async function seedPrivateSessions(
   const trainers = new Map(
     (
       await db
-        .select({ email: authUsers.email, profileId: trainerProfiles.id })
+        .select({
+          email: authUsers.email,
+          profileId: trainerProfiles.id,
+          teamMemberId: teamMembers.id,
+          accountId: authUsers.id,
+        })
         .from(trainerProfiles)
         .innerJoin(teamMembers, eq(teamMembers.id, trainerProfiles.teamMemberId))
         .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
         .where(eq(trainerProfiles.organizationId, workspaceId))
-    ).map((row) => [row.email, row.profileId]),
+    ).map((row) => [row.email, row]),
   );
   const clientIds = new Map(
     (
@@ -806,27 +815,69 @@ async function seedPrivateSessions(
     ).map((row) => [row.email, row.id]),
   );
   for (const plan of SEED_SESSIONS) {
-    const trainerProfileId = trainers.get(plan.trainer);
+    const trainer = trainers.get(plan.trainer);
     const clientId = clientIds.get(plan.client);
-    if (!trainerProfileId || !clientId)
-      throw new Error('The seed did not find a trainer or client.');
+    if (!trainer || !clientId) throw new Error('The seed did not find a trainer or client.');
     const startsAt = at(sql`${monday}::date + ${plan.weekday - 1}::int + ${plan.start}::time`);
+    // F026 AC16: one session the client called off, two days before it, recorded by the trainer.
+    const cancelledAt = sql`(${startsAt}) - interval '2 days'`;
     const [session] = await db
       .insert(sessions)
       .values({
         organizationId: workspaceId,
         type: 'private',
-        trainerProfileId,
+        trainerProfileId: trainer.profileId,
         locationId: location.id,
         startsAt: startsAt as never,
         endsAt: sql`(${startsAt}) + ${plan.minutes} * interval '1 minute'` as never,
         capacity: 1,
+        ...(plan.cancelledByClient
+          ? {
+              status: 'cancelled' as const,
+              version: 2,
+              cancelledAt: cancelledAt as never,
+              cancelledByTeamMemberId: trainer.teamMemberId,
+              cancellationInitiator: 'client' as const,
+            }
+          : {}),
       })
       .returning({ id: sessions.id });
     if (!session) throw new Error('The seed did not store a session.');
-    await db
+    const [place] = await db
       .insert(sessionParticipants)
-      .values({ organizationId: workspaceId, sessionId: session.id, clientId });
+      .values({
+        organizationId: workspaceId,
+        sessionId: session.id,
+        clientId,
+        ...(plan.cancelledByClient
+          ? { attendanceStatus: 'cancelled' as const, statusChangedAt: cancelledAt as never }
+          : {}),
+      })
+      .returning({ id: sessionParticipants.id });
+    if (!place) throw new Error('The seed did not store a participant.');
+    if (plan.cancelledByClient) {
+      // The history of the place: made a week before, then cancelled, as the API writes it (F025, F026).
+      const line = { organizationId: workspaceId, sessionParticipantId: place.id, clientId };
+      await db.insert(sessionParticipantStatusChanges).values({
+        ...line,
+        fromStatus: null,
+        toStatus: 'booked',
+        changedAt: sql`(${startsAt}) - interval '7 days'` as never,
+        actorType: 'system',
+        source: 'system',
+      });
+      await db.insert(sessionParticipantStatusChanges).values({
+        ...line,
+        fromStatus: 'booked',
+        toStatus: 'cancelled',
+        changedAt: cancelledAt as never,
+        actorType: 'team_member',
+        actorTeamMemberId: trainer.teamMemberId,
+        actorAccountId: trainer.accountId,
+        initiatedBy: 'client',
+        source: 'web',
+      });
+    }
   }
 }
 

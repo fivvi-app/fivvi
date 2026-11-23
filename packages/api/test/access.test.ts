@@ -495,6 +495,7 @@ describe('@permission E011 route access', () => {
       'post /v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule': 'workspace',
       'get /v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer-candidates': 'workspace',
       'post /v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer': 'workspace',
+      'post /v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel': 'workspace',
       'get /v1/workspaces/{workspaceId}/sessions/{sessionId}/participants': 'workspace',
       'post /v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/attended': 'workspace',
       'put /v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/{clientId}/attendance':

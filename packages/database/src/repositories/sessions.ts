@@ -27,6 +27,8 @@ import { findLocation, type LocationView } from './locations.ts';
 export type SessionType = (typeof sessions.type.enumValues)[number];
 export type SessionStatus = (typeof sessions.status.enumValues)[number];
 export type AttendanceStatus = (typeof sessionParticipants.attendanceStatus.enumValues)[number];
+/** Who a cancellation came from: the client or the workspace (F026). */
+export type CancellationInitiator = (typeof sessions.cancellationInitiator.enumValues)[number];
 
 export interface SessionParticipantView {
   readonly clientId: string;
@@ -62,6 +64,18 @@ export interface SessionSeriesView {
   readonly detachedFields: string[];
 }
 
+/**
+ * The record of a cancelled session (F026): when (UTC), the team member who clicked (`null` once
+ * they were removed) and who it came from. `message` is what the Owner sent with a class date's
+ * cancellation, as typed; `null` for a private session and for a date cancelled without one.
+ */
+export interface SessionCancellationView {
+  readonly cancelledAt: Date;
+  readonly cancelledBy: SessionTrainerView | null;
+  readonly initiator: CancellationInitiator;
+  readonly message: string | null;
+}
+
 /** A session as the team sees it: instants in UTC, the location, the trainer and who takes part. */
 export interface SessionView {
   readonly id: string;
@@ -79,6 +93,8 @@ export interface SessionView {
   readonly groupClass: SessionGroupClassView | null;
   /** The weekly series of a class date (F022); `null` for a date on its own and for the other kinds. */
   readonly series: SessionSeriesView | null;
+  /** The record of the cancellation (F026); `null` while the session is not cancelled, and for one cancelled before it was recorded. */
+  readonly cancellation: SessionCancellationView | null;
   /** In the order they were added. */
   readonly participants: SessionParticipantView[];
   /**
@@ -138,6 +154,10 @@ export async function findSession(
       seriesId: sessions.seriesId,
       occurrenceDate: sessions.occurrenceDate,
       detachedFields: sessions.detachedFields,
+      cancelledAt: sessions.cancelledAt,
+      cancelledByTeamMemberId: sessions.cancelledByTeamMemberId,
+      cancellationInitiator: sessions.cancellationInitiator,
+      cancellationMessage: sessions.cancellationMessage,
     })
     .from(sessions)
     .where(and(eq(sessions.organizationId, scope.workspaceId), eq(sessions.id, sessionId)))
@@ -151,6 +171,10 @@ export async function findSession(
     seriesId,
     occurrenceDate,
     detachedFields,
+    cancelledAt,
+    cancelledByTeamMemberId,
+    cancellationInitiator,
+    cancellationMessage,
     ...session
   } = row;
   const location = await findLocation(scope, locationId);
@@ -184,6 +208,18 @@ export async function findSession(
           and(
             eq(teamMembers.organizationId, scope.workspaceId),
             eq(teamMembers.id, updatedByTeamMemberId),
+          ),
+        )
+    : [];
+  const [cancelledBy] = cancelledByTeamMemberId
+    ? await db
+        .select({ id: teamMembers.id, name: authUsers.name })
+        .from(teamMembers)
+        .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+        .where(
+          and(
+            eq(teamMembers.organizationId, scope.workspaceId),
+            eq(teamMembers.id, cancelledByTeamMemberId),
           ),
         )
     : [];
@@ -245,6 +281,15 @@ export async function findSession(
           detachedFields,
         }
       : null,
+    cancellation:
+      cancelledAt && cancellationInitiator
+        ? {
+            cancelledAt,
+            cancelledBy: cancelledBy ?? null,
+            initiator: cancellationInitiator,
+            message: cancellationMessage,
+          }
+        : null,
     participants,
     lastChangedBy: lastChangedBy ?? null,
   };

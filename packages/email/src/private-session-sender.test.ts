@@ -148,4 +148,45 @@ describe('F020 EM-11 sender', () => {
       });
     });
   });
+
+  describe('EM-05, when the mail says the session is cancelled (F026)', () => {
+    const cancelled = { ...mail, cancelled: true as const, event: 'session-1:2:client-1' };
+
+    it('AC12: sends EM-05 in the given language with the idempotency key of EM-05 and the event', async () => {
+      const { transport, send } = setup();
+
+      await send(cancelled);
+
+      expect(transport.sent).toHaveLength(1);
+      expect(transport.sent[0]).toMatchObject({
+        to: { email: 'anna@example.com', name: 'Anna de Vries' },
+        locale: 'nl-NL',
+        template: 'private-session-cancelled',
+        subject: 'Je sessie op donderdag 24 september om 09:00 is geannuleerd',
+        idempotencyKey: emailIdempotencyKey('EM-05', cancelled.event),
+      });
+      expect(transport.sent[0]?.text).toContain(
+        "Waar: John's Gym, Voorbeeldstraat 1 B, 1234 AB Amsterdam",
+      );
+    });
+
+    it('AC2: sends it in English when the mail says English', async () => {
+      const { transport, send } = setup();
+
+      await send({ ...cancelled, locale: english });
+
+      expect(transport.sent[0]).toMatchObject({
+        locale: 'en',
+        subject: 'Your session on Thursday 24 September at 09:00 has been cancelled',
+      });
+    });
+
+    it('names no other client of a duo', async () => {
+      const { transport, send } = setup();
+
+      await send({ ...cancelled, togetherWith: 'Mark' });
+
+      expect(transport.sent[0]?.text).not.toContain('Mark');
+    });
+  });
 });

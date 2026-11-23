@@ -79,6 +79,7 @@ const FORBIDDEN: Record<string, string> = {
   'the session type enum': "import { sessionType } from '@fivvi/database';",
   'the session status enum': "import { sessionStatus } from '@fivvi/database';",
   'the attendance status enum': "import { attendanceStatus } from '@fivvi/database';",
+  'the cancellation initiator enum': "import { cancellationInitiator } from '@fivvi/database';",
   'the session participant status changes table':
     "import { sessionParticipantStatusChanges } from '@fivvi/database';",
   'the participant status source enum':
@@ -272,6 +273,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     BookingLinkScopeName: 'type of the booking-link repository (F037)',
     BookingLinkSessionFacts: 'type of the booking-link repository (F037)',
     BookingLinkView: 'type of the booking-link repository (F037)',
+    CancellationInitiator: 'type of the session repository (F026)',
     ChargebackRecord: 'type of the refund repository (F060)',
     ClassDateChanges: 'type of the group-class repository (F021)',
     ClassDateUpdate: 'type of the group-class repository (F021)',
@@ -360,6 +362,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     RefundStatusChangeRecord: 'type of the refund repository (F060)',
     SeriesDateRow: 'type of the class-series repository (F022)',
     SeriesDateUpdate: 'type of the class-series repository (F022)',
+    SessionCancellation: 'type of the cancellation repository (F026)',
+    SessionCancellationView: 'type of the session repository (F026)',
     SessionGroupClassView: 'type of the session repository (F021)',
     SessionParticipantView: 'type of the session repository (F020)',
     SessionReschedule: 'type of the session repository (F020)',
@@ -396,6 +400,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     appendAccessLog: 'repository of the access log, takes the workspace scope (E014)',
     assignSessionTrainer: 'repository of the sessions, takes the workspace scope (F023)',
     bulkRequestKey: 'the key of one line of a bulk attendance change, a string function (F025)',
+    cancelSession: 'repository of the cancellations, takes the workspace scope (F026)',
     changeOffer: 'repository of offers, takes the workspace scope (F052)',
     changeTeamMemberRole: 'repository of the team, takes the workspace scope (F004)',
     closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',

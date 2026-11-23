@@ -120,6 +120,12 @@ extension StubAPI {
         fatalError("The app doesn't call updateGroupClassSeries yet")
     }
 
+    func cancelPrivateSession(
+        _ input: Operations.CancelPrivateSession.Input
+    ) async throws -> Operations.CancelPrivateSession.Output {
+        fatalError("The app doesn't call cancelPrivateSession yet")
+    }
+
     func assignTrainer(
         _ input: Operations.AssignTrainer.Input
     ) async throws -> Operations.AssignTrainer.Output {

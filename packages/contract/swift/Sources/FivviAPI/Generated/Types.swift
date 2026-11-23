@@ -312,6 +312,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/attended`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/attended/post(markEveryoneAttended)`.
     func markEveryoneAttended(_ input: Operations.MarkEveryoneAttended.Input) async throws -> Operations.MarkEveryoneAttended.Output
+    /// Cancel a private session
+    ///
+    /// Cancels a private session (PS-06): the session becomes `cancelled` and stays, each client’s place becomes `cancelled` (one line of the status history each, with the caller as actor and `initiator`), and the time (UTC), the team member who cancelled and the `initiator` are stored. The Owner may cancel any private session, a Trainer only their own (`403` otherwise). A cancelled session answers `409` with the code `session_cancelled` (a second cancel too, whatever the version; the state is told before the version); a `version` that is not the session’s answers `409` with `session_changed`, the session as it is now and who changed it last. A session that is not private or not in the workspace answers `404`. When `notify` is on and the session has not started, EM-05 goes to each client after the cancellation is committed, in their email language, else the workspace’s default, and never names another participant. A session that has started is recorded without an email. There is no undo.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel/post(cancelPrivateSession)`.
+    func cancelPrivateSession(_ input: Operations.CancelPrivateSession.Input) async throws -> Operations.CancelPrivateSession.Output
     /// The workspace calendar: the sessions of a range of days
     ///
     /// Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
@@ -1166,6 +1173,23 @@ extension APIProtocol {
         body: Operations.MarkEveryoneAttended.Input.Body
     ) async throws -> Operations.MarkEveryoneAttended.Output {
         try await markEveryoneAttended(Operations.MarkEveryoneAttended.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Cancel a private session
+    ///
+    /// Cancels a private session (PS-06): the session becomes `cancelled` and stays, each client’s place becomes `cancelled` (one line of the status history each, with the caller as actor and `initiator`), and the time (UTC), the team member who cancelled and the `initiator` are stored. The Owner may cancel any private session, a Trainer only their own (`403` otherwise). A cancelled session answers `409` with the code `session_cancelled` (a second cancel too, whatever the version; the state is told before the version); a `version` that is not the session’s answers `409` with `session_changed`, the session as it is now and who changed it last. A session that is not private or not in the workspace answers `404`. When `notify` is on and the session has not started, EM-05 goes to each client after the cancellation is committed, in their email language, else the workspace’s default, and never names another participant. A session that has started is recorded without an email. There is no undo.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel/post(cancelPrivateSession)`.
+    public func cancelPrivateSession(
+        path: Operations.CancelPrivateSession.Input.Path,
+        headers: Operations.CancelPrivateSession.Input.Headers = .init(),
+        body: Operations.CancelPrivateSession.Input.Body
+    ) async throws -> Operations.CancelPrivateSession.Output {
+        try await cancelPrivateSession(Operations.CancelPrivateSession.Input(
             path: path,
             headers: headers,
             body: body

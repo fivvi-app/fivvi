@@ -566,7 +566,7 @@ describe('F023 the double-booking check through the API', () => {
         '/v1/workspaces/{workspaceId}/sessions/{sessionId}',
         'patch',
         'UpdateGroupClassDateRefusal',
-        ['class_date_changed'],
+        ['class_date_changed', 'session_cancelled'],
       ],
     ] as const) {
       const answered = JSON.stringify(contract.paths[path]?.[method]?.responses['409']);

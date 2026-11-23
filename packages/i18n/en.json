@@ -425,6 +425,12 @@
       "when": "When: {date}, {start} to {end}",
       "where": "Where: {location}"
     },
+    "privateSessionCancelled": {
+      "intro": "Your private session at {workspace} has been cancelled.",
+      "preview": "Your private session at {workspace} is not going ahead.",
+      "subject": "Your session on {date} at {time} has been cancelled",
+      "when": "It was planned for: {date}, {start} to {end}"
+    },
     "privateSessionMoved": {
       "dateTime": "{date} at {time}",
       "intro": "Your private session at {workspace} has moved.",

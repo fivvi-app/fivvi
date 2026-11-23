@@ -379,6 +379,8 @@ extension Components {
                 case team_invite = "team.invite"
                 case session_private_manage_own = "session.private.manage.own"
                 case session_private_manage_any = "session.private.manage.any"
+                case session_private_cancel_own = "session.private.cancel.own"
+                case session_private_cancel_any = "session.private.cancel.any"
                 case session_assign = "session.assign"
                 case class_manage = "class.manage"
                 case class_read = "class.read"
@@ -537,6 +539,8 @@ extension Components {
                 case team_invite = "team.invite"
                 case session_private_manage_own = "session.private.manage.own"
                 case session_private_manage_any = "session.private.manage.any"
+                case session_private_cancel_own = "session.private.cancel.own"
+                case session_private_cancel_any = "session.private.cancel.any"
                 case session_assign = "session.assign"
                 case class_manage = "class.manage"
                 case class_read = "class.read"
@@ -2409,6 +2413,8 @@ extension Components {
             public var location: Components.Schemas.Location
             /// - Remark: Generated from `#/components/schemas/Session/trainer`.
             public var trainer: Components.Schemas.SessionTrainer?
+            /// - Remark: Generated from `#/components/schemas/Session/cancellation`.
+            public var cancellation: Components.Schemas.SessionCancellation?
             /// - Remark: Generated from `#/components/schemas/Session/groupClass`.
             public var groupClass: Components.Schemas.SessionGroupClass?
             /// - Remark: Generated from `#/components/schemas/Session/series`.
@@ -2430,6 +2436,7 @@ extension Components {
             ///   - version: Raised by every change; a change says the version it read. Starts at 1.
             ///   - location:
             ///   - trainer:
+            ///   - cancellation:
             ///   - groupClass:
             ///   - series:
             ///   - participants: The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5).
@@ -2444,6 +2451,7 @@ extension Components {
                 version: Swift.Int,
                 location: Components.Schemas.Location,
                 trainer: Components.Schemas.SessionTrainer? = nil,
+                cancellation: Components.Schemas.SessionCancellation? = nil,
                 groupClass: Components.Schemas.SessionGroupClass? = nil,
                 series: Components.Schemas.SessionSeries? = nil,
                 participants: [Components.Schemas.SessionParticipant]
@@ -2458,6 +2466,7 @@ extension Components {
                 self.version = version
                 self.location = location
                 self.trainer = trainer
+                self.cancellation = cancellation
                 self.groupClass = groupClass
                 self.series = series
                 self.participants = participants
@@ -2473,6 +2482,7 @@ extension Components {
                 case version
                 case location
                 case trainer
+                case cancellation
                 case groupClass
                 case series
                 case participants
@@ -2505,6 +2515,85 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case id
                 case name
+            }
+        }
+        /// The record of the cancellation (F026); left out while the session is not cancelled.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SessionCancellation`.
+        public struct SessionCancellation: Codable, Hashable, Sendable {
+            /// When it was cancelled, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionCancellation/cancelledAt`.
+            public var cancelledAt: Foundation.Date
+            /// - Remark: Generated from `#/components/schemas/SessionCancellation/cancelledBy`.
+            public struct CancelledByPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/SessionCancellation/cancelledBy/value1`.
+                public var value1: Components.Schemas.SessionTrainer
+                /// The team member who cancelled it (the banner’s *door {name}*), as in `GET …/trainers`; left out when that person has been removed.
+                ///
+                /// - Remark: Generated from `#/components/schemas/SessionCancellation/cancelledBy/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `CancelledByPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The team member who cancelled it (the banner’s *door {name}*), as in `GET …/trainers`; left out when that person has been removed.
+                public init(
+                    value1: Components.Schemas.SessionTrainer,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/SessionCancellation/cancelledBy`.
+            public var cancelledBy: Components.Schemas.SessionCancellation.CancelledByPayload?
+            /// Who the cancellation came from: `client` (*De klant*, shown as *op verzoek van de klant*) or `workspace` (*Wij*). M11 reads it with `cancelledAt` for the cancellation policy.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionCancellation/initiator`.
+            @frozen public enum InitiatorPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case client = "client"
+                case workspace = "workspace"
+            }
+            /// Who the cancellation came from: `client` (*De klant*, shown as *op verzoek van de klant*) or `workspace` (*Wij*). M11 reads it with `cancelledAt` for the cancellation policy.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionCancellation/initiator`.
+            public var initiator: Components.Schemas.SessionCancellation.InitiatorPayload
+            /// The text the Owner sent with a class date’s cancellation, as typed and never translated; left out for a private session and for a date cancelled without one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionCancellation/message`.
+            public var message: Swift.String?
+            /// Creates a new `SessionCancellation`.
+            ///
+            /// - Parameters:
+            ///   - cancelledAt: When it was cancelled, a UTC instant.
+            ///   - cancelledBy:
+            ///   - initiator: Who the cancellation came from: `client` (*De klant*, shown as *op verzoek van de klant*) or `workspace` (*Wij*). M11 reads it with `cancelledAt` for the cancellation policy.
+            ///   - message: The text the Owner sent with a class date’s cancellation, as typed and never translated; left out for a private session and for a date cancelled without one.
+            public init(
+                cancelledAt: Foundation.Date,
+                cancelledBy: Components.Schemas.SessionCancellation.CancelledByPayload? = nil,
+                initiator: Components.Schemas.SessionCancellation.InitiatorPayload,
+                message: Swift.String? = nil
+            ) {
+                self.cancelledAt = cancelledAt
+                self.cancelledBy = cancelledBy
+                self.initiator = initiator
+                self.message = message
+            }
+            public enum CodingKeys: String, CodingKey {
+                case cancelledAt
+                case cancelledBy
+                case initiator
+                case message
             }
         }
         /// The class of a class date (F021); left out for the other kinds.
@@ -3792,6 +3881,182 @@ extension Components {
                 case surface
             }
         }
+        /// The private session after it was cancelled, with how many clients are emailed.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CancelledPrivateSession`.
+        public struct CancelledPrivateSession: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/CancelledPrivateSession/session`.
+            public var session: Components.Schemas.Session
+            /// How many clients get the cancellation email (EM-05): the clients of the session when `notify` was on and the session has not started, else 0. It is sent after the answer is decided, in each client’s language; a failure is reported to error tracking and does not undo the cancellation.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelledPrivateSession/clientsNotified`.
+            public var clientsNotified: Swift.Int
+            /// Creates a new `CancelledPrivateSession`.
+            ///
+            /// - Parameters:
+            ///   - session:
+            ///   - clientsNotified: How many clients get the cancellation email (EM-05): the clients of the session when `notify` was on and the session has not started, else 0. It is sent after the answer is decided, in each client’s language; a failure is reported to error tracking and does not undo the cancellation.
+            public init(
+                session: Components.Schemas.Session,
+                clientsNotified: Swift.Int
+            ) {
+                self.session = session
+                self.clientsNotified = clientsNotified
+            }
+            public enum CodingKeys: String, CodingKey {
+                case session
+                case clientsNotified
+            }
+        }
+        /// Why the cancellation was refused; nothing was stored. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRefusal`.
+        public struct CancelPrivateSessionRefusal: Codable, Hashable, Sendable {
+            /// `session_changed`: someone changed the session after the `version` sent; `session_cancelled`: the session was cancelled already (a second cancel) and stays as it is.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRefusal/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case sessionChanged = "session_changed"
+                case sessionCancelled = "session_cancelled"
+            }
+            /// `session_changed`: someone changed the session after the `version` sent; `session_cancelled`: the session was cancelled already (a second cancel) and stays as it is.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRefusal/code`.
+            public var code: Components.Schemas.CancelPrivateSessionRefusal.CodePayload
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRefusal/session`.
+            public struct SessionPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRefusal/session/value1`.
+                public var value1: Components.Schemas.Session
+                /// The session as it is now.
+                ///
+                /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRefusal/session/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SessionPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The session as it is now.
+                public init(
+                    value1: Components.Schemas.Session,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRefusal/session`.
+            public var session: Components.Schemas.CancelPrivateSessionRefusal.SessionPayload
+            /// Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRefusal/changedBy`.
+            public struct ChangedByPayload: Codable, Hashable, Sendable {
+                /// The account’s name.
+                ///
+                /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRefusal/changedBy/name`.
+                public var name: Swift.String
+                /// Creates a new `ChangedByPayload`.
+                ///
+                /// - Parameters:
+                ///   - name: The account’s name.
+                public init(name: Swift.String) {
+                    self.name = name
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case name
+                }
+            }
+            /// Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRefusal/changedBy`.
+            public var changedBy: Components.Schemas.CancelPrivateSessionRefusal.ChangedByPayload?
+            /// Creates a new `CancelPrivateSessionRefusal`.
+            ///
+            /// - Parameters:
+            ///   - code: `session_changed`: someone changed the session after the `version` sent; `session_cancelled`: the session was cancelled already (a second cancel) and stays as it is.
+            ///   - session:
+            ///   - changedBy: Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            public init(
+                code: Components.Schemas.CancelPrivateSessionRefusal.CodePayload,
+                session: Components.Schemas.CancelPrivateSessionRefusal.SessionPayload,
+                changedBy: Components.Schemas.CancelPrivateSessionRefusal.ChangedByPayload? = nil
+            ) {
+                self.code = code
+                self.session = session
+                self.changedBy = changedBy
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case session
+                case changedBy
+            }
+        }
+        /// Who cancels a private session, whether to email the client, and the version seen.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRequest`.
+        public struct CancelPrivateSessionRequest: Codable, Hashable, Sendable {
+            /// Who is cancelling (*Wie annuleert?*): `client` (*De klant*) or `workspace` (*Wij*). It is stored with the time and the team member who cancelled, for the cancellation policy of M11.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRequest/initiator`.
+            @frozen public enum InitiatorPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case client = "client"
+                case workspace = "workspace"
+            }
+            /// Who is cancelling (*Wie annuleert?*): `client` (*De klant*) or `workspace` (*Wij*). It is stored with the time and the team member who cancelled, for the cancellation policy of M11.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRequest/initiator`.
+            public var initiator: Components.Schemas.CancelPrivateSessionRequest.InitiatorPayload
+            /// Whether to email the client (EM-05; each client of a duo): PS-06’s box, off for `client` and on for `workspace` by default. Not sent when the session has started, whatever this says.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRequest/notify`.
+            public var notify: Swift.Bool
+            /// The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRequest/version`.
+            public var version: Swift.Int
+            /// The app that sends the request: `ios` or `android`; it is the `source` of the cancellation in the status history and the platform of the `private_session_cancelled` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`; it is the `source` of the cancellation in the status history and the platform of the `private_session_cancelled` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelPrivateSessionRequest/surface`.
+            public var surface: Components.Schemas.CancelPrivateSessionRequest.SurfacePayload?
+            /// Creates a new `CancelPrivateSessionRequest`.
+            ///
+            /// - Parameters:
+            ///   - initiator: Who is cancelling (*Wie annuleert?*): `client` (*De klant*) or `workspace` (*Wij*). It is stored with the time and the team member who cancelled, for the cancellation policy of M11.
+            ///   - notify: Whether to email the client (EM-05; each client of a duo): PS-06’s box, off for `client` and on for `workspace` by default. Not sent when the session has started, whatever this says.
+            ///   - version: The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
+            ///   - surface: The app that sends the request: `ios` or `android`; it is the `source` of the cancellation in the status history and the platform of the `private_session_cancelled` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            public init(
+                initiator: Components.Schemas.CancelPrivateSessionRequest.InitiatorPayload,
+                notify: Swift.Bool,
+                version: Swift.Int,
+                surface: Components.Schemas.CancelPrivateSessionRequest.SurfacePayload? = nil
+            ) {
+                self.initiator = initiator
+                self.notify = notify
+                self.version = version
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case initiator
+                case notify
+                case version
+                case surface
+            }
+        }
         /// The sessions of a workspace for a range of days: the Agenda’s week, day and list.
         ///
         /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar`.
@@ -5071,18 +5336,19 @@ extension Components {
                 try self.value2.encode(to: encoder)
             }
         }
-        /// Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.
+        /// Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`), the cancelled date (`session_cancelled`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal`.
         public struct UpdateGroupClassDateRefusal: Codable, Hashable, Sendable {
-            /// `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+            /// `class_date_changed`: the date changed since the `version` sent; `session_cancelled`: the date was cancelled (F026) and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/code`.
             @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case classDateChanged = "class_date_changed"
+                case sessionCancelled = "session_cancelled"
                 case trainerConflict = "trainer_conflict"
             }
-            /// `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+            /// `class_date_changed`: the date changed since the `version` sent; `session_cancelled`: the date was cancelled (F026) and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/code`.
             public var code: Components.Schemas.UpdateGroupClassDateRefusal.CodePayload
@@ -5090,7 +5356,7 @@ extension Components {
             public struct SessionPayload: Codable, Hashable, Sendable {
                 /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/session/value1`.
                 public var value1: Components.Schemas.Session
-                /// The date as it is now, for `class_date_changed`.
+                /// The date as it is now, for `class_date_changed` and `session_cancelled`.
                 ///
                 /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/session/value2`.
                 public var value2: OpenAPIRuntime.OpenAPIValueContainer
@@ -5098,7 +5364,7 @@ extension Components {
                 ///
                 /// - Parameters:
                 ///   - value1:
-                ///   - value2: The date as it is now, for `class_date_changed`.
+                ///   - value2: The date as it is now, for `class_date_changed` and `session_cancelled`.
                 public init(
                     value1: Components.Schemas.Session,
                     value2: OpenAPIRuntime.OpenAPIValueContainer
@@ -5124,7 +5390,7 @@ extension Components {
             /// Creates a new `UpdateGroupClassDateRefusal`.
             ///
             /// - Parameters:
-            ///   - code: `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+            ///   - code: `class_date_changed`: the date changed since the `version` sent; `session_cancelled`: the date was cancelled (F026) and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///   - session:
             ///   - conflicts: The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
             public init(
