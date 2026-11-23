@@ -340,6 +340,73 @@ export async function rescheduleSession(
   return findSession(scope, changed.id);
 }
 
+/** What assigning a trainer to one session changes: who, the version the person saw and who does it. */
+export interface SessionTrainerAssignment {
+  readonly sessionId: string;
+  /** The version the person read. The session is changed only if it still has it. */
+  readonly expectedVersion: number;
+  /** The new trainer profile (`findTrainer`), not the team-member ID. */
+  readonly trainerProfileId: string;
+  /** What the date differs in from its series after the change; left out: not touched (a private session). */
+  readonly detachedFields?: readonly string[];
+  /** The team-member record of the person who assigns. */
+  readonly changedByTeamMemberId: string;
+}
+
+/**
+ * Gives one session of the scope's workspace the trainer, raises its version and records who did
+ * it, and returns it as `findSession` shows it (F023). The caller has decided it is allowed
+ * (`assignTrainer`). One statement that matches the version, as `rescheduleSession`: `undefined`
+ * when the version is no longer the session's (or the workspace has no such session), nothing
+ * changed, and the caller reads the session to tell which.
+ */
+export async function assignSessionTrainer(
+  scope: WorkspaceScope,
+  input: SessionTrainerAssignment,
+): Promise<SessionView | undefined> {
+  const db = executorOf(scope);
+  const [changed] = await db
+    .update(sessions)
+    .set({
+      trainerProfileId: input.trainerProfileId,
+      ...(input.detachedFields ? { detachedFields: [...input.detachedFields] } : {}),
+      version: sql`${sessions.version} + 1`,
+      updatedByTeamMemberId: input.changedByTeamMemberId,
+    })
+    .where(
+      and(
+        eq(sessions.organizationId, scope.workspaceId),
+        eq(sessions.id, input.sessionId),
+        eq(sessions.version, input.expectedVersion),
+      ),
+    )
+    .returning({ id: sessions.id });
+  if (!changed) return undefined;
+  return findSession(scope, changed.id);
+}
+
+/**
+ * The clients who hold a place (`booked`) in each of the sessions, in the order the places were
+ * made: who the trainer-change email goes to (F023). A session of another workspace has none (RLS).
+ */
+export function listBookedClients(
+  scope: WorkspaceScope,
+  sessionIds: readonly string[],
+): Promise<{ sessionId: string; clientId: string }[]> {
+  if (sessionIds.length === 0) return Promise.resolve([]);
+  return executorOf(scope)
+    .select({ sessionId: sessionParticipants.sessionId, clientId: sessionParticipants.clientId })
+    .from(sessionParticipants)
+    .where(
+      and(
+        eq(sessionParticipants.organizationId, scope.workspaceId),
+        inArray(sessionParticipants.sessionId, [...sessionIds]),
+        eq(sessionParticipants.attendanceStatus, 'booked'),
+      ),
+    )
+    .orderBy(asc(sessionParticipants.createdAt), asc(sessionParticipants.id));
+}
+
 /**
  * The next sessions of a client of the scope's workspace, soonest first: private sessions that are
  * still scheduled and start at `now` or later, where the client's place is not cancelled. Empty for

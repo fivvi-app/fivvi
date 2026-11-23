@@ -13,3 +13,19 @@ export function privateSessionEmailEvent(
 ): string {
   return clientId === undefined ? `${sessionId}:${version}` : `${sessionId}:${version}:${clientId}`;
 }
+
+/**
+ * The event behind the trainer-change email (EM-13, F023) to one client: the new trainer, the
+ * client and every date the email lists, each with the version it has after the change. The same
+ * change sent twice has one event, so the email reaches the provider with one idempotency key and
+ * goes out once; another trainer, another client or another change (a version raised again) has a
+ * key of its own. A client's dates are listed in the order they start.
+ */
+export function trainerChangeEmailEvent(
+  newTrainerTeamMemberId: string,
+  clientId: string,
+  dates: readonly { sessionId: string; version: number }[],
+): string {
+  const listed = dates.map(({ sessionId, version }) => `${sessionId}:${version}`).join(',');
+  return `trainer:${newTrainerTeamMemberId}:${clientId}:${listed}`;
+}

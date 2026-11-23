@@ -7,6 +7,7 @@ import type {
 import type { SignUpAllowlist } from '@fivvi/domain';
 import type { DemoRequestMail } from '@fivvi/email/demo-request-mail';
 import type { PrivateSessionMail } from '@fivvi/email/private-session-mail';
+import type { TrainerChangeMail } from '@fivvi/email/trainer-change-mail';
 import type { TrainerInvitationMail } from '@fivvi/email/trainer-invitation-mail';
 import type { Locale } from '@fivvi/i18n';
 import {
@@ -129,6 +130,14 @@ export interface ApiDependencies {
    */
   sendPrivateSession(mail: PrivateSessionMail): Promise<void>;
   /**
+   * Emails EM-13 to a client whose private session or class dates got another trainer (F023): the
+   * template and the sending are the email package's (`createTrainerChangeSender`, wired by
+   * apps/web); the route decides whether, to whom, in which language, which dates and with which
+   * key. It runs after the request's transaction has committed; a failed send is reported and does
+   * not fail the request (the trainer is changed).
+   */
+  sendTrainerChange(mail: TrainerChangeMail): Promise<void>;
+  /**
    * Emails a demo request of the public website to Fivvi's support address (F064): the template,
    * the sending and the address are the email package's (`createDemoRequestSender`, wired by
    * apps/web). A failed send throws; the route answers 503 and stores nothing.
@@ -169,6 +178,7 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   // Nothing is sent.
   sendTrainerInvitation: () => Promise.reject(new Error('No email configured.')),
   sendPrivateSession: () => Promise.reject(new Error('No email configured.')),
+  sendTrainerChange: () => Promise.reject(new Error('No email configured.')),
   sendDemoRequest: () => Promise.reject(new Error('No email configured.')),
   clock: { now: () => new Date() },
   appBaseUrl: () => 'https://fivvi.app',

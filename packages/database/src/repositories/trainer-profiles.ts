@@ -42,6 +42,23 @@ export function listTrainers(scope: WorkspaceScope): Promise<TrainerView[]> {
     .orderBy(asc(authUsers.name), asc(teamMembers.id));
 }
 
+/** The team members with a trainer profile, with what a session points at, by name (then ID). */
+export function listTrainersWithProfiles(scope: WorkspaceScope): Promise<TrainerWithProfile[]> {
+  return executorOf(scope)
+    .select({ id: teamMembers.id, name: authUsers.name, trainerProfileId: trainerProfiles.id })
+    .from(trainerProfiles)
+    .innerJoin(
+      teamMembers,
+      and(
+        eq(teamMembers.organizationId, trainerProfiles.organizationId),
+        eq(teamMembers.id, trainerProfiles.teamMemberId),
+      ),
+    )
+    .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+    .where(eq(trainerProfiles.organizationId, scope.workspaceId))
+    .orderBy(asc(authUsers.name), asc(teamMembers.id));
+}
+
 /**
  * The scope's own account as a team member of the scope's workspace. The only team-member record
  * the trainer-profile route ever acts on (F005 AC6): there is no parameter to name another.

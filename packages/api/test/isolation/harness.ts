@@ -20,6 +20,7 @@ import {
   createMemoryTransport,
   createPrivateSessionSender,
   createSendEmail,
+  createTrainerChangeSender,
   createTrainerInvitationSender,
 } from '@fivvi/email';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
@@ -140,6 +141,14 @@ export async function createWorld(options: WorldOptions = {}): Promise<World> {
     }),
     // The session routes email EM-11 (F020): into memory, never out.
     sendPrivateSession: createPrivateSessionSender({
+      sendEmail: createSendEmail({
+        transport: createMemoryTransport(),
+        sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+        replyTo: { email: 'support@example.com' },
+      }),
+    }),
+    // The assignment route emails EM-13 (F023): into memory, never out.
+    sendTrainerChange: createTrainerChangeSender({
       sendEmail: createSendEmail({
         transport: createMemoryTransport(),
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },

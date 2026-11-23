@@ -324,6 +324,14 @@ export {
   applyToUpcomingDates,
 } from './scheduling/apply-to-series.ts';
 export {
+  type AssignTrainerDecision,
+  type AssignTrainerFacts,
+  type AssignTrainerRefusal,
+  type AssignTrainerSession,
+  assignTrainer,
+  sendsTrainerChangeNotice,
+} from './scheduling/assign-trainer.ts';
+export {
   type CalendarFilters,
   type CappedOverlaps,
   type ClockChange,

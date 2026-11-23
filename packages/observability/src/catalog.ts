@@ -32,6 +32,15 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   team_member_removed: {
     workspace_id: property.uuid(),
   },
+  // F023: an Owner gave a session or the dates of a class another trainer. The workspace ID, the
+  // platform, the scope and the kind only (the Owner's account UUID is the distinct ID): not the
+  // session, class, trainer or client, no name, date or time.
+  trainer_assigned: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+    scope: property.enum(['this', 'following']),
+    kind: property.enum(['class', 'private']),
+  },
   // F005: an Owner switched their own training on or off. The workspace ID and on/off only (the
   // Owner's account UUID is the distinct ID): not the name or email address of anyone.
   trainer_profile_changed: {

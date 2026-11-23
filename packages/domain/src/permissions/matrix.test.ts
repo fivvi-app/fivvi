@@ -35,6 +35,7 @@ describe('@permission F004 permission matrix', () => {
       'team.invite',
       'session.private.manage.own',
       'session.private.manage.any',
+      'session.assign',
       'class.manage',
       'class.read',
       'join_link.view',
@@ -71,6 +72,8 @@ describe('@permission F004 permission matrix', () => {
     // F020: a Trainer plans their own private sessions, only the Owner plans for any trainer.
     expect(rolesWith('session.private.manage.own')).toEqual(['owner', 'trainer']);
     expect(rolesWith('session.private.manage.any')).toEqual(['owner']);
+    // F023 (owner decision, 4 November 2026): only the Owner assigns and changes a session's trainer.
+    expect(rolesWith('session.assign')).toEqual(['owner']);
     // F021: only the Owner manages group classes and puts them on a date; the whole team reads them.
     expect(rolesWith('class.manage')).toEqual(['owner']);
     expect(rolesWith('class.read')).toEqual(['owner', 'trainer']);

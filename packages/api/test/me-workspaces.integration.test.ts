@@ -207,6 +207,7 @@ describe('@permission F004 capabilities on GET /v1/me/workspaces', () => {
       'team.invite',
       'session.private.manage.own',
       'session.private.manage.any',
+      'session.assign',
       'class.manage',
       'class.read',
       'join_link.view',

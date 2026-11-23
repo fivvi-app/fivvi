@@ -3,6 +3,7 @@ package app.fivvi.pro.sessions
 import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.models.AddressLookupResult
+import app.fivvi.api.models.AssignTrainerRequest
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.LocationAddress
@@ -15,6 +16,8 @@ import app.fivvi.api.models.Session
 import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionTrainer
 import app.fivvi.api.models.Trainer
+import app.fivvi.api.models.TrainerAssigned
+import app.fivvi.api.models.TrainerCandidates
 import app.fivvi.api.models.TrainerConflict
 import app.fivvi.api.models.TrainerConflictItem
 import app.fivvi.api.models.UpcomingSessions
@@ -161,6 +164,15 @@ class FakeSessionsApi : SessionsApi {
         getStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
         return sessions[sessionId]?.let { Response.success(it) } ?: Response.error(404, "{}".toResponseBody(JSON))
     }
+
+    override suspend fun assignTrainer(
+        workspaceId: UUID,
+        sessionId: UUID,
+        assignTrainerRequest: AssignTrainerRequest,
+    ): Response<TrainerAssigned> = error("FakeSessionsApi.assignTrainer is not expected in this test")
+
+    override suspend fun listTrainerCandidates(workspaceId: UUID, sessionId: UUID): Response<TrainerCandidates> =
+        error("FakeSessionsApi.listTrainerCandidates is not expected in this test")
 
     override suspend fun listClientUpcomingSessions(workspaceId: UUID, clientId: UUID): Response<UpcomingSessions> {
         upcomingRead += clientId

@@ -356,6 +356,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     SessionReschedule: 'type of the session repository (F020)',
     SessionSeriesView: 'type of the session repository (F022)',
     SessionStatus: 'type of the session repository (F020)',
+    SessionTrainerAssignment: 'type of the session repository (F023)',
     SessionTrainerView: 'type of the session repository (F020)',
     SessionType: 'type of the session repository (F020)',
     SessionView: 'type of the session repository (F020)',
@@ -384,6 +385,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     addOfferVersion: 'repository of offers, takes the workspace scope (F052)',
     addTrainerToTeam: 'repository of the team, takes the workspace scope (F011)',
     appendAccessLog: 'repository of the access log, takes the workspace scope (E014)',
+    assignSessionTrainer: 'repository of the sessions, takes the workspace scope (F023)',
     changeOffer: 'repository of offers, takes the workspace scope (F052)',
     changeTeamMemberRole: 'repository of the team, takes the workspace scope (F004)',
     closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
@@ -465,6 +467,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     linkProviderRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
     listAccessLog: 'repository of the access log, takes the workspace scope (E014)',
     listActiveClassSeries: 'repository of the class series, takes the workspace scope (F022)',
+    listBookedClients: 'repository of the sessions, takes the workspace scope (F023)',
     listBookingLinks: 'repository of booking links, takes the workspace scope (F037)',
     listChargebacksOfPayment:
       'repository of the refunds and reversals, takes the workspace scope (F060)',
@@ -495,6 +498,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     listTeamWorkspaces: 'repository of workspaces, takes the account scope (F002)',
     listTrainerSessionsBetween: 'repository of the sessions, takes the workspace scope (F023)',
     listTrainers: 'repository of the trainer profiles, takes the workspace scope (F005)',
+    listTrainersWithProfiles:
+      'repository of the trainer profiles, takes the workspace scope (F023)',
     listUpcomingSessionsOfClient: 'repository of the sessions, takes the workspace scope (F020)',
     listWorkspaceCalendar:
       'repository of the workspace calendar, takes the workspace scope; every session of that workspace (F014)',

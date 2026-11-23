@@ -7,6 +7,7 @@ import { helloEmail } from './templates/hello.tsx';
 import { privateSessionEmail } from './templates/private-session.tsx';
 import { privateSessionMovedEmail } from './templates/private-session-moved.tsx';
 import { signInEmail } from './templates/sign-in.tsx';
+import { trainerChangeEmail } from './templates/trainer-change.tsx';
 import { trainerInvitationEmail } from './templates/trainer-invitation.tsx';
 
 /**
@@ -188,14 +189,16 @@ export const catalog: readonly CatalogEntry[] = [
   },
   {
     id: 'EM-13',
-    status: 'reserved',
+    status: 'active',
     audience: 'client',
     owner: ['F023', 'F024'],
     subjectKeys: [
-      'email.trainerChangedPrivateSession.subject',
-      'email.trainerChangedClass.subject',
+      'email.trainerChange.privateSubject',
+      'email.trainerChange.classSubject',
+      'email.trainerChange.classDatesSubject',
     ],
-    note: 'A trainer change or a substitution. F023 uses this ID, not one of its own.',
+    template: register(trainerChangeEmail),
+    note: 'A trainer change or a substitution (F023). F024 sends the same email for a substitution.',
   },
   {
     id: 'EM-14',

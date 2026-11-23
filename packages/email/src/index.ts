@@ -81,9 +81,17 @@ export {
   privateSessionMovedEmail,
   type SignInEmailProps,
   signInEmail,
+  type TrainerChangeEmailDate,
+  type TrainerChangeEmailProps,
   type TrainerInvitationEmailProps,
+  trainerChangeEmail,
   trainerInvitationEmail,
 } from './templates/index.ts';
+export type { TrainerChangeMail, TrainerChangeMailDate } from './trainer-change-mail.ts';
+export {
+  createTrainerChangeSender,
+  type TrainerChangeSenderOptions,
+} from './trainer-change-sender.ts';
 export type { TrainerInvitationMail } from './trainer-invitation-mail.ts';
 export {
   createTrainerInvitationSender,
