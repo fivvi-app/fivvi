@@ -92,6 +92,60 @@ object PersonalFixtures {
         cancelled = true,
     )
 
+    /** Open Gym comes later (`PRODUCT.md §53`): no screen shows it. */
+    val openGym = session(
+        "gym",
+        johns,
+        "13:00",
+        "14:00",
+        className = "Open Gym",
+        booked = 3,
+        capacity = 10,
+        type = PersonalSession.Type.OPEN_GYM,
+    )
+
+    /**
+     * The week of Monday 21 to Sunday 27 September 2026 as `GET /v1/me/sessions` answers it: Sarah's Tuesday of the spec, and
+     * three sessions from 07:00 on Wednesday 23 September (the *Morgen* line of Vandaag).
+     */
+    val septemberWeek: List<PersonalSession> = listOf(
+        anna,
+        mark,
+        kracht,
+        krachtCancelled,
+        session("early", johns, "07:00", "08:00", client = "Eva Kok", day = "2026-09-23"),
+        session("mid", sarahPT, "10:00", "11:00", client = "Lisa Smit", day = "2026-09-23"),
+        session("evening", johns, "17:00", "18:00", className = "Boksen", booked = 2, capacity = 8, day = "2026-09-23"),
+    )
+
+    /**
+     * The weeks of 19 and 26 October 2026: the clocks go back in the night to Sunday 25 October, and the class *Kracht* is at
+     * 18:00 on both Tuesdays.
+     */
+    val octoberWeeks: List<PersonalSession> = listOf(
+        session(
+            "kracht-20",
+            johns,
+            "18:00",
+            "19:00",
+            className = "Kracht",
+            booked = 3,
+            capacity = 8,
+            day = "2026-10-20",
+        ),
+        session("mark-22", johns, "11:00", "12:00", client = "Mark Jansen", day = "2026-10-22"),
+        session(
+            "kracht-27",
+            johns,
+            "18:00",
+            "19:00",
+            className = "Kracht",
+            booked = 5,
+            capacity = 8,
+            day = "2026-10-27",
+        ),
+    )
+
     /** Sarah's day: four items in two workspaces, Anna next, a free gap and two places ahead. */
     fun sarah(
         items: List<PersonalSession> = listOf(anna, mark, kracht, krachtCancelled),

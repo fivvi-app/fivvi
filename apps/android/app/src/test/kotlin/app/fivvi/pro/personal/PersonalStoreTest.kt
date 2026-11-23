@@ -1,7 +1,9 @@
 package app.fivvi.pro.personal
 
+import app.fivvi.api.models.MySessions
 import java.io.File
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -66,5 +68,64 @@ class PersonalStoreTest {
         File(directory, "day.json").writeText("not json")
 
         assertNull(cache(directory).day)
+    }
+
+    private fun answer(from: String, until: String, saved: String = "2026-09-22T06:35:00Z") = PersonalCache.Sessions(
+        LocalDate.parse(from),
+        LocalDate.parse(until),
+        MySessions(from, until, "Europe/Amsterdam", 2, PersonalFixtures.sarah().items),
+        Instant.parse(saved),
+    )
+
+    @Test
+    fun test_F013_AC7_theRangeComesBackAsItWasKept() {
+        cache().keep(answer("2026-09-21", "2026-09-27"))
+
+        val kept = cache().sessions.single()
+
+        assertEquals(LocalDate.parse("2026-09-21"), kept.from)
+        assertEquals(LocalDate.parse("2026-09-27"), kept.until)
+        assertEquals(Instant.parse("2026-09-22T06:35:00Z"), kept.savedAt)
+        assertEquals(PersonalFixtures.sarah().items.map { it.sessionId }, kept.response.items.map { it.sessionId })
+        assertEquals("Anna de Vries", kept.response.items.first().clientName)
+    }
+
+    @Test
+    fun test_F013_AC7_theLastSixRangesAreKeptNewestFirstAndOneRangeOnce() {
+        val cache = cache()
+        (1..8).forEach { week ->
+            val monday = LocalDate.parse("2026-09-21").plusWeeks(week.toLong())
+            cache.keep(answer(monday.toString(), monday.plusDays(6).toString()))
+        }
+        assertEquals("six, no more", PersonalCache.KEPT_RANGES, cache.sessions.size)
+        assertEquals(6, PersonalCache.KEPT_RANGES)
+        assertEquals("newest first", LocalDate.parse("2026-11-16"), cache.sessions.first().from)
+        assertEquals("the oldest two are gone", LocalDate.parse("2026-10-12"), cache.sessions.last().from)
+
+        cache.keep(answer("2026-10-12", "2026-10-18", saved = "2026-09-23T06:35:00Z"))
+
+        assertEquals("the same days replace their earlier answer", 6, cache.sessions.size)
+        assertEquals(LocalDate.parse("2026-10-12"), cache.sessions.first().from)
+        assertEquals(Instant.parse("2026-09-23T06:35:00Z"), cache.sessions.first().savedAt)
+        assertEquals(1, cache.sessions.count { it.from == LocalDate.parse("2026-10-12") })
+    }
+
+    @Test
+    fun test_F013_AC7_aSignOutForgetsTheRangesToo() {
+        val store = FilePersonalStore(File(folder.root, PersonalStore.DIRECTORY))
+        PersonalCache(store).keep(answer("2026-09-21", "2026-09-27"))
+
+        store.clear()
+
+        assertTrue(PersonalCache(store).sessions.isEmpty())
+    }
+
+    @Test
+    fun test_F013_AC7_aFileOfRangesThatCantBeReadIsNoRanges() {
+        val directory = File(folder.root, PersonalStore.DIRECTORY)
+        directory.mkdirs()
+        File(directory, "sessions.json").writeText("[{\"from\": 1}]")
+
+        assertTrue(cache(directory).sessions.isEmpty())
     }
 }

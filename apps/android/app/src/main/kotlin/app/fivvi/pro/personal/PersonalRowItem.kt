@@ -66,7 +66,7 @@ fun kindLabel(row: PersonalRow): String =
  * TalkBack. It always names the type, whether or not the row writes it.
  */
 @Composable
-private fun spokenLabel(row: PersonalRow, trainer: String?): String {
+internal fun spokenLabel(row: PersonalRow, trainer: String? = null): String {
     val join = stringResource(R.string.my_day_spoken_join)
     val parts = listOfNotNull(
         stringResource(R.string.my_day_spoken_time, row.endText, row.startText),
@@ -94,7 +94,8 @@ private fun trainerText(row: PersonalRow, nobody: String?): String? = when (val 
  * name, what only fits when there is more than one kind or team, the time on the right and, for a class, the pill. It is
  * one element for TalkBack, named with the type; the arrow to the maps app is an action of it, and a button for everyone else.
  * On *Hele studio* a row also says who trains it; [nobody] is the word for a session with no trainer (*Geen trainer*),
- * and is left out (`null`) on Mijn dag, where a row has no trainer line, so no row can show a blank one.
+ * and is left out (`null`) on Mijn dag, where a row has no trainer line, so no row can show a blank one. The tags are
+ * `<tagPrefix>.row.<id>` and `<tagPrefix>.route.<id>`: `today` on Vandaag, `calendar` on Agenda, as on iOS.
  */
 @Composable
 fun PersonalRowItem(
@@ -103,6 +104,7 @@ fun PersonalRowItem(
     onRoute: (String) -> Unit,
     modifier: Modifier = Modifier,
     nobody: String? = null,
+    tagPrefix: String = TodayTags.PREFIX,
 ) {
     val trainer = trainerText(row, nobody)
     val spoken = spokenLabel(row, trainer)
@@ -119,7 +121,7 @@ fun PersonalRowItem(
                 .alpha(if (row.isPast || row.isCancelled) DIMMED else 1f)
                 .padding(start = Spacing.space4, top = Spacing.space3, bottom = Spacing.space3, end = Spacing.space2)
                 .clearAndSetSemantics {
-                    semanticsTestTag = TodayTags.row(row.id)
+                    semanticsTestTag = "$tagPrefix.row.${row.id}"
                     contentDescription = spoken
                     role = Role.Button
                     if (route !=
@@ -144,7 +146,7 @@ fun PersonalRowItem(
             // The arrow is a target for a finger; TalkBack has it as the row's action instead.
             IconButton(
                 onClick = { onRoute(route) },
-                modifier = Modifier.testTag(TodayTags.route(row.id)).clearAndSetSemantics { },
+                modifier = Modifier.testTag("$tagPrefix.route.${row.id}").clearAndSetSemantics { },
             ) {
                 Icon(painterResource(R.drawable.ic_arrow_up_right), contentDescription = null)
             }

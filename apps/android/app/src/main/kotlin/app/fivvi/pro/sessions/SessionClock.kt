@@ -75,6 +75,22 @@ class SessionFormat(val locale: Locale, private val zone: ZoneId) {
     /** *do 24 sep 2026* */
     fun dayYear(instant: OffsetDateTime): String = formatted(instant, DAY_YEAR)
 
+    /** *24 sep*, for a date of the workspace's own wall clock. */
+    fun dayMonth(date: LocalDate): String = DateTimeFormatter.ofPattern(DAY_MONTH, locale).format(date)
+
+    /** *24 sep 2026*, for a date of the workspace's own wall clock. */
+    fun dayMonthYear(date: LocalDate): String = DateTimeFormatter.ofPattern(DAY_MONTH_YEAR, locale).format(date)
+
+    /** *donderdag 24 september*, for a date of the workspace's own wall clock. */
+    fun weekdayDay(date: LocalDate): String = DateTimeFormatter.ofPattern(WEEKDAY_DAY, locale).format(date)
+
+    /** *September 2026*, for a date of the workspace's own wall clock. */
+    fun monthYear(date: LocalDate): String =
+        DateTimeFormatter.ofPattern(MONTH_YEAR, locale).format(date).replaceFirstChar { it.titlecase(locale) }
+
+    /** *D*, the letter of the weekday: *M D W D V Z Z* from Monday. */
+    fun weekdayLetter(day: DayOfWeek): String = day.getDisplayName(TextStyle.NARROW_STANDALONE, locale)
+
     /** *09:30*, 24 hours. */
     fun time(instant: OffsetDateTime): String = formatted(instant, "HH:mm")
 
@@ -82,5 +98,9 @@ class SessionFormat(val locale: Locale, private val zone: ZoneId) {
         const val DAY = "EEE d MMM"
         const val LONG_DAY = "EEEE d MMMM y"
         const val DAY_YEAR = "EEE d MMM y"
+        const val DAY_MONTH = "d MMM"
+        const val DAY_MONTH_YEAR = "d MMM y"
+        const val WEEKDAY_DAY = "EEEE d MMMM"
+        const val MONTH_YEAR = "LLLL y"
     }
 }
