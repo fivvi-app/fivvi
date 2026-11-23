@@ -32,8 +32,9 @@ struct AgendaTimeline: Equatable {
     var totalMinutes: Int { (hours.count - 1) * 60 }
 
     /// How tall a block looks and how much of the day it may be touched on. The look follows the minute scale (with a
-    /// floor so a title still fits); a block under the 44 pt of a touch (`size.touch-min`) gets its hit area grown
-    /// above and below it, so the look and the scale stay.
+    /// floor so a title still fits); a block under the 44 pt of a touch (HIG, `apps/ios/README.md`) gets its hit area
+    /// grown above and below it, so the look and the scale stay. The hit area never goes past half of the room to the
+    /// block next to it, so it never covers another block.
     struct BlockMetrics: Equatable {
         static let minimumHeight: CGFloat = 28
         static let touchMinimum: CGFloat = 44
@@ -41,15 +42,41 @@ struct AgendaTimeline: Equatable {
         static let gap: CGFloat = 3
 
         let height: CGFloat
-        /// What is added above and below the block to reach the touch size.
+        /// What is wanted above and below the block to reach the touch size.
         let touchInset: CGFloat
+        /// What is added above and below it: `touchInset`, or less where a block is near.
+        let touchAbove: CGFloat
+        let touchBelow: CGFloat
 
-        init(minutes: Int, hourHeight: CGFloat) {
+        /// `roomAbove` and `roomBelow` are the free points to the nearest block beside it (nil for none).
+        init(minutes: Int, hourHeight: CGFloat, roomAbove: CGFloat? = nil, roomBelow: CGFloat? = nil) {
             height = max(Self.minimumHeight, CGFloat(minutes) / 60 * hourHeight - Self.gap)
-            touchInset = max(0, (Self.touchMinimum - height) / 2)
+            let wanted = max(0, (Self.touchMinimum - height) / 2)
+            touchInset = wanted
+            touchAbove = roomAbove.map { min(wanted, max(0, $0) / 2) } ?? wanted
+            touchBelow = roomBelow.map { min(wanted, max(0, $0) / 2) } ?? wanted
         }
 
-        var touchHeight: CGFloat { height + 2 * touchInset }
+        var touchHeight: CGFloat { height + touchAbove + touchBelow }
+    }
+
+    /// The look and the hit area of `block`, with the room to the blocks over the same part of the width.
+    func metrics(for block: Block, hourHeight: CGFloat) -> BlockMetrics {
+        func top(_ block: Block) -> CGFloat { CGFloat(block.top) / 60 * hourHeight }
+        func bottom(_ block: Block) -> CGFloat {
+            top(block) + BlockMetrics(minutes: block.length, hourHeight: hourHeight).height
+        }
+        let beside = blocks.filter { $0.id != block.id && $0.sharesWidth(with: block) }
+        let roomAbove = beside.filter { $0.top <= block.top }.map { top(block) - bottom($0) }.min()
+        let roomBelow = beside.filter { $0.top > block.top }.map { top($0) - bottom(block) }.min()
+        return BlockMetrics(minutes: block.length, hourHeight: hourHeight, roomAbove: roomAbove, roomBelow: roomBelow)
+    }
+}
+
+extension AgendaTimeline.Block {
+    /// Whether the two take any of the same width of the day (a column of `columns` is a `1/columns` slice of it).
+    fileprivate func sharesWidth(with other: AgendaTimeline.Block) -> Bool {
+        column * other.columns < (other.column + 1) * columns && other.column * columns < (column + 1) * other.columns
     }
 }
 

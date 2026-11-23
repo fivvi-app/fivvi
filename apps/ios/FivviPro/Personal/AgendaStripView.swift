@@ -40,7 +40,7 @@ struct WeekStripView: View {
     }
 }
 
-/// ‹ or › of the week line and of the month's name: a 44 × 44 pt touch (`size.touch-min`).
+/// ‹ or › of the week line and of the month's name: a 44 × 44 pt touch (HIG).
 struct AgendaNavButton: View {
     static let side: CGFloat = 44
 

@@ -130,4 +130,48 @@ final class AgendaTimelineTests: XCTestCase {
         XCTAssertEqual(hour.touchHeight, 53, "a block that is tall enough grows nothing")
         XCTAssertEqual(hour.touchInset, 0)
     }
+
+    /// The visible block and the hit area of `block`, as ranges of points down the day.
+    private func extent(_ timeline: AgendaTimeline, _ block: AgendaTimeline.Block, hourHeight: CGFloat = 56)
+        -> (visible: ClosedRange<CGFloat>, touch: ClosedRange<CGFloat>) {
+        let metrics = timeline.metrics(for: block, hourHeight: hourHeight)
+        let top = CGFloat(block.top) / 60 * hourHeight
+        let visible = top...(top + metrics.height)
+        return (visible, (top - metrics.touchAbove)...(visible.upperBound + metrics.touchBelow))
+    }
+
+    /// Two 30-minute sessions one after the other: B is on top of A in the ZStack, so a hit area grown into A would take
+    /// the touch of A's lower part. No hit area covers another block's visible block, and each block keeps its own.
+    func test_F013_design_theHitAreaOfAShortBlockNeverCoversTheBlockBesideIt() throws {
+        let day = [visit("a", "11:00", "11:30"), visit("b", "11:30", "12:00")]
+        let timeline = try XCTUnwrap(timeline(day, now: elsewhere))
+        XCTAssertEqual(timeline.blocks.count, 2)
+        XCTAssertEqual(timeline.blocks.map(\.column), [0, 0], "one after the other, in one column")
+
+        for (block, other) in [(timeline.blocks[0], timeline.blocks[1]), (timeline.blocks[1], timeline.blocks[0])] {
+            let mine = extent(timeline, block)
+            let theirs = extent(timeline, other)
+            XCTAssertLessThanOrEqual(mine.touch.lowerBound, mine.visible.lowerBound, "the block itself stays tappable")
+            XCTAssertGreaterThanOrEqual(mine.touch.upperBound, mine.visible.upperBound)
+            let overlap = min(mine.touch.upperBound, theirs.visible.upperBound)
+                - max(mine.touch.lowerBound, theirs.visible.lowerBound)
+            XCTAssertLessThanOrEqual(overlap, 0, "\(block.row.id)'s hit area covers \(other.row.id)")
+        }
+    }
+
+    /// With room between two blocks of a column, each takes at most half of it; beside nothing the whole 44 pt is kept.
+    func test_F013_design_aShortBlockWithRoomAroundItGrowsIntoItHalfEach() throws {
+        let day = [visit("a", "11:00", "11:30"), visit("b", "12:00", "12:30"), visit("c", "14:00", "14:30")]
+        let timeline = try XCTUnwrap(timeline(day, now: elsewhere))
+        let metrics = Dictionary(uniqueKeysWithValues: timeline.blocks.map {
+            ($0.row.id, timeline.metrics(for: $0, hourHeight: 56))
+        })
+        XCTAssertEqual(metrics["a"]?.touchBelow, 8, "14 pt is half of the room to b: 8 is all it wants")
+        XCTAssertGreaterThanOrEqual(try XCTUnwrap(metrics["c"]).touchHeight, 44, "a lone block keeps the whole 44 pt")
+
+        let close = [visit("a", "11:00", "11:30"), visit("b", "11:40", "12:10")]
+        let tight = try XCTUnwrap(self.timeline(close, now: elsewhere))
+        let first = tight.metrics(for: tight.blocks[0], hourHeight: 56)
+        XCTAssertEqual(first.touchBelow, (56 * 40 / 60 - 28) / 2, accuracy: 0.01, "half of the 9.3 pt between them")
+    }
 }
