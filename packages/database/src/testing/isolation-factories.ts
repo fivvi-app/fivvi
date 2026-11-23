@@ -10,6 +10,7 @@ import {
   payments,
   payoutStatusChanges,
   payouts,
+  sessionParticipantStatusChanges,
   sessionParticipants,
   trainerProfiles,
 } from '../schema/index.ts';
@@ -212,6 +213,44 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
         .values({ organizationId: workspaceId, sessionId: session.id, clientId: client.id })
         .returning({ id: sessionParticipants.id });
       if (!row) throw new Error('session participant was not created.');
+      return row;
+    },
+  },
+  // A line of the status history of a place made for the workspace (F025): its first line, the
+  // booking (`null → booked`), so each factory call adds exactly one row.
+  session_participant_status_changes: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const [location] = await db
+        .insert(locations)
+        .values({ organizationId: workspaceId, name: uniqueMarker('location'), type: 'other' })
+        .returning({ id: locations.id });
+      if (!location) throw new Error('location was not created.');
+      const session = await addSession(db, {
+        workspaceId,
+        locationId: location.id,
+        participant: false,
+      });
+      const client = await addClient(db, { workspaceId });
+      const [place] = await db
+        .insert(sessionParticipants)
+        .values({ organizationId: workspaceId, sessionId: session.id, clientId: client.id })
+        .returning({ id: sessionParticipants.id });
+      if (!place) throw new Error('session participant was not created.');
+      const [row] = await db
+        .insert(sessionParticipantStatusChanges)
+        .values({
+          organizationId: workspaceId,
+          sessionParticipantId: place.id,
+          clientId: client.id,
+          fromStatus: null,
+          toStatus: 'booked',
+          changedAt: new Date(),
+          actorType: 'system',
+          source: 'system',
+        })
+        .returning({ id: sessionParticipantStatusChanges.id });
+      if (!row) throw new Error('session participant status change was not created.');
       return row;
     },
   },

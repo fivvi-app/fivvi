@@ -19,6 +19,7 @@ import {
   trainerInvitations,
   trainerProfiles,
 } from './schema/index.ts';
+import { seedClassAttendance } from './seed-attendance.ts';
 import { seedPilotWeek } from './seed-pilot-week.ts';
 
 export interface SeedOptions {
@@ -68,7 +69,9 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * class, 0 of 8 places) and a cancelled "Kracht" at 18:00, while John and Tom have sessions that
  * day too, which Sarah's calendar must leave out. And the pilot-shaped week of the workspace
  * calendar (F014, spec #458): 21 to 27 September 2026 in a fourth workspace, "Pilot Gym", with
- * 15 class dates and 30 private sessions (`seed-pilot-week.ts`). Rows that
+ * 15 class dates and 30 private sessions (`seed-pilot-week.ts`), whose class dates get 3 to 8
+ * participants each, with attendance taken on the dates that are over (F025 AC17,
+ * `seed-attendance.ts`). Rows that
  * every environment needs, like the `hello` greeting, are data migrations instead
  * (`src/system-data.ts`).
  */
@@ -256,6 +259,8 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
   // The pilot-shaped week of the workspace calendar (F014), in a workspace of its own so that
   // F013's 22 September of John's Gym stays as it is (see `seed-pilot-week.ts`).
   const pilotGym = await seedPilotWeek(db);
+  // And its class dates get participants, with attendance on the dates that are over (F025 AC17).
+  await seedClassAttendance(db, { workspaceId: pilotGym, now: options.now ?? new Date() });
   // The standing booking links of every workspace (F037): *Alle boekingen* and *Groepslessen* in
   // the visitor's language. Idempotent through the partial unique index of the active links; the
   // API makes them on the first list too, so a workspace made without the seed has them as well.

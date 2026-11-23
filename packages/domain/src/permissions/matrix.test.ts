@@ -18,10 +18,11 @@ const TRAINER_CAPABILITIES: readonly Capability[] = [
   'join_link.view',
   'booking_link.copy',
   'calendar.read',
+  'attendance.mark.own',
 ];
 
 describe('@permission F004 permission matrix', () => {
-  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own, class.read, join_link.view, booking_link.copy and calendar.read', () => {
+  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own, class.read, join_link.view, booking_link.copy, calendar.read and attendance.mark.own', () => {
     expect(ROLES).toEqual(['owner', 'trainer']);
     expect(CAPABILITIES).toEqual([
       'workspace.manage',
@@ -47,6 +48,8 @@ describe('@permission F004 permission matrix', () => {
       'commerce.offers.manage',
       'calendar.read',
       'calendar.manage',
+      'attendance.mark.own',
+      'attendance.mark.any',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
     expect(capabilitiesOf('trainer')).toEqual(TRAINER_CAPABILITIES);
@@ -93,6 +96,9 @@ describe('@permission F004 permission matrix', () => {
     // F014: the whole team reads the workspace calendar, only the Owner manages it (drag, the slot menu, the dashboard).
     expect(rolesWith('calendar.read')).toEqual(['owner', 'trainer']);
     expect(rolesWith('calendar.manage')).toEqual(['owner']);
+    // F025: a Trainer takes attendance of the sessions they teach, the Owner of every session.
+    expect(rolesWith('attendance.mark.own')).toEqual(['owner', 'trainer']);
+    expect(rolesWith('attendance.mark.any')).toEqual(['owner']);
   });
 
   it('AC9: has no admin role', () => {

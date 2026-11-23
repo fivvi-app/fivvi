@@ -391,6 +391,8 @@ extension Components {
                 case commerce_offers_manage = "commerce.offers.manage"
                 case calendar_read = "calendar.read"
                 case calendar_manage = "calendar.manage"
+                case attendance_mark_own = "attendance.mark.own"
+                case attendance_mark_any = "attendance.mark.any"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -547,6 +549,8 @@ extension Components {
                 case commerce_offers_manage = "commerce.offers.manage"
                 case calendar_read = "calendar.read"
                 case calendar_manage = "calendar.manage"
+                case attendance_mark_own = "attendance.mark.own"
+                case attendance_mark_any = "attendance.mark.any"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -3467,6 +3471,324 @@ extension Components {
                 case allowConflicts
                 case version
                 case notifyClients
+                case surface
+            }
+        }
+        /// A session’s participants with their status, and the counts. Holds no email address, phone number or notes of a client.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Attendance`.
+        public struct Attendance: Codable, Hashable, Sendable {
+            /// The session ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Attendance/sessionId`.
+            public var sessionId: Swift.String
+            /// The kind of session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Attendance/type`.
+            @frozen public enum _TypePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case _private = "private"
+                case group = "group"
+                case openGym = "open_gym"
+            }
+            /// The kind of session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Attendance/type`.
+            public var _type: Components.Schemas.Attendance._TypePayload
+            /// Whether the session still takes place; no attendance is needed once cancelled.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Attendance/status`.
+            @frozen public enum StatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case scheduled = "scheduled"
+                case cancelled = "cancelled"
+            }
+            /// Whether the session still takes place; no attendance is needed once cancelled.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Attendance/status`.
+            public var status: Components.Schemas.Attendance.StatusPayload
+            /// From when attendance can be taken: 30 minutes before the start, a UTC instant, with no end (“Aanwezigheid kun je invullen vanaf 17:30.”).
+            ///
+            /// - Remark: Generated from `#/components/schemas/Attendance/attendanceOpensAt`.
+            public var attendanceOpensAt: Foundation.Date
+            /// Whether the caller may take attendance of this session: its current trainer or the Owner. Whether it is open yet or the session cancelled is in the other fields.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Attendance/canTakeAttendance`.
+            public var canTakeAttendance: Swift.Bool
+            /// The participants, in the order they were added; none for a class date without bookings.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Attendance/participants`.
+            public var participants: [Components.Schemas.AttendanceParticipant]
+            /// - Remark: Generated from `#/components/schemas/Attendance/summary`.
+            public var summary: Components.Schemas.AttendanceSummary
+            /// Creates a new `Attendance`.
+            ///
+            /// - Parameters:
+            ///   - sessionId: The session ID.
+            ///   - _type: The kind of session.
+            ///   - status: Whether the session still takes place; no attendance is needed once cancelled.
+            ///   - attendanceOpensAt: From when attendance can be taken: 30 minutes before the start, a UTC instant, with no end (“Aanwezigheid kun je invullen vanaf 17:30.”).
+            ///   - canTakeAttendance: Whether the caller may take attendance of this session: its current trainer or the Owner. Whether it is open yet or the session cancelled is in the other fields.
+            ///   - participants: The participants, in the order they were added; none for a class date without bookings.
+            ///   - summary:
+            public init(
+                sessionId: Swift.String,
+                _type: Components.Schemas.Attendance._TypePayload,
+                status: Components.Schemas.Attendance.StatusPayload,
+                attendanceOpensAt: Foundation.Date,
+                canTakeAttendance: Swift.Bool,
+                participants: [Components.Schemas.AttendanceParticipant],
+                summary: Components.Schemas.AttendanceSummary
+            ) {
+                self.sessionId = sessionId
+                self._type = _type
+                self.status = status
+                self.attendanceOpensAt = attendanceOpensAt
+                self.canTakeAttendance = canTakeAttendance
+                self.participants = participants
+                self.summary = summary
+            }
+            public enum CodingKeys: String, CodingKey {
+                case sessionId
+                case _type = "type"
+                case status
+                case attendanceOpensAt
+                case canTakeAttendance
+                case participants
+                case summary
+            }
+        }
+        /// A participant of a session: the client’s ID, name and status, and nothing else (no email address, phone number or notes).
+        ///
+        /// - Remark: Generated from `#/components/schemas/AttendanceParticipant`.
+        public struct AttendanceParticipant: Codable, Hashable, Sendable {
+            /// The client ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceParticipant/clientId`.
+            public var clientId: Swift.String
+            /// The client’s display name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceParticipant/name`.
+            public var name: Swift.String
+            /// `booked` (*Geboekt*, still open), `attended` (*Aanwezig*), `no_show` (*Niet verschenen*) or `cancelled` (*Geannuleerd*: the client’s place was cancelled; attendance never sets or changes it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceParticipant/status`.
+            @frozen public enum StatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case booked = "booked"
+                case attended = "attended"
+                case cancelled = "cancelled"
+                case noShow = "no_show"
+            }
+            /// `booked` (*Geboekt*, still open), `attended` (*Aanwezig*), `no_show` (*Niet verschenen*) or `cancelled` (*Geannuleerd*: the client’s place was cancelled; attendance never sets or changes it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceParticipant/status`.
+            public var status: Components.Schemas.AttendanceParticipant.StatusPayload
+            /// Creates a new `AttendanceParticipant`.
+            ///
+            /// - Parameters:
+            ///   - clientId: The client ID.
+            ///   - name: The client’s display name.
+            ///   - status: `booked` (*Geboekt*, still open), `attended` (*Aanwezig*), `no_show` (*Niet verschenen*) or `cancelled` (*Geannuleerd*: the client’s place was cancelled; attendance never sets or changes it).
+            public init(
+                clientId: Swift.String,
+                name: Swift.String,
+                status: Components.Schemas.AttendanceParticipant.StatusPayload
+            ) {
+                self.clientId = clientId
+                self.name = name
+                self.status = status
+            }
+            public enum CodingKeys: String, CodingKey {
+                case clientId
+                case name
+                case status
+            }
+        }
+        /// The counts behind “5 aanwezig · 1 niet verschenen · 1 open” (CO-05, CO-06).
+        ///
+        /// - Remark: Generated from `#/components/schemas/AttendanceSummary`.
+        public struct AttendanceSummary: Codable, Hashable, Sendable {
+            /// Participants with `attended`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/attended`.
+            public var attended: Swift.Int
+            /// Participants with `no_show`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/noShow`.
+            public var noShow: Swift.Int
+            /// Participants still `booked`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/open`.
+            public var open: Swift.Int
+            /// Participants with `cancelled`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/cancelled`.
+            public var cancelled: Swift.Int
+            /// Creates a new `AttendanceSummary`.
+            ///
+            /// - Parameters:
+            ///   - attended: Participants with `attended`.
+            ///   - noShow: Participants with `no_show`.
+            ///   - open: Participants still `booked`.
+            ///   - cancelled: Participants with `cancelled`.
+            public init(
+                attended: Swift.Int,
+                noShow: Swift.Int,
+                open: Swift.Int,
+                cancelled: Swift.Int
+            ) {
+                self.attended = attended
+                self.noShow = noShow
+                self.open = open
+                self.cancelled = cancelled
+            }
+            public enum CodingKeys: String, CodingKey {
+                case attended
+                case noShow
+                case open
+                case cancelled
+            }
+        }
+        /// Why the attendance was refused; nothing was stored. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/AttendanceRefusal`.
+        public struct AttendanceRefusal: Codable, Hashable, Sendable {
+            /// `session_cancelled`: the session was cancelled, no attendance is needed; `participant_cancelled`: the participant cancelled their place, which attendance cannot change.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceRefusal/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case sessionCancelled = "session_cancelled"
+                case participantCancelled = "participant_cancelled"
+            }
+            /// `session_cancelled`: the session was cancelled, no attendance is needed; `participant_cancelled`: the participant cancelled their place, which attendance cannot change.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceRefusal/code`.
+            public var code: Components.Schemas.AttendanceRefusal.CodePayload
+            /// Creates a new `AttendanceRefusal`.
+            ///
+            /// - Parameters:
+            ///   - code: `session_cancelled`: the session was cancelled, no attendance is needed; `participant_cancelled`: the participant cancelled their place, which attendance cannot change.
+            public init(code: Components.Schemas.AttendanceRefusal.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// Attendance cannot be taken yet; nothing was stored. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/AttendanceTooEarly`.
+        public struct AttendanceTooEarly: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/AttendanceTooEarly/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case attendanceTooEarly = "attendance_too_early"
+            }
+            /// - Remark: Generated from `#/components/schemas/AttendanceTooEarly/code`.
+            public var code: Components.Schemas.AttendanceTooEarly.CodePayload
+            /// When attendance opens: 30 minutes before the start, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceTooEarly/opensAt`.
+            public var opensAt: Foundation.Date
+            /// Creates a new `AttendanceTooEarly`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            ///   - opensAt: When attendance opens: 30 minutes before the start, a UTC instant.
+            public init(
+                code: Components.Schemas.AttendanceTooEarly.CodePayload,
+                opensAt: Foundation.Date
+            ) {
+                self.code = code
+                self.opensAt = opensAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case opensAt
+            }
+        }
+        /// The status to set for one participant.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SetAttendanceRequest`.
+        public struct SetAttendanceRequest: Codable, Hashable, Sendable {
+            /// The new status: `attended`, `no_show`, or `booked` to take a tap back. `cancelled` is not accepted (`400`): it comes only from cancelling.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SetAttendanceRequest/status`.
+            @frozen public enum StatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case booked = "booked"
+                case attended = "attended"
+                case noShow = "no_show"
+            }
+            /// The new status: `attended`, `no_show`, or `booked` to take a tap back. `cancelled` is not accepted (`400`): it comes only from cancelling.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SetAttendanceRequest/status`.
+            public var status: Components.Schemas.SetAttendanceRequest.StatusPayload
+            /// An ID the sender makes up for this request, once, and sends again when it retries. The same ID twice in a workspace stores one change: the second answers the current list and changes nothing more. The same ID for another participant answers `400` on `clientRequestId` with the code `already_used`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SetAttendanceRequest/clientRequestId`.
+            public var clientRequestId: Swift.String
+            /// The app that sends the request: `ios` or `android`; it is the `source` of the change in the history and the platform of the `attendance_marked` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SetAttendanceRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`; it is the `source` of the change in the history and the platform of the `attendance_marked` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SetAttendanceRequest/surface`.
+            public var surface: Components.Schemas.SetAttendanceRequest.SurfacePayload?
+            /// Creates a new `SetAttendanceRequest`.
+            ///
+            /// - Parameters:
+            ///   - status: The new status: `attended`, `no_show`, or `booked` to take a tap back. `cancelled` is not accepted (`400`): it comes only from cancelling.
+            ///   - clientRequestId: An ID the sender makes up for this request, once, and sends again when it retries. The same ID twice in a workspace stores one change: the second answers the current list and changes nothing more. The same ID for another participant answers `400` on `clientRequestId` with the code `already_used`.
+            ///   - surface: The app that sends the request: `ios` or `android`; it is the `source` of the change in the history and the platform of the `attendance_marked` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            public init(
+                status: Components.Schemas.SetAttendanceRequest.StatusPayload,
+                clientRequestId: Swift.String,
+                surface: Components.Schemas.SetAttendanceRequest.SurfacePayload? = nil
+            ) {
+                self.status = status
+                self.clientRequestId = clientRequestId
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case status
+                case clientRequestId
+                case surface
+            }
+        }
+        /// *Iedereen aanwezig*: every participant still open becomes attended.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MarkEveryoneAttendedRequest`.
+        public struct MarkEveryoneAttendedRequest: Codable, Hashable, Sendable {
+            /// An ID the sender makes up for this request, once, and sends again when it retries. The same ID twice in a workspace stores one change: the second answers the current list and changes nothing more. The same ID for another participant answers `400` on `clientRequestId` with the code `already_used`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MarkEveryoneAttendedRequest/clientRequestId`.
+            public var clientRequestId: Swift.String
+            /// The app that sends the request: `ios` or `android`; it is the `source` of the change in the history and the platform of the `attendance_marked` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MarkEveryoneAttendedRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`; it is the `source` of the change in the history and the platform of the `attendance_marked` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MarkEveryoneAttendedRequest/surface`.
+            public var surface: Components.Schemas.MarkEveryoneAttendedRequest.SurfacePayload?
+            /// Creates a new `MarkEveryoneAttendedRequest`.
+            ///
+            /// - Parameters:
+            ///   - clientRequestId: An ID the sender makes up for this request, once, and sends again when it retries. The same ID twice in a workspace stores one change: the second answers the current list and changes nothing more. The same ID for another participant answers `400` on `clientRequestId` with the code `already_used`.
+            ///   - surface: The app that sends the request: `ios` or `android`; it is the `source` of the change in the history and the platform of the `attendance_marked` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            public init(
+                clientRequestId: Swift.String,
+                surface: Components.Schemas.MarkEveryoneAttendedRequest.SurfacePayload? = nil
+            ) {
+                self.clientRequestId = clientRequestId
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case clientRequestId
                 case surface
             }
         }

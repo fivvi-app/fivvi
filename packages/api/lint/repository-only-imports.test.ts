@@ -79,6 +79,10 @@ const FORBIDDEN: Record<string, string> = {
   'the session type enum': "import { sessionType } from '@fivvi/database';",
   'the session status enum': "import { sessionStatus } from '@fivvi/database';",
   'the attendance status enum': "import { attendanceStatus } from '@fivvi/database';",
+  'the session participant status changes table':
+    "import { sessionParticipantStatusChanges } from '@fivvi/database';",
+  'the participant status source enum':
+    "import { participantStatusSource } from '@fivvi/database';",
   'a table among allowed names': "import { createClient, clients } from '@fivvi/database';",
   'a table renamed': "import { clients as c } from '@fivvi/database';",
   'a table as a type': "import type { clients } from '@fivvi/database';",
@@ -258,6 +262,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     AccessLogQuery: 'type of the access-log repository (E014)',
     AccountScopeInput: 'type of the tenant scope',
     ActingAs: 'type of the tenant scope',
+    AttendanceParticipantView: 'type of the attendance repository (F025)',
     AttendanceStatus: 'type of the session repository (F020)',
     BillingDetailsChange: 'type of the billing details repository (F059)',
     BillingDetailsChangedBy: 'type of the billing details repository (F059)',
@@ -329,6 +334,10 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     OfferVersionView: 'type of the offers repository (F052)',
     OfferView: 'type of the offers repository (F052)',
     OwnTeamMember: 'type of the trainer-profile repository (F005)',
+    ParticipantStatusChange: 'type of the attendance repository (F025)',
+    ParticipantStatusChangeView: 'type of the attendance repository (F025)',
+    ParticipantStatusInitiator: 'type of the attendance repository (F025)',
+    ParticipantStatusSource: 'type of the attendance repository (F025)',
     PaymentKind: 'type of the payment-ledger repository (E019)',
     PaymentPurpose: 'type of the payment-ledger repository (E019)',
     PaymentRecord: 'type of the payment-ledger repository (E019)',
@@ -386,6 +395,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     addTrainerToTeam: 'repository of the team, takes the workspace scope (F011)',
     appendAccessLog: 'repository of the access log, takes the workspace scope (E014)',
     assignSessionTrainer: 'repository of the sessions, takes the workspace scope (F023)',
+    bulkRequestKey: 'the key of one line of a bulk attendance change, a string function (F025)',
     changeOffer: 'repository of offers, takes the workspace scope (F052)',
     changeTeamMemberRole: 'repository of the team, takes the workspace scope (F004)',
     closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
@@ -413,6 +423,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     findAccountForInvitation:
       'repository of accounts, takes a scope; reads the address and whether it is verified (F011)',
     findAccountIdByEmail: 'repository of accounts, takes a scope; reads an account ID only (F006)',
+    findAttendanceParticipant: 'repository of attendance, takes the workspace scope (F025)',
     findBillingDetails: 'repository of billing details, takes the workspace scope (F059)',
     findBookingEmails: 'repository of accounts, takes the account scope (F050)',
     findBookingLink: 'repository of booking links, takes the workspace scope (F037)',
@@ -442,6 +453,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     findRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
     findRefundFacts: 'repository of the refunds and reversals, takes the workspace scope (F060)',
     findSession: 'repository of the sessions, takes the workspace scope (F020)',
+    findStatusChangeByRequest: 'repository of attendance, takes the workspace scope (F025)',
     findSystemGreeting: 'query of the system data, which has no tenant',
     findTeamMember: 'repository of the team, takes the workspace scope (F003)',
     findTeamMemberName:
@@ -467,6 +479,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     linkProviderRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
     listAccessLog: 'repository of the access log, takes the workspace scope (E014)',
     listActiveClassSeries: 'repository of the class series, takes the workspace scope (F022)',
+    listAttendanceParticipants: 'repository of attendance, takes the workspace scope (F025)',
     listBookedClients: 'repository of the sessions, takes the workspace scope (F023)',
     listBookingLinks: 'repository of booking links, takes the workspace scope (F037)',
     listChargebacksOfPayment:
@@ -483,6 +496,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     listMyWorkspaces: 'repository of places, takes the account scope',
     listOfferVersions: 'repository of offers, takes the workspace scope (F052)',
     listOffers: 'repository of offers, takes the workspace scope (F052)',
+    listParticipantStatusChanges: 'repository of attendance, takes the workspace scope (F025)',
     listPayoutLines: 'repository of the payouts, takes the workspace scope (F061)',
     listPayoutStatusChanges: 'repository of the payouts, takes the workspace scope (F061)',
     listPayouts: 'repository of the payouts, takes the workspace scope (F061)',
@@ -516,6 +530,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'the payout ledger over a function that opens a workspace scope (F061); every call goes through the scope, no connection of its own',
     pingDatabase: 'runs SELECT 1 on the executor it is given; reads no data',
     recordChargeback: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    recordParticipantStatusChange: 'repository of attendance, takes the workspace scope (F025)',
     recordPayoutStatusChange: 'repository of the payouts, takes the workspace scope (F061)',
     recordRefundStatusChange:
       'repository of the refunds and reversals, takes the workspace scope (F060)',

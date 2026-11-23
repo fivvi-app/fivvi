@@ -178,7 +178,9 @@ export const sessions = businessTable(
 /**
  * A client's place in a session (F020; `PRODUCT.md §76`). A private session has one, or two for a
  * duo (F066). At most one per session and client. `attendance_status` is `booked` until attendance (F025) or a
- * cancellation (F026) changes it. `agreement_id` is the M11 agreement (credits) the place uses,
+ * cancellation (F026) changes it; `status_changed_at` is when it last changed (empty until it
+ * does), and every change has a line in `session_participant_status_changes`, written with it by
+ * `changeParticipantStatus`'s caller. `agreement_id` is the M11 agreement (credits) the place uses,
  * empty until then; it has no foreign key yet because the table does not exist.
  *
  * The client policy applies (a client sees only their own places). The session and the client are
@@ -191,11 +193,19 @@ export const sessionParticipants = businessTable(
     sessionId: uuid('session_id').notNull(),
     clientId: uuid('client_id').notNull(),
     attendanceStatus: attendanceStatus('attendance_status').notNull().default('booked'),
+    statusChangedAt: instant('status_changed_at'),
     agreementId: uuid('agreement_id'),
     ...timestamps(),
   },
   (table) => [
     unique('session_participants_session_id_client_id_unique').on(table.sessionId, table.clientId),
+    // The history of a place names the client with it (`session_participant_status_changes`), so
+    // the client policy applies to the history and a line cannot name another client's place.
+    unique('session_participants_organization_id_id_client_id_unique').on(
+      table.organizationId,
+      table.id,
+      table.clientId,
+    ),
     // A client's upcoming sessions (F020, TW-02 / TM-03).
     index('session_participants_organization_id_client_id_idx').on(
       table.organizationId,

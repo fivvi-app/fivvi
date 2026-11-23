@@ -10,6 +10,7 @@ import {
 import {
   addClient,
   addClientBillingDetails,
+  addParticipantStatusChange,
   addPayment,
   addPaymentChargeback,
   addPaymentCustomer,
@@ -100,7 +101,13 @@ async function seedScenario(admin: DatabaseExecutor): Promise<Scenario> {
   }
   // A session of A with Sam's client in it, so a context that names Sam's client has a place to see
   // (`session_participants` has the client policy, F020), next to the other client's session.
-  await addSession(admin, { workspaceId: a, clientId: clientInA });
+  const sessionInA = await addSession(admin, { workspaceId: a, clientId: clientInA });
+  // And the first line of that place's status history (F025): the history has the client policy too.
+  await addParticipantStatusChange(admin, {
+    workspaceId: a,
+    sessionId: sessionInA.id,
+    clientId: clientInA,
+  });
   // The same for the payment tables (E019): they have the client policy too.
   const paymentInA = await addPayment(admin, { workspaceId: a, clientId: clientInA });
   await addPaymentCustomer(admin, { workspaceId: a, clientId: clientInA });
@@ -518,6 +525,13 @@ describe('@isolation E011 RLS as the app role', () => {
         sql`select client_id from session_participants`,
       );
       expect(places).toEqual([{ client_id: x }]);
+      // So does the status history of the places (F025): X's own lines.
+      const lines = await rows<{ client_id: string }>(
+        tx,
+        sql`select client_id from session_participant_status_changes`,
+      );
+      expect(lines.length).toBeGreaterThan(0);
+      expect(lines.every((line) => line.client_id === x)).toBe(true);
       await refused(tx, (inner) =>
         inner.execute(
           sql`insert into session_participants (organization_id, session_id, client_id)

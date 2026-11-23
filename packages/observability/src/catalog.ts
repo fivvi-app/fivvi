@@ -32,6 +32,16 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   team_member_removed: {
     workspace_id: property.uuid(),
   },
+  // F025: a team member set a participant's attendance (`booked`, `attended` or `no_show`), by one
+  // tap or by *Iedereen aanwezig* (one event for each participant it changed). The workspace ID,
+  // the platform, the session type and the new status only (the team member's account UUID is the
+  // distinct ID): not the session, class, client or trainer, no name, date or time.
+  attendance_marked: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+    session_type: property.enum(['private', 'group', 'open_gym']),
+    status: property.enum(['booked', 'attended', 'no_show']),
+  },
   // F023: an Owner gave a session or the dates of a class another trainer. The workspace ID, the
   // platform, the scope and the kind only (the Owner's account UUID is the distinct ID): not the
   // session, class, trainer or client, no name, date or time.

@@ -708,6 +708,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/participants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The participants of a session with their attendance
+         * @description The participants of a session (a private session’s client or clients, the seeded or booked participants of a class date) with each one’s ID, display name and status, and the counts of the statuses, for CO-05, CO-06 and the attendance of a private session. It also says when attendance opens and whether the caller may take it. Any team member may read it. A session that is not in the workspace answers `404`.
+         */
+        get: operations["listSessionParticipants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/{clientId}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a participant’s attendance
+         * @description Sets a participant to `attended`, `no_show` or back to `booked`, and stores one line of the status history (from, to, the server’s time in UTC, the caller as actor, the source). The session’s current trainer or the Owner may; another Trainer gets `403`. From 30 minutes before the start, with no end: before that `422` `attendance_too_early` with `opensAt`. A cancelled session answers `409` `session_cancelled`, a participant who cancelled their place `409` `participant_cancelled`. Setting the status the participant has changes nothing. The last write wins; the history keeps both. The same `clientRequestId` twice stores one change and answers the current list. Answers the session’s participants as `GET …/participants` does. A session or participant that is not in the workspace answers `404`.
+         */
+        put: operations["setParticipantAttendance"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/attended": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Everyone attended
+         * @description *Iedereen aanwezig*, for a class date only (a private session or any other session answers `404`): in one transaction every participant with status `booked` becomes `attended`, one line of the status history each (the source is the caller’s). A participant who is `no_show` or `cancelled`, or `attended` already, stays as they are. The same rules as one change: the session’s current trainer or the Owner (another Trainer gets `403`), from 30 minutes before the start (`422` `attendance_too_early`), never on a cancelled session (`409` `session_cancelled`). The same `clientRequestId` twice, as a queued request sent again after a reconnect, changes nothing more and answers the current list. Answers the session’s participants with the counts, as `GET …/participants` does.
+         */
+        post: operations["markEveryoneAttended"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/calendar": {
         parameters: {
             query?: never;
@@ -1256,7 +1316,7 @@ export interface components {
              */
             teamMemberId: string;
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage" | "attendance.mark.own" | "attendance.mark.any")[];
         };
         /**
          * @description The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
@@ -1299,7 +1359,7 @@ export interface components {
              */
             teamMemberId: string;
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage" | "attendance.mark.own" | "attendance.mark.any")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -2127,6 +2187,109 @@ export interface components {
             notifyClients?: boolean;
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description A session’s participants with their status, and the counts. Holds no email address, phone number or notes of a client. */
+        Attendance: {
+            /**
+             * Format: uuid
+             * @description The session ID.
+             */
+            sessionId: string;
+            /**
+             * @description The kind of session.
+             * @enum {string}
+             */
+            type: "private" | "group" | "open_gym";
+            /**
+             * @description Whether the session still takes place; no attendance is needed once cancelled.
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+            /**
+             * Format: date-time
+             * @description From when attendance can be taken: 30 minutes before the start, a UTC instant, with no end (“Aanwezigheid kun je invullen vanaf 17:30.”).
+             */
+            attendanceOpensAt: string;
+            /** @description Whether the caller may take attendance of this session: its current trainer or the Owner. Whether it is open yet or the session cancelled is in the other fields. */
+            canTakeAttendance: boolean;
+            /** @description The participants, in the order they were added; none for a class date without bookings. */
+            participants: components["schemas"]["AttendanceParticipant"][];
+            summary: components["schemas"]["AttendanceSummary"];
+        };
+        /** @description A participant of a session: the client’s ID, name and status, and nothing else (no email address, phone number or notes). */
+        AttendanceParticipant: {
+            /**
+             * Format: uuid
+             * @description The client ID.
+             */
+            clientId: string;
+            /** @description The client’s display name. */
+            name: string;
+            /**
+             * @description `booked` (*Geboekt*, still open), `attended` (*Aanwezig*), `no_show` (*Niet verschenen*) or `cancelled` (*Geannuleerd*: the client’s place was cancelled; attendance never sets or changes it).
+             * @enum {string}
+             */
+            status: "booked" | "attended" | "cancelled" | "no_show";
+        };
+        /** @description The counts behind “5 aanwezig · 1 niet verschenen · 1 open” (CO-05, CO-06). */
+        AttendanceSummary: {
+            /** @description Participants with `attended`. */
+            attended: number;
+            /** @description Participants with `no_show`. */
+            noShow: number;
+            /** @description Participants still `booked`. */
+            open: number;
+            /** @description Participants with `cancelled`. */
+            cancelled: number;
+        };
+        /** @description Why the attendance was refused; nothing was stored. Contains no user-facing text. */
+        AttendanceRefusal: {
+            /**
+             * @description `session_cancelled`: the session was cancelled, no attendance is needed; `participant_cancelled`: the participant cancelled their place, which attendance cannot change.
+             * @enum {string}
+             */
+            code: "session_cancelled" | "participant_cancelled";
+        };
+        /** @description Attendance cannot be taken yet; nothing was stored. Contains no user-facing text. */
+        AttendanceTooEarly: {
+            /** @enum {string} */
+            code: "attendance_too_early";
+            /**
+             * Format: date-time
+             * @description When attendance opens: 30 minutes before the start, a UTC instant.
+             */
+            opensAt: string;
+        };
+        /** @description The status to set for one participant. */
+        SetAttendanceRequest: {
+            /**
+             * @description The new status: `attended`, `no_show`, or `booked` to take a tap back. `cancelled` is not accepted (`400`): it comes only from cancelling.
+             * @enum {string}
+             */
+            status: "booked" | "attended" | "no_show";
+            /**
+             * Format: uuid
+             * @description An ID the sender makes up for this request, once, and sends again when it retries. The same ID twice in a workspace stores one change: the second answers the current list and changes nothing more. The same ID for another participant answers `400` on `clientRequestId` with the code `already_used`.
+             */
+            clientRequestId: string;
+            /**
+             * @description The app that sends the request: `ios` or `android`; it is the `source` of the change in the history and the platform of the `attendance_marked` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description *Iedereen aanwezig*: every participant still open becomes attended. */
+        MarkEveryoneAttendedRequest: {
+            /**
+             * Format: uuid
+             * @description An ID the sender makes up for this request, once, and sends again when it retries. The same ID twice in a workspace stores one change: the second answers the current list and changes nothing more. The same ID for another participant answers `400` on `clientRequestId` with the code `already_used`.
+             */
+            clientRequestId: string;
+            /**
+             * @description The app that sends the request: `ios` or `android`; it is the `source` of the change in the history and the platform of the `attendance_marked` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
              */
             surface?: "ios" | "android";
@@ -5602,6 +5765,262 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AssignTrainerRefusal"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listSessionParticipants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The session ID. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The participants. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attendance"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    setParticipantAttendance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The session ID. */
+                sessionId: string;
+                /** @description The client ID of the participant. */
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAttendanceRequest"];
+            };
+        };
+        responses: {
+            /** @description The status is set (or was set already); the participants as they are now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attendance"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The session or the participant was cancelled. Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceRefusal"];
+                };
+            };
+            /** @description Attendance opens 30 minutes before the start. Nothing was stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceTooEarly"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    markEveryoneAttended: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The session ID. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkEveryoneAttendedRequest"];
+            };
+        };
+        responses: {
+            /** @description Everyone who was open is attended; the participants as they are now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attendance"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The session was cancelled. Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceRefusal"];
+                };
+            };
+            /** @description Attendance opens 30 minutes before the start. Nothing was stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceTooEarly"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

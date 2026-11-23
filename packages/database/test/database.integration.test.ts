@@ -26,6 +26,7 @@ import {
   offerVersions,
   organizations,
   pingDatabase,
+  sessionParticipantStatusChanges,
   sessionParticipants,
   sessions,
   systemGreetings,
@@ -910,7 +911,13 @@ describe('E004 database', () => {
         }
         // Besides the week: Tuesday 22 September 2026 of the personal calendar (F013): four private sessions, each with a client (and two group sessions), and the 30 private sessions of Pilot Gym's week (F014).
         expect(await tx.$count(sessions, eq(sessions.type, 'private'))).toBe(week.length + 4 + 30);
-        expect(await tx.$count(sessionParticipants)).toBe(week.length + 4 + 30);
+        // The participants of the private sessions: the class dates of Pilot Gym have theirs too (F025 AC17).
+        expect(
+          await tx.$count(
+            sessionParticipants,
+            sql`${sessionParticipants.sessionId} in (select id from sessions where type = 'private')`,
+          ),
+        ).toBe(week.length + 4 + 30);
       });
     });
 
@@ -1448,7 +1455,7 @@ describe('E004 database', () => {
             left join team_members tm on tm.id = tp.team_member_id
             left join auth_users u on u.id = tm.account_id
             left join group_classes gc on gc.id = s.group_class_id
-            left join session_participants sp on sp.session_id = s.id
+            left join session_participants sp on sp.session_id = s.id and s.type = 'private' -- a class date's participants are F025's (AC17)
             left join clients c on c.id = sp.client_id
             order by s.starts_at, u.name`,
       );
@@ -1662,6 +1669,165 @@ describe('E004 database', () => {
 
         expect(await tx.$count(sessions)).toBe(0);
         expect(await tx.$count(authUsers, eq(authUsers.email, 'paula@example.com'))).toBe(0);
+      });
+    });
+  });
+
+  describe('F025 seed class participants and attendance', () => {
+    // The class dates of Pilot Gym's week, 21 to 26 September 2026 (F014), the cancelled Kracht of
+    // Tuesday 18:00 among them.
+    const AFTER_THE_WEEK = new Date('2026-11-23T10:00:00Z');
+    const BEFORE_THE_WEEK = new Date('2026-09-14T10:00:00Z');
+    // Wednesday 23 September 2026, 13:00 Amsterdam: Monday, Tuesday and Wednesday's Mobility of 12:15
+    // (45 minutes) are over; the dates after them are still to come.
+    const WEDNESDAY_NOON = new Date('2026-09-23T11:00:00Z');
+
+    /** The class dates of Pilot Gym with their participants' statuses and the number of history lines, by start. */
+    function classDates(tx: DatabaseExecutor) {
+      return rows<{
+        id: string;
+        status: string;
+        starts_at: Date;
+        ends_at: Date;
+        statuses: string[];
+        lines: number;
+      }>(
+        tx,
+        sql`select s.id, s.status::text as status, s.starts_at, s.ends_at,
+                   coalesce(array_agg(sp.attendance_status::text order by sp.created_at) filter (where sp.id is not null), '{}') as statuses,
+                   (select count(*)::int from session_participant_status_changes l
+                     where l.session_participant_id in (select id from session_participants where session_id = s.id)) as lines
+            from sessions s
+            join organizations o on o.id = s.organization_id and o.slug = 'pilot-gym'
+            left join session_participants sp on sp.session_id = s.id
+            where s.type = 'group'
+            group by s.id
+            order by s.starts_at, s.id`,
+      );
+    }
+
+    it('AC17: gives each class date of the synthetic week 3 to 8 participants from the seeded clients, booked, and marks the dates that are over', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY_NOON });
+        await seed(tx, { now: WEDNESDAY_NOON });
+
+        const dates = await classDates(tx);
+        expect(dates).toHaveLength(15);
+        for (const date of dates) {
+          expect(date.statuses.length).toBeGreaterThanOrEqual(3);
+          expect(date.statuses.length).toBeLessThanOrEqual(8);
+        }
+        // Not the same people every time, and only the workspace's own ten clients.
+        const clientsOfPilot = await rows<{ n: number }>(
+          tx,
+          sql`select count(distinct sp.client_id)::int as n
+              from session_participants sp join sessions s on s.id = sp.session_id and s.type = 'group'
+              join organizations o on o.id = s.organization_id and o.slug = 'pilot-gym'`,
+        );
+        expect(clientsOfPilot[0]?.n).toBe(10);
+
+        const over = dates.filter(
+          (date) => date.status === 'scheduled' && new Date(date.ends_at) < WEDNESDAY_NOON,
+        );
+        const coming = dates.filter(
+          (date) => date.status === 'scheduled' && new Date(date.ends_at) >= WEDNESDAY_NOON,
+        );
+        expect(over.length).toBeGreaterThan(0);
+        expect(coming.length).toBeGreaterThan(0);
+        // The dates that are over have attendance: nobody is still open, and both marks occur.
+        for (const date of over) {
+          expect(date.statuses).not.toContain('booked');
+        }
+        const marks = new Set(over.flatMap((date) => date.statuses));
+        expect(marks).toEqual(new Set(['attended', 'no_show']));
+        // The dates to come are all booked.
+        for (const date of coming) {
+          expect(new Set(date.statuses)).toEqual(new Set(['booked']));
+        }
+        // The cancelled Kracht keeps its participants as cancelled.
+        const cancelled = dates.filter((date) => date.status === 'cancelled');
+        expect(cancelled).toHaveLength(1);
+        expect(new Set(cancelled[0]?.statuses)).toEqual(new Set(['cancelled']));
+      });
+    });
+
+    it('AC17: every status in the seed has its history lines: the booking, and the change after it', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: AFTER_THE_WEEK });
+        const dates = await classDates(tx);
+        for (const date of dates) {
+          const open = date.statuses.filter((status) => status === 'booked').length;
+          expect(open).toBe(0);
+          // One line for the booking of each participant, one more for each that is not booked.
+          expect(date.lines).toBe(date.statuses.length * 2);
+        }
+        const lines = await rows<{
+          from_status: string | null;
+          to_status: string;
+          actor_type: string;
+          source: string;
+          initiated_by: string | null;
+          same: boolean;
+        }>(
+          tx,
+          sql`select l.from_status::text, l.to_status::text, l.actor_type::text, l.source::text, l.initiated_by::text,
+                     (l.to_status = sp.attendance_status or l.to_status = 'booked') as same
+              from session_participant_status_changes l join session_participants sp on sp.id = l.session_participant_id`,
+        );
+        expect(lines.every((line) => line.same)).toBe(true);
+        expect(
+          lines.every((line) => line.actor_type === 'system' && line.source === 'system'),
+        ).toBe(true);
+        expect(
+          lines
+            .filter((line) => line.from_status === null)
+            .every((line) => line.to_status === 'booked'),
+        ).toBe(true);
+        // Only the cancelled date's lines are initiated by the workspace.
+        const initiated = lines.filter((line) => line.initiated_by !== null);
+        expect(initiated.length).toBeGreaterThan(0);
+        expect(
+          initiated.every(
+            (line) => line.initiated_by === 'workspace' && line.to_status === 'cancelled',
+          ),
+        ).toBe(true);
+      });
+    });
+
+    it('AC17: before the week every participant is booked and there is no attendance, and a second run adds nothing', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: BEFORE_THE_WEEK });
+        const first = await classDates(tx);
+        await seed(tx, { now: AFTER_THE_WEEK });
+        const second = await classDates(tx);
+        // Dates that have participants are left as they are, whatever "now" is on a later run.
+        expect(second).toEqual(first);
+        const scheduled = second.filter((date) => date.status === 'scheduled');
+        for (const date of scheduled) {
+          expect(new Set(date.statuses)).toEqual(new Set(['booked']));
+        }
+      });
+    });
+
+    it('AC17: leaves private sessions and the class dates of John’s Gym without participants', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: AFTER_THE_WEEK });
+        expect(
+          await tx.$count(
+            sessionParticipants,
+            sql`${sessionParticipants.sessionId} in (
+              select s.id from sessions s join organizations o on o.id = s.organization_id
+              where s.type = 'group' and o.slug <> 'pilot-gym')`,
+          ),
+        ).toBe(0);
+      });
+    });
+
+    it('AC17: seeds no participant and no history line in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true, now: AFTER_THE_WEEK });
+        expect(await tx.$count(sessionParticipants)).toBe(0);
+        expect(await tx.$count(sessionParticipantStatusChanges)).toBe(0);
       });
     });
   });

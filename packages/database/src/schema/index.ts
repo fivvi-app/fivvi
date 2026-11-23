@@ -12,6 +12,7 @@ export * from './job-runs.ts';
 export * from './locations.ts';
 export * from './offers.ts';
 export * from './organizations.ts';
+export * from './participant-status-changes.ts';
 export * from './payments.ts';
 export * from './payouts.ts';
 export * from './refunds.ts';

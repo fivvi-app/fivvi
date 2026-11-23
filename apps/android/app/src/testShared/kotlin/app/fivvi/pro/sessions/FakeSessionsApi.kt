@@ -4,10 +4,12 @@ import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.models.AddressLookupResult
 import app.fivvi.api.models.AssignTrainerRequest
+import app.fivvi.api.models.Attendance
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.LocationAddress
 import app.fivvi.api.models.LocationType
+import app.fivvi.api.models.MarkEveryoneAttendedRequest
 import app.fivvi.api.models.PlanPrivateSessionRequest
 import app.fivvi.api.models.PlannedPrivateSession
 import app.fivvi.api.models.ReschedulePrivateSessionRequest
@@ -15,6 +17,7 @@ import app.fivvi.api.models.ReschedulePrivateSessionResult
 import app.fivvi.api.models.Session
 import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionTrainer
+import app.fivvi.api.models.SetAttendanceRequest
 import app.fivvi.api.models.Trainer
 import app.fivvi.api.models.TrainerAssigned
 import app.fivvi.api.models.TrainerCandidates
@@ -173,6 +176,22 @@ class FakeSessionsApi : SessionsApi {
 
     override suspend fun listTrainerCandidates(workspaceId: UUID, sessionId: UUID): Response<TrainerCandidates> =
         error("FakeSessionsApi.listTrainerCandidates is not expected in this test")
+
+    override suspend fun listSessionParticipants(workspaceId: UUID, sessionId: UUID): Response<Attendance> =
+        error("FakeSessionsApi.listSessionParticipants is not expected in this test")
+
+    override suspend fun setParticipantAttendance(
+        workspaceId: UUID,
+        sessionId: UUID,
+        clientId: UUID,
+        setAttendanceRequest: SetAttendanceRequest,
+    ): Response<Attendance> = error("FakeSessionsApi.setParticipantAttendance is not expected in this test")
+
+    override suspend fun markEveryoneAttended(
+        workspaceId: UUID,
+        sessionId: UUID,
+        markEveryoneAttendedRequest: MarkEveryoneAttendedRequest,
+    ): Response<Attendance> = error("FakeSessionsApi.markEveryoneAttended is not expected in this test")
 
     override suspend fun listClientUpcomingSessions(workspaceId: UUID, clientId: UUID): Response<UpcomingSessions> {
         upcomingRead += clientId

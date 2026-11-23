@@ -9,6 +9,8 @@ export {
   addClientBillingDetails,
   addGroupClass,
   addOffer,
+  addParticipantStatusChange,
+  addParticipants,
   addPayment,
   addPaymentChargeback,
   addPaymentCustomer,
