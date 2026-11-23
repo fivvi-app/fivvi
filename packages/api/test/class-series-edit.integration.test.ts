@@ -286,6 +286,75 @@ describe('F022 editing a whole series through the API', () => {
     );
   });
 
+  it('AC2: a trainer change alone to a trainer who is busy at the same time is a trainer_conflict, nothing changes, and it saves with allowConflicts', async () => {
+    const w = await aWeeklyClass({ now: WEDNESDAY_THE_14TH });
+    const anna = await addClient(admin.db, { workspaceId: w.gym.id, name: 'Anna de Vries' });
+    const other = await addSession(admin.db, {
+      workspaceId: w.gym.id,
+      clientId: anna.id,
+      trainerProfileId: w.tomProfile,
+      startsAt: new Date(amsterdam('2026-10-27T18:30')),
+    });
+    const edit = { version: 1, trainerId: w.tomRole.id };
+
+    const refused = await updateSeries(
+      w.server,
+      w.gym.id,
+      w.groupClass.id,
+      w.series.id,
+      w.john,
+      edit,
+    );
+
+    expect(refused.status).toBe(409);
+    const body = (await refused.json()) as {
+      code: string;
+      conflicts: { sessionId: string }[];
+    };
+    expect(body.code).toBe('trainer_conflict');
+    expect(body.conflicts.map((c) => c.sessionId)).toEqual([other.id]);
+    expect((await storedSeries(w.gym.id)).map((s) => [s.version, s.endsOn])).toEqual([[1, null]]);
+    expect((await dateOn(w.gym.id, '2026-10-27')).trainerProfileId).toBe(w.sarahProfile);
+
+    const saved = await updateSeries(w.server, w.gym.id, w.groupClass.id, w.series.id, w.john, {
+      ...edit,
+      allowConflicts: true,
+    });
+    expect(saved.status).toBe(200);
+    expect((await dateOn(w.gym.id, '2026-10-27')).trainerProfileId).toBe(w.tomProfile);
+    expect((await dateOn(w.gym.id, '2026-10-27')).startsAt.toISOString()).toBe(
+      amsterdam('2026-10-27T18:00'),
+    );
+  });
+
+  it('AC1: a new length of 75 minutes: the series has 75, each upcoming date ends 75 minutes after its start, the started dates stay at 60', async () => {
+    const w = await aWeeklyClass({ now: WEDNESDAY_THE_14TH });
+
+    const response = await updateSeries(w.server, w.gym.id, w.groupClass.id, w.series.id, w.john, {
+      version: 1,
+      durationMinutes: 75,
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ startsOn: '2026-10-20', durationMinutes: 75 });
+    const dates = await storedDates(w.gym.id);
+    const length = (d: (typeof dates)[number]) => (d.endsAt.getTime() - d.startsAt.getTime()) / 60_000;
+    for (const day of ['2026-10-06', '2026-10-13']) {
+      const started = dates.find((d) => d.occurrenceDate === day);
+      expect(started && length(started)).toBe(60);
+    }
+    const upcoming = dates.filter((d) => d.occurrenceDate && d.occurrenceDate >= '2026-10-20');
+    expect(upcoming.length).toBeGreaterThanOrEqual(12);
+    expect(upcoming.map(length)).toEqual(upcoming.map(() => 75));
+    expect((await dateOn(w.gym.id, '2026-10-27')).startsAt.toISOString()).toBe(
+      amsterdam('2026-10-27T18:00'),
+    );
+    expect((await storedSeries(w.gym.id)).map((s) => [s.startsOn, s.durationMinutes])).toEqual([
+      ['2026-10-06', 60],
+      ['2026-10-20', 75],
+    ]);
+  });
+
   it('AC2: a capacity change alone never warns, even when the trainer is busy', async () => {
     const w = await aWeeklyClass({ now: WEDNESDAY_THE_14TH });
     const anna = await addClient(admin.db, { workspaceId: w.gym.id, name: 'Anna de Vries' });
