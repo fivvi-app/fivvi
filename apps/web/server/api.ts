@@ -18,6 +18,7 @@ import {
 import {
   createDemoRequestSender,
   createPrivateSessionSender,
+  createTrainerChangeSender,
   createTrainerInvitationSender,
 } from '@fivvi/email';
 import { inProcessApiClient } from './api-client';
@@ -95,6 +96,18 @@ function sendPrivateSession(...[mail]: Parameters<ReturnType<typeof createPrivat
   return privateSessionSender(mail);
 }
 
+let trainerChangeSender: ReturnType<typeof createTrainerChangeSender> | undefined;
+
+/**
+ * EM-13, the notice of a new trainer (F023): sent through the provider of the environment (Lettermint
+ * or the log for `@example.com` outside production). Created on first use, so `next build` runs
+ * without the email settings.
+ */
+function sendTrainerChange(...[mail]: Parameters<ReturnType<typeof createTrainerChangeSender>>) {
+  trainerChangeSender ??= createTrainerChangeSender({ sendEmail: sendEmail() });
+  return trainerChangeSender(mail);
+}
+
 let demoRequestSender: ReturnType<typeof createDemoRequestSender> | undefined;
 
 /**
@@ -130,6 +143,8 @@ export const apiHandler = createApiHandler({
   sendTrainerInvitation,
   // Emails the confirmation of a private session (F020), after the session is committed.
   sendPrivateSession,
+  // Emails the notice of a new trainer to the clients (F023), after the change is committed.
+  sendTrainerChange,
   // Emails the website's demo requests to Fivvi's support address (F064).
   sendDemoRequest,
   // Where "now" comes from: the expiry and the daily limit of an invitation (F011), the past of a session (F020).

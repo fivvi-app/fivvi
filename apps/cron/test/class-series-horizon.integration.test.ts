@@ -6,8 +6,15 @@ import {
   type DatabaseClient,
   jobRuns,
   sessions,
+  trainerProfiles,
 } from '@fivvi/database';
-import { addClassSeries, addSession, createWorkspace } from '@fivvi/database/testing';
+import {
+  addClassSeries,
+  addSession,
+  addTeamRole,
+  createAccount,
+  createWorkspace,
+} from '@fivvi/database/testing';
 import { manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase } from '@fivvi/testing/database';
 import { and, asc, eq, sql } from 'drizzle-orm';
@@ -140,6 +147,26 @@ describe('F022 AC3: the daily task keeps a series 12 weeks ahead', () => {
     );
     expect(added?.locationId).toBe(location.rows[0]?.id);
     expect((await db.select().from(jobRuns))[0]?.message).toBe('extended=1, dates=1, failed=0');
+  });
+
+  it('AC2: later dates get the new trainer of the series (F023)', async () => {
+    const gym = await createWorkspace(admin.db, { label: 'johns-gym' });
+    const mikeAccount = await createAccount(admin.db, { label: 'mike' });
+    const mike = await addTeamRole(admin.db, { workspaceId: gym.id, accountId: mikeAccount.id });
+    const [profile] = await admin.db
+      .select({ id: trainerProfiles.id })
+      .from(trainerProfiles)
+      .where(eq(trainerProfiles.teamMemberId, mike.id));
+    // The series as F023 leaves it after "Mike from 6 October": Mike is its regular trainer.
+    const series = await seriesWithTwelveWeeks(gym.id, { trainerProfileId: profile?.id ?? null });
+
+    await cron().run();
+
+    const [added] = await admin.db
+      .select()
+      .from(sessions)
+      .where(and(eq(sessions.seriesId, series.id), eq(sessions.occurrenceDate, '2026-12-29')));
+    expect(added?.trainerProfileId).toBe(profile?.id);
   });
 
   it('AC3: running it twice adds nothing', async () => {

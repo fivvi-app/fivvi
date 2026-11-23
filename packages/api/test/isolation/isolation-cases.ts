@@ -341,6 +341,21 @@ const aSessionOfTheCaller: IsolationCase['seed'] = async (
 };
 
 /**
+ * `aSessionOfTheCaller` and another trainer of the same workspace, whom the assignment names (F023):
+ * the session is the caller's own, so the new trainer is never its trainer already.
+ */
+const aSessionAndAnotherTrainer: IsolationCase['seed'] = async (db, input) => {
+  const values = await (aSessionOfTheCaller as NonNullable<IsolationCase['seed']>)(db, input);
+  const account = await createAccount(db, { label: 'another-trainer' });
+  const member = await addTeamRole(db, {
+    workspaceId: input.workspaceId,
+    accountId: account.id,
+    trainsHere: true,
+  });
+  return { ...values, trainer: member.id };
+};
+
+/**
  * The client the seed was called for with one coming private session, so the listing shows it. The
  * session has no trainer: the listing is the same for every team member.
  */
@@ -392,6 +407,20 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
         return `${crypto.randomUUID()}@example.com`;
       },
     },
+  },
+
+  // Assigning a trainer (F023): the change names the seeded session at the version it has and
+  // another trainer of the workspace, and allows an overlap with the sessions the suite made before.
+  assignTrainer: {
+    seed: aSessionAndAnotherTrainer,
+    reseedForEachCall: true,
+    params: { sessionId: 'session' },
+    body: (values) => ({
+      trainerId: values.trainer,
+      version: 1,
+      allowConflicts: true,
+      notifyClients: false,
+    }),
   },
 
   // The role change (F004): it names the seeded team member and asks for the role it already has.
@@ -564,6 +593,9 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
 
   // The team of a workspace (F003): the list shows the seeded team member.
   listTeamMembers: { seed: aTeamMember },
+
+  // The trainers a session can go to (F023): the list names the seeded session.
+  listTrainerCandidates: { seed: aSessionOfTheCaller, params: { sessionId: 'session' } },
 
   // The trainer invitations of a workspace (F011): the list shows the seeded pending invitation.
   listTrainerInvitations: { seed: anInvitation },

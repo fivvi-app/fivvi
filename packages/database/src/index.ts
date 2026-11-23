@@ -246,8 +246,10 @@ export {
 } from './repositories/retention.ts';
 export {
   type AttendanceStatus,
+  assignSessionTrainer,
   createPrivateSession,
   findSession,
+  listBookedClients,
   listTrainerSessionsBetween,
   listUpcomingSessionsOfClient,
   type NewPrivateSession,
@@ -257,6 +259,7 @@ export {
   type SessionReschedule,
   type SessionSeriesView,
   type SessionStatus,
+  type SessionTrainerAssignment,
   type SessionTrainerView,
   type SessionType,
   type SessionView,
@@ -299,6 +302,7 @@ export {
   findOwnTeamMember,
   findTrainer,
   listTrainers,
+  listTrainersWithProfiles,
   type OwnTeamMember,
   setTrainerProfile,
   type TrainerView,

@@ -120,6 +120,18 @@ extension StubAPI {
         fatalError("The app doesn't call updateGroupClassSeries yet")
     }
 
+    func assignTrainer(
+        _ input: Operations.AssignTrainer.Input
+    ) async throws -> Operations.AssignTrainer.Output {
+        fatalError("The app doesn't call assignTrainer yet")
+    }
+
+    func listTrainerCandidates(
+        _ input: Operations.ListTrainerCandidates.Input
+    ) async throws -> Operations.ListTrainerCandidates.Output {
+        fatalError("The app doesn't call listTrainerCandidates yet")
+    }
+
     func listGroupClassSeries(
         _ input: Operations.ListGroupClassSeries.Input
     ) async throws -> Operations.ListGroupClassSeries.Output {

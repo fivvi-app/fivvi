@@ -379,6 +379,7 @@ extension Components {
                 case team_invite = "team.invite"
                 case session_private_manage_own = "session.private.manage.own"
                 case session_private_manage_any = "session.private.manage.any"
+                case session_assign = "session.assign"
                 case class_manage = "class.manage"
                 case class_read = "class.read"
                 case joinLink_view = "join_link.view"
@@ -534,6 +535,7 @@ extension Components {
                 case team_invite = "team.invite"
                 case session_private_manage_own = "session.private.manage.own"
                 case session_private_manage_any = "session.private.manage.any"
+                case session_assign = "session.assign"
                 case class_manage = "class.manage"
                 case class_read = "class.read"
                 case joinLink_view = "join_link.view"
@@ -3148,6 +3150,324 @@ extension Components {
                 case startsAt
                 case endsAt
                 case trainer
+            }
+        }
+        /// The trainers a session can go to, with their conflicts and who would be told (CO-02, *Trainer wijzigen*). Contains no client name or email address.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerCandidates`.
+        public struct TrainerCandidates: Codable, Hashable, Sendable {
+            /// The session ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerCandidates/sessionId`.
+            public var sessionId: Swift.String
+            /// The workspace’s trainers except the session’s own, by name. Empty when there is nobody else (“Er zijn geen andere trainers”).
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerCandidates/trainers`.
+            public var trainers: [Components.Schemas.TrainerCandidate]
+            /// - Remark: Generated from `#/components/schemas/TrainerCandidates/participantsToNotify`.
+            public var participantsToNotify: Components.Schemas.ParticipantsToNotify
+            /// Creates a new `TrainerCandidates`.
+            ///
+            /// - Parameters:
+            ///   - sessionId: The session ID.
+            ///   - trainers: The workspace’s trainers except the session’s own, by name. Empty when there is nobody else (“Er zijn geen andere trainers”).
+            ///   - participantsToNotify:
+            public init(
+                sessionId: Swift.String,
+                trainers: [Components.Schemas.TrainerCandidate],
+                participantsToNotify: Components.Schemas.ParticipantsToNotify
+            ) {
+                self.sessionId = sessionId
+                self.trainers = trainers
+                self.participantsToNotify = participantsToNotify
+            }
+            public enum CodingKeys: String, CodingKey {
+                case sessionId
+                case trainers
+                case participantsToNotify
+            }
+        }
+        /// A trainer the session can go to, with what they already have then.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerCandidate`.
+        public struct TrainerCandidate: Codable, Hashable, Sendable {
+            /// The trainer’s team-member ID, as in `GET …/trainers`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerCandidate/id`.
+            public var id: Swift.String
+            /// The account’s name; empty when it has none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerCandidate/name`.
+            public var name: Swift.String
+            /// What the trainer already has at the session’s time in this workspace (the hint in the trainer dialog), soonest first; empty when they are free. Never anything of another workspace.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerCandidate/conflicts`.
+            public var conflicts: [Components.Schemas.TrainerConflictItem]
+            /// How many later dates of the session’s series the trainer already has something at, of the dates *Deze en alle volgende lessen* would give them. 0 for a private session, a date outside a series and a date that is not offered that scope.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerCandidate/laterConflictingDates`.
+            public var laterConflictingDates: Swift.Int
+            /// Creates a new `TrainerCandidate`.
+            ///
+            /// - Parameters:
+            ///   - id: The trainer’s team-member ID, as in `GET …/trainers`.
+            ///   - name: The account’s name; empty when it has none.
+            ///   - conflicts: What the trainer already has at the session’s time in this workspace (the hint in the trainer dialog), soonest first; empty when they are free. Never anything of another workspace.
+            ///   - laterConflictingDates: How many later dates of the session’s series the trainer already has something at, of the dates *Deze en alle volgende lessen* would give them. 0 for a private session, a date outside a series and a date that is not offered that scope.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                conflicts: [Components.Schemas.TrainerConflictItem],
+                laterConflictingDates: Swift.Int
+            ) {
+                self.id = id
+                self.name = name
+                self.conflicts = conflicts
+                self.laterConflictingDates = laterConflictingDates
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case conflicts
+                case laterConflictingDates
+            }
+        }
+        /// How many clients the trainer-change email reaches, for each scope.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ParticipantsToNotify`.
+        public struct ParticipantsToNotify: Codable, Hashable, Sendable {
+            /// The clients with a booked place in the session who would get the email: 0 for a session that has started.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ParticipantsToNotify/forThisDate`.
+            public var forThisDate: Swift.Int
+            /// The clients with a booked place on any date *Deze en alle volgende lessen* would give another trainer, each counted once (“{n} deelnemers informeren per e-mail”); 0 outside a series. Dates that have started are not counted.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ParticipantsToNotify/forFollowingDates`.
+            public var forFollowingDates: Swift.Int
+            /// Creates a new `ParticipantsToNotify`.
+            ///
+            /// - Parameters:
+            ///   - forThisDate: The clients with a booked place in the session who would get the email: 0 for a session that has started.
+            ///   - forFollowingDates: The clients with a booked place on any date *Deze en alle volgende lessen* would give another trainer, each counted once (“{n} deelnemers informeren per e-mail”); 0 outside a series. Dates that have started are not counted.
+            public init(
+                forThisDate: Swift.Int,
+                forFollowingDates: Swift.Int
+            ) {
+                self.forThisDate = forThisDate
+                self.forFollowingDates = forFollowingDates
+            }
+            public enum CodingKeys: String, CodingKey {
+                case forThisDate
+                case forFollowingDates
+            }
+        }
+        /// The session after the trainer was assigned.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerAssigned`.
+        public struct TrainerAssigned: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/TrainerAssigned/session`.
+            public var session: Components.Schemas.Session
+            /// How many clients get the email (EM-13): one each, after the answer is decided; a failure is reported to error tracking and does not undo the change. 0 when it was not asked for, for a session that has started and when nobody has a booked place.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerAssigned/clientsNotified`.
+            public var clientsNotified: Swift.Int
+            /// For `following`: the later dates that keep their own trainer or other change of their own; 0 otherwise.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerAssigned/keptDates`.
+            public var keptDates: Swift.Int
+            /// Creates a new `TrainerAssigned`.
+            ///
+            /// - Parameters:
+            ///   - session:
+            ///   - clientsNotified: How many clients get the email (EM-13): one each, after the answer is decided; a failure is reported to error tracking and does not undo the change. 0 when it was not asked for, for a session that has started and when nobody has a booked place.
+            ///   - keptDates: For `following`: the later dates that keep their own trainer or other change of their own; 0 otherwise.
+            public init(
+                session: Components.Schemas.Session,
+                clientsNotified: Swift.Int,
+                keptDates: Swift.Int
+            ) {
+                self.session = session
+                self.clientsNotified = clientsNotified
+                self.keptDates = keptDates
+            }
+            public enum CodingKeys: String, CodingKey {
+                case session
+                case clientsNotified
+                case keptDates
+            }
+        }
+        /// Why the assignment was refused; nothing was stored. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal`.
+        public struct AssignTrainerRefusal: Codable, Hashable, Sendable {
+            /// `session_changed`: someone changed the session after the `version` sent; `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the new trainer already has something at that time (PS-07).
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case sessionChanged = "session_changed"
+                case sessionCancelled = "session_cancelled"
+                case trainerConflict = "trainer_conflict"
+            }
+            /// `session_changed`: someone changed the session after the `version` sent; `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the new trainer already has something at that time (PS-07).
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal/code`.
+            public var code: Components.Schemas.AssignTrainerRefusal.CodePayload
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal/session`.
+            public struct SessionPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal/session/value1`.
+                public var value1: Components.Schemas.Session
+                /// The session as it is now, for `session_changed` and `session_cancelled`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal/session/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SessionPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The session as it is now, for `session_changed` and `session_cancelled`.
+                public init(
+                    value1: Components.Schemas.Session,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal/session`.
+            public var session: Components.Schemas.AssignTrainerRefusal.SessionPayload?
+            /// Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal/changedBy`.
+            public struct ChangedByPayload: Codable, Hashable, Sendable {
+                /// The account’s name.
+                ///
+                /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal/changedBy/name`.
+                public var name: Swift.String
+                /// Creates a new `ChangedByPayload`.
+                ///
+                /// - Parameters:
+                ///   - name: The account’s name.
+                public init(name: Swift.String) {
+                    self.name = name
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case name
+                }
+            }
+            /// Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal/changedBy`.
+            public var changedBy: Components.Schemas.AssignTrainerRefusal.ChangedByPayload?
+            /// The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRefusal/conflicts`.
+            public var conflicts: [Components.Schemas.TrainerConflictItem]?
+            /// Creates a new `AssignTrainerRefusal`.
+            ///
+            /// - Parameters:
+            ///   - code: `session_changed`: someone changed the session after the `version` sent; `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the new trainer already has something at that time (PS-07).
+            ///   - session:
+            ///   - changedBy: Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            ///   - conflicts: The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
+            public init(
+                code: Components.Schemas.AssignTrainerRefusal.CodePayload,
+                session: Components.Schemas.AssignTrainerRefusal.SessionPayload? = nil,
+                changedBy: Components.Schemas.AssignTrainerRefusal.ChangedByPayload? = nil,
+                conflicts: [Components.Schemas.TrainerConflictItem]? = nil
+            ) {
+                self.code = code
+                self.session = session
+                self.changedBy = changedBy
+                self.conflicts = conflicts
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case session
+                case changedBy
+                case conflicts
+            }
+        }
+        /// The trainer a session or a class from a date on goes to.
+        ///
+        /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest`.
+        public struct AssignTrainerRequest: Codable, Hashable, Sendable {
+            /// The new trainer’s team-member ID, from `GET …/trainers`. A team member who does not train in the workspace answers `404`, the session’s trainer already `400` on `trainerId` with the code `same_trainer`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/trainerId`.
+            public var trainerId: Swift.String
+            /// For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/scope`.
+            @frozen public enum ScopePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case this = "this"
+                case following = "following"
+            }
+            /// For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/scope`.
+            public var scope: Components.Schemas.AssignTrainerRequest.ScopePayload?
+            /// Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/allowConflicts`.
+            public var allowConflicts: Swift.Bool?
+            /// The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/version`.
+            public var version: Swift.Int
+            /// Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/notifyClients`.
+            public var notifyClients: Swift.Bool?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/surface`.
+            public var surface: Components.Schemas.AssignTrainerRequest.SurfacePayload?
+            /// Creates a new `AssignTrainerRequest`.
+            ///
+            /// - Parameters:
+            ///   - trainerId: The new trainer’s team-member ID, from `GET …/trainers`. A team member who does not train in the workspace answers `404`, the session’s trainer already `400` on `trainerId` with the code `same_trainer`.
+            ///   - scope: For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session.
+            ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
+            ///   - version: The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
+            ///   - notifyClients: Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                trainerId: Swift.String,
+                scope: Components.Schemas.AssignTrainerRequest.ScopePayload? = nil,
+                allowConflicts: Swift.Bool? = nil,
+                version: Swift.Int,
+                notifyClients: Swift.Bool? = nil,
+                surface: Components.Schemas.AssignTrainerRequest.SurfacePayload? = nil
+            ) {
+                self.trainerId = trainerId
+                self.scope = scope
+                self.allowConflicts = allowConflicts
+                self.version = version
+                self.notifyClients = notifyClients
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case trainerId
+                case scope
+                case allowConflicts
+                case version
+                case notifyClients
+                case surface
             }
         }
         /// The sessions of a workspace for a range of days: the Agenda’s week, day and list.

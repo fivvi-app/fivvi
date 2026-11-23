@@ -176,3 +176,25 @@ export async function checkDoubleBooking(
   }
   return conflict;
 }
+
+/**
+ * How many of the slots the trainer already has something in (F023, the later dates a change from
+ * a date on would put them on): one read of the trainer's sessions over the slots' window, the
+ * rule applied to each slot. The slots' own sessions (`sessionId`) never conflict with themselves.
+ */
+export async function countConflictingSlots(
+  scope: WorkspaceScope,
+  slots: readonly TrainerSlot[],
+): Promise<number> {
+  if (slots.length === 0) return 0;
+  const [first] = slots;
+  if (!first) return 0;
+  const from = new Date(Math.min(...slots.map((slot) => slot.startsAt.getTime())));
+  const to = new Date(Math.max(...slots.map((slot) => slot.endsAt.getTime())));
+  const pool = await listTrainerSessionsBetween(scope, first.trainerProfileId, { from, to });
+  return slots.filter(
+    (slot) =>
+      findTrainerConflicts(pool, slot.trainerProfileId, slot.startsAt, slot.endsAt, slot.sessionId)
+        .length > 0,
+  ).length;
+}

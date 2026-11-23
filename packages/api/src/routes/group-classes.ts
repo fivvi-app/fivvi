@@ -967,7 +967,7 @@ const updateGroupClassDateRoute = defineRoute(
 );
 
 /** A refusal of the typed input, in the shape of the contract's validation error (path and code). */
-function invalid(path: string, code: string, date?: string) {
+export function invalid(path: string, code: string, date?: string) {
   return {
     code: 'validation_failed' as const,
     issues: [{ path, code, ...(date === undefined ? {} : { date }) }],
@@ -1090,7 +1090,7 @@ function slotsOf(
 }
 
 /** A whole series or a date and what follows it, as the domain decided it. */
-type AppliedSeriesChange = Extract<ApplyFollowingDecision, { outcome: 'applied' }>;
+export type AppliedSeriesChange = Extract<ApplyFollowingDecision, { outcome: 'applied' }>;
 
 /**
  * Writes what `applyThisAndFollowing` decided: fills the calendar, warns about a trainer who is
@@ -1099,7 +1099,7 @@ type AppliedSeriesChange = Extract<ApplyFollowingDecision, { outcome: 'applied' 
  * `409`. `guard` says which version the caller read: the date's (`sessionId`, a date edit) or the
  * series' (a whole-series edit); a write that finds another one is `stale`.
  */
-async function writeSeriesChange(
+export async function writeSeriesChange(
   c: Context<WorkspaceEnv>,
   input: {
     stored: ClassSeriesView;
@@ -1241,7 +1241,7 @@ async function writeSeriesChange(
 
 /** The series fields of an edit, in the order of `DETACHABLE_FIELDS`. */
 /** The dates of a series as the rules read them. */
-const seriesDatesOf = (rows: readonly SeriesDateRow[]): SeriesDate[] =>
+export const seriesDatesOf = (rows: readonly SeriesDateRow[]): SeriesDate[] =>
   rows.map((date) => ({
     id: date.id,
     occurrenceDate: date.occurrenceDate,
@@ -1253,7 +1253,7 @@ const seriesDatesOf = (rows: readonly SeriesDateRow[]): SeriesDate[] =>
     capacity: date.capacity,
   }));
 
-const inFieldOrder = (fields: readonly string[]): DetachedField[] =>
+export const inFieldOrder = (fields: readonly string[]): DetachedField[] =>
   DETACHABLE_FIELDS.filter((field) => fields.includes(field));
 
 /** A trainer as the domain rules take it: the team member and the trainer profile. */
@@ -1277,7 +1277,7 @@ const textOrNull = (value: string | undefined) =>
  * surface, and one that names none records nothing, as the API does not guess. The workspace ID and
  * the surface only (OBSERVABILITY.md §4).
  */
-function surfaceOf(authorization: string | undefined, named: 'ios' | 'android' | undefined) {
+export function surfaceOf(authorization: string | undefined, named: 'ios' | 'android' | undefined) {
   return authorization ? named : ('web' as const);
 }
 

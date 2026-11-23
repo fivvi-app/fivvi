@@ -598,7 +598,7 @@ export function shown(session: SessionView, timeZone: string) {
 }
 
 /** The `409` of a change refused for the session's state: the session as it is now, and who changed it. */
-function conflict(
+export function conflict(
   code: 'session_changed' | 'session_cancelled',
   session: SessionView,
   timeZone: string,

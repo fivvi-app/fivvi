@@ -192,7 +192,7 @@ describe('F023 EM-13 trainer change email', () => {
   it('F068: names the role with the workspace’s word', async () => {
     const email = await renderEmail(
       trainerChangeEmail,
-      { ...privateSession, trainerWord: 'instructeur' },
+      { ...privateSession, trainerWord: 'instructeur' as const },
       { locale: 'nl-NL' },
     );
 

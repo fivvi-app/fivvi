@@ -29,6 +29,7 @@ import { registerPersonal } from './routes/personal.ts';
 import { registerSessions } from './routes/sessions.ts';
 import { registerSignIn } from './routes/sign-in.ts';
 import { registerTeamMembers } from './routes/team-members.ts';
+import { registerTrainerAssignment } from './routes/trainer-assignment.ts';
 import { registerTrainerInvitations } from './routes/trainer-invitations.ts';
 import { registerTrainers } from './routes/trainers.ts';
 import { registerWorkspaceCalendar } from './routes/workspace-calendar.ts';
@@ -89,6 +90,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerLocations(app);
   registerAddressLookup(app);
   registerSessions(app);
+  registerTrainerAssignment(app);
   registerWorkspaceCalendar(app);
   registerGroupClasses(app);
   registerJoinLink(app);

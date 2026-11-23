@@ -288,6 +288,7 @@
                 "team.invite",
                 "session.private.manage.own",
                 "session.private.manage.any",
+                "session.assign",
                 "class.manage",
                 "class.read",
                 "join_link.view",
@@ -401,6 +402,7 @@
                 "team.invite",
                 "session.private.manage.own",
                 "session.private.manage.any",
+                "session.assign",
                 "class.manage",
                 "class.read",
                 "join_link.view",
@@ -2103,6 +2105,196 @@
           "endsAt"
         ],
         "description": "A client’s coming private session."
+      },
+      "TrainerCandidates": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The session ID."
+          },
+          "trainers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainerCandidate"
+            },
+            "description": "The workspace’s trainers except the session’s own, by name. Empty when there is nobody else (“Er zijn geen andere trainers”)."
+          },
+          "participantsToNotify": {
+            "$ref": "#/components/schemas/ParticipantsToNotify"
+          }
+        },
+        "required": [
+          "sessionId",
+          "trainers",
+          "participantsToNotify"
+        ],
+        "description": "The trainers a session can go to, with their conflicts and who would be told (CO-02, *Trainer wijzigen*). Contains no client name or email address."
+      },
+      "TrainerCandidate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The trainer’s team-member ID, as in `GET …/trainers`."
+          },
+          "name": {
+            "type": "string",
+            "description": "The account’s name; empty when it has none."
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainerConflictItem"
+            },
+            "description": "What the trainer already has at the session’s time in this workspace (the hint in the trainer dialog), soonest first; empty when they are free. Never anything of another workspace."
+          },
+          "laterConflictingDates": {
+            "type": "integer",
+            "description": "How many later dates of the session’s series the trainer already has something at, of the dates *Deze en alle volgende lessen* would give them. 0 for a private session, a date outside a series and a date that is not offered that scope."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "conflicts",
+          "laterConflictingDates"
+        ],
+        "description": "A trainer the session can go to, with what they already have then."
+      },
+      "ParticipantsToNotify": {
+        "type": "object",
+        "properties": {
+          "forThisDate": {
+            "type": "integer",
+            "description": "The clients with a booked place in the session who would get the email: 0 for a session that has started."
+          },
+          "forFollowingDates": {
+            "type": "integer",
+            "description": "The clients with a booked place on any date *Deze en alle volgende lessen* would give another trainer, each counted once (“{n} deelnemers informeren per e-mail”); 0 outside a series. Dates that have started are not counted."
+          }
+        },
+        "required": [
+          "forThisDate",
+          "forFollowingDates"
+        ],
+        "description": "How many clients the trainer-change email reaches, for each scope."
+      },
+      "TrainerAssigned": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "clientsNotified": {
+            "type": "integer",
+            "description": "How many clients get the email (EM-13): one each, after the answer is decided; a failure is reported to error tracking and does not undo the change. 0 when it was not asked for, for a session that has started and when nobody has a booked place."
+          },
+          "keptDates": {
+            "type": "integer",
+            "description": "For `following`: the later dates that keep their own trainer or other change of their own; 0 otherwise."
+          }
+        },
+        "required": [
+          "session",
+          "clientsNotified",
+          "keptDates"
+        ],
+        "description": "The session after the trainer was assigned."
+      },
+      "AssignTrainerRefusal": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "session_changed",
+              "session_cancelled",
+              "trainer_conflict"
+            ],
+            "description": "`session_changed`: someone changed the session after the `version` sent; `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the new trainer already has something at that time (PS-07)."
+          },
+          "session": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Session"
+              },
+              {
+                "description": "The session as it is now, for `session_changed` and `session_cancelled`."
+              }
+            ]
+          },
+          "changedBy": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The account’s name."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "description": "Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name."
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainerConflictItem"
+            },
+            "description": "The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`."
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "Why the assignment was refused; nothing was stored. Contains no user-facing text."
+      },
+      "AssignTrainerRequest": {
+        "type": "object",
+        "properties": {
+          "trainerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The new trainer’s team-member ID, from `GET …/trainers`. A team member who does not train in the workspace answers `404`, the session’s trainer already `400` on `trainerId` with the code `same_trainer`."
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "this",
+              "following"
+            ],
+            "description": "For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session."
+          },
+          "allowConflicts": {
+            "type": "boolean",
+            "description": "Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap."
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now."
+          },
+          "notifyClients": {
+            "type": "boolean",
+            "description": "Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "trainerId",
+          "version"
+        ],
+        "description": "The trainer a session or a class from a date on goes to."
       },
       "WorkspaceCalendar": {
         "type": "object",
@@ -7997,6 +8189,252 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UpdateGroupClassDateRefusal"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer-candidates": {
+      "get": {
+        "operationId": "listTrainerCandidates",
+        "tags": [
+          "sessions"
+        ],
+        "summary": "The trainers a session can go to",
+        "description": "For the trainer dialog (CO-02, *Trainer wijzigen*): the workspace’s trainers except the session’s own, by name, each with what they already have at the session’s time (`findTrainerConflicts`, this workspace only, a cancelled session and back-to-back never count) and, for a class date in a series, on how many later dates; and how many clients would be told, for each scope. The Owner only: a Trainer gets `403`. A session that is not in the workspace, or an Open Gym, answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "session.assign",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The session ID."
+            },
+            "required": true,
+            "description": "The session ID.",
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The candidates, possibly none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainerCandidates"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer": {
+      "post": {
+        "operationId": "assignTrainer",
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Assign or change the trainer of a session",
+        "description": "Gives a private session or a class date another trainer, or a class date without one its first (the Owner only: a Trainer gets `403`). For a class date `scope` is `this` (a date without a trainer; the date is marked as changed from its series) or `following` (the series’ regular trainer from this date on: dates with a change of their own keep it, earlier dates keep theirs, later dates the calendar fills get the new trainer); for a private session it is ignored. `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` (`session_changed`) with the session as it is now. A cancelled session answers `409` `session_cancelled`. The new trainer is checked for double booking (`409` `trainer_conflict` with the sessions, unless `allowConflicts` is `true`, PS-07). After the change is committed the clients with a booked place get EM-13, one email each listing their dates, unless `notifyClients` is `false` or the session has started. No other participant and no email address of the trainer is in it. A session or trainer that is not in the workspace answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "session.assign",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The session ID."
+            },
+            "required": true,
+            "description": "The session ID.",
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTrainerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The trainer was assigned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainerAssigned"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The session was changed after the `version` sent, or it is cancelled, or the new trainer already has something at that time. Nothing was stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignTrainerRefusal"
                 }
               }
             }

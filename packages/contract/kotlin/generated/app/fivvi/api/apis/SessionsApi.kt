@@ -7,6 +7,8 @@ import okhttp3.RequestBody
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+import app.fivvi.api.models.AssignTrainerRefusal
+import app.fivvi.api.models.AssignTrainerRequest
 import app.fivvi.api.models.Forbidden
 import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
@@ -16,11 +18,34 @@ import app.fivvi.api.models.ReschedulePrivateSessionRefusal
 import app.fivvi.api.models.ReschedulePrivateSessionRequest
 import app.fivvi.api.models.ReschedulePrivateSessionResult
 import app.fivvi.api.models.Session
+import app.fivvi.api.models.TrainerAssigned
+import app.fivvi.api.models.TrainerCandidates
 import app.fivvi.api.models.TrainerConflict
 import app.fivvi.api.models.UpcomingSessions
 import app.fivvi.api.models.ValidationError
 
 interface SessionsApi {
+    /**
+     * POST v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer
+     * Assign or change the trainer of a session
+     * Gives a private session or a class date another trainer, or a class date without one its first (the Owner only: a Trainer gets &#x60;403&#x60;). For a class date &#x60;scope&#x60; is &#x60;this&#x60; (a date without a trainer; the date is marked as changed from its series) or &#x60;following&#x60; (the series’ regular trainer from this date on: dates with a change of their own keep it, earlier dates keep theirs, later dates the calendar fills get the new trainer); for a private session it is ignored. &#x60;version&#x60; is the one the person saw: if the session has been changed since, nothing is stored and the answer is &#x60;409&#x60; (&#x60;session_changed&#x60;) with the session as it is now. A cancelled session answers &#x60;409&#x60; &#x60;session_cancelled&#x60;. The new trainer is checked for double booking (&#x60;409&#x60; &#x60;trainer_conflict&#x60; with the sessions, unless &#x60;allowConflicts&#x60; is &#x60;true&#x60;, PS-07). After the change is committed the clients with a booked place get EM-13, one email each listing their dates, unless &#x60;notifyClients&#x60; is &#x60;false&#x60; or the session has started. No other participant and no email address of the trainer is in it. A session or trainer that is not in the workspace answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The trainer was assigned.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 409: The session was changed after the `version` sent, or it is cancelled, or the new trainer already has something at that time. Nothing was stored.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param sessionId The session ID.
+     * @param assignTrainerRequest 
+     * @return [TrainerAssigned]
+     */
+    @POST("v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer")
+    suspend fun assignTrainer(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID, @Body assignTrainerRequest: AssignTrainerRequest): Response<TrainerAssigned>
+
     /**
      * POST v1/workspaces/{workspaceId}/sessions/private
      * Plan a private session
@@ -78,6 +103,25 @@ interface SessionsApi {
      */
     @GET("v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions")
     suspend fun listClientUpcomingSessions(@Path("workspaceId") workspaceId: java.util.UUID, @Path("clientId") clientId: java.util.UUID): Response<UpcomingSessions>
+
+    /**
+     * GET v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer-candidates
+     * The trainers a session can go to
+     * For the trainer dialog (CO-02, *Trainer wijzigen*): the workspace’s trainers except the session’s own, by name, each with what they already have at the session’s time (&#x60;findTrainerConflicts&#x60;, this workspace only, a cancelled session and back-to-back never count) and, for a class date in a series, on how many later dates; and how many clients would be told, for each scope. The Owner only: a Trainer gets &#x60;403&#x60;. A session that is not in the workspace, or an Open Gym, answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The candidates, possibly none.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param sessionId The session ID.
+     * @return [TrainerCandidates]
+     */
+    @GET("v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer-candidates")
+    suspend fun listTrainerCandidates(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID): Response<TrainerCandidates>
 
     /**
      * POST v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule
