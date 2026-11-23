@@ -116,7 +116,7 @@ data class AgendaTimeline(
                 val length =
                     max(1, (Duration.between(entry.startsAt, entry.endsAt).seconds / SECONDS_PER_MINUTE).toInt())
                 val end = min(MINUTES_PER_DAY, start + length)
-                Placed(entry, start, end, start + ceil(drawnMinutes(end - start)).toInt())
+                Placed(entry, start, end, max(end, start + ceil(drawnMinutes(end - start)).toInt()))
             }.sortedWith(compareBy({ it.start }, { it.end }))
 
             val isToday = calendar.day(now) == day

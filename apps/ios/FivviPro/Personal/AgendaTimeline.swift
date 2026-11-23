@@ -105,7 +105,7 @@ extension AgendaTimeline {
         let entry: Entry
         let start: Int
         let end: Int
-        /// Where the block drawn for it ends: its start and its drawn minutes (never less than the floor of a block).
+        /// Where its column ends: the later of its real end and where its drawn block ends, so a clash always shows.
         let drawnEnd: Int
     }
 
@@ -121,7 +121,7 @@ extension AgendaTimeline {
             let length = max(1, Int((entry.endsAt.timeIntervalSince(entry.startsAt) / 60).rounded()))
             let end = min(24 * 60, start + length)
             let drawn = BlockMetrics.drawnMinutes(end - start, hourHeight: Self.hourHeight)
-            return Placed(entry: entry, start: start, end: end, drawnEnd: start + drawn)
+            return Placed(entry: entry, start: start, end: end, drawnEnd: max(end, start + drawn))
         }
         .sorted { ($0.start, $0.end) < ($1.start, $1.end) }
 
