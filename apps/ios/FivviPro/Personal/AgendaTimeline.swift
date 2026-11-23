@@ -5,9 +5,9 @@ import Foundation
 /// a block sits is decided here (minutes from the first row, its column); the sessions are the API's.
 ///
 /// A block is drawn at least `BlockMetrics.minimumHeight` tall, so a title still fits, and that is what decides the
-/// columns: two blocks that are drawn over each other sit side by side, also when the sessions themselves don't overlap (a
-/// session of 15 minutes is drawn as 30). Splitting by the sessions' own times drew such a block under the next one
-/// (#1556); the Android twin places by the drawn blocks too.
+/// columns: two sessions sit side by side when their own times overlap or their drawn blocks do, so also when the sessions
+/// themselves don't overlap (a session of 15 minutes is drawn as 30). Splitting by the sessions' own times drew such a
+/// block under the next one (#1556); the Android twin places the same way.
 struct AgendaTimeline: Equatable {
     /// A session to place: its row, and the instants that say where it sits.
     struct Entry {
@@ -106,7 +106,7 @@ extension AgendaTimeline {
         let start: Int
         let end: Int
         /// Where its column ends: the later of its real end and where its drawn block ends, so a clash always shows.
-        let drawnEnd: Int
+        let columnEnd: Int
     }
 
     /// The timeline of `day`, or nil for a day without sessions. On today the rows reach the hour of now, so the line is
@@ -121,15 +121,15 @@ extension AgendaTimeline {
             let length = max(1, Int((entry.endsAt.timeIntervalSince(entry.startsAt) / 60).rounded()))
             let end = min(24 * 60, start + length)
             let drawn = BlockMetrics.drawnMinutes(end - start, hourHeight: Self.hourHeight)
-            return Placed(entry: entry, start: start, end: end, drawnEnd: max(end, start + drawn))
+            return Placed(entry: entry, start: start, end: end, columnEnd: max(end, start + drawn))
         }
         .sorted { ($0.start, $0.end) < ($1.start, $1.end) }
 
         let isToday = calendar.day(of: now) == day
         let nowMinute = calendar.minuteOfDay(now)
         var first = (placed.map(\.start).min() ?? 0) / 60
-        let drawnEnd = placed.map(\.drawnEnd).max() ?? 0
-        var last = min(24, (drawnEnd + 59) / 60)
+        let columnEnd = placed.map(\.columnEnd).max() ?? 0
+        var last = min(24, (columnEnd + 59) / 60)
         if isToday {
             first = min(first, nowMinute / 60)
             last = max(last, min(24, nowMinute / 60 + 1))
@@ -139,12 +139,12 @@ extension AgendaTimeline {
             hours: (first...last).map { String(format: "%02d:00", $0 % 24) },
             blocks: columns(placed, origin: origin),
             nowMinutes: isToday ? nowMinute - origin : nil,
-            overflowMinutes: max(0, drawnEnd - last * 60)
+            overflowMinutes: max(0, columnEnd - last * 60)
         )
     }
 
-    /// Gives every session a column: sessions whose drawn blocks overlap, one after the other (not only two at the same
-    /// moment), share the width of the day among as many columns as the most of them at once need.
+    /// Gives every session a column: sessions whose times or drawn blocks overlap, one after the other (not only two at
+    /// the same moment), share the width of the day among as many columns as the most of them at once need.
     private static func columns(_ placed: [Placed], origin: Int) -> [Block] {
         var blocks: [Block] = []
         var group: [(placed: Placed, column: Int)] = []
@@ -166,12 +166,12 @@ extension AgendaTimeline {
             if session.start >= groupEnd { flush() }
             let column = columnEnds.firstIndex { $0 <= session.start } ?? columnEnds.count
             if column == columnEnds.count {
-                columnEnds.append(session.drawnEnd)
+                columnEnds.append(session.columnEnd)
             } else {
-                columnEnds[column] = session.drawnEnd
+                columnEnds[column] = session.columnEnd
             }
             group.append((session, column))
-            groupEnd = max(groupEnd, session.drawnEnd)
+            groupEnd = max(groupEnd, session.columnEnd)
         }
         flush()
         return blocks

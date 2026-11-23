@@ -81,7 +81,8 @@ class AgendaTimelineTest {
 
     @Test
     fun test_F013_design_twoSessionsThatOverlapByAFewMinutesSitSideBySide() {
-        // A 60-minute block is drawn over about 57 minutes: by its drawn end alone these would not overlap.
+        // A 60-minute block is drawn over about 57 minutes: by its drawn end alone the 13:59 pair would not overlap (the
+        // 10:57 pair overlaps through the rounding up), so that pair is the one that catches it here.
         val day = listOf(
             visit("early", "10:00", "11:00"),
             visit("late", "10:57", "11:57"),
