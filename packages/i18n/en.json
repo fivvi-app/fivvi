@@ -965,7 +965,47 @@
       "subtitle": "{client} · Private session",
       "title": "Reschedule session"
     },
-    "title": "Session"
+    "title": "Session",
+    "trainerDialog": {
+      "bookingsStay": "Bookings stay exactly as they are.",
+      "cancel": "Cancel",
+      "conflictClass": "already teaching {name} then ({time})",
+      "conflictHint": "{trainer} · {hint}",
+      "conflictOpenGym": "already has Open Gym then ({time})",
+      "conflictPrivate": "already has a private session then ({time})",
+      "currently": "Currently: {name}",
+      "doneClass": "{trainer} teaches {class} on {date}.",
+      "donePrivate": "{trainer} is now the {word} of this session.",
+      "errors": {
+        "cancelled": "This session is cancelled and can no longer be changed.",
+        "changedBy": "This session was just changed by {name}.",
+        "changedByUnknown": "This session was just changed.",
+        "loadFailed": "The details couldn't be loaded.",
+        "noPermission": "You no longer have permission for this session.",
+        "notSaved": "Not saved. Check your connection and try again."
+      },
+      "followingLine": "{trainer} becomes the regular {word} of {class} from {date}.",
+      "inviteTrainer": "Invite {aWord}",
+      "laterConflicts": "{trainer} already has something on {count, plural, one {# later class} other {# later classes}}.",
+      "noOthers": "There are no other {words} in {workspace}.",
+      "notifyClass": "Notify {count, plural, one {# participant} other {# participants}} by email",
+      "notifyClient": "Notify {client} by email",
+      "notifyClientNote": "{email} · {language}",
+      "scopeFollowing": "This and all following classes",
+      "scopeLabel": "For",
+      "scopeThis": "Only this class",
+      "selectPlaceholder": "Choose {aWord}",
+      "submitAssign": "Assign",
+      "submitChange": "Save",
+      "submitSubstitute": "Substitute",
+      "subtitleClass": "{class} · {date}, {start}–{end}",
+      "subtitlePrivate": "{client} · Private session",
+      "titleAssign": "Assign {aWord}",
+      "titleChange": "Change the {word}",
+      "titleSubstitute": "Substitute the {word}",
+      "whoAssign": "Who teaches this class?",
+      "whoSubstitute": "Who's taking over?"
+    }
   },
   "settingsGeneral": {
     "errors": {

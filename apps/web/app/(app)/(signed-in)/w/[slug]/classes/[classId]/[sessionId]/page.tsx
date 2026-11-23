@@ -22,14 +22,15 @@ export async function generateMetadata(): Promise<Metadata> {
  * has not started has **Boekingslink kopiëren** (F037). The date is read from
  * `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`. A session the workspace doesn't have, one
  * that is no class date and one of another class are a 404. `?edit=1` (the calendar's *Wijzigen*)
- * opens CO-04 at once, for the person who has it.
+ * opens CO-04 at once, for the person who has it; `?assign=1` (the calendar's *Trainer toewijzen*, *Aandacht
+ * nodig*'s *Toewijzen*, F023) opens CO-02 for the Owner (`session.assign`).
  */
 export default async function ClassDatePage({
   params,
   searchParams,
 }: PageProps<'/w/[slug]/classes/[classId]/[sessionId]'>) {
   const { slug: slugParam, classId, sessionId } = await params;
-  const { edit } = await searchParams;
+  const { edit, assign } = await searchParams;
   const { id, name, slug, capabilities, trainerWord, teamMemberId } = await workspaceOf(slugParam);
   if (!capabilities.includes('class.read')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
@@ -56,6 +57,9 @@ export default async function ClassDatePage({
       }
       ownDate={ownDate}
       startEditing={edit === '1'}
+      {...(capabilities.includes('session.assign')
+        ? { assign: { workspaceName: name, teamMemberId, startOpen: assign === '1' } }
+        : {})}
       trainerWord={trainerWordForms(trainerWord, catalogLocale(await getLocale()))}
     />
   );

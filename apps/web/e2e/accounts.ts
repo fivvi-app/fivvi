@@ -304,3 +304,18 @@ export async function passSession(sessionId: string): Promise<void> {
     ),
   );
 }
+
+/**
+ * Books the client `clientId` into the session `sessionId` (attendance status `booked`), on the e2e
+ * app server's database. Booking is M5's: until it exists, a spec that needs participants inserts
+ * them itself, as the API's tests do.
+ */
+export async function bookParticipant(sessionId: string, clientId: string): Promise<void> {
+  await withPool((pool) =>
+    pool.query(
+      `insert into session_participants (organization_id, session_id, client_id)
+       select organization_id, id, $2 from sessions where id = $1`,
+      [sessionId, clientId],
+    ),
+  );
+}

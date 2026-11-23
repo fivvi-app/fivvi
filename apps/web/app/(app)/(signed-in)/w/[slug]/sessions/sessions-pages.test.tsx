@@ -98,6 +98,42 @@ describe.each(locales)('F020 the session page and + Nieuw in %s', (locale) => {
     expect(view({}, false)).toContain(escapeHtml(copy.sessions.page.clientProfile));
   });
 
+  describe('F023 Trainer wijzigen', () => {
+    const changeLabel = escapeHtml(
+      copy.sessions.trainerDialog.titleChange.replace(
+        '{word}',
+        trainerWordForms('trainer', locale).word,
+      ),
+    );
+    const owned = (overrides: Partial<Schemas['Session']> = {}, canAssign = true) =>
+      render(
+        locale,
+        <SessionView
+          workspaceId="w1"
+          slug="johns-gym"
+          session={{ ...session, ...overrides }}
+          client={anna}
+          defaultLocale="nl-NL"
+          canMove
+          teamMemberId="m-john"
+          trainerWord={trainerWordForms('trainer', locale)}
+          {...(canAssign ? { assign: { workspaceName: "John's Gym", startOpen: false } } : {})}
+        />,
+      );
+
+    it('AC8: the Owner has Trainer wijzigen on a private session', () => {
+      expect(owned()).toContain(changeLabel);
+    });
+
+    it('AC12: a person who may not assign (a Trainer) has no Trainer wijzigen', () => {
+      expect(owned({}, false)).not.toContain(changeLabel);
+    });
+
+    it('a cancelled session cannot be given another trainer', () => {
+      expect(owned({ status: 'cancelled' })).not.toContain(changeLabel);
+    });
+  });
+
   it('a cancelled session says so and cannot be moved', () => {
     const html = view({ status: 'cancelled' });
 

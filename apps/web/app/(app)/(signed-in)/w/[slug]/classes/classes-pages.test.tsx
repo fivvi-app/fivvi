@@ -490,6 +490,72 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
     });
   });
 
+  describe('F023 CO-01 Trainer toewijzen and Trainer vervangen', () => {
+    const series: NonNullable<Session['series']> = {
+      id: 'r1',
+      weekday: 'TU',
+      localStartTime: '18:00',
+      occurrenceDate: '2026-10-06',
+      changedFields: [],
+    };
+    const view = (session: Session, assign = true) =>
+      render(
+        locale,
+        <ClassDateView
+          workspaceId="w1"
+          slug="johns-gym"
+          session={session}
+          canManage
+          canCopyLink={false}
+          ownDate={false}
+          trainerWord={word}
+          {...(assign
+            ? { assign: { workspaceName: "John's Gym", teamMemberId: 'm-john', startOpen: false } }
+            : {})}
+        />,
+      );
+    const title = (key: 'titleAssign' | 'titleSubstitute') =>
+      escapeHtml(
+        copy.sessions.trainerDialog[key]
+          .replace('{aWord}', word.aWord)
+          .replace('{word}', word.word),
+      );
+
+    it('AC1: a date without a trainer has Trainer toewijzen', () => {
+      const html = view({ ...date, trainer: undefined });
+
+      expect(html).toContain(title('titleAssign'));
+      expect(html).not.toContain(title('titleSubstitute'));
+    });
+
+    it('AC2: a date of a series that has a trainer has Trainer vervangen', () => {
+      const html = view({ ...date, series });
+
+      expect(html).toContain(title('titleSubstitute'));
+      expect(html).not.toContain(title('titleAssign'));
+    });
+
+    it('a one-off date that has a trainer has neither until F024', () => {
+      const html = view(date);
+
+      expect(html).not.toContain(title('titleSubstitute'));
+      expect(html).not.toContain(title('titleAssign'));
+    });
+
+    it('a cancelled date has neither', () => {
+      const html = view({ ...date, status: 'cancelled', trainer: undefined });
+
+      expect(html).not.toContain(title('titleAssign'));
+    });
+
+    it('AC12: a person who may not assign (a Trainer) sees no assignment action', () => {
+      const html = view({ ...date, trainer: undefined }, false);
+
+      expect(html).not.toContain(title('titleAssign'));
+      expect(html).not.toContain(title('titleSubstitute'));
+    });
+  });
+
   describe('the frame', () => {
     const frame = (capabilities: typeof OWNER, groupClasses = false) =>
       render(

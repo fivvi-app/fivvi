@@ -856,6 +856,48 @@
     <string name="sessions_reschedule_subtitle">%1$s · Privésessie</string>
     <string name="sessions_reschedule_title">Sessie verplaatsen</string>
     <string name="sessions_title">Sessie</string>
+    <string name="sessions_trainer_dialog_bookings_stay">De boekingen blijven gewoon staan.</string>
+    <string name="sessions_trainer_dialog_cancel">Annuleren</string>
+    <string name="sessions_trainer_dialog_conflict_class">geeft dan al %1$s (%2$s)</string>
+    <string name="sessions_trainer_dialog_conflict_hint">%2$s · %1$s</string>
+    <string name="sessions_trainer_dialog_conflict_open_gym">heeft dan al Open Gym (%1$s)</string>
+    <string name="sessions_trainer_dialog_conflict_private">heeft dan al een privésessie (%1$s)</string>
+    <string name="sessions_trainer_dialog_currently">Nu: %1$s</string>
+    <string name="sessions_trainer_dialog_done_class">%3$s geeft %1$s op %2$s.</string>
+    <string name="sessions_trainer_dialog_done_private">%1$s is nu de %2$s van deze sessie.</string>
+    <string name="sessions_trainer_dialog_errors_cancelled">Deze sessie is geannuleerd en kan niet meer worden aangepast.</string>
+    <string name="sessions_trainer_dialog_errors_changed_by">Deze sessie is net gewijzigd door %1$s.</string>
+    <string name="sessions_trainer_dialog_errors_changed_by_unknown">Deze sessie is net gewijzigd.</string>
+    <string name="sessions_trainer_dialog_errors_load_failed">De gegevens konden niet worden geladen.</string>
+    <string name="sessions_trainer_dialog_errors_no_permission">Je hebt geen rechten meer voor deze sessie.</string>
+    <string name="sessions_trainer_dialog_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="sessions_trainer_dialog_following_line">%3$s wordt vanaf %2$s de vaste %4$s van %1$s.</string>
+    <string name="sessions_trainer_dialog_invite_trainer">Nodig %1$s uit</string>
+    <plurals name="sessions_trainer_dialog_later_conflicts">
+        <item quantity="one">%2$s heeft dan al iets op %1$d volgende les.</item>
+        <item quantity="other">%2$s heeft dan al iets op %1$d volgende lessen.</item>
+    </plurals>
+    <string name="sessions_trainer_dialog_no_others">Er zijn geen andere %1$s in %2$s.</string>
+    <plurals name="sessions_trainer_dialog_notify_class">
+        <item quantity="one">%1$d deelnemer informeren per e-mail</item>
+        <item quantity="other">%1$d deelnemers informeren per e-mail</item>
+    </plurals>
+    <string name="sessions_trainer_dialog_notify_client">%1$s informeren per e-mail</string>
+    <string name="sessions_trainer_dialog_notify_client_note">%1$s · %2$s</string>
+    <string name="sessions_trainer_dialog_scope_following">Deze en alle volgende lessen</string>
+    <string name="sessions_trainer_dialog_scope_label">Voor</string>
+    <string name="sessions_trainer_dialog_scope_this">Alleen deze les</string>
+    <string name="sessions_trainer_dialog_select_placeholder">Kies %1$s</string>
+    <string name="sessions_trainer_dialog_submit_assign">Toewijzen</string>
+    <string name="sessions_trainer_dialog_submit_change">Opslaan</string>
+    <string name="sessions_trainer_dialog_submit_substitute">Vervangen</string>
+    <string name="sessions_trainer_dialog_subtitle_class">%1$s · %2$s, %4$s–%3$s</string>
+    <string name="sessions_trainer_dialog_subtitle_private">%1$s · Privésessie</string>
+    <string name="sessions_trainer_dialog_title_assign">Wijs %1$s toe</string>
+    <string name="sessions_trainer_dialog_title_change">Wijzig de %1$s</string>
+    <string name="sessions_trainer_dialog_title_substitute">Vervang de %1$s</string>
+    <string name="sessions_trainer_dialog_who_assign">Wie geeft deze les?</string>
+    <string name="sessions_trainer_dialog_who_substitute">Wie neemt het over?</string>
     <!-- Shown on TW-08 when saving failed for any other reason. Nothing was changed. -->
     <string name="settings_general_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
     <!-- Under the name field on TW-08 when it is empty or only spaces. -->

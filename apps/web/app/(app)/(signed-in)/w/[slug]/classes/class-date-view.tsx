@@ -4,6 +4,7 @@ import { PageShell } from '@fivvi/ui/kit/page-shell';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { AssignTrainer } from '../sessions/assign-trainer';
 import { useSessionFormat } from '../sessions/use-session-format';
 import type { Session } from './classes-client';
 import { CopyBookingLink } from './copy-booking-link';
@@ -26,6 +27,7 @@ export function ClassDateView({
   canCopyLink,
   ownDate,
   startEditing = false,
+  assign,
   trainerWord,
 }: {
   workspaceId: string;
@@ -39,6 +41,12 @@ export function ClassDateView({
   ownDate: boolean;
   /** CO-04 opens at once (`?edit=1`, the calendar's *Wijzigen*), for the Owner. */
   startEditing?: boolean;
+  /**
+   * The person may assign trainers (`session.assign`, the Owner, F023): *Trainer toewijzen* /
+   * *Trainer vervangen* (CO-02). `startOpen` opens it at once (`?assign=1`: the calendar's quick
+   * view and *Aandacht nodig*).
+   */
+  assign?: { workspaceName: string; teamMemberId: string; startOpen: boolean };
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('classes');
@@ -62,10 +70,21 @@ export function ClassDateView({
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="min-w-0 text-[22px] font-semibold tracking-tight">{name}</h1>
-        {canManage || canCopyLink ? (
+        {canManage || canCopyLink || assign ? (
           <div className="flex flex-wrap items-center gap-2">
             {canCopyLink ? (
               <CopyBookingLink workspaceId={workspaceId} sessionId={session.id} />
+            ) : null}
+            {assign ? (
+              <AssignTrainer
+                workspaceId={workspaceId}
+                slug={slug}
+                session={session}
+                trainerWord={trainerWord}
+                workspaceName={assign.workspaceName}
+                teamMemberId={assign.teamMemberId}
+                startOpen={assign.startOpen}
+              />
             ) : null}
             {canManage ? (
               <EditClassDate
