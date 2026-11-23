@@ -1,6 +1,6 @@
 {
-  "id": "c6ec3c0c-95f0-4156-acc3-174dea5e2883",
-  "prevId": "9c11388f-aa83-4866-996a-7fcd1089dfd9",
+  "id": "9c11388f-aa83-4866-996a-7fcd1089dfd9",
+  "prevId": "c6ec3c0c-95f0-4156-acc3-174dea5e2883",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -5005,6 +5005,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "cancellation_requested_at": {
+          "name": "cancellation_requested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -5268,7 +5274,7 @@
         },
         "sessions_cancellation_record_complete": {
           "name": "sessions_cancellation_record_complete",
-          "value": "(\"sessions\".\"cancelled_at\" IS NULL) = (\"sessions\".\"cancellation_initiator\" IS NULL)\n        AND (\"sessions\".\"cancelled_at\" IS NOT NULL OR (\"sessions\".\"cancelled_by_team_member_id\" IS NULL AND \"sessions\".\"cancellation_message\" IS NULL))"
+          "value": "(\"sessions\".\"cancelled_at\" IS NULL) = (\"sessions\".\"cancellation_initiator\" IS NULL)\n        AND (\"sessions\".\"cancelled_at\" IS NOT NULL OR (\"sessions\".\"cancelled_by_team_member_id\" IS NULL AND \"sessions\".\"cancellation_message\" IS NULL))\n        AND (\"sessions\".\"cancelled_at\" IS NULL OR \"sessions\".\"status\" = 'cancelled')"
         },
         "sessions_ends_after_starts": {
           "name": "sessions_ends_after_starts",

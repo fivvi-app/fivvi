@@ -750,6 +750,58 @@ describe('F020 sessions and session participants tables', () => {
       });
     });
 
+    it('F026: cancelled_at is only ever set on a cancelled session: a scheduled session refuses it, with or without an initiator', async () => {
+      const { gym, profileId } = await gymWithJohnAndSarah();
+      const session = await addSession(admin.db, {
+        workspaceId: gym.id,
+        trainerProfileId: profileId,
+      });
+      const set = (values: Partial<typeof sessions.$inferInsert>) =>
+        admin.db.update(sessions).set(values).where(eq(sessions.id, session.id));
+
+      await expect(
+        set({ cancelledAt: new Date(), cancellationInitiator: 'workspace' }),
+      ).rejects.toThrow();
+      // There is no undo: a cancelled session cannot go back to scheduled with its record.
+      await set({
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        cancellationInitiator: 'client',
+      });
+      await expect(set({ status: 'scheduled' })).rejects.toThrow();
+
+      const [row] = await admin.db.select().from(sessions).where(eq(sessions.id, session.id));
+      expect(row?.status).toBe('cancelled');
+    });
+
+    it('F026: cancellation_requested_at (the time of a client’s request, M5) is nullable and a scheduled session may carry it', async () => {
+      const { gym, profileId } = await gymWithJohnAndSarah();
+      const session = await addSession(admin.db, {
+        workspaceId: gym.id,
+        trainerProfileId: profileId,
+      });
+      const read = async () =>
+        (await admin.db.select().from(sessions).where(eq(sessions.id, session.id)))[0];
+      const columns = await admin.db.execute(
+        sql`select is_nullable, data_type from information_schema.columns
+            where table_name = 'sessions' and column_name = 'cancellation_requested_at'`,
+      );
+
+      expect(columns.rows).toEqual([{ is_nullable: 'YES', data_type: 'timestamp with time zone' }]);
+      expect((await read())?.cancellationRequestedAt).toBeNull();
+      const requestedAt = new Date('2026-09-21T08:15:00.000Z');
+      await admin.db
+        .update(sessions)
+        .set({ cancellationRequestedAt: requestedAt })
+        .where(eq(sessions.id, session.id));
+      expect(await read()).toMatchObject({
+        status: 'scheduled',
+        cancelledAt: null,
+        cancellationInitiator: null,
+        cancellationRequestedAt: requestedAt,
+      });
+    });
+
     it('F026: the team member who cancelled is cleared when they are removed; the record of the cancellation stays', async () => {
       const { gym, john, johnRole, anna, profileId } = await gymWithJohnAndSarah();
       const session = await addSession(admin.db, {
