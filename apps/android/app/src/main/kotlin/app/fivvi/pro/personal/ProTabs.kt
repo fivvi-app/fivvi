@@ -69,16 +69,3 @@ fun ProTabs(selected: ProTab, onSelect: (ProTab) -> Unit, content: @Composable (
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) { content(selected) }
     }
 }
-
-/** The id of the title of the *Agenda* tab, the same as on iOS. */
-const val CALENDAR_TITLE_TAG = "calendar.title"
-
-/** TD-04 *Agenda*: the week and the month come with their own ticket (#527); until then the tab is its title only. */
-@Composable
-fun CalendarPlaceholder(modifier: Modifier = Modifier) {
-    Text(
-        text = stringResource(CoreR.string.my_calendar_app_title),
-        modifier = modifier.fillMaxSize().padding(Spacing.space4).testTag(CALENDAR_TITLE_TAG).semantics { heading() },
-        style = MaterialTheme.typography.title1,
-    )
-}

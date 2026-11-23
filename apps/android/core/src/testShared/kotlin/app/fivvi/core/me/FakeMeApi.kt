@@ -8,6 +8,7 @@ import app.fivvi.api.models.MyDay
 import app.fivvi.api.models.MyDaySummary
 import app.fivvi.api.models.MySessions
 import app.fivvi.api.models.MyWorkspace
+import app.fivvi.api.models.PersonalSession
 import app.fivvi.api.models.RequestEmailChange
 import app.fivvi.api.models.TrainerWord
 import app.fivvi.api.models.UpdateMeRequest
@@ -124,11 +125,59 @@ class FakeMeApi : MeApi {
         dayFailure = null
     }
 
+    /**
+     * What `GET /v1/me/sessions` holds (F013 Agenda): the answer is these sessions cut to the days asked for, as the API cuts
+     * them (by the day in Dutch time), in time order. Without any, the call answers `404`: a test that needs the week says so.
+     */
+    var sessions: List<PersonalSession>? = null
+
+    /** The workspaces `GET /v1/me/sessions` says the view spans. */
+    var sessionsWorkspaceCount = 2
+
+    /** `GET /v1/me/sessions` fails with this instead: an `IOException` is a missing connection, a code a server answer. */
+    var sessionsFailure: (() -> Response<MySessions>)? = null
+
+    /** Every `GET /v1/me/sessions` received: the first day, the last day and the surface. */
+    val sessionRequests = mutableListOf<Triple<String, String, MeApi.SurfaceListMySessions?>>()
+
+    /** `GET /v1/me/sessions` waits for this before it answers, so a test can act while the read is under way. */
+    var sessionsGate: CompletableDeferred<Unit>? = null
+
     override suspend fun listMySessions(
         from: String,
         to: String,
         surface: MeApi.SurfaceListMySessions?,
-    ): Response<MySessions> = error("FakeMeApi.listMySessions is not expected in this test")
+    ): Response<MySessions> {
+        sessionRequests += Triple(from, to, surface)
+        sessionsGate?.await()
+        sessionsFailure?.let { return it() }
+        val held = sessions ?: return Response.error(404, "{}".toResponseBody())
+        val amsterdam = java.time.ZoneId.of("Europe/Amsterdam")
+        val first = java.time.LocalDate.parse(from)
+        val last = java.time.LocalDate.parse(to)
+        val inRange = held.filter {
+            val day = it.startsAt.atZoneSameInstant(amsterdam).toLocalDate()
+            !day.isBefore(first) && !day.isAfter(last)
+        }
+        return Response.success(
+            MySessions(from, to, "Europe/Amsterdam", sessionsWorkspaceCount, inRange.sortedBy { it.startsAt }),
+        )
+    }
+
+    /** The next `GET /v1/me/sessions` finds no connection. */
+    fun failSessionsOffline() {
+        sessionsFailure = { throw java.io.IOException("offline") }
+    }
+
+    /** The next `GET /v1/me/sessions` is answered with [code]. */
+    fun failSessionsWith(code: Int) {
+        sessionsFailure = { Response.error(code, "{}".toResponseBody()) }
+    }
+
+    /** Reads of sessions work again. */
+    fun recoverSessions() {
+        sessionsFailure = null
+    }
 
     val workspaceAnswers = ArrayDeque<suspend () -> Response<List<MyWorkspace>>>()
     var workspaceCalls = 0

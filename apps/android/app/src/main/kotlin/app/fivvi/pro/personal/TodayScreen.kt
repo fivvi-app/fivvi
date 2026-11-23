@@ -60,6 +60,8 @@ import kotlinx.coroutines.delay
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows (`today.*`). */
 object TodayTags {
+    /** The prefix of the row tags: `today.row.<id>`. */
+    const val PREFIX = "today"
     const val TITLE = "today.title"
     const val EYEBROW = "today.eyebrow"
     const val SUMMARY = "today.summary"

@@ -58,10 +58,12 @@ import app.fivvi.pro.home.ProfileScreen
 import app.fivvi.pro.home.ProfileViewModel
 import app.fivvi.pro.home.WebLinks
 import app.fivvi.pro.home.WorkspacesRead
-import app.fivvi.pro.personal.CalendarPlaceholder
+import app.fivvi.pro.personal.AgendaTab
+import app.fivvi.pro.personal.AgendaViewModel
 import app.fivvi.pro.personal.PersonalCache
 import app.fivvi.pro.personal.PersonalDestinationViewModel
 import app.fivvi.pro.personal.PersonalRoute
+import app.fivvi.pro.personal.PersonalRow
 import app.fivvi.pro.personal.PersonalRows
 import app.fivvi.pro.personal.PersonalUnavailable
 import app.fivvi.pro.personal.ProTab
@@ -74,6 +76,7 @@ import app.fivvi.pro.sessions.NewSessionFlow
 import app.fivvi.pro.sessions.SessionApis
 import app.fivvi.pro.sessions.SessionFlow
 import java.time.Instant
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -228,6 +231,16 @@ class MainActivity : ComponentActivity() {
                         PersonalCache.Workspace(it.id, it.name)
                     }
                 },
+                stillSignedIn = { dependencies.session.state.value.let { it.signedIn && "${it.generation}" == key } },
+            )
+        }
+        // Agenda (F013, TD-04): the week and the month of the same personal scope, one request for the days on screen. It
+        // lives as long as the sign-in, so the view and the day chosen stay when a session opened from it is closed.
+        val agenda = viewModel(key = "agenda-$key") {
+            AgendaViewModel(
+                dependencies.meApi,
+                dependencies.personalStore,
+                dependencies.clock::instant,
                 stillSignedIn = { dependencies.session.state.value.let { it.signedIn && "${it.generation}" == key } },
             )
         }
@@ -478,17 +491,31 @@ class MainActivity : ComponentActivity() {
             null
         }
         val groupClassNoteWorkspace = shown?.name.takeIf { newMenu?.showsGroupClassNote == true }
+        // The **+** of Vandaag and Agenda: creating needs the server, so offline it is off, and says why (as *Plannen* does).
+        val newMenuContent: @Composable (Boolean) -> Unit = { offline ->
+            if ((onNewPrivateSession != null || onNewGroupClass != null) && meState is MeState.Loaded) {
+                NewMenu(
+                    onNewPrivateSession,
+                    onNewGroupClass,
+                    groupClassNoteWorkspace,
+                    Modifier,
+                    enabled = !offline,
+                    disabledReason = if (offline) stringResource(CoreR.string.common_offline) else null,
+                )
+            }
+        }
+        // A row of Vandaag or Agenda opens TD-02 or TD-03 in the workspace of its item, whichever is the current one (F013 AC4).
+        val openRow: (PersonalRow) -> Unit = { row ->
+            if (row.isGroup) classDateOpenings++ else sessionOpenings++
+            stack = Routes.push(stack, PersonalRoute.of(row))
+        }
         ProTabs(selected = tab, onSelect = { tab = it }) { selected ->
             when (selected) {
                 ProTab.TODAY -> TodayTab(
                     today,
                     studio,
                     studioWorkspace,
-                    // A row opens TD-02 or TD-03 in the workspace of its item, whichever is the current one (F013 AC4).
-                    onOpen = { row ->
-                        if (row.isGroup) classDateOpenings++ else sessionOpenings++
-                        stack = Routes.push(stack, PersonalRoute.of(row))
-                    },
+                    onOpen = openRow,
                     onRoute = ::openOnTheWeb,
                     // *Plannen* opens PS-04 of the current workspace at the start of the gap, for whoever may plan there.
                     onPlan = onNewPrivateSession?.let {
@@ -497,24 +524,20 @@ class MainActivity : ComponentActivity() {
                             planStart = start.toInstant().toEpochMilli()
                         }
                     },
-                    // The Agenda tab on tomorrow comes with TD-04 (#527); until then it opens its placeholder.
-                    onOpenTomorrow = { tab = ProTab.CALENDAR },
-                    // Creating needs the server: offline the + is off, and says why (as *Plannen* does).
-                    menu = { offline ->
-                        if ((onNewPrivateSession != null || onNewGroupClass != null) && meState is MeState.Loaded) {
-                            NewMenu(
-                                onNewPrivateSession,
-                                onNewGroupClass,
-                                groupClassNoteWorkspace,
-                                Modifier,
-                                enabled = !offline,
-                                disabledReason = if (offline) stringResource(CoreR.string.common_offline) else null,
-                            )
-                        }
+                    // *Morgen* opens Agenda on that day, in the week view.
+                    onOpenTomorrow = { date ->
+                        agenda.open(LocalDate.parse(date))
+                        tab = ProTab.CALENDAR
                     },
+                    menu = newMenuContent,
                 )
 
-                ProTab.CALENDAR -> CalendarPlaceholder()
+                ProTab.CALENDAR -> AgendaTab(
+                    agenda,
+                    onOpen = openRow,
+                    onRoute = ::openOnTheWeb,
+                    menu = newMenuContent,
+                )
 
                 ProTab.HOME -> HomeScreen(
                     meState,
