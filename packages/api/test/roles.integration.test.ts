@@ -254,7 +254,9 @@ describe('@permission F004 roles on every workspace route', () => {
     // (F029: `join_link.view`; only the Owner renews it), and listing and making booking links
     // (F037: `booking_link.copy`; the handler allows a Trainer only the link of a class date, and
     // only the Owner deactivates), and the workspace calendar (F014: `calendar.read`; the day of the
-    // dashboard is the Owner's, `calendar.manage`).
+    // dashboard is the Owner's, `calendar.manage`), and attendance (F025: `attendance.mark.own` for
+    // the tap and *Iedereen aanwezig*, `clients.view` for the participants; the rules ask whether
+    // the session is theirs).
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
       'createBookingLink',
@@ -270,9 +272,12 @@ describe('@permission F004 roles on every workspace route', () => {
       'listClients',
       'listGroupClasses',
       'listLocations',
+      'listSessionParticipants',
       'listTrainers',
+      'markEveryoneAttended',
       'recordWorkspaceSwitch',
       'reschedulePrivateSession',
+      'setParticipantAttendance',
       'updateClient',
     ]);
     const statuses = Object.fromEntries(
@@ -302,6 +307,10 @@ describe('@permission F004 roles on every workspace route', () => {
       listBookingLinks: 200,
       // The probe body names no scope.
       createBookingLink: 400,
+      // F025: the probe names no session, and its body is no attendance.
+      listSessionParticipants: 404,
+      setParticipantAttendance: 400,
+      markEveryoneAttended: 400,
     });
   });
 
@@ -338,6 +347,7 @@ describe('@permission F004 roles on every workspace route', () => {
                   'getGroupClass',
                   'getKeptClassDates',
                   'listTrainerCandidates',
+                  'listSessionParticipants',
                   'getOffer',
                   'listGroupClassSeries',
                   'deactivateBookingLink',

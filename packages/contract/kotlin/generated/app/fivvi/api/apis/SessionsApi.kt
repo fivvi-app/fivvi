@@ -9,7 +9,11 @@ import kotlinx.serialization.Serializable
 
 import app.fivvi.api.models.AssignTrainerRefusal
 import app.fivvi.api.models.AssignTrainerRequest
+import app.fivvi.api.models.Attendance
+import app.fivvi.api.models.AttendanceRefusal
+import app.fivvi.api.models.AttendanceTooEarly
 import app.fivvi.api.models.Forbidden
+import app.fivvi.api.models.MarkEveryoneAttendedRequest
 import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.PlanPrivateSessionRequest
@@ -18,6 +22,7 @@ import app.fivvi.api.models.ReschedulePrivateSessionRefusal
 import app.fivvi.api.models.ReschedulePrivateSessionRequest
 import app.fivvi.api.models.ReschedulePrivateSessionResult
 import app.fivvi.api.models.Session
+import app.fivvi.api.models.SetAttendanceRequest
 import app.fivvi.api.models.TrainerAssigned
 import app.fivvi.api.models.TrainerCandidates
 import app.fivvi.api.models.TrainerConflict
@@ -105,6 +110,25 @@ interface SessionsApi {
     suspend fun listClientUpcomingSessions(@Path("workspaceId") workspaceId: java.util.UUID, @Path("clientId") clientId: java.util.UUID): Response<UpcomingSessions>
 
     /**
+     * GET v1/workspaces/{workspaceId}/sessions/{sessionId}/participants
+     * The participants of a session with their attendance
+     * The participants of a session (a private session’s client or clients, the seeded or booked participants of a class date) with each one’s ID, display name and status, and the counts of the statuses, for CO-05, CO-06 and the attendance of a private session. It also says when attendance opens and whether the caller may take it. Any team member may read it. A session that is not in the workspace answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The participants.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param sessionId The session ID.
+     * @return [Attendance]
+     */
+    @GET("v1/workspaces/{workspaceId}/sessions/{sessionId}/participants")
+    suspend fun listSessionParticipants(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID): Response<Attendance>
+
+    /**
      * GET v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer-candidates
      * The trainers a session can go to
      * For the trainer dialog (CO-02, *Trainer wijzigen*): the workspace’s trainers except the session’s own, by name, each with what they already have at the session’s time (&#x60;findTrainerConflicts&#x60;, this workspace only, a cancelled session and back-to-back never count) and, for a class date in a series, on how many later dates; and how many clients would be told, for each scope. The Owner only: a Trainer gets &#x60;403&#x60;. A session that is not in the workspace, or an Open Gym, answers &#x60;404&#x60;.
@@ -122,6 +146,28 @@ interface SessionsApi {
      */
     @GET("v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer-candidates")
     suspend fun listTrainerCandidates(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID): Response<TrainerCandidates>
+
+    /**
+     * POST v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/attended
+     * Everyone attended
+     * *Iedereen aanwezig*, for a class date only (a private session or any other session answers &#x60;404&#x60;): in one transaction every participant with status &#x60;booked&#x60; becomes &#x60;attended&#x60;, one line of the status history each (the source is the caller’s). A participant who is &#x60;no_show&#x60; or &#x60;cancelled&#x60;, or &#x60;attended&#x60; already, stays as they are. The same rules as one change: the session’s current trainer or the Owner (another Trainer gets &#x60;403&#x60;), from 30 minutes before the start (&#x60;422&#x60; &#x60;attendance_too_early&#x60;), never on a cancelled session (&#x60;409&#x60; &#x60;session_cancelled&#x60;). The same &#x60;clientRequestId&#x60; twice, as a queued request sent again after a reconnect, changes nothing more and answers the current list. Answers the session’s participants with the counts, as &#x60;GET …/participants&#x60; does.
+     * Responses:
+     *  - 200: Everyone who was open is attended; the participants as they are now.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 409: The session was cancelled. Nothing was stored.
+     *  - 422: Attendance opens 30 minutes before the start. Nothing was stored.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param sessionId The session ID.
+     * @param markEveryoneAttendedRequest 
+     * @return [Attendance]
+     */
+    @POST("v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/attended")
+    suspend fun markEveryoneAttended(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID, @Body markEveryoneAttendedRequest: MarkEveryoneAttendedRequest): Response<Attendance>
 
     /**
      * POST v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule
@@ -143,5 +189,28 @@ interface SessionsApi {
      */
     @POST("v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule")
     suspend fun reschedulePrivateSession(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID, @Body reschedulePrivateSessionRequest: ReschedulePrivateSessionRequest): Response<ReschedulePrivateSessionResult>
+
+    /**
+     * PUT v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/{clientId}/attendance
+     * Set a participant’s attendance
+     * Sets a participant to &#x60;attended&#x60;, &#x60;no_show&#x60; or back to &#x60;booked&#x60;, and stores one line of the status history (from, to, the server’s time in UTC, the caller as actor, the source). The session’s current trainer or the Owner may; another Trainer gets &#x60;403&#x60;. From 30 minutes before the start, with no end: before that &#x60;422&#x60; &#x60;attendance_too_early&#x60; with &#x60;opensAt&#x60;. A cancelled session answers &#x60;409&#x60; &#x60;session_cancelled&#x60;, a participant who cancelled their place &#x60;409&#x60; &#x60;participant_cancelled&#x60;. Setting the status the participant has changes nothing. The last write wins; the history keeps both. The same &#x60;clientRequestId&#x60; twice stores one change and answers the current list. Answers the session’s participants as &#x60;GET …/participants&#x60; does. A session or participant that is not in the workspace answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The status is set (or was set already); the participants as they are now.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 409: The session or the participant was cancelled. Nothing was stored.
+     *  - 422: Attendance opens 30 minutes before the start. Nothing was stored.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param sessionId The session ID.
+     * @param clientId The client ID of the participant.
+     * @param setAttendanceRequest 
+     * @return [Attendance]
+     */
+    @PUT("v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/{clientId}/attendance")
+    suspend fun setParticipantAttendance(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID, @Path("clientId") clientId: java.util.UUID, @Body setAttendanceRequest: SetAttendanceRequest): Response<Attendance>
 
 }

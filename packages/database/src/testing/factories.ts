@@ -22,6 +22,7 @@ import {
   payoutLines,
   payoutStatusChanges,
   payouts,
+  sessionParticipantStatusChanges,
   sessionParticipants,
   sessions,
   teamMembers,
@@ -469,6 +470,94 @@ export async function addSession(
     }
   }
   return { id: session.id, startsAt, endsAt, locationId };
+}
+
+/**
+ * Places in a session for clients of the workspace (F025's test helper; spec #460: M4 has no
+ * bookings, so a class date has participants only from here and from the seed): each a participant
+ * `booked`, in the order of `clients`, written the way a booking will (nothing is added to the
+ * status history: a test that needs lines adds them). `status` sets another start (`cancelled` for a
+ * client who cancelled; F026 sets it in the app). The session's capacity is not checked. Returns the
+ * participants' IDs with their clients.
+ */
+export async function addParticipants(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    session: { id: string };
+    clients: readonly { id: string }[];
+    status?: 'booked' | 'attended' | 'cancelled' | 'no_show';
+  },
+): Promise<{ id: string; clientId: string }[]> {
+  const places: { id: string; clientId: string }[] = [];
+  for (const client of options.clients) {
+    const row = first(
+      await db
+        .insert(sessionParticipants)
+        .values({
+          organizationId: options.workspaceId,
+          sessionId: options.session.id,
+          clientId: client.id,
+          attendanceStatus: options.status ?? 'booked',
+          // In the order given, also inside one transaction (where `now()` does not move).
+          createdAt: sql`clock_timestamp()`,
+        })
+        .returning({ id: sessionParticipants.id, clientId: sessionParticipants.clientId }),
+      'participant',
+    );
+    places.push(row);
+  }
+  return places;
+}
+
+/**
+ * A line of the status history of a client's place in a session (F025): by default the first tap
+ * of a Trainer on the web, `booked → attended` a moment after the given time (default: now). The
+ * place is the client's participant of the session. The line is written as it is, the place's own
+ * status is not changed. Returns the line's ID.
+ */
+export async function addParticipantStatusChange(
+  db: Pick<DatabaseExecutor, 'insert' | 'select'>,
+  options: {
+    workspaceId: string;
+    sessionId: string;
+    clientId: string;
+    from?: 'booked' | 'attended' | 'cancelled' | 'no_show' | null;
+    to?: 'booked' | 'attended' | 'cancelled' | 'no_show';
+    changedAt?: Date;
+    clientRequestId?: string | null;
+  },
+): Promise<{ id: string }> {
+  const place = first(
+    await db
+      .select({ id: sessionParticipants.id })
+      .from(sessionParticipants)
+      .where(
+        and(
+          eq(sessionParticipants.organizationId, options.workspaceId),
+          eq(sessionParticipants.sessionId, options.sessionId),
+          eq(sessionParticipants.clientId, options.clientId),
+        ),
+      ),
+    'participant',
+  );
+  return first(
+    await db
+      .insert(sessionParticipantStatusChanges)
+      .values({
+        organizationId: options.workspaceId,
+        sessionParticipantId: place.id,
+        clientId: options.clientId,
+        fromStatus: options.from === undefined ? 'booked' : options.from,
+        toStatus: options.to ?? 'attended',
+        changedAt: options.changedAt ?? new Date(),
+        actorType: 'system',
+        source: 'system',
+        clientRequestId: options.clientRequestId ?? null,
+      })
+      .returning({ id: sessionParticipantStatusChanges.id }),
+    'participant status change',
+  );
 }
 
 /**

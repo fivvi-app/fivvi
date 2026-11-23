@@ -49,6 +49,19 @@ export {
   setPreferredLocale,
 } from './repositories/accounts.ts';
 export {
+  type AttendanceParticipantView,
+  bulkRequestKey,
+  findAttendanceParticipant,
+  findStatusChangeByRequest,
+  listAttendanceParticipants,
+  listParticipantStatusChanges,
+  type ParticipantStatusChange,
+  type ParticipantStatusChangeView,
+  type ParticipantStatusInitiator,
+  type ParticipantStatusSource,
+  recordParticipantStatusChange,
+} from './repositories/attendance.ts';
+export {
   type BillingDetailsChange,
   type BillingDetailsChangedBy,
   type BillingDetailsView,

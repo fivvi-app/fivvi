@@ -332,6 +332,23 @@ export {
   sendsTrainerChangeNotice,
 } from './scheduling/assign-trainer.ts';
 export {
+  ATTENDANCE_OPENS_MINUTES_BEFORE,
+  type AttendanceActor,
+  type AttendanceDecision,
+  type AttendanceParticipant,
+  type AttendanceRefusal,
+  type AttendanceSession,
+  type AttendanceSummary,
+  attendanceOpensAt,
+  attendanceSummary,
+  changeParticipantStatus,
+  checkAttendanceOpen,
+  type MarkableStatus,
+  mayTakeAttendance,
+  needsAttendance,
+  type ParticipantStatus,
+} from './scheduling/attendance.ts';
+export {
   type CalendarFilters,
   type CappedOverlaps,
   type ClockChange,

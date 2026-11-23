@@ -36,6 +36,8 @@ export const CAPABILITIES = [
   'commerce.offers.manage',
   'calendar.read',
   'calendar.manage',
+  'attendance.mark.own',
+  'attendance.mark.any',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
@@ -51,6 +53,7 @@ const MATRIX: Readonly<Record<Role, readonly Capability[]>> = {
     'join_link.view',
     'booking_link.copy',
     'calendar.read',
+    'attendance.mark.own',
   ],
 };
 

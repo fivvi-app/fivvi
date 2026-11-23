@@ -219,6 +219,8 @@ describe('@permission F004 capabilities on GET /v1/me/workspaces', () => {
       'commerce.offers.manage',
       'calendar.read',
       'calendar.manage',
+      'attendance.mark.own',
+      'attendance.mark.any',
     ]);
     expect(capabilitiesIn(gym.id)).toEqual([
       'trainers.view',
@@ -230,6 +232,7 @@ describe('@permission F004 capabilities on GET /v1/me/workspaces', () => {
       'join_link.view',
       'booking_link.copy',
       'calendar.read',
+      'attendance.mark.own',
     ]);
   });
 

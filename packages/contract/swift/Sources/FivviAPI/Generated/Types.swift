@@ -291,6 +291,27 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer/post(assignTrainer)`.
     func assignTrainer(_ input: Operations.AssignTrainer.Input) async throws -> Operations.AssignTrainer.Output
+    /// The participants of a session with their attendance
+    ///
+    /// The participants of a session (a private session’s client or clients, the seeded or booked participants of a class date) with each one’s ID, display name and status, and the counts of the statuses, for CO-05, CO-06 and the attendance of a private session. It also says when attendance opens and whether the caller may take it. Any team member may read it. A session that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}/participants`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/get(listSessionParticipants)`.
+    func listSessionParticipants(_ input: Operations.ListSessionParticipants.Input) async throws -> Operations.ListSessionParticipants.Output
+    /// Set a participant’s attendance
+    ///
+    /// Sets a participant to `attended`, `no_show` or back to `booked`, and stores one line of the status history (from, to, the server’s time in UTC, the caller as actor, the source). The session’s current trainer or the Owner may; another Trainer gets `403`. From 30 minutes before the start, with no end: before that `422` `attendance_too_early` with `opensAt`. A cancelled session answers `409` `session_cancelled`, a participant who cancelled their place `409` `participant_cancelled`. Setting the status the participant has changes nothing. The last write wins; the history keeps both. The same `clientRequestId` twice stores one change and answers the current list. Answers the session’s participants as `GET …/participants` does. A session or participant that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/{clientId}/attendance`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/{clientId}/attendance/put(setParticipantAttendance)`.
+    func setParticipantAttendance(_ input: Operations.SetParticipantAttendance.Input) async throws -> Operations.SetParticipantAttendance.Output
+    /// Everyone attended
+    ///
+    /// *Iedereen aanwezig*, for a class date only (a private session or any other session answers `404`): in one transaction every participant with status `booked` becomes `attended`, one line of the status history each (the source is the caller’s). A participant who is `no_show` or `cancelled`, or `attended` already, stays as they are. The same rules as one change: the session’s current trainer or the Owner (another Trainer gets `403`), from 30 minutes before the start (`422` `attendance_too_early`), never on a cancelled session (`409` `session_cancelled`). The same `clientRequestId` twice, as a queued request sent again after a reconnect, changes nothing more and answers the current list. Answers the session’s participants with the counts, as `GET …/participants` does.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/attended`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/attended/post(markEveryoneAttended)`.
+    func markEveryoneAttended(_ input: Operations.MarkEveryoneAttended.Input) async throws -> Operations.MarkEveryoneAttended.Output
     /// The workspace calendar: the sessions of a range of days
     ///
     /// Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
@@ -1096,6 +1117,55 @@ extension APIProtocol {
         body: Operations.AssignTrainer.Input.Body
     ) async throws -> Operations.AssignTrainer.Output {
         try await assignTrainer(Operations.AssignTrainer.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// The participants of a session with their attendance
+    ///
+    /// The participants of a session (a private session’s client or clients, the seeded or booked participants of a class date) with each one’s ID, display name and status, and the counts of the statuses, for CO-05, CO-06 and the attendance of a private session. It also says when attendance opens and whether the caller may take it. Any team member may read it. A session that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}/participants`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/get(listSessionParticipants)`.
+    public func listSessionParticipants(
+        path: Operations.ListSessionParticipants.Input.Path,
+        headers: Operations.ListSessionParticipants.Input.Headers = .init()
+    ) async throws -> Operations.ListSessionParticipants.Output {
+        try await listSessionParticipants(Operations.ListSessionParticipants.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Set a participant’s attendance
+    ///
+    /// Sets a participant to `attended`, `no_show` or back to `booked`, and stores one line of the status history (from, to, the server’s time in UTC, the caller as actor, the source). The session’s current trainer or the Owner may; another Trainer gets `403`. From 30 minutes before the start, with no end: before that `422` `attendance_too_early` with `opensAt`. A cancelled session answers `409` `session_cancelled`, a participant who cancelled their place `409` `participant_cancelled`. Setting the status the participant has changes nothing. The last write wins; the history keeps both. The same `clientRequestId` twice stores one change and answers the current list. Answers the session’s participants as `GET …/participants` does. A session or participant that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/{clientId}/attendance`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/{clientId}/attendance/put(setParticipantAttendance)`.
+    public func setParticipantAttendance(
+        path: Operations.SetParticipantAttendance.Input.Path,
+        headers: Operations.SetParticipantAttendance.Input.Headers = .init(),
+        body: Operations.SetParticipantAttendance.Input.Body
+    ) async throws -> Operations.SetParticipantAttendance.Output {
+        try await setParticipantAttendance(Operations.SetParticipantAttendance.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Everyone attended
+    ///
+    /// *Iedereen aanwezig*, for a class date only (a private session or any other session answers `404`): in one transaction every participant with status `booked` becomes `attended`, one line of the status history each (the source is the caller’s). A participant who is `no_show` or `cancelled`, or `attended` already, stays as they are. The same rules as one change: the session’s current trainer or the Owner (another Trainer gets `403`), from 30 minutes before the start (`422` `attendance_too_early`), never on a cancelled session (`409` `session_cancelled`). The same `clientRequestId` twice, as a queued request sent again after a reconnect, changes nothing more and answers the current list. Answers the session’s participants with the counts, as `GET …/participants` does.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/attended`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/participants/attended/post(markEveryoneAttended)`.
+    public func markEveryoneAttended(
+        path: Operations.MarkEveryoneAttended.Input.Path,
+        headers: Operations.MarkEveryoneAttended.Input.Headers = .init(),
+        body: Operations.MarkEveryoneAttended.Input.Body
+    ) async throws -> Operations.MarkEveryoneAttended.Output {
+        try await markEveryoneAttended(Operations.MarkEveryoneAttended.Input(
             path: path,
             headers: headers,
             body: body

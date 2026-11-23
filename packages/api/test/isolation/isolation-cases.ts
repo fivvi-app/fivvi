@@ -15,6 +15,7 @@ import {
   addClientBillingDetails,
   addGroupClass,
   addOffer,
+  addParticipants,
   addSession,
   addTeamRole,
   addTrainerInvitation,
@@ -307,6 +308,29 @@ const theClientAndATeamThatTrains: IsolationCase['seed'] = async (
   return { client: clientId };
 };
 
+/** The trainer profile of the caller, made when they have none; `null` for a caller without a place on the team. */
+async function profileOfTheCaller(
+  db: DatabaseExecutor,
+  workspaceId: string,
+  callerAccountId: string | undefined,
+): Promise<string | null> {
+  if (!callerAccountId) return null;
+  const [member] = (
+    await db.execute(
+      sql`select id from team_members
+          where organization_id = ${workspaceId} and account_id = ${callerAccountId}`,
+    )
+  ).rows as { id: string }[];
+  if (!member) return null;
+  const { rows } = await db.execute(
+    sql`insert into trainer_profiles (organization_id, team_member_id)
+        values (${workspaceId}, ${member.id})
+        on conflict (team_member_id) do update set team_member_id = excluded.team_member_id
+        returning id`,
+  );
+  return (rows[0] as { id: string }).id;
+}
+
 /**
  * A session of the workspace the seed was called for, with the client it was called for in it, for
  * a route that changes it (F020 reschedule). The session's trainer is the caller when the caller is
@@ -318,26 +342,52 @@ const aSessionOfTheCaller: IsolationCase['seed'] = async (
   db,
   { workspaceId, clientId, callerAccountId },
 ) => {
-  let trainerProfileId: string | null = null;
-  if (callerAccountId) {
-    const [member] = (
-      await db.execute(
-        sql`select id from team_members
-            where organization_id = ${workspaceId} and account_id = ${callerAccountId}`,
-      )
-    ).rows as { id: string }[];
-    if (member) {
-      const { rows } = await db.execute(
-        sql`insert into trainer_profiles (organization_id, team_member_id)
-            values (${workspaceId}, ${member.id})
-            on conflict (team_member_id) do update set team_member_id = excluded.team_member_id
-            returning id`,
-      );
-      trainerProfileId = (rows[0] as { id: string }).id;
-    }
-  }
+  const trainerProfileId = await profileOfTheCaller(db, workspaceId, callerAccountId);
   const { id } = await addSession(db, { workspaceId, clientId, trainerProfileId });
   return { session: id };
+};
+
+/** Two hours ago: attendance is open on the real clock the API runs on, which has no end (F025). */
+const twoHoursAgo = () => new Date(Date.now() - 2 * 60 * 60 * 1000);
+
+/**
+ * A private session that has started, of the caller as trainer (a profile is made when they have
+ * none), with the client the seed was called for in it: what attendance sets (F025). A Trainer's
+ * call is on their own session and succeeds, and an Owner may take any; for a caller without a
+ * place the session has no trainer.
+ */
+const aStartedSessionOfTheCaller: IsolationCase['seed'] = async (
+  db,
+  { workspaceId, clientId, callerAccountId },
+) => {
+  const trainerProfileId = await profileOfTheCaller(db, workspaceId, callerAccountId);
+  const { id } = await addSession(db, {
+    workspaceId,
+    clientId,
+    trainerProfileId,
+    startsAt: twoHoursAgo(),
+  });
+  return { session: id, client: clientId };
+};
+
+/**
+ * A class date that has started, of the caller as trainer, with the client the seed was called for
+ * as its one participant, `booked`: what *Iedereen aanwezig* moves to attended (F025).
+ */
+const aStartedClassDateOfTheCaller: IsolationCase['seed'] = async (
+  db,
+  { workspaceId, clientId, callerAccountId },
+) => {
+  const trainerProfileId = await profileOfTheCaller(db, workspaceId, callerAccountId);
+  const { id } = await addSession(db, {
+    workspaceId,
+    type: 'group',
+    participant: false,
+    trainerProfileId,
+    startsAt: twoHoursAgo(),
+  });
+  await addParticipants(db, { workspaceId, session: { id }, clients: [{ id: clientId }] });
+  return { session: id, client: clientId };
 };
 
 /**
@@ -591,6 +641,9 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // The offers of a workspace (F052): the list shows the seeded offer.
   listOffers: { seed: anOffer },
 
+  // The participants of a session with their attendance (F025): the read names the seeded session.
+  listSessionParticipants: { seed: aSession, params: { sessionId: 'session' } },
+
   // The team of a workspace (F003): the list shows the seeded team member.
   listTeamMembers: { seed: aTeamMember },
 
@@ -606,6 +659,15 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // The address lookup (F015): the fake answers the invented 1234 AB 1. It names no record of the
   // workspace and the answer holds none; the isolation is the access and the rate-limit key.
   lookupAddress: { query: '?postcode=1234AB&houseNumber=1', readsNoRecords: true },
+
+  // *Iedereen aanwezig* (F025): a class date that has started, of the caller as trainer, with the
+  // client in it; every call sends a request ID of its own.
+  markEveryoneAttended: {
+    seed: aStartedClassDateOfTheCaller,
+    reseedForEachCall: true,
+    params: { sessionId: 'session' },
+    body: () => ({ clientRequestId: crypto.randomUUID() }),
+  },
 
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
   probeCreateClient: {},
@@ -696,6 +758,15 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     seed: aClass,
     params: { classId: 'class' },
     body: { localDate: '2026-10-06', localStart: '18:00' },
+  },
+
+  // Attendance (F025): the tap sets the seeded client of a session that has started, of the caller
+  // as trainer, to attended; every call sends a request ID of its own.
+  setParticipantAttendance: {
+    seed: aStartedSessionOfTheCaller,
+    reseedForEachCall: true,
+    params: { sessionId: 'session', clientId: 'client' },
+    body: () => ({ status: 'attended', clientRequestId: crypto.randomUUID() }),
   },
 
   // One client (F006): the edit renames the seeded client.
