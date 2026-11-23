@@ -32,6 +32,21 @@ export function seriesEnd(localStartTime: string, durationMinutes: number): stri
   return `${pad(Math.floor(end / 60))}:${pad(end % 60)}`;
 }
 
+/**
+ * The length in minutes from a start to an end typed on the wall clock (`HH:mm`), or `null` when
+ * either is no time or the end is the start. An end before the start is the next day's (the way
+ * `seriesEnd` writes a series that runs past midnight); whether that length is allowed is the API's.
+ */
+export function minutesBetween(localStart: string, localEnd: string): number | null {
+  const clock = /^(\d{2}):(\d{2})$/;
+  const from = clock.exec(localStart);
+  const to = clock.exec(localEnd);
+  if (!from || !to) return null;
+  const minutes = (match: RegExpExecArray) => Number(match[1]) * 60 + Number(match[2]);
+  const length = (minutes(to) - minutes(from) + 24 * 60) % (24 * 60);
+  return length === 0 ? null : length;
+}
+
 /** What differs on a date, in the order CO-01 names it: time, trainer, capacity, location. */
 const FIELD_ORDER: readonly ChangedField[] = ['time', 'trainer', 'capacity', 'location'];
 

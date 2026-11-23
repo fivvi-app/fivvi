@@ -10,11 +10,12 @@ import {
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
 // F022 (spec #428, ticket #454): *Herhalen* when scheduling a class, *Reeksen* on the class page,
-// the series line and what differs on CO-01, and *Wijzigen voor* on CO-04. Copy comes from the
+// the series line and what differs on CO-01, *Wijzigen voor* on CO-04 and *Reeks wijzigen* (#1523). Copy comes from the
 // catalogs. John owns John's Gym and trains there, Sarah is a Trainer. Dates are relative to the
 // day the spec runs.
 const GYM = "John's Gym";
 const DAY = 24 * 60 * 60 * 1000;
+const PHONE = { width: 390, height: 844 };
 
 interface SessionBody {
   id: string;
@@ -318,6 +319,103 @@ test.describe('F022 weekly classes on the web', () => {
     expect(stored.map(({ capacity }) => capacity)).toEqual([10, 6, 10, 10]);
   });
 
+  test('series edit: John changes the time of the Kracht series to 19:00; upcoming dates follow, a date with its own changes keeps them', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const kracht = await seedClass(page.request, workspaceId);
+    const [first, second] = await seedSeries(page.request, workspaceId, kracht.id);
+    if (!first || !second) throw new Error('The series has fewer than two dates.');
+    // The second date was changed on its own: capacity 6.
+    expect(
+      (
+        await page.request.patch(`/api/v1/workspaces/${workspaceId}/sessions/${second.id}`, {
+          data: { version: second.version, capacity: 6 },
+        })
+      ).status(),
+    ).toBe(200);
+
+    for (const viewport of [{ width: 1280, height: 800 }, PHONE]) {
+      await page.setViewportSize(viewport);
+      await page.goto(`/w/${slug}/classes/${kracht.id}`);
+      await page.getByRole('button', { name: copy.classes.series.edit }).click();
+      const dialog = page.getByRole('dialog', { name: copy.classes.series.dialog.title });
+      await expect(dialog.getByText(copy.classes.series.dialog.description)).toBeVisible();
+      // The form starts from the series as it runs.
+      await expect(
+        dialog.getByLabel(copy.classes.series.dialog.startLabel, { exact: true }),
+      ).toHaveValue('18:00');
+      await expect(
+        dialog.getByLabel(copy.classes.series.dialog.endLabel, { exact: true }),
+      ).toHaveValue('19:00');
+      await expect(
+        dialog.getByLabel(copy.classes.series.dialog.capacityLabel, { exact: true }),
+      ).toHaveValue('8');
+      await expectNoAxeViolations(page, `Reeks wijzigen in ${appLocale} at ${viewport.width}px`);
+      // Nothing is saved on Annuleren.
+      await dialog.getByRole('button', { name: copy.classes.series.dialog.cancel }).click();
+      await expect(dialog).toHaveCount(0);
+    }
+
+    // A capacity outside 1 to 100 is worded under the field, and nothing is sent.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(`/w/${slug}/classes/${kracht.id}`);
+    await page.getByRole('button', { name: copy.classes.series.edit }).click();
+    const dialog = page.getByRole('dialog', { name: copy.classes.series.dialog.title });
+    await dialog.getByLabel(copy.classes.series.dialog.capacityLabel, { exact: true }).fill('0');
+    await dialog.getByRole('button', { name: copy.classes.series.dialog.save }).click();
+    await expect(
+      dialog.getByText(
+        copy.classes.series.dialog.errors.capacityInvalid
+          .replace('{min}', '1')
+          .replace('{max}', '100'),
+      ),
+    ).toBeVisible();
+    await expectNoAxeViolations(page, `Reeks wijzigen with a refusal in ${appLocale}`);
+
+    // The time to 19:00 (the end moves with it), saved.
+    await dialog.getByLabel(copy.classes.series.dialog.capacityLabel, { exact: true }).fill('8');
+    await dialog.getByLabel(copy.classes.series.dialog.startLabel, { exact: true }).fill('19:00');
+    await dialog.getByLabel(copy.classes.series.dialog.endLabel, { exact: true }).fill('20:00');
+    await dialog.getByRole('button', { name: copy.classes.series.dialog.save }).click();
+
+    const toast = page.getByRole('status').filter({ hasText: copy.classes.series.dialog.saved });
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText(
+      appLocale === 'en'
+        ? '1 class has its own changes and stays as it is.'
+        : '1 les heeft eigen wijzigingen en blijft zoals hij is.',
+    );
+    // The card shows the new values.
+    await expect(
+      page.getByText(
+        copy.classes.series.line
+          .replace('{weekday}', appLocale === 'en' ? 'Tuesday' : 'dinsdag')
+          .replace('{start}', '19:00')
+          .replace('{end}', '20:00')
+          .replace('{trainer}', 'John')
+          .replace('{spots}', appLocale === 'en' ? '8 spots' : '8 plekken'),
+      ),
+    ).toBeVisible();
+
+    // The data path: every upcoming date without its own changes is at 19:00; the date with its
+    // own changes stays as it is (18:00, capacity 6).
+    const stored = await datesFrom(page.request, workspaceId, tuesday(), 27);
+    expect(stored.map(({ startsAt }) => clockOf(startsAt))).toEqual([
+      '19:00',
+      '18:00',
+      '19:00',
+      '19:00',
+    ]);
+    expect(stored.map(({ capacity }) => capacity)).toEqual([8, 6, 8, 8]);
+  });
+
   test('AC7: a weekly time in the hour the clocks skip shows the message and creates nothing', async ({
     page,
     context,
@@ -411,6 +509,7 @@ test.describe('F022 weekly classes on the web', () => {
     ).toBeVisible();
     await expect(main.getByRole('button', { name: copy.classes.date.edit })).toHaveCount(0);
     await expect(main.getByText(copy.classes.series.title, { exact: true })).toHaveCount(0);
+    await expect(main.getByRole('button', { name: copy.classes.series.edit })).toHaveCount(0);
     await expectNoAxeViolations(page, `CO-01 in a series as a Trainer in ${appLocale}`);
 
     // No class page for her (so no Reeksen, no Herhalen), and the series route answers 403.
@@ -419,6 +518,7 @@ test.describe('F022 weekly classes on the web', () => {
       page.getByRole('heading', { level: 1, name: copy.noPermission.title }),
     ).toBeVisible();
     await expect(page.getByText(copy.classes.series.title, { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: copy.classes.series.edit })).toHaveCount(0);
     expect(
       (
         await page.request.get(

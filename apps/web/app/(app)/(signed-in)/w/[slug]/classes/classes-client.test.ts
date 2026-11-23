@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createClass,
   editClassDate,
+  editClassSeries,
   loadScheduleContext,
   loadTrainers,
   scheduleClassDate,
@@ -666,6 +667,156 @@ describe('F021 TW-03 classes client', () => {
           past,
         ),
       ).toEqual({ ok: false, reason: 'fields', scope: 'dateInPast' });
+    });
+  });
+
+  describe('F022 Reeks wijzigen (#1523)', () => {
+    const running = {
+      id: 'r1',
+      groupClassId: 'c1',
+      rrule: 'FREQ=WEEKLY;BYDAY=TU',
+      weekday: 'TU',
+      localStartTime: '19:00',
+      durationMinutes: 60,
+      timeZone: 'Europe/Amsterdam',
+      trainer: { id: 't1', name: 'Sarah' },
+      capacity: 8,
+      startsOn: '2026-10-06',
+      materializedUntil: '2026-12-22',
+      version: 2,
+    };
+    const input = {
+      version: 1,
+      localStart: '19:00',
+      localEnd: '20:00',
+      capacity: '8',
+      trainerId: 't1',
+    };
+
+    it('AC1: sends the start, the length from start and end, the capacity and the trainer to the series route', async () => {
+      const fetchFn = reply(200, { ...running, keptDates: 1 });
+
+      const result = await editClassSeries('w1', 'c1', 'r1', input, fetchFn);
+
+      expect(result).toEqual({ ok: true, series: { ...running, keptDates: 1 }, keptDates: 1 });
+      expect(String(fetchFn.mock.calls[0]?.[0])).toBe(
+        '/api/v1/workspaces/w1/group-classes/c1/series/r1',
+      );
+      expect(fetchFn.mock.calls[0]?.[1]?.method).toBe('PATCH');
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toEqual({
+        version: 1,
+        localStartTime: '19:00',
+        durationMinutes: 60,
+        capacity: 8,
+        trainerId: 't1',
+      });
+    });
+
+    it('Trainer nodig is trainerId null, and Toch opslaan sends allowConflicts', async () => {
+      const fetchFn = reply(200, { ...running, keptDates: 0 });
+
+      await editClassSeries(
+        'w1',
+        'c1',
+        'r1',
+        { ...input, trainerId: '', allowConflicts: true },
+        fetchFn,
+      );
+
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toMatchObject({
+        trainerId: null,
+        allowConflicts: true,
+      });
+    });
+
+    it('refuses a capacity outside 1 to 100 and an end that is the start, before any request', async () => {
+      const fetchFn = reply(200, running);
+
+      expect(await editClassSeries('w1', 'c1', 'r1', { ...input, capacity: '0' }, fetchFn)).toEqual(
+        {
+          ok: false,
+          reason: 'fields',
+          capacity: 'capacityInvalid',
+        },
+      );
+      expect(
+        await editClassSeries('w1', 'c1', 'r1', { ...input, localEnd: '19:00' }, fetchFn),
+      ).toEqual({ ok: false, reason: 'fields', end: 'endBeforeStart' });
+      expect(
+        await editClassSeries('w1', 'c1', 'r1', { ...input, localStart: '' }, fetchFn),
+      ).toEqual({ ok: false, reason: 'fields', start: 'invalidTime' });
+      expect(await editClassSeries('w1', 'c1', 'r1', { ...input, localEnd: '' }, fetchFn)).toEqual({
+        ok: false,
+        reason: 'fields',
+        end: 'invalidTime',
+      });
+      expect(fetchFn).not.toHaveBeenCalled();
+    });
+
+    it('AC1: a 409 series_changed comes back with the series as it is now', async () => {
+      expect(
+        await editClassSeries(
+          'w1',
+          'c1',
+          'r1',
+          input,
+          reply(409, { code: 'series_changed', series: running }),
+        ),
+      ).toEqual({ ok: false, reason: 'conflict', series: running });
+    });
+
+    it('a 409 trainer_conflict hands the overlapping sessions to the form (PS-07)', async () => {
+      expect(
+        await editClassSeries(
+          'w1',
+          'c1',
+          'r1',
+          input,
+          reply(409, { code: 'trainer_conflict', conflicts: [conflict] }),
+        ),
+      ).toEqual({ ok: false, reason: 'trainerConflict', conflicts: [conflict] });
+    });
+
+    it('words a skipped start with the date, a length that is no step and a series without dates', async () => {
+      const skipped = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'localStartTime', code: 'time_does_not_exist', date: '2027-03-28' }],
+      });
+      expect(await editClassSeries('w1', 'c1', 'r1', input, skipped)).toEqual({
+        ok: false,
+        reason: 'fields',
+        start: 'timeDoesNotExist',
+        startDate: '2027-03-28',
+      });
+      const duration = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'durationMinutes', code: 'invalid_duration' }],
+      });
+      expect(await editClassSeries('w1', 'c1', 'r1', input, duration)).toEqual({
+        ok: false,
+        reason: 'fields',
+        end: 'invalidDuration',
+      });
+      const none = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'seriesId', code: 'no_upcoming_dates' }],
+      });
+      expect(await editClassSeries('w1', 'c1', 'r1', input, none)).toEqual({
+        ok: false,
+        reason: 'fields',
+        noUpcomingDates: true,
+      });
+    });
+
+    it.each([
+      [401, 'home'],
+      [403, 'forbidden'],
+      [500, 'generic'],
+    ])('answers %i as %s', async (status, reason) => {
+      expect(await editClassSeries('w1', 'c1', 'r1', input, reply(status))).toEqual({
+        ok: false,
+        reason,
+      });
     });
   });
 });

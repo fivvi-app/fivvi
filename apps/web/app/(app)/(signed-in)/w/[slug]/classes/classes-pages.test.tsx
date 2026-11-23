@@ -195,6 +195,8 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
         locale,
         <ClassesProvider workspaceId="w1" slug="johns-gym" teamMemberId="m1" trainerWord={word}>
           <ClassView
+            workspaceId="w1"
+            teamMemberId="m1"
             slug="johns-gym"
             groupClass={groupClass}
             canManage={canManage}
@@ -365,14 +367,16 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
       expect(html).not.toContain('<button');
     });
 
-    const classPage = (series: Schemas['ClassSeries'][]) =>
+    const classPage = (series: Schemas['ClassSeries'][], canManage = true) =>
       render(
         locale,
         <ClassesProvider workspaceId="w1" slug="johns-gym" teamMemberId="m1" trainerWord={word}>
           <ClassView
+            workspaceId="w1"
+            teamMemberId="m1"
             slug="johns-gym"
             groupClass={kracht}
-            canManage
+            canManage={canManage}
             series={series}
             trainerWord={word}
           />
@@ -423,6 +427,24 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
       expect(classPage([without])).toContain(
         escapeHtml(copy.classes.trainerNeeded.replace('{Word}', word.Word)),
       );
+    });
+
+    it('AC1 (#1523): each series has Wijzigen, named by its weekday and start', () => {
+      const html = classPage([weekly]);
+
+      expect(html).toContain(`>${escapeHtml(copy.classes.series.edit)}</button>`);
+      expect(html).toContain(
+        `aria-label="${escapeHtml(
+          copy.classes.series.editLabel.replace('{weekday}', weekday).replace('{start}', '18:00'),
+        )}"`,
+      );
+    });
+
+    it('AC2 (#1523): a person without class.manage gets no Wijzigen', () => {
+      const html = classPage([weekly], false);
+
+      expect(html).toContain(escapeHtml(copy.classes.series.title));
+      expect(html).not.toContain(escapeHtml(copy.classes.series.edit));
     });
 
     it('a class without a series has no Reeksen', () => {

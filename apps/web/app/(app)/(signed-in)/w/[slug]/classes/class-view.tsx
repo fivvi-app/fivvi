@@ -4,12 +4,14 @@ import { pickContentLanguage, type TrainerWordForms } from '@fivvi/i18n';
 import { Button } from '@fivvi/ui/components/button';
 import { Card, CardContent } from '@fivvi/ui/components/card';
 import { PageShell } from '@fivvi/ui/kit/page-shell';
+import { Toast } from '@fivvi/ui/kit/toast';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type { ClassSeries, GroupClass } from './classes-client';
 import { useClassDialogs } from './classes-provider';
+import { EditSeries } from './edit-series';
 import { referenceDay, seriesEnd } from './series';
 
 /**
@@ -18,12 +20,17 @@ import { referenceDay, seriesEnd } from './series';
  * description (in the viewer's language, else Dutch), and **Op een datum plannen**.
  */
 export function ClassView({
+  workspaceId,
+  teamMemberId,
   slug,
   groupClass,
   canManage,
   series = [],
   trainerWord,
 }: {
+  workspaceId: string;
+  /** The signed-in person's own team-member ID in the workspace (PS-07 words their own overlap). */
+  teamMemberId: string;
   slug: string;
   groupClass: GroupClass;
   /** The person has `class.manage`: they may put the class on a date. */
@@ -33,11 +40,20 @@ export function ClassView({
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('classes');
+  const edited = useTranslations('classes.edit');
   const locale = useLocale();
   const format = useFormatter();
   const dialogs = useClassDialogs();
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
+  // After *Reeks wijzigen*: how many dates kept their own changes. Held here, not in the dialog's
+  // button: a series split at its first started date comes back with a new ID and a new button.
+  const [saved, setSaved] = useState<{ keptDates: number } | null>(null);
+  useEffect(() => {
+    if (!saved) return;
+    const timer = setTimeout(() => setSaved(null), 8_000);
+    return () => clearTimeout(timer);
+  }, [saved]);
   const description = pickContentLanguage(
     locale,
     groupClass.descriptionNl,
@@ -93,36 +109,56 @@ export function ClassView({
             <h2 className="font-semibold">{t('series.title')}</h2>
             <ul className="grid gap-2">
               {series.map((item) => (
-                <li key={item.id} className="grid gap-0.5">
-                  <p>
-                    {t('series.line', {
-                      weekday: format.dateTime(referenceDay(item.weekday), {
-                        timeZone: 'UTC',
-                        weekday: 'long',
-                      }),
-                      start: item.localStartTime,
-                      end: seriesEnd(item.localStartTime, item.durationMinutes),
-                      trainer: item.trainer
-                        ? item.trainer.name
-                        : t('trainerNeeded', { ...trainerWord }),
-                      spots: t('spots', { count: item.capacity }),
-                    })}
-                  </p>
-                  <p className="text-muted-foreground">
-                    {t('series.from', {
-                      date: format.dateTime(new Date(`${item.startsOn}T12:00:00Z`), {
-                        timeZone: 'UTC',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      }),
-                    })}
-                  </p>
+                <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="grid gap-0.5">
+                    <p>
+                      {t('series.line', {
+                        weekday: format.dateTime(referenceDay(item.weekday), {
+                          timeZone: 'UTC',
+                          weekday: 'long',
+                        }),
+                        start: item.localStartTime,
+                        end: seriesEnd(item.localStartTime, item.durationMinutes),
+                        trainer: item.trainer
+                          ? item.trainer.name
+                          : t('trainerNeeded', { ...trainerWord }),
+                        spots: t('spots', { count: item.capacity }),
+                      })}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {t('series.from', {
+                        date: format.dateTime(new Date(`${item.startsOn}T12:00:00Z`), {
+                          timeZone: 'UTC',
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        }),
+                      })}
+                    </p>
+                  </div>
+                  {canManage ? (
+                    <EditSeries
+                      workspaceId={workspaceId}
+                      teamMemberId={teamMemberId}
+                      classId={groupClass.id}
+                      series={item}
+                      trainerWord={trainerWord}
+                      onSaved={(keptDates) => setSaved({ keptDates })}
+                    />
+                  ) : null}
                 </li>
               ))}
             </ul>
           </CardContent>
         </Card>
+      ) : null}
+      {saved ? (
+        <Toast>
+          <div>
+            <p>{t('series.dialog.saved')}</p>
+            {saved.keptDates > 0 ? <p>{edited('kept', { count: saved.keptDates })}</p> : null}
+          </div>
+        </Toast>
       ) : null}
     </PageShell>
   );

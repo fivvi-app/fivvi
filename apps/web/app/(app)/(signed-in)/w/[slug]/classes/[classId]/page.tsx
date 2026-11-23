@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function ClassPage({ params }: PageProps<'/w/[slug]/classes/[classId]'>) {
   const { slug: slugParam, classId } = await params;
-  const { id, name, slug, capabilities, trainerWord } = await workspaceOf(slugParam);
+  const { id, name, slug, capabilities, trainerWord, teamMemberId } = await workspaceOf(slugParam);
   if (!capabilities.includes('class.manage')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
   const { data: groupClass, response } = await apiClient.GET(
@@ -40,6 +40,8 @@ export default async function ClassPage({ params }: PageProps<'/w/[slug]/classes
   );
   return (
     <ClassView
+      workspaceId={id}
+      teamMemberId={teamMemberId}
       slug={slug}
       groupClass={groupClass}
       series={series ?? []}

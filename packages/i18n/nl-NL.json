@@ -223,6 +223,32 @@
       "whenSection": "Wanneer"
     },
     "series": {
+      "dialog": {
+        "cancel": "Annuleren",
+        "capacityLabel": "Capaciteit",
+        "changed": "Deze reeks is net gewijzigd. Je ziet nu de nieuwe gegevens.",
+        "description": "Geldt voor alle komende lessen van deze reeks. Lessen met eigen wijzigingen blijven zoals ze zijn.",
+        "endLabel": "Eind",
+        "errors": {
+          "capacityInvalid": "Vul een capaciteit in van {min} tot en met {max}.",
+          "endBeforeStart": "De eindtijd moet na de begintijd liggen.",
+          "invalidDuration": "Een les duurt {min} tot en met {max} minuten, in stappen van {step}.",
+          "invalidTime": "Dit is geen geldige tijd.",
+          "noPermission": "Je mag deze reeks niet meer wijzigen.",
+          "noUpcomingDates": "Deze reeks heeft geen komende lessen meer om te wijzigen.",
+          "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.",
+          "timeDoesNotExist": "Deze tijd bestaat niet op {date} door de zomertijd. Kies een andere tijd."
+        },
+        "loadFailed": "De gegevens konden niet worden geladen.",
+        "save": "Opslaan",
+        "saved": "Reeks bijgewerkt voor alle komende lessen.",
+        "section": "De les",
+        "startLabel": "Begin",
+        "title": "Reeks wijzigen",
+        "trainerLabel": "{Word}"
+      },
+      "edit": "Wijzigen",
+      "editLabel": "Wijzigen: reeks van {weekday} {start}",
       "from": "vanaf {date}",
       "line": "Elke {weekday} {start}–{end} · {trainer} · {spots}",
       "title": "Reeksen"
