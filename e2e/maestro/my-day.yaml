@@ -14,7 +14,7 @@
 # name, and Dag | Day the strip again. The ids both apps give it: calendar.title, calendar.weekLine, calendar.grid,
 # calendar.monthTitle, calendar.failed (never visible); the three views are found by their words in both languages.
 appId: ${APP_ID}
-name: AC1 AC4 Vandaag shows the day across workspaces and opens an item in its own workspace
+name: AC1 AC4 AC6 Vandaag shows the day across workspaces and opens an item in its own workspace, and Agenda opens
 env:
   # The Android application id and the iOS bundle id.
   APP_ID: app.fivvi.pro
