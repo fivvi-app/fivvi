@@ -196,7 +196,7 @@ describe('F023 EM-13 trainer change email', () => {
       { locale: 'nl-NL' },
     );
 
-    expect(email.subject).toBe('Andere trainer: je sessie op donderdag 24 september');
+    expect(email.subject).toBe('Andere instructeur: je sessie op donderdag 24 september');
     expect(email.text).toContain('De instructeur van je privésessie');
   });
 

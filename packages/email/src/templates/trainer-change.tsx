@@ -46,7 +46,7 @@ const wordOf = (ctx: EmailContext, { trainerWord }: TrainerChangeEmailProps) =>
  * nothing else about the team: no email address, no other participant. F024 sends the same email
  * for a substitution. The dates and times are in the workspace's time zone and the recipient's
  * language, decided by the sender (`confirmationLanguage` in `@fivvi/domain`). The role is the
- * workspace's word (F068), so the body says "De instructeur van …" for a workspace that uses it; the subject says *trainer*, as the spec words it (like EM-11 and EM-04).
+ * workspace's word (F068), so the subject says "Andere instructeur" for a workspace that uses it (F068: no message says *trainer* literally).
  */
 export const trainerChangeEmail: EmailTemplate<TrainerChangeEmailProps> = {
   id: 'trainer-change',
@@ -59,7 +59,7 @@ export const trainerChangeEmail: EmailTemplate<TrainerChangeEmailProps> = {
         : props.dates.length > 1
           ? 'email.trainerChange.classDatesSubject'
           : 'email.trainerChange.classSubject';
-    return ctx.t(key, { class: classOf(ctx, props), date });
+    return ctx.t(key, { class: classOf(ctx, props), date, ...wordOf(ctx, props) });
   },
   preview: (ctx, props) => {
     const first = props.dates[0];
