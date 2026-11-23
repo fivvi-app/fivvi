@@ -162,11 +162,17 @@ export async function createClassSeries(
   return stored;
 }
 
-/** Changes the fields given of a series and raises its version; `undefined` when the workspace has no such series. */
+/**
+ * Changes the fields given of a series and raises its version; `undefined` when the workspace has
+ * no such series. With `expectedVersion` the series is written only if it still is that version
+ * (an edit of the whole series that lost a race to another save): `undefined` then too, and the
+ * caller that found the series first knows it is the version.
+ */
 export async function updateClassSeries(
   scope: WorkspaceScope,
   seriesId: string,
   changes: ClassSeriesChanges,
+  expectedVersion?: number,
 ): Promise<ClassSeriesView | undefined> {
   const defined = Object.fromEntries(
     Object.entries(changes).filter(([, value]) => value !== undefined),
@@ -174,7 +180,13 @@ export async function updateClassSeries(
   const updated = await executorOf(scope)
     .update(classSeries)
     .set({ ...defined, version: sql`${classSeries.version} + 1` })
-    .where(and(eq(classSeries.organizationId, scope.workspaceId), eq(classSeries.id, seriesId)))
+    .where(
+      and(
+        eq(classSeries.organizationId, scope.workspaceId),
+        eq(classSeries.id, seriesId),
+        ...(expectedVersion === undefined ? [] : [eq(classSeries.version, expectedVersion)]),
+      ),
+    )
     .returning({ id: classSeries.id });
   if (updated.length === 0) return undefined;
   return findClassSeries(scope, seriesId);

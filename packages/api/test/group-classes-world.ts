@@ -221,3 +221,21 @@ export const listSeries = (
   classId: string,
   who?: { id: string },
 ) => call(server, 'GET', `${classes(workspaceId)}/${classId}/series`, who);
+
+export const updateSeries = (
+  server: GroupClassServer,
+  workspaceId: string,
+  classId: string,
+  seriesId: string,
+  who: { id: string } | undefined,
+  body: unknown,
+  headers?: Record<string, string>,
+) =>
+  call(
+    server,
+    'PATCH',
+    `${classes(workspaceId)}/${classId}/series/${seriesId}`,
+    who,
+    body,
+    headers,
+  );

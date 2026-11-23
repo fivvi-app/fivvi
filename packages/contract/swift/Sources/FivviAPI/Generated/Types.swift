@@ -333,6 +333,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/group-classes/{classId}/series`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/series/get(listGroupClassSeries)`.
     func listGroupClassSeries(_ input: Operations.ListGroupClassSeries.Input) async throws -> Operations.ListGroupClassSeries.Output
+    /// Change a whole series of a class
+    ///
+    /// Changes the start, length, capacity and/or trainer of a weekly series (the Owner only), from the version the caller read (`409` with the series as it is now when it changed since). The change applies from the series’ first date that has not started, as “this and following” (CO-04): started dates and cancelled ones stay as they are, and dates that were changed on their own keep their changes (`keptDates` counts them). When earlier dates have started the series is split there, so the answer is the series that now runs from that date (it has a new ID); the earlier one ends the week before. Times are wall-clock in the workspace’s time zone: a start the clocks skip on one of the dates it would reach answers `400` on `localStartTime` (`time_does_not_exist`) with that `date`, a length that is no step `400` on `durationMinutes` (`invalid_duration`), and a series with no date left to change `400` on `seriesId` (`no_upcoming_dates`); nothing is changed then. A trainer who already has a scheduled session of this workspace at the new time answers `409` with the code `trainer_conflict` unless `allowConflicts` is `true` (PS-07); the version is checked first. A series or class that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}/patch(updateGroupClassSeries)`.
+    func updateGroupClassSeries(_ input: Operations.UpdateGroupClassSeries.Input) async throws -> Operations.UpdateGroupClassSeries.Output
     /// The join link of a workspace
     ///
     /// The workspace’s join link in full and when it was last renewed. The Owner and the Trainers may read it, to send it to a new client; a client of the workspace gets `403`, a person with no place in it `404`.
@@ -1169,6 +1176,23 @@ extension APIProtocol {
         try await listGroupClassSeries(Operations.ListGroupClassSeries.Input(
             path: path,
             headers: headers
+        ))
+    }
+    /// Change a whole series of a class
+    ///
+    /// Changes the start, length, capacity and/or trainer of a weekly series (the Owner only), from the version the caller read (`409` with the series as it is now when it changed since). The change applies from the series’ first date that has not started, as “this and following” (CO-04): started dates and cancelled ones stay as they are, and dates that were changed on their own keep their changes (`keptDates` counts them). When earlier dates have started the series is split there, so the answer is the series that now runs from that date (it has a new ID); the earlier one ends the week before. Times are wall-clock in the workspace’s time zone: a start the clocks skip on one of the dates it would reach answers `400` on `localStartTime` (`time_does_not_exist`) with that `date`, a length that is no step `400` on `durationMinutes` (`invalid_duration`), and a series with no date left to change `400` on `seriesId` (`no_upcoming_dates`); nothing is changed then. A trainer who already has a scheduled session of this workspace at the new time answers `409` with the code `trainer_conflict` unless `allowConflicts` is `true` (PS-07); the version is checked first. A series or class that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}/patch(updateGroupClassSeries)`.
+    public func updateGroupClassSeries(
+        path: Operations.UpdateGroupClassSeries.Input.Path,
+        headers: Operations.UpdateGroupClassSeries.Input.Headers = .init(),
+        body: Operations.UpdateGroupClassSeries.Input.Body
+    ) async throws -> Operations.UpdateGroupClassSeries.Output {
+        try await updateGroupClassSeries(Operations.UpdateGroupClassSeries.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
     /// The join link of a workspace

@@ -2701,6 +2701,109 @@
         ],
         "description": "A weekly series of a class: “Every Tuesday 18:00–19:00 · Sarah · 8 spots, from 6 October”. Its dates are class dates (`Session`) with a `series`."
       },
+      "UpdatedClassSeries": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ClassSeries"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "keptDates": {
+                "type": "integer",
+                "description": "How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft eigen wijzigingen en blijft zoals hij is”)."
+              }
+            },
+            "required": [
+              "keptDates"
+            ]
+          }
+        ],
+        "description": "The series as it now runs, and how many dates kept their own changes."
+      },
+      "UpdateClassSeriesRefusal": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "series_changed",
+              "trainer_conflict"
+            ],
+            "description": "`series_changed`: the series changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07)."
+          },
+          "series": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClassSeries"
+              },
+              {
+                "description": "The series as it is now, for `series_changed`."
+              }
+            ]
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainerConflictItem"
+            },
+            "description": "The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`."
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "Why the series edit was refused; nothing was written. The version refusal (`series_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text."
+      },
+      "UpdateClassSeriesRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The version of the series the change was made from (`ClassSeries.version`). If the series changed since, the answer is `409` with the series as it is now and nothing is written."
+          },
+          "localStartTime": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "The new start of every date, `HH:mm` on the wall clock of the workspace’s time zone (it stays so across daylight saving time). Leave it out to keep it."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "description": "The new length of every date: 15 to 240 minutes in steps of 5, else `400` on `durationMinutes` (`invalid_duration`). Leave it out to keep it."
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "The new capacity of every date, 1 to 100. Leave it out to keep it."
+          },
+          "trainerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The new trainer of every date, a team-member ID from `GET …/trainers`; `null` makes the dates *Trainer nodig*. Leave it out to keep the trainer. A team member who is no trainer of the workspace answers `404`."
+          },
+          "allowConflicts": {
+            "type": "boolean",
+            "description": "Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "description": "Changes a whole weekly series (CO-04): the start, length, capacity and trainer of its dates, each only when given."
+      },
       "UpdatedClassDate": {
         "allOf": [
           {
@@ -8878,6 +8981,150 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}": {
+      "patch": {
+        "operationId": "updateGroupClassSeries",
+        "tags": [
+          "group-classes"
+        ],
+        "summary": "Change a whole series of a class",
+        "description": "Changes the start, length, capacity and/or trainer of a weekly series (the Owner only), from the version the caller read (`409` with the series as it is now when it changed since). The change applies from the series’ first date that has not started, as “this and following” (CO-04): started dates and cancelled ones stay as they are, and dates that were changed on their own keep their changes (`keptDates` counts them). When earlier dates have started the series is split there, so the answer is the series that now runs from that date (it has a new ID); the earlier one ends the week before. Times are wall-clock in the workspace’s time zone: a start the clocks skip on one of the dates it would reach answers `400` on `localStartTime` (`time_does_not_exist`) with that `date`, a length that is no step `400` on `durationMinutes` (`invalid_duration`), and a series with no date left to change `400` on `seriesId` (`no_upcoming_dates`); nothing is changed then. A trainer who already has a scheduled session of this workspace at the new time answers `409` with the code `trainer_conflict` unless `allowConflicts` is `true` (PS-07); the version is checked first. A series or class that is not in the workspace answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "class.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The class ID."
+            },
+            "required": true,
+            "description": "The class ID.",
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The series ID."
+            },
+            "required": true,
+            "description": "The series ID.",
+            "name": "seriesId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClassSeriesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The series as it now runs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedClassSeries"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The series changed since the version in the request (`series_changed`), or the trainer already has something at the new time (`trainer_conflict`); nothing was written.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateClassSeriesRefusal"
                 }
               }
             }

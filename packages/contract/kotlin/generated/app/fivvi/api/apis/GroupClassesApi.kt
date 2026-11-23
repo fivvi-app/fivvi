@@ -17,10 +17,13 @@ import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.ScheduleGroupClassDateRequest
 import app.fivvi.api.models.ScheduledClassDate
 import app.fivvi.api.models.TrainerConflict
+import app.fivvi.api.models.UpdateClassSeriesRefusal
+import app.fivvi.api.models.UpdateClassSeriesRequest
 import app.fivvi.api.models.UpdateGroupClassDateRefusal
 import app.fivvi.api.models.UpdateGroupClassDateRequest
 import app.fivvi.api.models.UpdateGroupClassRequest
 import app.fivvi.api.models.UpdatedClassDate
+import app.fivvi.api.models.UpdatedClassSeries
 import app.fivvi.api.models.ValidationError
 
 interface GroupClassesApi {
@@ -161,5 +164,27 @@ interface GroupClassesApi {
      */
     @PATCH("v1/workspaces/{workspaceId}/sessions/{sessionId}")
     suspend fun updateGroupClassDate(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID, @Body updateGroupClassDateRequest: UpdateGroupClassDateRequest): Response<UpdatedClassDate>
+
+    /**
+     * PATCH v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}
+     * Change a whole series of a class
+     * Changes the start, length, capacity and/or trainer of a weekly series (the Owner only), from the version the caller read (&#x60;409&#x60; with the series as it is now when it changed since). The change applies from the series’ first date that has not started, as “this and following” (CO-04): started dates and cancelled ones stay as they are, and dates that were changed on their own keep their changes (&#x60;keptDates&#x60; counts them). When earlier dates have started the series is split there, so the answer is the series that now runs from that date (it has a new ID); the earlier one ends the week before. Times are wall-clock in the workspace’s time zone: a start the clocks skip on one of the dates it would reach answers &#x60;400&#x60; on &#x60;localStartTime&#x60; (&#x60;time_does_not_exist&#x60;) with that &#x60;date&#x60;, a length that is no step &#x60;400&#x60; on &#x60;durationMinutes&#x60; (&#x60;invalid_duration&#x60;), and a series with no date left to change &#x60;400&#x60; on &#x60;seriesId&#x60; (&#x60;no_upcoming_dates&#x60;); nothing is changed then. A trainer who already has a scheduled session of this workspace at the new time answers &#x60;409&#x60; with the code &#x60;trainer_conflict&#x60; unless &#x60;allowConflicts&#x60; is &#x60;true&#x60; (PS-07); the version is checked first. A series or class that is not in the workspace answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The series as it now runs.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 409: The series changed since the version in the request (`series_changed`), or the trainer already has something at the new time (`trainer_conflict`); nothing was written.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param classId The class ID.
+     * @param seriesId The series ID.
+     * @param updateClassSeriesRequest 
+     * @return [UpdatedClassSeries]
+     */
+    @PATCH("v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}")
+    suspend fun updateGroupClassSeries(@Path("workspaceId") workspaceId: java.util.UUID, @Path("classId") classId: java.util.UUID, @Path("seriesId") seriesId: java.util.UUID, @Body updateClassSeriesRequest: UpdateClassSeriesRequest): Response<UpdatedClassSeries>
 
 }

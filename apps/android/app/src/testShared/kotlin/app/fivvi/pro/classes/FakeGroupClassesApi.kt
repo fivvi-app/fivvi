@@ -15,9 +15,11 @@ import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionSeries
 import app.fivvi.api.models.SessionTrainer
 import app.fivvi.api.models.Trainer
+import app.fivvi.api.models.UpdateClassSeriesRequest
 import app.fivvi.api.models.UpdateGroupClassDateRequest
 import app.fivvi.api.models.UpdateGroupClassRequest
 import app.fivvi.api.models.UpdatedClassDate
+import app.fivvi.api.models.UpdatedClassSeries
 import app.fivvi.pro.sessions.FakeSessionsApi
 import app.fivvi.pro.sessions.gymLocation
 import java.time.LocalDate
@@ -220,4 +222,11 @@ class FakeGroupClassesApi(private val sessions: FakeSessionsApi) : GroupClassesA
         sessionId: UUID,
         updateGroupClassDateRequest: UpdateGroupClassDateRequest,
     ): Response<UpdatedClassDate> = error("FakeGroupClassesApi.updateGroupClassDate is not expected in this test")
+
+    override suspend fun updateGroupClassSeries(
+        workspaceId: UUID,
+        classId: UUID,
+        seriesId: UUID,
+        updateClassSeriesRequest: UpdateClassSeriesRequest,
+    ): Response<UpdatedClassSeries> = error("FakeGroupClassesApi.updateGroupClassSeries is not expected in this test")
 }
