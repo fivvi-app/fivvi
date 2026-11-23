@@ -3,6 +3,11 @@ import Foundation
 /// *Dag* on Agenda (TD-04, `DECISIONS.md` §3): the selected day as a timeline with an hour a row, from the first to the
 /// last hour of the day, each session a block, sessions at the same time side by side and the now-line on today. Only where
 /// a block sits is decided here (minutes from the first row, its column); the sessions are the API's.
+///
+/// A block is drawn at least `BlockMetrics.minimumHeight` tall, so a title still fits, and that is what decides the
+/// columns: two blocks that are drawn over each other sit side by side, also when the sessions themselves don't overlap (a
+/// session of 15 minutes is drawn as 30). Splitting by the sessions' own times drew such a block under the next one
+/// (#1556); the Android twin places by the drawn blocks too.
 struct AgendaTimeline: Equatable {
     /// A session to place: its row, and the instants that say where it sits.
     struct Entry {
@@ -28,13 +33,18 @@ struct AgendaTimeline: Equatable {
     let blocks: [Block]
     /// Where the now-line sits, in minutes from the first row: on today only.
     let nowMinutes: Int?
+    /// The minutes a block is drawn past the last row, so the rows can leave room for it.
+    var overflowMinutes: Int = 0
+    /// One hour of the day is this tall, in points.
+    static let hourHeight: CGFloat = 56
     /// The minutes the rows span.
     var totalMinutes: Int { (hours.count - 1) * 60 }
 
     /// How tall a block looks and how much of the day it may be touched on. The look follows the minute scale (with a
     /// floor so a title still fits); a block under the 44 pt of a touch (HIG, `apps/ios/README.md`) gets its hit area
-    /// grown above and below it, so the look and the scale stay. The hit area never goes past half of the room to the
-    /// block next to it, so it never covers another block.
+    /// grown above and below it, where there is room, so the look and the scale stay. The hit area never goes past half
+    /// of the room to the block over the same part of the width, so it never covers another block; a block with a
+    /// neighbour close by may keep less than 44 pt.
     struct BlockMetrics: Equatable {
         static let minimumHeight: CGFloat = 28
         static let touchMinimum: CGFloat = 44
@@ -50,7 +60,7 @@ struct AgendaTimeline: Equatable {
 
         /// `roomAbove` and `roomBelow` are the free points to the nearest block beside it (nil for none).
         init(minutes: Int, hourHeight: CGFloat, roomAbove: CGFloat? = nil, roomBelow: CGFloat? = nil) {
-            height = max(Self.minimumHeight, CGFloat(minutes) / 60 * hourHeight - Self.gap)
+            height = Self.height(minutes: minutes, hourHeight: hourHeight)
             let wanted = max(0, (Self.touchMinimum - height) / 2)
             touchInset = wanted
             touchAbove = roomAbove.map { min(wanted, max(0, $0) / 2) } ?? wanted
@@ -58,13 +68,23 @@ struct AgendaTimeline: Equatable {
         }
 
         var touchHeight: CGFloat { height + touchAbove + touchBelow }
+
+        /// How tall a block of `minutes` is drawn.
+        static func height(minutes: Int, hourHeight: CGFloat) -> CGFloat {
+            max(minimumHeight, CGFloat(minutes) / 60 * hourHeight - gap)
+        }
+
+        /// The minutes a block of `minutes` is drawn over, rounded up to a whole minute.
+        static func drawnMinutes(_ minutes: Int, hourHeight: CGFloat) -> Int {
+            Int((height(minutes: minutes, hourHeight: hourHeight) / hourHeight * 60).rounded(.up))
+        }
     }
 
     /// The look and the hit area of `block`, with the room to the blocks over the same part of the width.
     func metrics(for block: Block, hourHeight: CGFloat) -> BlockMetrics {
         func top(_ block: Block) -> CGFloat { CGFloat(block.top) / 60 * hourHeight }
         func bottom(_ block: Block) -> CGFloat {
-            top(block) + BlockMetrics(minutes: block.length, hourHeight: hourHeight).height
+            top(block) + BlockMetrics.height(minutes: block.length, hourHeight: hourHeight)
         }
         let beside = blocks.filter { $0.id != block.id && $0.sharesWidth(with: block) }
         let roomAbove = beside.filter { $0.top <= block.top }.map { top(block) - bottom($0) }.min()
@@ -75,7 +95,7 @@ struct AgendaTimeline: Equatable {
 
 extension AgendaTimeline.Block {
     /// Whether the two take any of the same width of the day (a column of `columns` is a `1/columns` slice of it).
-    fileprivate func sharesWidth(with other: AgendaTimeline.Block) -> Bool {
+    func sharesWidth(with other: AgendaTimeline.Block) -> Bool {
         column * other.columns < (other.column + 1) * columns && other.column * columns < (column + 1) * other.columns
     }
 }
@@ -85,24 +105,31 @@ extension AgendaTimeline {
         let entry: Entry
         let start: Int
         let end: Int
+        /// Where the block drawn for it ends: its start and its drawn minutes (never less than the floor of a block).
+        let drawnEnd: Int
     }
 
     /// The timeline of `day`, or nil for a day without sessions. On today the rows reach the hour of now, so the line is
     /// on them.
-    static func make(entries: [Entry], day: String, now: Date, calendar: AgendaCalendar) -> AgendaTimeline? {
+    static func make(
+        entries: [Entry], day: String, now: Date, calendar: AgendaCalendar
+    ) -> AgendaTimeline? {
         guard !entries.isEmpty else { return nil }
         // A session is placed by its start and its real length, so a day with the clocks changing keeps its durations.
         let placed = entries.map { entry -> Placed in
             let start = calendar.minuteOfDay(entry.startsAt)
             let length = max(1, Int((entry.endsAt.timeIntervalSince(entry.startsAt) / 60).rounded()))
-            return Placed(entry: entry, start: start, end: min(24 * 60, start + length))
+            let end = min(24 * 60, start + length)
+            let drawn = BlockMetrics.drawnMinutes(end - start, hourHeight: Self.hourHeight)
+            return Placed(entry: entry, start: start, end: end, drawnEnd: start + drawn)
         }
         .sorted { ($0.start, $0.end) < ($1.start, $1.end) }
 
         let isToday = calendar.day(of: now) == day
         let nowMinute = calendar.minuteOfDay(now)
         var first = (placed.map(\.start).min() ?? 0) / 60
-        var last = ((placed.map(\.end).max() ?? 0) + 59) / 60
+        let drawnEnd = placed.map(\.drawnEnd).max() ?? 0
+        var last = min(24, (drawnEnd + 59) / 60)
         if isToday {
             first = min(first, nowMinute / 60)
             last = max(last, min(24, nowMinute / 60 + 1))
@@ -111,12 +138,13 @@ extension AgendaTimeline {
         return AgendaTimeline(
             hours: (first...last).map { String(format: "%02d:00", $0 % 24) },
             blocks: columns(placed, origin: origin),
-            nowMinutes: isToday ? nowMinute - origin : nil
+            nowMinutes: isToday ? nowMinute - origin : nil,
+            overflowMinutes: max(0, drawnEnd - last * 60)
         )
     }
 
-    /// Gives every session a column: sessions that overlap, one after the other (not only two at the same moment), share
-    /// the width of the day among as many columns as the most of them at once need.
+    /// Gives every session a column: sessions whose drawn blocks overlap, one after the other (not only two at the same
+    /// moment), share the width of the day among as many columns as the most of them at once need.
     private static func columns(_ placed: [Placed], origin: Int) -> [Block] {
         var blocks: [Block] = []
         var group: [(placed: Placed, column: Int)] = []
@@ -137,9 +165,13 @@ extension AgendaTimeline {
         for session in placed {
             if session.start >= groupEnd { flush() }
             let column = columnEnds.firstIndex { $0 <= session.start } ?? columnEnds.count
-            if column == columnEnds.count { columnEnds.append(session.end) } else { columnEnds[column] = session.end }
+            if column == columnEnds.count {
+                columnEnds.append(session.drawnEnd)
+            } else {
+                columnEnds[column] = session.drawnEnd
+            }
             group.append((session, column))
-            groupEnd = max(groupEnd, session.end)
+            groupEnd = max(groupEnd, session.drawnEnd)
         }
         flush()
         return blocks

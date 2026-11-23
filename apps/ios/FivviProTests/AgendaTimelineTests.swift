@@ -174,4 +174,85 @@ final class AgendaTimelineTests: XCTestCase {
         let first = tight.metrics(for: tight.blocks[0], hourHeight: 56)
         XCTAssertEqual(first.touchBelow, (56 * 40 / 60 - 28) / 2, accuracy: 0.01, "half of the 9.3 pt between them")
     }
+
+    private func clock(_ minutes: Int) -> String { String(format: "%02d:%02d", minutes / 60, minutes % 60) }
+
+    /// #1556: a block is drawn at least 28 pt tall, so a session under about half an hour followed at once by another was
+    /// drawn under it, because the columns followed the sessions' own times. Here they follow what is drawn.
+    func test_F013_design_aShortSessionAndTheNextOneThatOverlapsItsDrawnBlockSitSideBySide() throws {
+        let day = [visit("short", "11:00", "11:15"), visit("next", "11:20", "12:20")]
+        let byID = blocks(try XCTUnwrap(timeline(day, now: elsewhere)))
+
+        XCTAssertEqual(byID["short"]?.length, 15, "the real sessions do not overlap, their drawn blocks do")
+        XCTAssertEqual([byID["short"]?.column, byID["next"]?.column], [0, 1])
+        XCTAssertEqual([byID["short"]?.columns, byID["next"]?.columns], [2, 2])
+    }
+
+    /// AC2 of #1556: a 15-minute session followed at once by another; neither visible block covers the other.
+    func test_F013_design_aShortSessionFollowedAtOnceByAnotherNeverHasItsBlockCoveredByTheNextOne() throws {
+        let day = [visit("short", "11:00", "11:15"), visit("next", "11:15", "12:15")]
+        let timeline = try XCTUnwrap(timeline(day, now: elsewhere))
+        let byID = blocks(timeline)
+        let short = try XCTUnwrap(byID["short"])
+        let next = try XCTUnwrap(byID["next"])
+
+        XCTAssertNotEqual(short.column, next.column, "the block of the short one runs under the start of the next")
+        XCTAssertEqual([short.columns, next.columns], [2, 2])
+        for (block, other) in [(short, next), (next, short)] {
+            let mine = extent(timeline, block)
+            let theirs = extent(timeline, other)
+            if block.sharesWidth(with: other) {
+                XCTAssertLessThanOrEqual(
+                    min(mine.visible.upperBound, theirs.visible.upperBound)
+                        - max(mine.visible.lowerBound, theirs.visible.lowerBound),
+                    0, "\(block.row.id) covers \(other.row.id)"
+                )
+            }
+        }
+    }
+
+    func test_F013_design_aShortSessionFollowedByAnotherAfterItsDrawnBlockKeepsTheWidth() throws {
+        let day = [visit("short", "11:00", "11:15"), visit("next", "11:30", "12:30")]
+        let timeline = try XCTUnwrap(timeline(day, now: elsewhere))
+
+        XCTAssertEqual(timeline.blocks.map(\.column), [0, 0], "the 30-minute block of the short one has ended")
+        XCTAssertEqual(timeline.blocks.map(\.columns), [1, 1])
+    }
+
+    /// The invariant behind both: whatever the sessions are, no two blocks that share any width are drawn over each other.
+    func test_F013_design_noTwoDrawnBlocksOfTheDayCoverEachOther() throws {
+        for gap in stride(from: 0, through: 90, by: 5) {
+            for firstLength in [5, 15, 25, 30, 45, 60] {
+                for secondLength in [5, 15, 30, 60] {
+                    let start = 9 * 60
+                    let day = [
+                        visit("a", clock(start), clock(start + firstLength)),
+                        visit("b", clock(start + gap), clock(start + gap + secondLength)),
+                        visit("c", clock(start + gap / 2), clock(start + gap / 2 + 20))
+                    ]
+                    let timeline = try XCTUnwrap(timeline(day, now: elsewhere))
+                    for (index, one) in timeline.blocks.enumerated() {
+                        for other in timeline.blocks[(index + 1)...] where one.sharesWidth(with: other) {
+                            let mine = extent(timeline, one).visible
+                            let theirs = extent(timeline, other).visible
+                            XCTAssertTrue(
+                                mine.upperBound <= theirs.lowerBound + 0.001
+                                    || theirs.upperBound <= mine.lowerBound + 0.001,
+                                "gap \(gap), \(firstLength)/\(secondLength): \(one.row.id), \(other.row.id) overlap"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    func test_F013_design_theRowsReachTheEndOfADrawnBlockThatRunsPastTheLastHour() throws {
+        // A 9-minute session at 23:50 is drawn 30 minutes tall: the rows end at midnight and the block is not cut off.
+        let timeline = try XCTUnwrap(timeline([visit("late", "23:50", "23:59")], now: elsewhere))
+
+        XCTAssertEqual(timeline.hours.last, "00:00")
+        XCTAssertEqual(timeline.blocks.count, 1)
+        XCTAssertGreaterThan(timeline.overflowMinutes, 0)
+    }
 }

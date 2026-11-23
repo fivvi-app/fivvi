@@ -232,8 +232,8 @@ class AgendaTimelineTest {
         assertEquals("half of the room between them", (64f * 40 / 60 - 32f) / 2, first.touchBelow, 0.01f)
     }
 
-    // Spec #457 / #1556: iOS draws a block at least as tall as its minimum but splits columns by the session's own time, so a
-    // session under half an hour followed at once by another was drawn under it. Here the columns follow what is drawn.
+    // Spec #457 / #1556: a block is drawn at least as tall as its minimum, so a session under half an hour followed at once by
+    // another is drawn over it. Both twins (Android and iOS) place blocks by their drawn height, so the columns follow what is drawn.
     @Test
     fun test_F013_design_aShortSessionAndTheNextOneThatOverlapsItsDrawnBlockSitSideBySide() {
         val day = listOf(visit("short", "11:00", "11:15"), visit("next", "11:20", "12:20"))
