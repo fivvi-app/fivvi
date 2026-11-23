@@ -389,11 +389,11 @@ export async function assignSessionTrainer(
  * The clients who hold a place (`booked`) in each of the sessions, in the order the places were
  * made: who the trainer-change email goes to (F023). A session of another workspace has none (RLS).
  */
-export async function listBookedClients(
+export function listBookedClients(
   scope: WorkspaceScope,
   sessionIds: readonly string[],
 ): Promise<{ sessionId: string; clientId: string }[]> {
-  if (sessionIds.length === 0) return [];
+  if (sessionIds.length === 0) return Promise.resolve([]);
   return executorOf(scope)
     .select({ sessionId: sessionParticipants.sessionId, clientId: sessionParticipants.clientId })
     .from(sessionParticipants)

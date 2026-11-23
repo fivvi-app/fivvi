@@ -1,7 +1,7 @@
 import type { PrivateSessionMailAddress } from './private-session-mail.ts';
 import type { SendEmail } from './send.ts';
-import type { TrainerChangeMail } from './trainer-change-mail.ts';
 import { trainerChangeEmail } from './templates/trainer-change.tsx';
+import type { TrainerChangeMail } from './trainer-change-mail.ts';
 
 export interface TrainerChangeSenderOptions {
   sendEmail: SendEmail;
