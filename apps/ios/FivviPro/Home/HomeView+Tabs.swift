@@ -70,6 +70,8 @@ extension HomeView {
                             .accessibilityIdentifier("calendar.today")
                     }
                 }
+                // **+** in the bar as in the prototype (Agenda's "Nieuw"), off without a connection as on Vandaag.
+                .toolbar { newMenu(from: .calendar, enabled: !agenda.isOffline) }
                 .navigationDestination(for: PersonalRoute.self) { route in
                     PersonalDestination(route: route, api: api, language: language, account: account)
                 }

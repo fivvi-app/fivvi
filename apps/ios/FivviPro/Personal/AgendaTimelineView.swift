@@ -56,6 +56,7 @@ struct DayTimelineView: View {
     private func blockView(_ block: AgendaTimeline.Block, width: CGFloat) -> some View {
         let columnWidth = width / CGFloat(block.columns)
         let tone = tone(block.row)
+        let metrics = AgendaTimeline.BlockMetrics(minutes: block.length, hourHeight: hourHeight)
         return Button { onOpen(block.row) } label: {
             HStack(spacing: 0) {
                 RoundedRectangle(cornerRadius: 2, style: .continuous).fill(tone.solid).frame(width: 3)
@@ -73,16 +74,17 @@ struct DayTimelineView: View {
                 .padding(.horizontal, Tokens.Spacing.space2)
                 Spacer(minLength: 0)
             }
-            .frame(
-                width: columnWidth - 3, height: max(28, CGFloat(block.length) / 60 * hourHeight - 3),
-                alignment: .leading
-            )
+            .frame(width: columnWidth - 3, height: metrics.height, alignment: .leading)
             .background(tone.fill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .opacity(block.row.isPast || block.row.isCancelled ? 0.55 : 1)
+            // A block under 44 pt is touched on 44 pt: the room is above and below, the look stays on the scale.
+            .padding(.vertical, metrics.touchInset)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .offset(x: labelWidth + columnWidth * CGFloat(block.column), y: offset(block.top))
+        .offset(
+            x: labelWidth + columnWidth * CGFloat(block.column), y: offset(block.top) - metrics.touchInset
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(block.row.spokenLabel)
         .accessibilityAddTraits(.isButton)

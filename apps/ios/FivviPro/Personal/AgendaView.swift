@@ -4,10 +4,10 @@ import FivviStrings
 import FivviUI
 
 /// TD-04 *Agenda* (F013, `DECISIONS.md` §3): the large title, *Dag | Week | Maand* under it and *Vandaag* in the bar. *Dag*
-/// and *Week* share the strip of the week, a dot under each day for each session in its type's colour, with ‹ › and a swipe
-/// for the other weeks; *Dag* is the selected day as a timeline, *Week* the seven days as lists. *Maand* is the month grid
-/// with the selected day's list under it. The days on screen are read in one request, by pull and on the foreground too,
-/// and a week the clocks change in says so.
+/// and *Week* share the strip of the week, a dot under each day for each session in its type's colour, with ‹ › by the
+/// week line and a swipe for the other weeks; *Dag* is the selected day as a timeline, *Week* the seven days as lists.
+/// *Maand* is the month grid with the selected day's list under it. The days on screen are read in one request, by pull
+/// and on the foreground too, and a week the clocks change in says so. **+** (*Nieuw*) is in the bar.
 struct AgendaView: View {
     let model: AgendaModel
     let onOpen: (PersonalRow) -> Void
@@ -77,18 +77,8 @@ struct AgendaView: View {
 
     // MARK: The week
 
-    /// The strip of the week, the line under it and what the clocks do in it.
-    private var weekHeader: some View {
-        VStack(spacing: Tokens.Spacing.space1) {
-            WeekStripView(model: model)
-            Text(model.weekLine)
-                .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
-                .foregroundStyle(Tokens.Colors.textSecondary)
-                .padding(.vertical, Tokens.Spacing.space2)
-                .accessibilityIdentifier("calendar.weekLine")
-        }
-        .frame(maxWidth: .infinity)
-    }
+    /// The strip of the week with the line under it (‹ Week 39 · … ›).
+    private var weekHeader: some View { WeekStripView(model: model) }
 
     @ViewBuilder private var loaded: some View {
         switch model.mode {

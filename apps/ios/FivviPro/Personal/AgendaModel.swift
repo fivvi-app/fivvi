@@ -118,8 +118,11 @@ final class AgendaModel {
 
     func select(_ day: String) { selectedDay = day }
 
-    /// *Morgen* on Vandaag opens Agenda on that day.
-    func open(day: String) { selectedDay = day }
+    /// *Morgen* on Vandaag opens Agenda on that day, in the week view (the prototype's `S.aview = "week"`).
+    func open(day: String) {
+        mode = .week
+        selectedDay = day
+    }
 
     /// *Vandaag* in the bar.
     func goToToday() { selectedDay = calendar.day(of: clock()) }

@@ -113,4 +113,21 @@ final class AgendaTimelineTests: XCTestCase {
         XCTAssertEqual(timeline.hours.first, "18:00")
         XCTAssertEqual(timeline.blocks[0].length, 60)
     }
+
+    /// A block of 30 minutes is 28 pt tall, which is under the 44 pt a touch needs: its hit area grows, its look does not.
+    func test_F013_design_aShortBlockHasAHitAreaOfAtLeast44Points() {
+        let short = AgendaTimeline.BlockMetrics(minutes: 30, hourHeight: 56)
+        XCTAssertEqual(short.height, 28, "the look keeps the minute scale, with its floor")
+        XCTAssertGreaterThanOrEqual(short.touchHeight, 44)
+        XCTAssertEqual(short.touchHeight - short.height, 2 * short.touchInset, "the room is shared above and below")
+
+        let tiny = AgendaTimeline.BlockMetrics(minutes: 5, hourHeight: 56)
+        XCTAssertEqual(tiny.height, 28)
+        XCTAssertGreaterThanOrEqual(tiny.touchHeight, 44)
+
+        let hour = AgendaTimeline.BlockMetrics(minutes: 60, hourHeight: 56)
+        XCTAssertEqual(hour.height, 53, "an hour is the scale less the gap")
+        XCTAssertEqual(hour.touchHeight, 53, "a block that is tall enough grows nothing")
+        XCTAssertEqual(hour.touchInset, 0)
+    }
 }

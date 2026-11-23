@@ -30,6 +30,27 @@ struct AgendaTimeline: Equatable {
     let nowMinutes: Int?
     /// The minutes the rows span.
     var totalMinutes: Int { (hours.count - 1) * 60 }
+
+    /// How tall a block looks and how much of the day it may be touched on. The look follows the minute scale (with a
+    /// floor so a title still fits); a block under the 44 pt of a touch (`size.touch-min`) gets its hit area grown
+    /// above and below it, so the look and the scale stay.
+    struct BlockMetrics: Equatable {
+        static let minimumHeight: CGFloat = 28
+        static let touchMinimum: CGFloat = 44
+        /// The gap under a block, so two one after the other are two.
+        static let gap: CGFloat = 3
+
+        let height: CGFloat
+        /// What is added above and below the block to reach the touch size.
+        let touchInset: CGFloat
+
+        init(minutes: Int, hourHeight: CGFloat) {
+            height = max(Self.minimumHeight, CGFloat(minutes) / 60 * hourHeight - Self.gap)
+            touchInset = max(0, (Self.touchMinimum - height) / 2)
+        }
+
+        var touchHeight: CGFloat { height + 2 * touchInset }
+    }
 }
 
 extension AgendaTimeline {

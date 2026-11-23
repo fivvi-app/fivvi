@@ -104,6 +104,19 @@ final class AgendaModelTests: AgendaTestCase {
         XCTAssertEqual(api.mySessions.queries.count, 1, "tomorrow is in the week on screen")
     }
 
+    func test_F013_AC5_openingOnTomorrowShowsTheWeekWhateverViewWasOpen() async {
+        let agenda = model(served())
+        agenda.show(.month)
+
+        agenda.open(day: "2026-09-23")
+
+        XCTAssertEqual(agenda.mode, .week, "Morgen opens the week view, as the prototype does")
+        XCTAssertEqual(agenda.selectedDay, "2026-09-23")
+        agenda.show(.day)
+        agenda.open(day: "2026-09-23")
+        XCTAssertEqual(agenda.mode, .week, "from Dag too")
+    }
+
     func test_F013_AC5_aDayInAnotherWeekReadsThatWeek() async {
         let api = served()
         let agenda = model(api)

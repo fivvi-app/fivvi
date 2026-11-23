@@ -33,7 +33,7 @@ extension HomeView {
                     if sheetOrigin == .home {
                         path.append(.classDate(date.id, added: datesAdded))
                     } else if let workspace = account.workspace {
-                        todayPath.append(.classDate(workspaceID: workspace.id, id: date.id))
+                        openSaved(.classDate(workspaceID: workspace.id, id: date.id))
                     }
                 },
                 onCancel: { newClass = nil }

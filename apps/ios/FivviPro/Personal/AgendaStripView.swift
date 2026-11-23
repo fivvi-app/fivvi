@@ -3,18 +3,32 @@ import FivviDesignTokens
 import FivviStrings
 
 /// The strip of the week of *Dag* and *Week* (TD-04): the weekday letters, the day numbers with today marked and the
-/// selected day filled, and under each day a dot per session in its type's colour. ‹ › and a swipe go to the other weeks.
+/// selected day filled, and under each day a dot per session in its type's colour. Under it the *Week 39 · …* line has ‹ ›
+/// either side at 44 pt, as the month's name has, and a swipe goes to the other weeks too.
 struct WeekStripView: View {
     let model: AgendaModel
 
     var body: some View {
-        HStack(spacing: 0) {
-            nav("chevron.backward", label: model.previousWeekLabel, id: "calendar.previous") { model.stepWeek(-1) }
-            ForEach(model.strip) { cell in DayCellView(cell: cell, size: .week) { model.select(cell.day) } }
-            nav("chevron.forward", label: model.nextWeekLabel, id: "calendar.next") { model.stepWeek(1) }
+        VStack(spacing: Tokens.Spacing.space1) {
+            HStack(spacing: 0) {
+                ForEach(model.strip) { cell in DayCellView(cell: cell, size: .week) { model.select(cell.day) } }
+            }
+            HStack(spacing: 0) {
+                AgendaNavButton(
+                    symbol: "chevron.backward", label: model.previousWeekLabel, id: "calendar.previous"
+                ) { model.stepWeek(-1) }
+                Text(model.weekLine)
+                    .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
+                    .foregroundStyle(Tokens.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("calendar.weekLine")
+                AgendaNavButton(
+                    symbol: "chevron.forward", label: model.nextWeekLabel, id: "calendar.next"
+                ) { model.stepWeek(1) }
+            }
         }
-        // The strip takes the width of the screen but 4 pt: seven days of at least 44 pt need more than the gutters leave.
-        .padding(.horizontal, 4 - Tokens.Spacing.gutter)
+        .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .simultaneousGesture(
             DragGesture(minimumDistance: 24).onEnded { value in
@@ -24,13 +38,24 @@ struct WeekStripView: View {
             }
         )
     }
+}
 
-    private func nav(_ symbol: String, label: String, id: String, action: @escaping () -> Void) -> some View {
+/// ‹ or › of the week line and of the month's name: a 44 × 44 pt touch (`size.touch-min`).
+struct AgendaNavButton: View {
+    static let side: CGFloat = 44
+
+    let symbol: String
+    let label: String
+    let id: String
+    let action: () -> Void
+
+    var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(Tokens.TextStyle.body, weight: .semibold))
                 .foregroundStyle(Tokens.Colors.accentText)
-                .frame(width: 28, height: 44)
+                .frame(width: Self.side, height: Self.side)
+                .contentShape(Rectangle())
         }
         .accessibilityLabel(label)
         .accessibilityIdentifier(id)
@@ -81,9 +106,9 @@ struct MonthGridView: View {
 
     private var header: some View {
         HStack {
-            nav("chevron.backward", label: model.previousMonthLabel, id: "calendar.previousMonth") {
-                model.stepMonth(-1)
-            }
+            AgendaNavButton(
+                symbol: "chevron.backward", label: model.previousMonthLabel, id: "calendar.previousMonth"
+            ) { model.stepMonth(-1) }
             Spacer()
             Text(model.monthTitle)
                 .font(.system(Tokens.TextStyle.title2, weight: .bold))
@@ -91,19 +116,10 @@ struct MonthGridView: View {
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("calendar.monthTitle")
             Spacer()
-            nav("chevron.forward", label: model.nextMonthLabel, id: "calendar.nextMonth") { model.stepMonth(1) }
+            AgendaNavButton(
+                symbol: "chevron.forward", label: model.nextMonthLabel, id: "calendar.nextMonth"
+            ) { model.stepMonth(1) }
         }
-    }
-
-    private func nav(_ symbol: String, label: String, id: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(Tokens.TextStyle.body, weight: .semibold))
-                .foregroundStyle(Tokens.Colors.accentText)
-                .frame(width: 44, height: 44)
-        }
-        .accessibilityLabel(label)
-        .accessibilityIdentifier(id)
     }
 }
 
@@ -153,23 +169,17 @@ struct DayCellView: View {
         if let count = cell.countLabel {
             HStack(spacing: 3) {
                 ForEach(cell.dots.indices, id: \.self) { index in
-                    Circle().fill(colour(cell.dots[index])).frame(width: size.dot, height: size.dot)
+                    Circle().fill(cell.dots[index].dotColour).frame(width: size.dot, height: size.dot)
                 }
             }
             .frame(height: 6)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(count)
-            .accessibilityIdentifier("calendar.dots.\(cell.day).\(cell.dots.map(name).joined(separator: "-"))")
+            .accessibilityIdentifier("calendar.dots.\(cell.day).\(cell.dots.map(\.dotName).joined(separator: "-"))")
         } else {
             Color.clear.frame(height: 6)
         }
     }
-
-    private func colour(_ kind: AgendaModel.Kind) -> Color {
-        kind == .group ? Tokens.Colors.sessionGroupSolid : Tokens.Colors.sessionPrivateSolid
-    }
-
-    private func name(_ kind: AgendaModel.Kind) -> String { kind == .group ? "group" : "private" }
 
     private var numberColour: Color {
         if cell.isSelected { return cell.isToday ? Tokens.Colors.accentOn : Tokens.Colors.textInverse }
@@ -180,4 +190,14 @@ struct DayCellView: View {
         guard cell.isSelected else { return Color.clear }
         return cell.isToday ? Tokens.Colors.accentFill : Tokens.Colors.bgInverse
     }
+}
+
+extension AgendaModel.Kind {
+    /// The colour of a dot: the design tokens' blue for a private session, the purple for a class.
+    var dotColour: Color {
+        self == .group ? Tokens.Colors.sessionGroupSolid : Tokens.Colors.sessionPrivateSolid
+    }
+
+    /// What the dots' identifier says of a kind, for a test.
+    var dotName: String { self == .group ? "group" : "private" }
 }

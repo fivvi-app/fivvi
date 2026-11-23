@@ -5,11 +5,11 @@ import XCTest
 /// 22 October 2026, in the week the clocks go back. The app opens on Vandaag; the tests open the second tab.
 @MainActor
 final class AgendaUITests: SignInUITestCase {
-    private var catalog: TestCatalog { TestCatalog.configured }
-    private var server: StubServer?
-    private var isEnglish: Bool { TestCatalog.configuredLanguage.hasPrefix("en") }
+    var catalog: TestCatalog { TestCatalog.configured }
+    var server: StubServer?
+    var isEnglish: Bool { TestCatalog.configuredLanguage.hasPrefix("en") }
 
-    private func launch(
+    func launch(
         now: String = "2026-09-22T08:35:00+02:00", day: StubPersonalRoutes.Day = .sarah,
         server existing: StubServer? = nil, session: AppLaunch.Session = .signedIn
     ) throws -> (XCUIApplication, StubServer) {
@@ -23,7 +23,7 @@ final class AgendaUITests: SignInUITestCase {
     }
 
     /// Agenda, opened from the tab bar.
-    private func openAgenda(
+    func openAgenda(
         now: String = "2026-09-22T08:35:00+02:00", day: StubPersonalRoutes.Day = .sarah
     ) throws -> (XCUIApplication, StubServer) {
         let (app, server) = try launch(now: now, day: day)
@@ -34,20 +34,20 @@ final class AgendaUITests: SignInUITestCase {
         return (app, server)
     }
 
-    private var log: String { (server?.requests.map { "\($0.method) \($0.path)" } ?? []).joined(separator: "\n") }
+    var log: String { (server?.requests.map { "\($0.method) \($0.path)" } ?? []).joined(separator: "\n") }
 
-    private func any(_ id: String, _ app: XCUIApplication) -> XCUIElement {
+    func any(_ id: String, _ app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any)[id].firstMatch
     }
 
-    private func mode(_ key: String, _ app: XCUIApplication) {
+    func mode(_ key: String, _ app: XCUIApplication) {
         let button = app.segmentedControls["calendar.mode"].buttons[catalog[key]]
         XCTAssertTrue(button.waitUntilExists(timeout: timeout), log)
         button.tap()
     }
 
     /// The strip's button of a day: it is selected when the list or the timeline is of that day.
-    private func day(_ date: String, _ app: XCUIApplication) -> XCUIElement { app.buttons["calendar.day.\(date)"] }
+    func day(_ date: String, _ app: XCUIApplication) -> XCUIElement { app.buttons["calendar.day.\(date)"] }
 
     private func sessionsRequests(_ server: StubServer) -> Int { server.requests(to: "/api/v1/me/sessions").count }
 
@@ -86,6 +86,9 @@ final class AgendaUITests: SignInUITestCase {
         let cancelled = app.buttons["calendar.block.\(StubPersonalRoutes.krachtCancelled)"]
         XCTAssertTrue(cancelled.exists)
         XCTAssertTrue(cancelled.label.contains(catalog["myDay.cancelled"]), "a cancelled block is marked")
+        for block in [mark, lisa, anna, cancelled] {
+            XCTAssertGreaterThanOrEqual(block.frame.height, 44, "a block is touched on at least 44 pt: \(block.label)")
+        }
     }
 
     func test_F013_design_theStripShowsOneDotPerSessionInItsTypesColourAtMostThree() throws {
