@@ -7,7 +7,8 @@
 //        updates one; `applyThisAndFollowing` splits the series at a date and updates the dates
 //        from there on, leaving the ones changed on their own (`detached_fields`) and counting
 //        them, and refuses a past date, a length that is no step and a skipped start on any date up
-//        to 12 weeks from today. **The only place a rule is expanded**:
+//        to 12 weeks from today; `applyToUpcomingDates` edits a whole series: the same change from
+//        the first date that has not started. **The only place a rule is expanded**:
 //        `test/rrule.architecture.test.ts` fails when other code reads one
 // Spec: F022 AC2, AC3, AC5, AC7, AC10
 

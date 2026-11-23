@@ -99,7 +99,9 @@ export type ApplyFollowingDecision =
  * date, out of scope in #428), a length that is no whole step, and a start the clocks skip on one
  * of the dates it would reach: the dates the series has and every date up to the day the calendar
  * is kept filled to (`materializedUntil` of the result), which is later than the stored one when
- * the series has not been filled for a while.
+ * the series has not been filled for a while. With `fromDateIsAsked: false` (a whole series is
+ * edited, `applyToUpcomingDates`, and the Owner named no date) the chosen date is a date like the
+ * others: one with changes of its own keeps them and is counted.
  */
 export function applyThisAndFollowing(
   series: SeriesState,
@@ -107,6 +109,7 @@ export function applyThisAndFollowing(
   change: SeriesChange,
   existing: readonly SeriesDate[],
   today: string,
+  options: { readonly fromDateIsAsked?: boolean } = {},
 ): ApplyFollowingDecision {
   const { duration } = GROUP_CLASS_LIMITS;
   if (
@@ -147,7 +150,7 @@ export function applyThisAndFollowing(
   const updates: DateUpdate[] = [];
   let keptDates = 0;
   for (const date of reached) {
-    const isChosen = date.occurrenceDate === fromDate;
+    const isChosen = (options.fromDateIsAsked ?? true) && date.occurrenceDate === fromDate;
     if (!isChosen && date.detachedFields.length > 0) keptDates += 1;
     if (!isChosen && (date.cancelled || date.detachedFields.length > 0)) continue;
     const occurrence = planned.get(date.occurrenceDate);

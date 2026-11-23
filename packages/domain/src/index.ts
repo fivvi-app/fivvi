@@ -319,6 +319,10 @@ export {
   type SeriesState,
 } from './scheduling/apply-following.ts';
 export {
+  type ApplyToSeriesDecision,
+  applyToUpcomingDates,
+} from './scheduling/apply-to-series.ts';
+export {
   type CalendarFilters,
   type CappedOverlaps,
   type ClockChange,
