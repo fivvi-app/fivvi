@@ -171,10 +171,8 @@ class FakeSessionsApi : SessionsApi {
         assignTrainerRequest: AssignTrainerRequest,
     ): Response<TrainerAssigned> = error("FakeSessionsApi.assignTrainer is not expected in this test")
 
-    override suspend fun listTrainerCandidates(
-        workspaceId: UUID,
-        sessionId: UUID,
-    ): Response<TrainerCandidates> = error("FakeSessionsApi.listTrainerCandidates is not expected in this test")
+    override suspend fun listTrainerCandidates(workspaceId: UUID, sessionId: UUID): Response<TrainerCandidates> =
+        error("FakeSessionsApi.listTrainerCandidates is not expected in this test")
 
     override suspend fun listClientUpcomingSessions(workspaceId: UUID, clientId: UUID): Response<UpcomingSessions> {
         upcomingRead += clientId
