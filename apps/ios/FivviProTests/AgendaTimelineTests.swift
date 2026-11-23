@@ -201,7 +201,7 @@ final class AgendaTimelineTests: XCTestCase {
         for (block, other) in [(short, next), (next, short)] {
             let mine = extent(timeline, block)
             let theirs = extent(timeline, other)
-            if block.sharesWidthForTest(with: other) {
+            if block.sharesWidth(with: other) {
                 XCTAssertLessThanOrEqual(
                     min(mine.visible.upperBound, theirs.visible.upperBound)
                         - max(mine.visible.lowerBound, theirs.visible.lowerBound),
@@ -232,7 +232,7 @@ final class AgendaTimelineTests: XCTestCase {
                     ]
                     let timeline = try XCTUnwrap(timeline(day, now: elsewhere))
                     for (index, one) in timeline.blocks.enumerated() {
-                        for other in timeline.blocks[(index + 1)...] where one.sharesWidthForTest(with: other) {
+                        for other in timeline.blocks[(index + 1)...] where one.sharesWidth(with: other) {
                             let mine = extent(timeline, one).visible
                             let theirs = extent(timeline, other).visible
                             XCTAssertTrue(
@@ -254,11 +254,5 @@ final class AgendaTimelineTests: XCTestCase {
         XCTAssertEqual(timeline.hours.last, "00:00")
         XCTAssertEqual(timeline.blocks.count, 1)
         XCTAssertGreaterThan(timeline.overflowMinutes, 0)
-    }
-}
-
-private extension AgendaTimeline.Block {
-    func sharesWidthForTest(with other: AgendaTimeline.Block) -> Bool {
-        column * other.columns < (other.column + 1) * columns && other.column * columns < (column + 1) * other.columns
     }
 }

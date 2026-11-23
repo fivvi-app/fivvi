@@ -15,8 +15,7 @@ import kotlin.math.min
  *
  * A block is drawn at least [MINIMUM_HEIGHT] tall, so a title still fits, and that is what decides the columns: two blocks
  * that are drawn over each other sit side by side, also when the sessions themselves don't overlap (a session of 15
- * minutes is drawn as 30). The iOS twin splits by the sessions' own times and draws such a block under the next one
- * (#1556); Android never does.
+ * minutes is drawn as 30). The iOS twin places its blocks by their drawn height the same way (#1556).
  */
 data class AgendaTimeline(
     /** The labels of the hour lines, *09:00*, from the first to the last. */

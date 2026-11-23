@@ -95,7 +95,7 @@ struct AgendaTimeline: Equatable {
 
 extension AgendaTimeline.Block {
     /// Whether the two take any of the same width of the day (a column of `columns` is a `1/columns` slice of it).
-    fileprivate func sharesWidth(with other: AgendaTimeline.Block) -> Bool {
+    func sharesWidth(with other: AgendaTimeline.Block) -> Bool {
         column * other.columns < (other.column + 1) * columns && other.column * columns < (column + 1) * other.columns
     }
 }
@@ -112,7 +112,7 @@ extension AgendaTimeline {
     /// The timeline of `day`, or nil for a day without sessions. On today the rows reach the hour of now, so the line is
     /// on them.
     static func make(
-        entries: [Entry], day: String, now: Date, calendar: AgendaCalendar, hourHeight: CGFloat = Self.hourHeight
+        entries: [Entry], day: String, now: Date, calendar: AgendaCalendar
     ) -> AgendaTimeline? {
         guard !entries.isEmpty else { return nil }
         // A session is placed by its start and its real length, so a day with the clocks changing keeps its durations.
@@ -120,7 +120,7 @@ extension AgendaTimeline {
             let start = calendar.minuteOfDay(entry.startsAt)
             let length = max(1, Int((entry.endsAt.timeIntervalSince(entry.startsAt) / 60).rounded()))
             let end = min(24 * 60, start + length)
-            let drawn = BlockMetrics.drawnMinutes(end - start, hourHeight: hourHeight)
+            let drawn = BlockMetrics.drawnMinutes(end - start, hourHeight: Self.hourHeight)
             return Placed(entry: entry, start: start, end: end, drawnEnd: start + drawn)
         }
         .sorted { ($0.start, $0.end) < ($1.start, $1.end) }

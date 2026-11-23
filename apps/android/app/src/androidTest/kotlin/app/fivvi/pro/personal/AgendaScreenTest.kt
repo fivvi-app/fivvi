@@ -377,7 +377,7 @@ class AgendaScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
     }
 
     // A block under 48 dp is touched on 48 dp where there is room: the hit area of a short session never covers the block of the
-    // next, and a block drawn over another is put beside it, so every block can be seen and touched (#1556 on iOS).
+    // next, and a block drawn over another is put beside it, so every block can be seen and touched (the iOS twin does the same, #1556).
     @Test
     fun test_F013_design_theHitAreaOfAShortBlockNeverCoversTheBlockBesideIt() {
         val day = listOf(
