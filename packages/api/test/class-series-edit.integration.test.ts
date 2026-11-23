@@ -338,7 +338,8 @@ describe('F022 editing a whole series through the API', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ startsOn: '2026-10-20', durationMinutes: 75 });
     const dates = await storedDates(w.gym.id);
-    const length = (d: (typeof dates)[number]) => (d.endsAt.getTime() - d.startsAt.getTime()) / 60_000;
+    const length = (d: (typeof dates)[number]) =>
+      (d.endsAt.getTime() - d.startsAt.getTime()) / 60_000;
     for (const day of ['2026-10-06', '2026-10-13']) {
       const started = dates.find((d) => d.occurrenceDate === day);
       expect(started && length(started)).toBe(60);
