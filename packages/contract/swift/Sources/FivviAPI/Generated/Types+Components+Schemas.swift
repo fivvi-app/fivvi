@@ -4161,6 +4161,199 @@ extension Components {
                 case version
             }
         }
+        /// The series as it now runs, and how many dates kept their own changes.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdatedClassSeries`.
+        public struct UpdatedClassSeries: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/UpdatedClassSeries/value1`.
+            public var value1: Components.Schemas.ClassSeries
+            /// - Remark: Generated from `#/components/schemas/UpdatedClassSeries/value2`.
+            public struct Value2Payload: Codable, Hashable, Sendable {
+                /// How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft een eigen wijziging en is niet aangepast”).
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdatedClassSeries/value2/keptDates`.
+                public var keptDates: Swift.Int
+                /// Creates a new `Value2Payload`.
+                ///
+                /// - Parameters:
+                ///   - keptDates: How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft een eigen wijziging en is niet aangepast”).
+                public init(keptDates: Swift.Int) {
+                    self.keptDates = keptDates
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case keptDates
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/UpdatedClassSeries/value2`.
+            public var value2: Components.Schemas.UpdatedClassSeries.Value2Payload
+            /// Creates a new `UpdatedClassSeries`.
+            ///
+            /// - Parameters:
+            ///   - value1:
+            ///   - value2:
+            public init(
+                value1: Components.Schemas.ClassSeries,
+                value2: Components.Schemas.UpdatedClassSeries.Value2Payload
+            ) {
+                self.value1 = value1
+                self.value2 = value2
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                self.value1 = try .init(from: decoder)
+                self.value2 = try .init(from: decoder)
+            }
+            public func encode(to encoder: any Swift.Encoder) throws {
+                try self.value1.encode(to: encoder)
+                try self.value2.encode(to: encoder)
+            }
+        }
+        /// Why the series edit was refused; nothing was written. The version refusal (`series_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRefusal`.
+        public struct UpdateClassSeriesRefusal: Codable, Hashable, Sendable {
+            /// `series_changed`: the series changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRefusal/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case seriesChanged = "series_changed"
+                case trainerConflict = "trainer_conflict"
+            }
+            /// `series_changed`: the series changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRefusal/code`.
+            public var code: Components.Schemas.UpdateClassSeriesRefusal.CodePayload
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRefusal/series`.
+            public struct SeriesPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRefusal/series/value1`.
+                public var value1: Components.Schemas.ClassSeries
+                /// The series as it is now, for `series_changed`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRefusal/series/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SeriesPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The series as it is now, for `series_changed`.
+                public init(
+                    value1: Components.Schemas.ClassSeries,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRefusal/series`.
+            public var series: Components.Schemas.UpdateClassSeriesRefusal.SeriesPayload?
+            /// The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRefusal/conflicts`.
+            public var conflicts: [Components.Schemas.TrainerConflictItem]?
+            /// Creates a new `UpdateClassSeriesRefusal`.
+            ///
+            /// - Parameters:
+            ///   - code: `series_changed`: the series changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+            ///   - series:
+            ///   - conflicts: The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
+            public init(
+                code: Components.Schemas.UpdateClassSeriesRefusal.CodePayload,
+                series: Components.Schemas.UpdateClassSeriesRefusal.SeriesPayload? = nil,
+                conflicts: [Components.Schemas.TrainerConflictItem]? = nil
+            ) {
+                self.code = code
+                self.series = series
+                self.conflicts = conflicts
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case series
+                case conflicts
+            }
+        }
+        /// Changes a whole weekly series (CO-04): the start, length, capacity and trainer of its dates, each only when given.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest`.
+        public struct UpdateClassSeriesRequest: Codable, Hashable, Sendable {
+            /// The version of the series the change was made from (`ClassSeries.version`). If the series changed since, the answer is `409` with the series as it is now and nothing is written.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/version`.
+            public var version: Swift.Int
+            /// The new start of every date, `HH:mm` on the wall clock of the workspace’s time zone (it stays so across daylight saving time). Leave it out to keep it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/localStartTime`.
+            public var localStartTime: Swift.String?
+            /// The new length of every date: 15 to 240 minutes in steps of 5, else `400` on `durationMinutes` (`invalid_duration`). Leave it out to keep it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/durationMinutes`.
+            public var durationMinutes: Swift.Int?
+            /// The new capacity of every date, 1 to 100. Leave it out to keep it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/capacity`.
+            public var capacity: Swift.Int?
+            /// The new trainer of every date, a team-member ID from `GET …/trainers`; `null` makes the dates *Trainer nodig*. Leave it out to keep the trainer. A team member who is no trainer of the workspace answers `404`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/trainerId`.
+            public var trainerId: Swift.String?
+            /// Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/allowConflicts`.
+            public var allowConflicts: Swift.Bool?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/surface`.
+            public var surface: Components.Schemas.UpdateClassSeriesRequest.SurfacePayload?
+            /// Creates a new `UpdateClassSeriesRequest`.
+            ///
+            /// - Parameters:
+            ///   - version: The version of the series the change was made from (`ClassSeries.version`). If the series changed since, the answer is `409` with the series as it is now and nothing is written.
+            ///   - localStartTime: The new start of every date, `HH:mm` on the wall clock of the workspace’s time zone (it stays so across daylight saving time). Leave it out to keep it.
+            ///   - durationMinutes: The new length of every date: 15 to 240 minutes in steps of 5, else `400` on `durationMinutes` (`invalid_duration`). Leave it out to keep it.
+            ///   - capacity: The new capacity of every date, 1 to 100. Leave it out to keep it.
+            ///   - trainerId: The new trainer of every date, a team-member ID from `GET …/trainers`; `null` makes the dates *Trainer nodig*. Leave it out to keep the trainer. A team member who is no trainer of the workspace answers `404`.
+            ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                version: Swift.Int,
+                localStartTime: Swift.String? = nil,
+                durationMinutes: Swift.Int? = nil,
+                capacity: Swift.Int? = nil,
+                trainerId: Swift.String? = nil,
+                allowConflicts: Swift.Bool? = nil,
+                surface: Components.Schemas.UpdateClassSeriesRequest.SurfacePayload? = nil
+            ) {
+                self.version = version
+                self.localStartTime = localStartTime
+                self.durationMinutes = durationMinutes
+                self.capacity = capacity
+                self.trainerId = trainerId
+                self.allowConflicts = allowConflicts
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case version
+                case localStartTime
+                case durationMinutes
+                case capacity
+                case trainerId
+                case allowConflicts
+                case surface
+            }
+        }
         /// The class date with its changes, and how many other dates kept their own.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdatedClassDate`.

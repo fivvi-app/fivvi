@@ -796,6 +796,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a whole series of a class
+         * @description Changes the start, length, capacity and/or trainer of a weekly series (the Owner only), from the version the caller read (`409` with the series as it is now when it changed since). The change applies from the series’ first date that has not started, as “this and following” (CO-04): started dates and cancelled ones stay as they are, and dates that were changed on their own keep their changes (`keptDates` counts them). When earlier dates have started the series is split there, so the answer is the series that now runs from that date (it has a new ID); the earlier one ends the week before. Times are wall-clock in the workspace’s time zone: a start the clocks skip on one of the dates it would reach answers `400` on `localStartTime` (`time_does_not_exist`) with that `date`, a length that is no step `400` on `durationMinutes` (`invalid_duration`), and a series with no date left to change `400` on `seriesId` (`no_upcoming_dates`); nothing is changed then. A trainer who already has a scheduled session of this workspace at the new time answers `409` with the code `trainer_conflict` unless `allowConflicts` is `true` (PS-07); the version is checked first. A series or class that is not in the workspace answers `404`.
+         */
+        patch: operations["updateGroupClassSeries"];
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/join-link": {
         parameters: {
             query?: never;
@@ -2213,6 +2233,45 @@ export interface components {
             materializedUntil: string;
             /** @description Raised by every change of the series. */
             version: number;
+        };
+        /** @description The series as it now runs, and how many dates kept their own changes. */
+        UpdatedClassSeries: components["schemas"]["ClassSeries"] & {
+            /** @description How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft een eigen wijziging en is niet aangepast”). */
+            keptDates: number;
+        };
+        /** @description Why the series edit was refused; nothing was written. The version refusal (`series_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text. */
+        UpdateClassSeriesRefusal: {
+            /**
+             * @description `series_changed`: the series changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+             * @enum {string}
+             */
+            code: "series_changed" | "trainer_conflict";
+            series?: components["schemas"]["ClassSeries"] & unknown;
+            /** @description The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`. */
+            conflicts?: components["schemas"]["TrainerConflictItem"][];
+        };
+        /** @description Changes a whole weekly series (CO-04): the start, length, capacity and trainer of its dates, each only when given. */
+        UpdateClassSeriesRequest: {
+            /** @description The version of the series the change was made from (`ClassSeries.version`). If the series changed since, the answer is `409` with the series as it is now and nothing is written. */
+            version: number;
+            /** @description The new start of every date, `HH:mm` on the wall clock of the workspace’s time zone (it stays so across daylight saving time). Leave it out to keep it. */
+            localStartTime?: string;
+            /** @description The new length of every date: 15 to 240 minutes in steps of 5, else `400` on `durationMinutes` (`invalid_duration`). Leave it out to keep it. */
+            durationMinutes?: number;
+            /** @description The new capacity of every date, 1 to 100. Leave it out to keep it. */
+            capacity?: number;
+            /**
+             * Format: uuid
+             * @description The new trainer of every date, a team-member ID from `GET …/trainers`; `null` makes the dates *Trainer nodig*. Leave it out to keep the trainer. A team member who is no trainer of the workspace answers `404`.
+             */
+            trainerId?: string | null;
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
         };
         /** @description The class date with its changes, and how many other dates kept their own. */
         UpdatedClassDate: components["schemas"]["Session"] & {
@@ -5838,6 +5897,91 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    updateGroupClassSeries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The class ID. */
+                classId: string;
+                /** @description The series ID. */
+                seriesId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateClassSeriesRequest"];
+            };
+        };
+        responses: {
+            /** @description The series as it now runs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdatedClassSeries"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The series changed since the version in the request (`series_changed`), or the trainer already has something at the new time (`trainer_conflict`); nothing was written. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateClassSeriesRefusal"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

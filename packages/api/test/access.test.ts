@@ -498,6 +498,7 @@ describe('@permission E011 route access', () => {
       'post /v1/workspaces/{workspaceId}/group-classes': 'workspace',
       'get /v1/workspaces/{workspaceId}/group-classes/{classId}': 'workspace',
       'get /v1/workspaces/{workspaceId}/group-classes/{classId}/series': 'workspace',
+      'patch /v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}': 'workspace',
       'patch /v1/workspaces/{workspaceId}/group-classes/{classId}': 'workspace',
       'post /v1/workspaces/{workspaceId}/group-classes/{classId}/dates': 'workspace',
       'get /v1/workspaces/{workspaceId}/booking-links': 'workspace',

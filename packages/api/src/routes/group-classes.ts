@@ -16,6 +16,7 @@ import {
   listLocations,
   listSeriesDates,
   moveDatesToSeries,
+  type SeriesDateRow,
   type SessionView,
   updateClassDate,
   updateClassSeries,
@@ -24,7 +25,9 @@ import {
   type WorkspaceScope,
 } from '@fivvi/database';
 import {
+  type ApplyFollowingDecision,
   applyThisAndFollowing,
+  applyToUpcomingDates,
   DETACHABLE_FIELDS,
   type DetachedField,
   decideGroupDateEdit,
@@ -41,6 +44,7 @@ import {
   scheduleClassOnDate,
 } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
+import type { Context } from 'hono';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
   answerValidationFailure,
@@ -51,6 +55,7 @@ import {
 import {
   allowConflictsField,
   checkDoubleBooking,
+  type TrainerConflictAnswer,
   TrainerConflictItemSchema,
   type TrainerSlot,
   trainerConflictResponse,
@@ -422,6 +427,74 @@ const UpdateGroupClassDateBodySchema = z
       'when given. The date stays on its day. The class itself never changes.',
   });
 
+const UpdateClassSeriesBodySchema = z
+  .object({
+    version: z
+      .number()
+      .int()
+      .min(1)
+      .openapi({
+        description:
+          'The version of the series the change was made from (`ClassSeries.version`). If the ' +
+          'series changed since, the answer is `409` with the series as it is now and nothing is ' +
+          'written.',
+      }),
+    localStartTime: localTimeField.optional().openapi({
+      description:
+        'The new start of every date, `HH:mm` on the wall clock of the workspace’s time zone ' +
+        '(it stays so across daylight saving time). Leave it out to keep it.',
+    }),
+    durationMinutes: z
+      .number()
+      .int()
+      .optional()
+      .openapi({
+        description:
+          `The new length of every date: ${LIMITS.duration.min} to ${LIMITS.duration.max} ` +
+          `minutes in steps of ${LIMITS.duration.step}, else \`400\` on \`durationMinutes\` ` +
+          '(`invalid_duration`). Leave it out to keep it.',
+      }),
+    capacity: capacityField.optional().openapi({
+      description:
+        `The new capacity of every date, ${LIMITS.capacity.min} to ${LIMITS.capacity.max}. ` +
+        'Leave it out to keep it.',
+    }),
+    trainerId: z
+      .uuid()
+      .nullable()
+      .optional()
+      .openapi({
+        description:
+          'The new trainer of every date, a team-member ID from `GET …/trainers`; `null` makes ' +
+          'the dates *Trainer nodig*. Leave it out to keep the trainer. A team member who is no ' +
+          'trainer of the workspace answers `404`.',
+      }),
+    allowConflicts: allowConflictsField,
+    surface: z
+      .enum(['ios', 'android'])
+      .optional()
+      .openapi({
+        description:
+          'The app that sends the request: `ios` or `android`. A request with a bearer token ' +
+          'records the `class_series_changed` event with this surface; without it nothing is ' +
+          'recorded. The web does not send it, and a request without a bearer token ignores it.',
+      }),
+  })
+  // A save that changes nothing is refused on the start.
+  .refine(
+    (body) =>
+      body.localStartTime !== undefined ||
+      body.durationMinutes !== undefined ||
+      body.capacity !== undefined ||
+      body.trainerId !== undefined,
+    { path: ['localStartTime'], error: 'Give at least one field to change.' },
+  )
+  .openapi('UpdateClassSeriesRequest', {
+    description:
+      'Changes a whole weekly series (CO-04): the start, length, capacity and trainer of its ' +
+      'dates, each only when given.',
+  });
+
 const ScheduledClassDateSchema = SessionSchema.extend({
   datesAdded: z
     .number()
@@ -490,6 +563,42 @@ const ClassSeriesSchema = z
     description:
       'A weekly series of a class: “Every Tuesday 18:00–19:00 · Sarah · 8 spots, from 6 October”. ' +
       'Its dates are class dates (`Session`) with a `series`.',
+  });
+
+const UpdatedClassSeriesSchema = ClassSeriesSchema.extend({
+  keptDates: z
+    .number()
+    .int()
+    .openapi({
+      description:
+        'How many dates from the first one that has not started on were changed on their own and ' +
+        'keep those changes (CO-04, “1 les heeft een eigen wijziging en is niet aangepast”).',
+    }),
+}).openapi('UpdatedClassSeries', {
+  description: 'The series as it now runs, and how many dates kept their own changes.',
+});
+
+// The `409` of a series edit is one object, as for a date (`ClassDateRefusalSchema`).
+const ClassSeriesRefusalSchema = z
+  .object({
+    code: z.enum(['series_changed', 'trainer_conflict']).openapi({
+      description:
+        '`series_changed`: the series changed since the `version` sent; `trainer_conflict`: the ' +
+        'trainer already has something at the new time (PS-07).',
+    }),
+    series: ClassSeriesSchema.optional().openapi({
+      description: 'The series as it is now, for `series_changed`.',
+    }),
+    conflicts: z.array(TrainerConflictItemSchema).optional().openapi({
+      description:
+        'The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.',
+    }),
+  })
+  .openapi('UpdateClassSeriesRefusal', {
+    description:
+      'Why the series edit was refused; nothing was written. The version refusal ' +
+      '(`series_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, ' +
+      'told apart by `code`. Contains no user-facing text.',
   });
 
 // The `409` of a date edit is one object, not a `oneOf` of the date's version refusal and
@@ -705,6 +814,62 @@ const listGroupClassSeriesRoute = defineRoute(
   manageClasses,
 );
 
+const SeriesParamsSchema = ClassParamsSchema.extend({
+  seriesId: z.uuid().openapi({
+    param: { name: 'seriesId', in: 'path' },
+    description: 'The series ID.',
+  }),
+});
+
+const updateGroupClassSeriesRoute = defineRoute(
+  {
+    method: 'patch',
+    path: '/v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}',
+    operationId: 'updateGroupClassSeries',
+    tags: ['group-classes'],
+    summary: 'Change a whole series of a class',
+    description:
+      'Changes the start, length, capacity and/or trainer of a weekly series (the Owner only), ' +
+      'from the version the caller read (`409` with the series as it is now when it changed ' +
+      'since). The change applies from the series’ first date that has not started, as “this ' +
+      'and following” (CO-04): started dates and cancelled ones stay as they are, and dates ' +
+      'that were changed on their own keep their changes (`keptDates` counts them). When ' +
+      'earlier dates have started the series is split there, so the answer is the series that ' +
+      'now runs from that date (it has a new ID); the earlier one ends the week before. ' +
+      'Times are wall-clock in the workspace’s time zone: a start the clocks skip on one of the ' +
+      'dates it would reach answers `400` on `localStartTime` (`time_does_not_exist`) with that ' +
+      '`date`, a length that is no step `400` on `durationMinutes` (`invalid_duration`), and a ' +
+      'series with no date left to change `400` on `seriesId` (`no_upcoming_dates`); nothing is ' +
+      'changed then. A trainer who already has a scheduled session of this workspace at the new ' +
+      'time answers `409` with the code `trainer_conflict` unless `allowConflicts` is `true` ' +
+      '(PS-07); the version is checked first. A series or class that is not in the workspace ' +
+      'answers `404`.',
+    security: SIGNED_IN,
+    request: {
+      params: SeriesParamsSchema,
+      body: {
+        required: true,
+        content: { 'application/json': { schema: UpdateClassSeriesBodySchema } },
+      },
+    },
+    responses: {
+      200: {
+        description: 'The series as it now runs.',
+        content: { 'application/json': { schema: UpdatedClassSeriesSchema } },
+      },
+      400: validationErrorResponse,
+      409: {
+        description:
+          'The series changed since the version in the request (`series_changed`), or the ' +
+          'trainer already has something at the new time (`trainer_conflict`); nothing was written.',
+        content: { 'application/json': { schema: ClassSeriesRefusalSchema } },
+      },
+      500: internalServerErrorResponse,
+    },
+  },
+  manageClasses,
+);
+
 const updateGroupClassDateRoute = defineRoute(
   {
     method: 'patch',
@@ -874,6 +1039,156 @@ function slotsOf(
   const { trainerProfileId } = date.trainer;
   const dates = weekly?.plan?.occurrences ?? [date];
   return dates.map(({ startsAt, endsAt }) => ({ trainerProfileId, startsAt, endsAt }));
+}
+
+/** A whole series or a date and what follows it, as the domain decided it. */
+type AppliedSeriesChange = Extract<ApplyFollowingDecision, { outcome: 'applied' }>;
+
+/**
+ * Writes what `applyThisAndFollowing` decided: fills the calendar, warns about a trainer who is
+ * busy (PS-07), splits the series, updates the dates and makes the missing ones. Nothing is
+ * stored before the warning; every write is rolled back with the request when the caller answers
+ * `409`. `guard` says which version the caller read: the date's (`sessionId`, a date edit) or the
+ * series' (a whole-series edit); a write that finds another one is `stale`.
+ */
+async function writeSeriesChange(
+  c: Context<WorkspaceEnv>,
+  input: {
+    stored: ClassSeriesView;
+    dates: readonly SeriesDateRow[];
+    applied: AppliedSeriesChange;
+    allowConflicts: boolean | undefined;
+    surface: 'ios' | 'android' | undefined;
+    guard: { sessionId: string; sessionVersion: number } | { seriesVersion: number };
+  },
+): Promise<
+  | { outcome: 'written'; seriesId: string }
+  | { outcome: 'conflict'; answer: TrainerConflictAnswer }
+  | { outcome: 'stale' }
+> {
+  const scope = c.get('scope');
+  const { stored, dates, applied, guard } = input;
+  // The calendar is kept 12 weeks ahead from the series that now runs: dates that are missing
+  // are made, the ones that exist are never touched. Read now, so the double-booking check
+  // sees them too.
+  const through = applied.materializedUntil;
+  const missing = materialize(applied.later, dates, {
+    from: applied.later.startsOn,
+    to: through,
+  });
+
+  // A date that moves to a time or a trainer that is busy warns (PS-07), the dates this save
+  // moves not at their old time; a date that stays, a cancelled one and a capacity change alone
+  // never do.
+  const before = new Map(dates.map((date) => [date.id, date]));
+  const doubleBooked = await checkDoubleBooking(c, {
+    allowConflicts: input.allowConflicts,
+    surface: input.surface,
+    moving: applied.updates.map((update) => update.sessionId),
+    slots: [
+      ...applied.updates.flatMap((update) => {
+        const old = before.get(update.sessionId);
+        const moved =
+          old !== undefined &&
+          old.status !== 'cancelled' &&
+          (old.startsAt.getTime() !== update.startsAt.getTime() ||
+            old.endsAt.getTime() !== update.endsAt.getTime() ||
+            old.trainerProfileId !== update.trainerProfileId);
+        return moved && update.trainerProfileId
+          ? [
+              {
+                trainerProfileId: update.trainerProfileId,
+                startsAt: update.startsAt,
+                endsAt: update.endsAt,
+                sessionId: update.sessionId,
+              },
+            ]
+          : [];
+      }),
+      ...(applied.later.trainerProfileId
+        ? missing.toInsert.map((occurrence) => ({
+            trainerProfileId: applied.later.trainerProfileId as string,
+            startsAt: occurrence.startsAt,
+            endsAt: occurrence.endsAt,
+          }))
+        : []),
+    ],
+  });
+  if (doubleBooked) return { outcome: 'conflict', answer: doubleBooked };
+
+  // The domain checked every date up to `through`, so none is dropped when the calendar is filled.
+  const seriesVersion = 'seriesVersion' in guard ? guard.seriesVersion : undefined;
+  let seriesId = stored.id;
+  if (applied.split) {
+    const later = await createClassSeries(scope, {
+      groupClassId: stored.groupClassId,
+      rrule: applied.later.rrule,
+      localStartTime: applied.later.localStartTime,
+      durationMinutes: applied.later.durationMinutes,
+      timeZone: applied.later.timeZone,
+      trainerProfileId: applied.later.trainerProfileId,
+      capacity: applied.later.capacity,
+      startsOn: applied.later.startsOn,
+      endsOn: applied.later.endsOn,
+      materializedUntil: through,
+    });
+    const ended = await updateClassSeries(
+      scope,
+      stored.id,
+      { endsOn: applied.earlierEndsOn ?? undefined },
+      seriesVersion,
+    );
+    if (!ended) return { outcome: 'stale' };
+    await moveDatesToSeries(scope, applied.moves, later.id);
+    seriesId = later.id;
+  } else {
+    const updated = await updateClassSeries(
+      scope,
+      stored.id,
+      {
+        localStartTime: applied.later.localStartTime,
+        durationMinutes: applied.later.durationMinutes,
+        trainerProfileId: applied.later.trainerProfileId,
+        capacity: applied.later.capacity,
+        materializedUntil: through,
+      },
+      seriesVersion,
+    );
+    if (!updated) return { outcome: 'stale' };
+  }
+  const staleDates = await updateSeriesDates(
+    scope,
+    applied.updates.map((update) => ({
+      sessionId: update.sessionId,
+      startsAt: update.startsAt,
+      endsAt: update.endsAt,
+      trainerProfileId: update.trainerProfileId,
+      capacity: update.capacity,
+      detachedFields: update.detachedFields,
+      ...('sessionId' in guard && update.sessionId === guard.sessionId
+        ? { version: guard.sessionVersion }
+        : {}),
+    })),
+  );
+  if (staleDates.length > 0) return { outcome: 'stale' };
+
+  const actor = await findOwnTeamMember(scope);
+  const locations = await listLocations(scope);
+  await createSeriesDates(
+    scope,
+    seriesId,
+    stored.groupClassId,
+    missing.toInsert.map((occurrence) => ({
+      occurrenceDate: occurrence.occurrenceDate,
+      locationId: defaultLocation({ locations }).id,
+      startsAt: occurrence.startsAt,
+      endsAt: occurrence.endsAt,
+      trainerProfileId: applied.later.trainerProfileId,
+      capacity: applied.later.capacity,
+      createdByTeamMemberId: actor?.id ?? null,
+    })),
+  );
+  return { outcome: 'written', seriesId };
 }
 
 /** The series fields of an edit, in the order of `DETACHABLE_FIELDS`. */
@@ -1167,6 +1482,94 @@ export function registerGroupClasses(app: OpenAPIHono) {
     return c.json(found.map(shownSeries), 200);
   });
 
+  router.openapi(updateGroupClassSeriesRoute, async (c) => {
+    const scope = c.get('scope');
+    const { classId, seriesId } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const { clock, productEvents } = c.get('dependencies');
+    const stored = await findClassSeries(scope, seriesId);
+    const workspace = await findWorkspace(scope);
+    if (!stored || !workspace || stored.groupClassId !== classId) return c.json(NOT_FOUND, 404);
+    // A save from an old version never gets as far as the rules.
+    if (stored.version !== body.version) {
+      return c.json({ code: 'series_changed' as const, series: shownSeries(stored) }, 409);
+    }
+    const trainer = await namedTrainer(scope, body.trainerId);
+    if (trainer === 'unknown') return c.json(NOT_FOUND, 404);
+
+    const dates = await listSeriesDates(scope, stored.id);
+    const decision = applyToUpcomingDates(
+      stored,
+      {
+        ...(body.localStartTime === undefined ? {} : { localStartTime: body.localStartTime }),
+        ...(body.durationMinutes === undefined ? {} : { durationMinutes: body.durationMinutes }),
+        ...(body.capacity === undefined ? {} : { capacity: body.capacity }),
+        ...(trainer === undefined ? {} : { trainerProfileId: trainer?.trainerProfileId ?? null }),
+      },
+      dates.map((date) => ({
+        id: date.id,
+        occurrenceDate: date.occurrenceDate,
+        detachedFields: inFieldOrder(date.detachedFields),
+        cancelled: date.status === 'cancelled',
+        startsAt: date.startsAt,
+        endsAt: date.endsAt,
+        trainerProfileId: date.trainerProfileId,
+        capacity: date.capacity,
+      })),
+      clock.now(),
+    );
+    if (decision.outcome === 'unchanged') {
+      return c.json({ ...shownSeries(stored), keptDates: decision.keptDates }, 200);
+    }
+    if (decision.outcome === 'refused') {
+      switch (decision.reason) {
+        case 'time-does-not-exist':
+          return c.json(invalid('localStartTime', 'time_does_not_exist', decision.date), 400);
+        case 'invalid-time':
+          return c.json(invalid('localStartTime', 'invalid_time'), 400);
+        case 'invalid-duration':
+          return c.json(invalid('durationMinutes', 'invalid_duration'), 400);
+        case 'no-upcoming-dates':
+          return c.json(invalid('seriesId', 'no_upcoming_dates'), 400);
+        default:
+          throw new Error(
+            `A refusal the request rules out reached the handler: ${decision.reason}.`,
+          );
+      }
+    }
+
+    const written = await writeSeriesChange(c, {
+      stored,
+      dates,
+      applied: decision,
+      allowConflicts: body.allowConflicts,
+      surface: body.surface,
+      guard: { seriesVersion: body.version },
+    });
+    if (written.outcome === 'conflict') return c.json(written.answer, 409);
+    if (written.outcome === 'stale') {
+      // Lost a race with another save between the read and the write: show what won.
+      const latest = await findClassSeries(scope, seriesId);
+      if (!latest) return c.json(NOT_FOUND, 404);
+      return c.json({ code: 'series_changed' as const, series: shownSeries(latest) }, 409);
+    }
+
+    const running = await findClassSeries(scope, written.seriesId);
+    if (!running) return c.json(NOT_FOUND, 404);
+    const surface = surfaceOf(c.req.header('authorization'), body.surface);
+    if (surface !== undefined) {
+      const distinctId = c.get('account').id;
+      c.get('afterCommit')(() =>
+        productEvents.track({
+          event: 'class_series_changed',
+          distinctId,
+          properties: { workspace_id: scope.workspaceId, surface },
+        }),
+      );
+    }
+    return c.json({ ...shownSeries(running), keptDates: decision.keptDates }, 200);
+  });
+
   router.openapi(updateGroupClassDateRoute, async (c) => {
     const scope = c.get('scope');
     const { sessionId } = c.req.valid('param');
@@ -1251,116 +1654,21 @@ export function registerGroupClasses(app: OpenAPIHono) {
         }
       }
 
-      // The calendar is kept 12 weeks ahead from the series that now runs: dates that are missing
-      // are made, the ones that exist are never touched. Read now, so the double-booking check
-      // sees them too.
-      const through = applied.materializedUntil;
-      const missing = materialize(applied.later, dates, {
-        from: applied.later.startsOn,
-        to: through,
-      });
-
-      // A date that moves to a time its trainer is busy at warns (PS-07), the dates this save
-      // moves not at their old time; a date that stays, a cancelled one and a capacity change alone
-      // never do.
-      const before = new Map(dates.map((date) => [date.id, date]));
-      const doubleBooked = await checkDoubleBooking(c, {
+      const written = await writeSeriesChange(c, {
+        stored,
+        dates,
+        applied,
         allowConflicts: body.allowConflicts,
         surface: body.surface,
-        moving: applied.updates.map((update) => update.sessionId),
-        slots: [
-          ...applied.updates.flatMap((update) => {
-            const old = before.get(update.sessionId);
-            const moved =
-              old !== undefined &&
-              old.status !== 'cancelled' &&
-              (old.startsAt.getTime() !== update.startsAt.getTime() ||
-                old.endsAt.getTime() !== update.endsAt.getTime());
-            return moved && update.trainerProfileId
-              ? [
-                  {
-                    trainerProfileId: update.trainerProfileId,
-                    startsAt: update.startsAt,
-                    endsAt: update.endsAt,
-                    sessionId: update.sessionId,
-                  },
-                ]
-              : [];
-          }),
-          ...(applied.later.trainerProfileId
-            ? missing.toInsert.map((occurrence) => ({
-                trainerProfileId: applied.later.trainerProfileId as string,
-                startsAt: occurrence.startsAt,
-                endsAt: occurrence.endsAt,
-              }))
-            : []),
-        ],
+        guard: { sessionId, sessionVersion: body.version },
       });
-      if (doubleBooked) return c.json(doubleBooked, 409);
-
-      // Every change below is rolled back with the request when it ends in a refusal (the `409`).
-      // The domain checked every date up to `through`, so none is dropped when the calendar is filled.
-      let seriesId = stored.id;
-      if (applied.split) {
-        const later = await createClassSeries(scope, {
-          groupClassId: stored.groupClassId,
-          rrule: applied.later.rrule,
-          localStartTime: applied.later.localStartTime,
-          durationMinutes: applied.later.durationMinutes,
-          timeZone: applied.later.timeZone,
-          trainerProfileId: applied.later.trainerProfileId,
-          capacity: applied.later.capacity,
-          startsOn: applied.later.startsOn,
-          endsOn: applied.later.endsOn,
-          materializedUntil: through,
-        });
-        await updateClassSeries(scope, stored.id, { endsOn: applied.earlierEndsOn ?? undefined });
-        await moveDatesToSeries(scope, applied.moves, later.id);
-        seriesId = later.id;
-      } else {
-        await updateClassSeries(scope, stored.id, {
-          localStartTime: applied.later.localStartTime,
-          durationMinutes: applied.later.durationMinutes,
-          trainerProfileId: applied.later.trainerProfileId,
-          capacity: applied.later.capacity,
-          materializedUntil: through,
-        });
-      }
-      const staleDates = await updateSeriesDates(
-        scope,
-        applied.updates.map((update) => ({
-          sessionId: update.sessionId,
-          startsAt: update.startsAt,
-          endsAt: update.endsAt,
-          trainerProfileId: update.trainerProfileId,
-          capacity: update.capacity,
-          detachedFields: update.detachedFields,
-          ...(update.sessionId === sessionId ? { version: body.version } : {}),
-        })),
-      );
-      if (staleDates.length > 0) {
+      if (written.outcome === 'conflict') return c.json(written.answer, 409);
+      if (written.outcome === 'stale') {
         // Lost a race with another save between the read and the write: show what won.
         const latest = await findSession(scope, sessionId);
         if (!latest) return c.json(NOT_FOUND, 404);
         return c.json(changed(latest), 409);
       }
-
-      const actor = await findOwnTeamMember(scope);
-      const locations = await listLocations(scope);
-      await createSeriesDates(
-        scope,
-        seriesId,
-        stored.groupClassId,
-        missing.toInsert.map((occurrence) => ({
-          occurrenceDate: occurrence.occurrenceDate,
-          locationId: defaultLocation({ locations }).id,
-          startsAt: occurrence.startsAt,
-          endsAt: occurrence.endsAt,
-          trainerProfileId: applied.later.trainerProfileId,
-          capacity: applied.later.capacity,
-          createdByTeamMemberId: actor?.id ?? null,
-        })),
-      );
 
       const latest = await findSession(scope, sessionId);
       if (!latest) return c.json(NOT_FOUND, 404);

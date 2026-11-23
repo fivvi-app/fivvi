@@ -211,6 +211,32 @@ const aClassWithASeries: IsolationCase['seed'] = async (db, { workspaceId }) => 
   return { class: groupClassId, series: id };
 };
 
+/**
+ * A class of the workspace the seed was called for with a weekly series that has one date to come:
+ * what the series edit changes (F022). The date is the next Tuesday at least a week from now, as
+ * the API runs on the real clock.
+ */
+const aClassWithASeriesAndADate: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const day = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  day.setUTCDate(day.getUTCDate() + ((2 - day.getUTCDay() + 7) % 7));
+  const occurrenceDate = day.toISOString().slice(0, 10);
+  const { id, groupClassId } = await addClassSeries(db, {
+    workspaceId,
+    startsOn: occurrenceDate,
+    materializedUntil: occurrenceDate,
+    endsOn: null,
+  });
+  await addSession(db, {
+    workspaceId,
+    type: 'group',
+    groupClassId,
+    participant: false,
+    series: { id, occurrenceDate },
+    startsAt: new Date(`${occurrenceDate}T17:00:00Z`),
+  });
+  return { class: groupClassId, series: id };
+};
+
 /** An offer of the workspace the seed was called for: what the offer routes list, read and change (F052). */
 const anOffer: IsolationCase['seed'] = async (db, { workspaceId }) => {
   const { id } = await addOffer(db, { workspaceId });
@@ -649,6 +675,14 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     seed: aGroupDate,
     reseedForEachCall: true,
     params: { sessionId: 'session' },
+    body: { version: 1, capacity: 9 },
+  },
+
+  // The weekly series of a class (F022): the edit names the seeded series and the version it starts at.
+  updateGroupClassSeries: {
+    seed: aClassWithASeriesAndADate,
+    reseedForEachCall: true,
+    params: { classId: 'class', seriesId: 'series' },
     body: { version: 1, capacity: 9 },
   },
 
