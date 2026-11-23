@@ -395,7 +395,7 @@ Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`
 | EM-10 ⚑ | Je valt in: {class} op {date} | You're covering: {class} on {date} | Trainer | Substitution (CO-02). **Not in `§51`**, see [QE01](open-questions.md#qe01) | F024 |
 | EM-11 ⚑ | Nieuwe afspraak: {date} om {time} | New appointment: {date} at {time} | Client | A private session is planned (PS-01). **Not in `§51`**, see [QE02](open-questions.md#qe02) | F020 |
 | EM-12 | Je training staat klaar, {client} | Your workout is ready, {client} | Client | The trainer confirms the share (WL-08, M7); `§51` | F045 |
-| EM-13 | Andere trainer: je sessie op {date} / {class} op {date} | New trainer: your session on {date} / {class} on {date} | Client | A trainer change or a substitution (owner decision, 4 November 2026) | F023, F024 |
+| EM-13 | Andere trainer: je sessie op {date} / Andere trainer: {class} op {date} / Andere trainer: {class} vanaf {date} | New trainer: your session on {date} / New trainer: {class} on {date} / New trainer: {class} from {date} | Client | A trainer change or a substitution (owner decision, 4 November 2026) | F023, F024 |
 | EM-14 | {workspace} heeft je toegevoegd als klant | {workspace} added you as a client | Client | A client invitation | F032 |
 | EM-15 | Nieuw aanmeldverzoek van {name} | New join request from {name} | Owner | A join request arrives | F029 |
 | EM-16 | Je aanmeldverzoek bij {workspace} | Your join request to {workspace} | Client | The request is declined (short, neutral) | F029 |

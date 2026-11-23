@@ -442,6 +442,23 @@
       "subject": "Your sign-in code for Fivvi",
       "validity": "The code and the sign-in link work for {minutes, plural, one {# minute} other {# minutes}}."
     },
+    "trainerChange": {
+      "classDatesPreview": "{class} has a new {word} from {date}.",
+      "classDatesSubject": "New trainer: {class} from {date}",
+      "classIntro": "The {word} of {class} at {workspace} has changed.",
+      "classPreview": "{class} on {date} has a new {word}.",
+      "classSubject": "New trainer: {class} on {date}",
+      "dateElsewhere": "{date}, {start} to {end}, {location}",
+      "dateLine": "{date}, {start} to {end}",
+      "datesIntro": "This applies to:",
+      "nothingElse": "Nothing else changes.",
+      "privateIntro": "The {word} of your private session at {workspace} has changed.",
+      "privatePreview": "Your private session on {date} has a new {word}.",
+      "privateSubject": "New trainer: your session on {date}",
+      "trainerNow": "You'll now train with {trainer}.",
+      "when": "When: {date}, {start} to {end}",
+      "where": "Where: {location}"
+    },
     "trainerInvitation": {
       "button": "View invitation",
       "ignore": "Not expecting this email? You can ignore it.",
