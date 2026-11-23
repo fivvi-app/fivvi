@@ -189,6 +189,14 @@ export const updateDate = (
   body: unknown,
 ) => call(server, 'PATCH', `/v1/workspaces/${workspaceId}/sessions/${sessionId}`, who, body);
 
+/** How many dates from a date of a series on keep their own changes (F022, CO-04, before saving). */
+export const readKeptDates = (
+  server: GroupClassServer,
+  workspaceId: string,
+  sessionId: string,
+  who?: { id: string },
+) => call(server, 'GET', `/v1/workspaces/${workspaceId}/sessions/${sessionId}/kept-dates`, who);
+
 /** Kracht / Strength with Sarah, 8, 60 minutes, as John's form sends it (AC1). */
 export const kracht = (trainerId?: string) => ({
   nameNl: 'Kracht',

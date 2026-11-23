@@ -1,6 +1,11 @@
 import { AMSTERDAM } from '@fivvi/testing/clock';
 import { describe, expect, it } from 'vitest';
-import { applyThisAndFollowing, type SeriesDate, type SeriesState } from './apply-following.ts';
+import {
+  applyThisAndFollowing,
+  countKeptDates,
+  type SeriesDate,
+  type SeriesState,
+} from './apply-following.ts';
 import { wallClockToInstant } from './zoned-time.ts';
 
 // Kracht every Tuesday 18:00 with Sarah, 8 places, from 6 October 2026, 12 dates made.
@@ -284,4 +289,58 @@ describe('F022 AC5: this and following', () => {
       ).toEqual({ outcome: 'refused', reason: 'invalid-duration' });
     },
   );
+});
+
+describe('F022 AC5: the dates that keep their own changes, counted before saving (CO-04)', () => {
+  it('AC5: 13 October with 20 October changed on its own: 1', () => {
+    expect(
+      countKeptDates(existing({ '2026-10-20': { detachedFields: ['time'] } }), '2026-10-13'),
+    ).toBe(1);
+  });
+
+  it('is 0 when no date was changed on its own', () => {
+    expect(countKeptDates(existing(), '2026-10-13')).toBe(0);
+  });
+
+  it('does not count a date before the chosen one', () => {
+    expect(
+      countKeptDates(existing({ '2026-10-06': { detachedFields: ['capacity'] } }), '2026-10-13'),
+    ).toBe(0);
+  });
+
+  it('does not count the chosen date: it takes the change', () => {
+    expect(
+      countKeptDates(existing({ '2026-10-13': { detachedFields: ['time'] } }), '2026-10-13'),
+    ).toBe(0);
+  });
+
+  it('counts the chosen date when the Owner named no date (a whole series)', () => {
+    expect(
+      countKeptDates(existing({ '2026-10-13': { detachedFields: ['time'] } }), '2026-10-13', {
+        fromDateIsAsked: false,
+      }),
+    ).toBe(1);
+  });
+
+  it('counts each date once, however many fields it has of its own', () => {
+    expect(
+      countKeptDates(
+        existing({
+          '2026-10-20': { detachedFields: ['time', 'capacity'] },
+          '2026-11-03': { detachedFields: ['trainer'] },
+        }),
+        '2026-10-13',
+      ),
+    ).toBe(2);
+  });
+
+  it('is the count the save reports', () => {
+    const dates = existing({
+      '2026-10-20': { detachedFields: ['time'] },
+      '2026-11-03': { detachedFields: ['capacity'], cancelled: true },
+    });
+    const result = applyThisAndFollowing(KRACHT, '2026-10-13', { capacity: 10 }, dates, TODAY);
+    if (result.outcome !== 'applied') throw new Error('expected it to apply');
+    expect(countKeptDates(dates, '2026-10-13')).toBe(result.keptDates);
+  });
 });

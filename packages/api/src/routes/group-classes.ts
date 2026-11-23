@@ -28,6 +28,7 @@ import {
   type ApplyFollowingDecision,
   applyThisAndFollowing,
   applyToUpcomingDates,
+  countKeptDates,
   DETACHABLE_FIELDS,
   type DetachedField,
   decideGroupDateEdit,
@@ -41,6 +42,7 @@ import {
   parseWeeklyRule,
   planWeeklySeries,
   type SeriesChange,
+  type SeriesDate,
   scheduleClassOnDate,
 } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
@@ -578,6 +580,24 @@ const UpdatedClassSeriesSchema = ClassSeriesSchema.extend({
   description: 'The series as it now runs, and how many dates kept their own changes.',
 });
 
+const KeptClassDatesSchema = z
+  .object({
+    sessionId: z.uuid().openapi({ description: 'The date the count is read from.' }),
+    keptDates: z
+      .number()
+      .int()
+      .openapi({
+        description:
+          'How many dates after this one, in the same series, were changed on their own and ' +
+          'would keep those changes when the series is changed from this date on (CO-04, ' +
+          '“1 les heeft eigen wijzigingen en blijft zoals hij is”): the number the save ' +
+          'with `scope: following` answers as `keptDates`. This date itself is not counted.',
+      }),
+  })
+  .openapi('KeptClassDates', {
+    description: 'How many dates a change from this date on would leave as they are.',
+  });
+
 // The `409` of a series edit is one object, as for a date (`ClassDateRefusalSchema`).
 const ClassSeriesRefusalSchema = z
   .object({
@@ -864,6 +884,34 @@ const updateGroupClassSeriesRoute = defineRoute(
           'trainer already has something at the new time (`trainer_conflict`); nothing was written.',
         content: { 'application/json': { schema: ClassSeriesRefusalSchema } },
       },
+      500: internalServerErrorResponse,
+    },
+  },
+  manageClasses,
+);
+
+const getKeptClassDatesRoute = defineRoute(
+  {
+    method: 'get',
+    path: '/v1/workspaces/{workspaceId}/sessions/{sessionId}/kept-dates',
+    operationId: 'getKeptClassDates',
+    tags: ['group-classes'],
+    summary: 'How many dates keep their own changes from a date on',
+    description:
+      'Before the Owner saves a date with `scope: following` (CO-04, *Deze en volgende ' +
+      'lessen*), says how many of the series’ dates after this one were changed on their own ' +
+      'and would stay as they are: the same count the save answers as `keptDates`, read without ' +
+      'writing anything (the Owner only; a Trainer gets `403`). A session that is not a class ' +
+      'date of the workspace (a private session too) answers `404`; a class date that is in no ' +
+      'series answers `400` on `sessionId` (`not_in_series`).',
+    security: SIGNED_IN,
+    request: { params: SessionParamsSchema },
+    responses: {
+      200: {
+        description: 'How many dates keep their own changes.',
+        content: { 'application/json': { schema: KeptClassDatesSchema } },
+      },
+      400: validationErrorResponse,
       500: internalServerErrorResponse,
     },
   },
@@ -1192,6 +1240,19 @@ async function writeSeriesChange(
 }
 
 /** The series fields of an edit, in the order of `DETACHABLE_FIELDS`. */
+/** The dates of a series as the rules read them. */
+const seriesDatesOf = (rows: readonly SeriesDateRow[]): SeriesDate[] =>
+  rows.map((date) => ({
+    id: date.id,
+    occurrenceDate: date.occurrenceDate,
+    detachedFields: inFieldOrder(date.detachedFields),
+    cancelled: date.status === 'cancelled',
+    startsAt: date.startsAt,
+    endsAt: date.endsAt,
+    trainerProfileId: date.trainerProfileId,
+    capacity: date.capacity,
+  }));
+
 const inFieldOrder = (fields: readonly string[]): DetachedField[] =>
   DETACHABLE_FIELDS.filter((field) => fields.includes(field));
 
@@ -1506,16 +1567,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
         ...(body.capacity === undefined ? {} : { capacity: body.capacity }),
         ...(trainer === undefined ? {} : { trainerProfileId: trainer?.trainerProfileId ?? null }),
       },
-      dates.map((date) => ({
-        id: date.id,
-        occurrenceDate: date.occurrenceDate,
-        detachedFields: inFieldOrder(date.detachedFields),
-        cancelled: date.status === 'cancelled',
-        startsAt: date.startsAt,
-        endsAt: date.endsAt,
-        trainerProfileId: date.trainerProfileId,
-        capacity: date.capacity,
-      })),
+      seriesDatesOf(dates),
       clock.now(),
     );
     if (decision.outcome === 'unchanged') {
@@ -1568,6 +1620,22 @@ export function registerGroupClasses(app: OpenAPIHono) {
       );
     }
     return c.json({ ...shownSeries(running), keptDates: decision.keptDates }, 200);
+  });
+
+  router.openapi(getKeptClassDatesRoute, async (c) => {
+    const scope = c.get('scope');
+    const { sessionId } = c.req.valid('param');
+    const current = await findSession(scope, sessionId);
+    if (current?.type !== 'group') return c.json(NOT_FOUND, 404);
+    if (!current.series) return c.json(invalid('sessionId', 'not_in_series'), 400);
+    const dates = await listSeriesDates(scope, current.series.id);
+    return c.json(
+      {
+        sessionId: current.id,
+        keptDates: countKeptDates(seriesDatesOf(dates), current.series.occurrenceDate),
+      },
+      200,
+    );
   });
 
   router.openapi(updateGroupClassDateRoute, async (c) => {
@@ -1627,16 +1695,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
         stored,
         series.occurrenceDate,
         change,
-        dates.map((date) => ({
-          id: date.id,
-          occurrenceDate: date.occurrenceDate,
-          detachedFields: inFieldOrder(date.detachedFields),
-          cancelled: date.status === 'cancelled',
-          startsAt: date.startsAt,
-          endsAt: date.endsAt,
-          trainerProfileId: date.trainerProfileId,
-          capacity: date.capacity,
-        })),
+        seriesDatesOf(dates),
         today,
       );
       if (applied.outcome === 'refused') {

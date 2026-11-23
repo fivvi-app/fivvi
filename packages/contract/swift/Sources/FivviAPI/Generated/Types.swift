@@ -340,6 +340,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/series/{seriesId}/patch(updateGroupClassSeries)`.
     func updateGroupClassSeries(_ input: Operations.UpdateGroupClassSeries.Input) async throws -> Operations.UpdateGroupClassSeries.Output
+    /// How many dates keep their own changes from a date on
+    ///
+    /// Before the Owner saves a date with `scope: following` (CO-04, *Deze en volgende lessen*), says how many of the series’ dates after this one were changed on their own and would stay as they are: the same count the save answers as `keptDates`, read without writing anything (the Owner only; a Trainer gets `403`). A session that is not a class date of the workspace (a private session too) answers `404`; a class date that is in no series answers `400` on `sessionId` (`not_in_series`).
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}/kept-dates`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/kept-dates/get(getKeptClassDates)`.
+    func getKeptClassDates(_ input: Operations.GetKeptClassDates.Input) async throws -> Operations.GetKeptClassDates.Output
     /// The join link of a workspace
     ///
     /// The workspace’s join link in full and when it was last renewed. The Owner and the Trainers may read it, to send it to a new client; a client of the workspace gets `403`, a person with no place in it `404`.
@@ -1193,6 +1200,21 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// How many dates keep their own changes from a date on
+    ///
+    /// Before the Owner saves a date with `scope: following` (CO-04, *Deze en volgende lessen*), says how many of the series’ dates after this one were changed on their own and would stay as they are: the same count the save answers as `keptDates`, read without writing anything (the Owner only; a Trainer gets `403`). A session that is not a class date of the workspace (a private session too) answers `404`; a class date that is in no series answers `400` on `sessionId` (`not_in_series`).
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}/kept-dates`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/kept-dates/get(getKeptClassDates)`.
+    public func getKeptClassDates(
+        path: Operations.GetKeptClassDates.Input.Path,
+        headers: Operations.GetKeptClassDates.Input.Headers = .init()
+    ) async throws -> Operations.GetKeptClassDates.Output {
+        try await getKeptClassDates(Operations.GetKeptClassDates.Input(
+            path: path,
+            headers: headers
         ))
     }
     /// The join link of a workspace

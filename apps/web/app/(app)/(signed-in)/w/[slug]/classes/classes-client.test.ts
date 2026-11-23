@@ -3,6 +3,7 @@ import {
   createClass,
   editClassDate,
   editClassSeries,
+  loadKeptDates,
   loadScheduleContext,
   loadTrainers,
   scheduleClassDate,
@@ -619,6 +620,32 @@ describe('F021 TW-03 classes client', () => {
       });
       expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toMatchObject({
         scope: 'following',
+      });
+    });
+
+    describe('loadKeptDates (CO-04, before saving)', () => {
+      it('AC5: reads how many dates from this one on keep their own changes, from the API alone', async () => {
+        const fetchFn = reply(200, { keptDates: 1 });
+
+        expect(await loadKeptDates('w1', 's1', fetchFn)).toEqual({ ok: true, keptDates: 1 });
+
+        expect(fetchFn).toHaveBeenCalledTimes(1);
+        expect(String(fetchFn.mock.calls[0]?.[0])).toBe(
+          '/api/v1/workspaces/w1/sessions/s1/kept-dates',
+        );
+      });
+
+      it('AC5: says nothing when the count cannot be read: a refusal, a date in no series or no connection', async () => {
+        expect(await loadKeptDates('w1', 's1', reply(403))).toEqual({ ok: false });
+        expect(await loadKeptDates('w1', 's1', reply(400))).toEqual({ ok: false });
+        expect(await loadKeptDates('w1', 's1', reply(200, {}))).toEqual({ ok: false });
+        expect(
+          await loadKeptDates(
+            'w1',
+            's1',
+            vi.fn<typeof fetch>(() => Promise.reject(new Error('offline'))),
+          ),
+        ).toEqual({ ok: false });
       });
     });
 

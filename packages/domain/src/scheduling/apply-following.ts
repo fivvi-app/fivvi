@@ -92,6 +92,26 @@ export type ApplyFollowingDecision =
     };
 
 /**
+ * How many dates from `fromDate` on keep their own changes when the series changes: those with a
+ * field of their own (`detachedFields`), cancelled or not. The save counts them (`keptDates`) and
+ * CO-04 says the number before saving, both from here. The chosen date takes the change, so it is
+ * not counted, unless the Owner named no date (`fromDateIsAsked: false`, a whole series).
+ */
+export function countKeptDates(
+  existing: readonly SeriesDate[],
+  fromDate: string,
+  options: { readonly fromDateIsAsked?: boolean } = {},
+): number {
+  const fromDateIsAsked = options.fromDateIsAsked ?? true;
+  return existing.filter(
+    (date) =>
+      date.occurrenceDate >= fromDate &&
+      !(fromDateIsAsked && date.occurrenceDate === fromDate) &&
+      date.detachedFields.length > 0,
+  ).length;
+}
+
+/**
  * Applies `change` to the series from `fromDate` (a date of the series) on. Dates that were
  * changed on their own (any detached field), and cancelled ones, are left as they are; the chosen
  * date always takes the change, as the Owner asked for it there (a field of its own that the change
@@ -148,10 +168,9 @@ export function applyThisAndFollowing(
   const planned = new Map(expansion.occurrences.map((o) => [o.occurrenceDate, o]));
 
   const updates: DateUpdate[] = [];
-  let keptDates = 0;
+  const keptDates = countKeptDates(reached, fromDate, options);
   for (const date of reached) {
     const isChosen = (options.fromDateIsAsked ?? true) && date.occurrenceDate === fromDate;
-    if (!isChosen && date.detachedFields.length > 0) keptDates += 1;
     if (!isChosen && (date.cancelled || date.detachedFields.length > 0)) continue;
     const occurrence = planned.get(date.occurrenceDate);
     if (!occurrence) continue;

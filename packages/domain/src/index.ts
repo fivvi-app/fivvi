@@ -311,6 +311,7 @@ export {
 export {
   type ApplyFollowingDecision,
   applyThisAndFollowing,
+  countKeptDates,
   type DateUpdate,
   DETACHABLE_FIELDS,
   type DetachedField,

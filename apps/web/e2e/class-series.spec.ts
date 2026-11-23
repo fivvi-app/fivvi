@@ -319,6 +319,62 @@ test.describe('F022 weekly classes on the web', () => {
     expect(stored.map(({ capacity }) => capacity)).toEqual([10, 6, 10, 10]);
   });
 
+  test('AC5: the dialog counts dates with their own changes before Opslaan, and says nothing when there are none', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const kracht = await seedClass(page.request, workspaceId);
+    const [first, second, third] = await seedSeries(page.request, workspaceId, kracht.id);
+    if (!first || !second || !third) throw new Error('The series has fewer than three dates.');
+    const sentence =
+      appLocale === 'en'
+        ? '1 class has its own changes and stays as it is.'
+        : '1 les heeft eigen wijzigingen en blijft zoals hij is.';
+    const open = async (sessionId: string) => {
+      await page.goto(`/w/${slug}/classes/${kracht.id}/${sessionId}`);
+      await page.getByRole('button', { name: copy.classes.date.edit }).click();
+      return page.getByRole('dialog', { name: copy.classes.edit.title });
+    };
+
+    /** Chooses Deze en volgende lessen and waits for the count the dialog asks the API for. */
+    const chooseFollowing = async (dialog: ReturnType<typeof page.getByRole>) => {
+      const counted = page.waitForResponse((response) => response.url().includes('/kept-dates'));
+      await dialog.getByRole('radio', { name: copy.classes.edit.scopeFollowing }).check();
+      expect((await counted).status()).toBe(200);
+    };
+
+    // No date was changed on its own: nothing is said.
+    let dialog = await open(first.id);
+    await chooseFollowing(dialog);
+    await expect(dialog.getByRole('status')).toBeEmpty();
+
+    // The second date is changed on its own (capacity 6): choosing Deze en volgende lessen on
+    // the first date says so before Opslaan, and Alleen deze les takes it away again.
+    const own = await page.request.patch(
+      `/api/v1/workspaces/${workspaceId}/sessions/${second.id}`,
+      { data: { version: second.version, capacity: 6 } },
+    );
+    expect(own.status()).toBe(200);
+    dialog = await open(first.id);
+    await expect(dialog.getByText(sentence)).toHaveCount(0);
+    await chooseFollowing(dialog);
+    await expect(dialog.getByText(sentence)).toBeVisible();
+    await expectNoAxeViolations(page, `CO-04 with the count before saving in ${appLocale}`);
+    await dialog.getByRole('radio', { name: copy.classes.edit.scopeThis }).check();
+    await expect(dialog.getByText(sentence)).toHaveCount(0);
+
+    // From the third date on nothing is left to keep.
+    dialog = await open(third.id);
+    await chooseFollowing(dialog);
+    await expect(dialog.getByRole('status')).toBeEmpty();
+  });
+
   test('series edit: John changes the time of the Kracht series to 19:00; upcoming dates follow, a date with its own changes keeps them', async ({
     page,
     context,

@@ -196,6 +196,7 @@ describe('@permission F004 roles on every workspace route', () => {
       'deleteTrainerProfile',
       'getClientBillingDetails',
       'getInvoiceDetails',
+      'getKeptClassDates',
       'getMyBillingDetails',
       'getOffer',
       'getWorkspaceDay',
@@ -216,6 +217,7 @@ describe('@permission F004 roles on every workspace route', () => {
       'scheduleGroupClassDate',
       'updateGroupClass',
       'updateGroupClassDate',
+      'updateGroupClassSeries',
       'updateLocation',
       'updateOffer',
       'withdrawTrainerInvitation',
@@ -332,6 +334,7 @@ describe('@permission F004 roles on every workspace route', () => {
                 ...([
                   'getSession',
                   'getGroupClass',
+                  'getKeptClassDates',
                   'getOffer',
                   'listGroupClassSeries',
                   'deactivateBookingLink',

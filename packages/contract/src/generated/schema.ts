@@ -816,6 +816,26 @@ export interface paths {
         patch: operations["updateGroupClassSeries"];
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/kept-dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How many dates keep their own changes from a date on
+         * @description Before the Owner saves a date with `scope: following` (CO-04, *Deze en volgende lessen*), says how many of the series’ dates after this one were changed on their own and would stay as they are: the same count the save answers as `keptDates`, read without writing anything (the Owner only; a Trainer gets `403`). A session that is not a class date of the workspace (a private session too) answers `404`; a class date that is in no series answers `400` on `sessionId` (`not_in_series`).
+         */
+        get: operations["getKeptClassDates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/join-link": {
         parameters: {
             query?: never;
@@ -2272,6 +2292,16 @@ export interface components {
              * @enum {string}
              */
             surface?: "ios" | "android";
+        };
+        /** @description How many dates a change from this date on would leave as they are. */
+        KeptClassDates: {
+            /**
+             * Format: uuid
+             * @description The date the count is read from.
+             */
+            sessionId: string;
+            /** @description How many dates after this one, in the same series, were changed on their own and would keep those changes when the series is changed from this date on (CO-04, “1 les heeft eigen wijzigingen en blijft zoals hij is”): the number the save with `scope: following` answers as `keptDates`. This date itself is not counted. */
+            keptDates: number;
         };
         /** @description The class date with its changes, and how many other dates kept their own. */
         UpdatedClassDate: components["schemas"]["Session"] & {
@@ -5982,6 +6012,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UpdateClassSeriesRefusal"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getKeptClassDates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The session ID. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How many dates keep their own changes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeptClassDates"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

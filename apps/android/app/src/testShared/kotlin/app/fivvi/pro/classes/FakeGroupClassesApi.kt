@@ -6,6 +6,7 @@ import app.fivvi.api.models.CreateGroupClassRequest
 import app.fivvi.api.models.CreatedGroupClass
 import app.fivvi.api.models.FirstGroupClassDate
 import app.fivvi.api.models.GroupClass
+import app.fivvi.api.models.KeptClassDates
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.ScheduleGroupClassDateRequest
 import app.fivvi.api.models.ScheduledClassDate
@@ -198,6 +199,9 @@ class FakeGroupClassesApi(private val sessions: FakeSessionsApi) : GroupClassesA
         getStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
         return classes[classId]?.let { Response.success(it) } ?: Response.error(404, "{}".toResponseBody(JSON))
     }
+
+    override suspend fun getKeptClassDates(workspaceId: UUID, sessionId: UUID): Response<KeptClassDates> =
+        error("FakeGroupClassesApi.getKeptClassDates is not expected in this test")
 
     override suspend fun listGroupClassSeries(workspaceId: UUID, classId: UUID): Response<List<ClassSeries>> =
         error("FakeGroupClassesApi.listGroupClassSeries is not expected in this test")

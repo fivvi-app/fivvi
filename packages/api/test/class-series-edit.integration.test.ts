@@ -22,6 +22,7 @@ import {
   groupClassWorld,
   kracht,
   listSeries,
+  readKeptDates,
   type SeriesBody,
   scheduleClass,
   setupGroupClassApi,
@@ -500,6 +501,121 @@ describe('F022 editing a whole series through the API', () => {
       Object.entries(events[0]?.properties ?? {}).filter(([key]) => !key.startsWith('$')),
     );
     expect(properties).toEqual({ workspace_id: w.gym.id, surface: 'ios' });
+  });
+
+  describe('#1521 the dates that keep their own changes, counted before saving "this and following"', () => {
+    /** Kracht with 20 October changed on its own (18:30, capacity 6): John is on the 13th. */
+    async function withTwentiethChanged() {
+      const w = await aWeeklyClass();
+      const twentieth = await dateOn(w.gym.id, '2026-10-20');
+      await updateDate(w.server, w.gym.id, twentieth.id, w.john, {
+        version: 1,
+        localStart: '18:30',
+        localEnd: '19:30',
+        capacity: 6,
+        scope: 'this',
+      });
+      return { ...w, thirteenth: await dateOn(w.gym.id, '2026-10-13') };
+    }
+    const keptOf = async (response: Response) =>
+      ((await response.json()) as { keptDates: number }).keptDates;
+
+    it('AC1: from 13 October with 20 October changed on its own the count is 1, as the save then says', async () => {
+      const w = await withTwentiethChanged();
+
+      const response = await readKeptDates(w.server, w.gym.id, w.thirteenth.id, w.john);
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ sessionId: w.thirteenth.id, keptDates: 1 });
+      const saved = await updateDate(w.server, w.gym.id, w.thirteenth.id, w.john, {
+        version: w.thirteenth.version,
+        capacity: 9,
+        scope: 'following',
+      });
+      expect(((await saved.json()) as { keptDates: number }).keptDates).toBe(1);
+    });
+
+    it('AC1: with no date changed on its own the count is 0', async () => {
+      const w = await aWeeklyClass();
+      const thirteenth = await dateOn(w.gym.id, '2026-10-13');
+
+      const response = await readKeptDates(w.server, w.gym.id, thirteenth.id, w.john);
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ sessionId: thirteenth.id, keptDates: 0 });
+    });
+
+    it('AC1: counts only the dates from the chosen one on, not the date itself and not earlier ones', async () => {
+      const w = await withTwentiethChanged();
+      const twentieth = await dateOn(w.gym.id, '2026-10-20');
+      const twentySeventh = await dateOn(w.gym.id, '2026-10-27');
+
+      // From the changed date itself: it takes the change, so nothing else is left to keep.
+      expect(await keptOf(await readKeptDates(w.server, w.gym.id, twentieth.id, w.john))).toBe(0);
+      expect(await keptOf(await readKeptDates(w.server, w.gym.id, twentySeventh.id, w.john))).toBe(
+        0,
+      );
+      expect(await keptOf(await readKeptDates(w.server, w.gym.id, w.thirteenth.id, w.john))).toBe(
+        1,
+      );
+    });
+
+    it('AC1: the read writes nothing', async () => {
+      const w = await withTwentiethChanged();
+      const before = JSON.stringify(await storedDates(w.gym.id));
+
+      await readKeptDates(w.server, w.gym.id, w.thirteenth.id, w.john);
+
+      expect(JSON.stringify(await storedDates(w.gym.id))).toBe(before);
+    });
+
+    it('AC1: a Trainer gets 403, anonymous 401, Mike (another workspace) 404, an unknown date 404', async () => {
+      const w = await withTwentiethChanged();
+      const read = (who?: { id: string }, workspace = w.gym.id, sessionId = w.thirteenth.id) =>
+        readKeptDates(w.server, workspace, sessionId, who);
+
+      expect((await read(w.sarah)).status).toBe(403);
+      expect((await read(undefined)).status).toBe(401);
+      // Mike is the Owner of Fit Studio: John's date is not found through his workspace either.
+      expect((await read(w.mike, w.other.id)).status).toBe(404);
+      expect((await read(w.mike)).status).toBe(404);
+      expect((await read(w.john, w.gym.id, '00000000-0000-4000-8000-000000000000')).status).toBe(
+        404,
+      );
+    });
+
+    it('AC1: a private session is 404 and a class date on its own, in no series, is 400 on sessionId', async () => {
+      const w = await aWeeklyClass();
+      const anna = await addClient(admin.db, { workspaceId: w.gym.id, name: 'Anna de Vries' });
+      const privateSession = await addSession(admin.db, {
+        workspaceId: w.gym.id,
+        clientId: anna.id,
+        trainerProfileId: w.sarahProfile,
+        startsAt: new Date(amsterdam('2026-11-03T12:00')),
+      });
+      const single = (await (
+        await scheduleClass(w.server, w.gym.id, w.groupClass.id, w.john, {
+          localDate: '2026-11-04',
+          localStart: '18:00',
+        })
+      ).json()) as { id: string };
+
+      expect((await readKeptDates(w.server, w.gym.id, privateSession.id, w.john)).status).toBe(404);
+      const alone = await readKeptDates(w.server, w.gym.id, single.id, w.john);
+      expect(alone.status).toBe(400);
+      expect(await alone.json()).toEqual({
+        code: 'validation_failed',
+        issues: [{ path: 'sessionId', code: 'not_in_series' }],
+      });
+    });
+
+    it('AC1: the contract has the read, owner only, and the clients name it', () => {
+      const get =
+        contract.paths['/v1/workspaces/{workspaceId}/sessions/{sessionId}/kept-dates'].get;
+      expect(get.operationId).toBe('getKeptClassDates');
+      expect(get['x-access']).toMatchObject({ capability: 'class.manage' });
+      expect(Object.keys(get.responses)).toEqual(expect.arrayContaining(['200', '400', '404']));
+    });
   });
 
   it('AC4: the contract has the route, owner only, with the 409 and the clients name it', () => {

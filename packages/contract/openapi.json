@@ -2804,6 +2804,25 @@
         ],
         "description": "Changes a whole weekly series (CO-04): the start, length, capacity and trainer of its dates, each only when given."
       },
+      "KeptClassDates": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The date the count is read from."
+          },
+          "keptDates": {
+            "type": "integer",
+            "description": "How many dates after this one, in the same series, were changed on their own and would keep those changes when the series is changed from this date on (CO-04, “1 les heeft eigen wijzigingen en blijft zoals hij is”): the number the save with `scope: following` answers as `keptDates`. This date itself is not counted."
+          }
+        },
+        "required": [
+          "sessionId",
+          "keptDates"
+        ],
+        "description": "How many dates a change from this date on would leave as they are."
+      },
       "UpdatedClassDate": {
         "allOf": [
           {
@@ -9125,6 +9144,119 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UpdateClassSeriesRefusal"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/kept-dates": {
+      "get": {
+        "operationId": "getKeptClassDates",
+        "tags": [
+          "group-classes"
+        ],
+        "summary": "How many dates keep their own changes from a date on",
+        "description": "Before the Owner saves a date with `scope: following` (CO-04, *Deze en volgende lessen*), says how many of the series’ dates after this one were changed on their own and would stay as they are: the same count the save answers as `keptDates`, read without writing anything (the Owner only; a Trainer gets `403`). A session that is not a class date of the workspace (a private session too) answers `404`; a class date that is in no series answers `400` on `sessionId` (`not_in_series`).",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "class.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The session ID."
+            },
+            "required": true,
+            "description": "The session ID.",
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "How many dates keep their own changes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeptClassDates"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
                 }
               }
             }

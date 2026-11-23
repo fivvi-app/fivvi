@@ -21,7 +21,7 @@ import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
 import { type DoubleBooking, DoubleBookingDialog } from '../sessions/double-booking';
 import { useSessionFormat } from '../sessions/use-session-format';
-import { type EditDateResult, editClassDate, type Session } from './classes-client';
+import { type EditDateResult, editClassDate, loadKeptDates, type Session } from './classes-client';
 
 /** What the form shows of a date: its start, its end and its capacity as the person types them. */
 function valuesOf(session: Session) {
@@ -65,6 +65,8 @@ export function EditClassDate({
   const [pending, setPending] = useState(false);
   // *Wijzigen voor* (F022): only for a date of a series.
   const [scope, setScope] = useState<'this' | 'following'>('this');
+  // CO-04, before saving: how many dates from this one on keep their own changes; `null` until read.
+  const [kept, setKept] = useState<number | null>(null);
   // After a save: how many dates kept their own changes, when the series was changed.
   const [saved, setSaved] = useState<{ keptDates: number } | null>(null);
   // PS-07: the sessions the date's trainer already has at the new time; *Terug* keeps the form.
@@ -77,6 +79,22 @@ export function EditClassDate({
     const timer = setTimeout(() => setSaved(null), 8_000);
     return () => clearTimeout(timer);
   }, [saved]);
+
+  // *Deze en volgende lessen*: the API counts the dates that keep their own changes; the screen
+  // only says it. Read each time the choice is made, so it is the count of now.
+  useEffect(() => {
+    if (!open || scope !== 'following') {
+      setKept(null);
+      return;
+    }
+    let current = true;
+    void loadKeptDates(workspaceId, session.id).then((result) => {
+      if (current) setKept(result.ok ? result.keptDates : null);
+    });
+    return () => {
+      current = false;
+    };
+  }, [open, scope, workspaceId, session.id]);
 
   function show(next: Session) {
     setVersion(next.version);
@@ -230,6 +248,10 @@ export function EditClassDate({
                       {option === 'this' ? t('scopeThis') : t('scopeFollowing')}
                     </label>
                   ))}
+                  {/* CO-04: said before Opslaan; nothing when no date keeps its own changes. */}
+                  <div role="status" className="text-sm text-muted-foreground">
+                    {kept !== null && kept > 0 ? <p>{t('kept', { count: kept })}</p> : null}
+                  </div>
                   {errors?.scope ? <ErrorLine>{e(errors.scope)}</ErrorLine> : null}
                 </fieldset>
               ) : null}
