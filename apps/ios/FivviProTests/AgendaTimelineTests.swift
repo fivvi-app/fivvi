@@ -61,6 +61,20 @@ final class AgendaTimelineTests: XCTestCase {
         XCTAssertEqual([byID["kracht"]?.column, byID["kracht"]?.columns], [0, 1])
     }
 
+    func test_F013_design_twoSessionsThatOverlapByAFewMinutesSitSideBySide() throws {
+        // A 60-minute block is drawn over about 57 minutes: by its drawn end alone these would not overlap.
+        let day = [
+            visit("early", "10:00", "11:00"), visit("late", "10:57", "11:57"),
+            visit("first", "13:00", "14:00"), visit("barely", "13:59", "14:59")
+        ]
+        let byID = blocks(try XCTUnwrap(timeline(day)))
+
+        for (one, other) in [("early", "late"), ("first", "barely")] {
+            XCTAssertEqual([byID[one]?.column, byID[other]?.column], [0, 1], "\(one) and \(other)")
+            XCTAssertEqual([byID[one]?.columns, byID[other]?.columns], [2, 2], "\(one) and \(other)")
+        }
+    }
+
     func test_F013_design_aChainOfOverlapsSharesOneWidthAndAFreeColumnIsUsedAgain() throws {
         let day = [visit("one", "09:00", "10:00"), visit("two", "09:30", "10:30"), visit("three", "10:15", "11:00")]
         let byID = blocks(try XCTUnwrap(timeline(day + [visit("next", "11:00", "12:00")])))

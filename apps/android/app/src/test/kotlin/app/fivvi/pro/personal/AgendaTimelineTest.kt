@@ -80,6 +80,24 @@ class AgendaTimelineTest {
     }
 
     @Test
+    fun test_F013_design_twoSessionsThatOverlapByAFewMinutesSitSideBySide() {
+        // A 60-minute block is drawn over about 57 minutes: by its drawn end alone the 13:59 pair would not overlap (the
+        // 10:57 pair overlaps through the rounding up), so that pair is the one that catches it here.
+        val day = listOf(
+            visit("early", "10:00", "11:00"),
+            visit("late", "10:57", "11:57"),
+            visit("first", "13:00", "14:00"),
+            visit("barely", "13:59", "14:59"),
+        )
+        val byId = requireNotNull(timeline(day)).byId()
+
+        for ((one, other) in listOf("early" to "late", "first" to "barely")) {
+            assertEquals(listOf(0, 1), listOf(byId.getValue(id(one)).column, byId.getValue(id(other)).column))
+            assertEquals(listOf(2, 2), listOf(byId.getValue(id(one)).columns, byId.getValue(id(other)).columns))
+        }
+    }
+
+    @Test
     fun test_F013_design_aChainOfOverlapsSharesOneWidthAndAFreeColumnIsUsedAgain() {
         val day = listOf(
             visit("one", "09:00", "10:00"),

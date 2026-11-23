@@ -14,8 +14,8 @@ import kotlin.math.min
  * block sits is decided here (minutes from the first row, its column); the sessions are the API's. All lengths are dp.
  *
  * A block is drawn at least [MINIMUM_HEIGHT] tall, so a title still fits, and that is what decides the columns: two blocks
- * that are drawn over each other sit side by side, also when the sessions themselves don't overlap (a session of 15
- * minutes is drawn as 30). The iOS twin places its blocks by their drawn height the same way (#1556).
+ * that are drawn over each other, or whose sessions overlap, sit side by side, also when the sessions themselves don't
+ * overlap (a session of 15 minutes is drawn as 30). The iOS twin places the same way (#1556).
  */
 data class AgendaTimeline(
     /** The labels of the hour lines, *09:00*, from the first to the last. */
@@ -78,7 +78,13 @@ data class AgendaTimeline(
         return BlockMetrics(block.length, roomAbove, roomBelow)
     }
 
-    private class Placed(val entry: Entry, val start: Int, val end: Int, val drawnEnd: Int)
+    private class Placed(
+        val entry: Entry,
+        val start: Int,
+        val end: Int,
+        /** Where its column ends: the later of its real end and where its drawn block ends, so a clash always shows. */
+        val columnEnd: Int,
+    )
 
     companion object {
         /** One hour of the day is this tall. */
@@ -116,13 +122,13 @@ data class AgendaTimeline(
                 val length =
                     max(1, (Duration.between(entry.startsAt, entry.endsAt).seconds / SECONDS_PER_MINUTE).toInt())
                 val end = min(MINUTES_PER_DAY, start + length)
-                Placed(entry, start, end, start + ceil(drawnMinutes(end - start)).toInt())
+                Placed(entry, start, end, max(end, start + ceil(drawnMinutes(end - start)).toInt()))
             }.sortedWith(compareBy({ it.start }, { it.end }))
 
             val isToday = calendar.day(now) == day
             val nowMinute = calendar.minuteOfDay(now)
             var first = placed.minOf { it.start } / MINUTES_PER_HOUR
-            var last = min(HOURS_PER_DAY, (placed.maxOf { it.drawnEnd } + MINUTES_PER_HOUR - 1) / MINUTES_PER_HOUR)
+            var last = min(HOURS_PER_DAY, (placed.maxOf { it.columnEnd } + MINUTES_PER_HOUR - 1) / MINUTES_PER_HOUR)
             if (isToday) {
                 first = min(first, nowMinute / MINUTES_PER_HOUR)
                 last = max(last, min(HOURS_PER_DAY, nowMinute / MINUTES_PER_HOUR + 1))
@@ -132,13 +138,13 @@ data class AgendaTimeline(
                 hours = (first..last).map { "%02d:00".format(it % HOURS_PER_DAY) },
                 blocks = columns(placed, origin),
                 nowMinutes = if (isToday) nowMinute - origin else null,
-                overflowMinutes = max(0, placed.maxOf { it.drawnEnd } - last * MINUTES_PER_HOUR),
+                overflowMinutes = max(0, placed.maxOf { it.columnEnd } - last * MINUTES_PER_HOUR),
             )
         }
 
         /**
-         * Gives every session a column: sessions whose drawn blocks overlap, one after the other (not only two at the same
-         * moment), share the width of the day among as many columns as the most of them at once need.
+         * Gives every session a column: sessions whose times or drawn blocks overlap, one after the other (not only two at
+         * the same moment), share the width of the day among as many columns as the most of them at once need.
          */
         private fun columns(placed: List<Placed>, origin: Int): List<Block> {
             val blocks = mutableListOf<Block>()
@@ -162,12 +168,12 @@ data class AgendaTimeline(
                 if (column ==
                     columnEnds.size
                 ) {
-                    columnEnds.add(session.drawnEnd)
+                    columnEnds.add(session.columnEnd)
                 } else {
-                    columnEnds[column] = session.drawnEnd
+                    columnEnds[column] = session.columnEnd
                 }
                 group.add(session to column)
-                groupEnd = max(groupEnd, session.drawnEnd)
+                groupEnd = max(groupEnd, session.columnEnd)
             }
             flush()
             return blocks
