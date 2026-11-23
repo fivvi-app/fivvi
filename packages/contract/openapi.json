@@ -2711,7 +2711,7 @@
             "properties": {
               "keptDates": {
                 "type": "integer",
-                "description": "How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft een eigen wijziging en is niet aangepast”)."
+                "description": "How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft eigen wijzigingen en blijft zoals hij is”)."
               }
             },
             "required": [

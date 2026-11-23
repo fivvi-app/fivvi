@@ -4169,14 +4169,14 @@ extension Components {
             public var value1: Components.Schemas.ClassSeries
             /// - Remark: Generated from `#/components/schemas/UpdatedClassSeries/value2`.
             public struct Value2Payload: Codable, Hashable, Sendable {
-                /// How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft een eigen wijziging en is niet aangepast”).
+                /// How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft eigen wijzigingen en blijft zoals hij is”).
                 ///
                 /// - Remark: Generated from `#/components/schemas/UpdatedClassSeries/value2/keptDates`.
                 public var keptDates: Swift.Int
                 /// Creates a new `Value2Payload`.
                 ///
                 /// - Parameters:
-                ///   - keptDates: How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft een eigen wijziging en is niet aangepast”).
+                ///   - keptDates: How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft eigen wijzigingen en blijft zoals hij is”).
                 public init(keptDates: Swift.Int) {
                     self.keptDates = keptDates
                 }

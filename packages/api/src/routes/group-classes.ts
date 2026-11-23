@@ -572,7 +572,7 @@ const UpdatedClassSeriesSchema = ClassSeriesSchema.extend({
     .openapi({
       description:
         'How many dates from the first one that has not started on were changed on their own and ' +
-        'keep those changes (CO-04, “1 les heeft een eigen wijziging en is niet aangepast”).',
+        'keep those changes (CO-04, “1 les heeft eigen wijzigingen en blijft zoals hij is”).',
     }),
 }).openapi('UpdatedClassSeries', {
   description: 'The series as it now runs, and how many dates kept their own changes.',

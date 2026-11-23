@@ -2236,7 +2236,7 @@ export interface components {
         };
         /** @description The series as it now runs, and how many dates kept their own changes. */
         UpdatedClassSeries: components["schemas"]["ClassSeries"] & {
-            /** @description How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft een eigen wijziging en is niet aangepast”). */
+            /** @description How many dates from the first one that has not started on were changed on their own and keep those changes (CO-04, “1 les heeft eigen wijzigingen en blijft zoals hij is”). */
             keptDates: number;
         };
         /** @description Why the series edit was refused; nothing was written. The version refusal (`series_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text. */
