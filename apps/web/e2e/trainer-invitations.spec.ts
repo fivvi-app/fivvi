@@ -210,8 +210,16 @@ test.describe('F011 trainer invitations on the web', () => {
 
     await page.getByRole('button', { name: copy.invitation.accept }).click();
 
-    await expect(page).toHaveURL(`/w/${slug}`);
+    // A Trainer's home is Mijn dag (F013, F014): the invitation opens `/w/{slug}`, which remembers
+    // the workspace and sends her there, inside John's Gym's frame.
+    await expect(page).toHaveURL('/me/day');
+    await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
     await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page
+        .getByRole('navigation', { name: copy.workspaceNav.label })
+        .getByRole('link', { name: copy.workspaceNav.calendar, exact: true }),
+    ).toHaveAttribute('href', `/w/${slug}/calendar`);
     // The data path: Lisa is on the team and her invitation left John's list.
     const members = (await (await page.request.get(`/api/v1/me/workspaces`)).json()) as {
       name: string;
