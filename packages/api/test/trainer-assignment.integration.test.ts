@@ -409,23 +409,63 @@ describe('F023 assigning and changing a trainer through the API', () => {
     expect(stored6.detachedFields).toContain('trainer');
     expect((await dateOn(w.gym.id, '2026-10-13')).trainerProfileId).toBeNull();
     expect(groupClass.id).toBeTruthy();
-    // Same trainer again, an unknown trainer, a cancelled date and a date outside a series.
-    expect((await assign(w, date.id, w.john, { trainerId: w.tomRole.id, version: 2 })).status).toBe(
-      400,
-    );
+    // Same trainer again, an unknown trainer and a date outside a series (a cancelled date and a
+    // date in the past have their own tests below).
+    const same = await assign(w, date.id, w.john, { trainerId: w.tomRole.id, version: 2 });
+    expect(same.status).toBe(400);
+    expect(await same.json()).toMatchObject({
+      issues: [{ path: 'trainerId', code: 'same_trainer' }],
+    });
     expect(
       (await assign(w, date.id, w.john, { trainerId: w.mikeRole.id, version: 2 })).status,
     ).toBe(404);
     const lonely = await boxing(w);
-    expect(
-      (
-        await assign(w, lonely.id, w.john, {
-          trainerId: w.tomRole.id,
-          scope: 'following',
-          version: 1,
-        })
-      ).status,
-    ).toBe(400);
+    const outside = await assign(w, lonely.id, w.john, {
+      trainerId: w.tomRole.id,
+      scope: 'following',
+      version: 1,
+    });
+    expect(outside.status).toBe(400);
+    expect(await outside.json()).toMatchObject({
+      issues: [{ path: 'scope', code: 'not_in_series' }],
+    });
+  });
+
+  it('AC1: a cancelled date answers 409 session_cancelled and keeps its trainer', async () => {
+    const w = await world();
+    const date = await boxing(w);
+    await admin.db.update(sessions).set({ status: 'cancelled' }).where(eq(sessions.id, date.id));
+
+    const response = await assign(w, date.id, w.john, { trainerId: w.tomRole.id, version: 1 });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      code: 'session_cancelled',
+      session: { id: date.id, status: 'cancelled' },
+    });
+    const [row] = await stored(w.gym.id);
+    expect(row).toMatchObject({ id: date.id, status: 'cancelled', trainerProfileId: null });
+  });
+
+  it('AC2: a series change from a date that has begun answers 400 date_in_past and changes nothing', async () => {
+    const w = await world();
+    await kracht_(w);
+    const sixth = await dateOn(w.gym.id, '2026-10-06');
+    const sarah = await profileOf(w.sarahRole.id);
+    // "Now" is Saturday 10 October: 6 October is before today.
+    w.clock.set('2026-10-10T08:00:00.000Z');
+
+    const response = await assign(w, sixth.id, w.john, {
+      trainerId: w.tomRole.id,
+      scope: 'following',
+      version: 1,
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      issues: [{ path: 'scope', code: 'date_in_past' }],
+    });
+    for (const row of await stored(w.gym.id)) expect(row.trainerProfileId).toBe(sarah);
   });
 
   it('AC2: Mike becomes Kracht’s regular trainer from 6 October; dates with their own trainer keep theirs, earlier dates keep Sarah', async () => {

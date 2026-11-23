@@ -2,6 +2,7 @@ import {
   authUsers,
   createDatabase,
   type DatabaseClient,
+  organizations,
   sessionParticipants,
   sessions,
 } from '@fivvi/database';
@@ -217,6 +218,42 @@ describe('F023 the trainer-change email', () => {
       to: { email: 'mark@example.com' },
       subject: 'New trainer: Boxing on Thursday 8 October',
     });
+  });
+
+  it('EM-13: a client with no language of their own gets the email in the workspace’s default language', async () => {
+    const w = await world();
+    await admin.db
+      .update(organizations)
+      .set({ defaultLocale: 'en' })
+      .where(eq(organizations.id, w.gym.id));
+    const eva = await addClient(admin.db, {
+      workspaceId: w.gym.id,
+      name: 'Eva Bakker',
+      email: 'eva@example.com',
+    });
+    const twentieth = await w.dateOn('2026-10-20');
+    await admin.db.insert(sessionParticipants).values({
+      organizationId: w.gym.id,
+      sessionId: twentieth.id,
+      clientId: eva.id,
+    });
+
+    const response = await assign(w, twentieth.id, {
+      trainerId: w.mike.id,
+      scope: 'following',
+      version: 1,
+    });
+
+    expect(response.status).toBe(200);
+    const toEva = w.transport.sent.find((email) => email.to.email === 'eva@example.com');
+    expect(toEva).toMatchObject({
+      locale: 'en',
+      subject: 'New trainer: Strength on Tuesday 20 October',
+    });
+    // The clients with a language of their own keep it, whatever the workspace says.
+    expect(w.transport.sent.find((email) => email.to.email === 'anna@example.com')?.locale).toBe(
+      'nl-NL',
+    );
   });
 
   it('a cancelled place gets nothing, and a client booked on dates the change does not reach gets nothing', async () => {
