@@ -332,6 +332,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/future-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What a team member still has coming
+         * @description For the removal dialog (the Owner only): the scheduled private sessions and class dates of the team member that have not started, in this workspace only, counted for the next 2 weeks (within 14 days from now, on the workspace’s wall clock) and for later, and whether they are the regular trainer of a series. A cancelled session does not count. A team member who does not train has none. A team member that is not in the workspace answers `404`.
+         */
+        get: operations["getTeamMemberFutureSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/team-members/{teamMemberId}": {
         parameters: {
             query?: never;
@@ -343,8 +363,8 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Remove a team member
-         * @description Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: removing the last one answers `409` and changes nothing.
+         * Remove a team member, handing over their future sessions
+         * @description Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. Their past sessions still show their name. A workspace keeps at least one Owner: removing the last one answers `409` `last_owner` and changes nothing. A person with future private sessions, class dates or a series they are the regular trainer of needs a handover (the request body): without one the answer is `409` `has_future_sessions` with the counts and nothing changes. With it, in one transaction: the next 2 weeks’ private sessions go to `privateTo` or are cancelled (F026) when it is `null`, the next 2 weeks’ class dates go to `classesTo` or get *Trainer nodig*, every later session gets *Trainer nodig* (none is cancelled), the series they were the regular trainer of has none, and the person is removed; the answer is `200` with what changed. The emails go out after the commit when `notifyClients` is not `false`. A handover to a team member who does not train in the workspace answers `422`. A request without a body for a person with nothing coming answers `204`.
          */
         delete: operations["removeTeamMember"];
         options?: never;
@@ -1735,6 +1755,82 @@ export interface components {
              * @enum {string}
              */
             role: "owner" | "trainer";
+        };
+        /** @description What a team member still has coming, for the removal dialog. Counts only; no client or class name. */
+        TeamMemberFutureSessions: {
+            /**
+             * Format: uuid
+             * @description The team-member ID the counts are about.
+             */
+            teamMemberId: string;
+            nextTwoWeeks: components["schemas"]["FutureSessionWindow"];
+            later: components["schemas"]["FutureSessionWindow"] & unknown;
+            /** @description Whether the person is the regular trainer of a weekly class that has not ended: it has no regular trainer after the removal. */
+            regularTrainerOfSeries: boolean;
+            /** @description Whether removing the person needs a handover: a session in either window, or a series. Without a handover body the removal then answers `409` `has_future_sessions`. */
+            hasFutureSessions: boolean;
+        };
+        /** @description The sessions that start within 14 days from now, on the workspace’s wall clock: the ones a handover hands to a trainer (or cancels, for a private session, or sets to *Trainer nodig*, for a class date). */
+        FutureSessionWindow: {
+            /** @description The scheduled private sessions that have not started. */
+            privateSessions: number;
+            /** @description The scheduled class dates that have not started. */
+            classDates: number;
+        };
+        /** @description What the handover changed, all in the one transaction that removed the team member. */
+        TeamMemberHandover: {
+            nextTwoWeeks: components["schemas"]["TeamMemberHandoverNextTwoWeeks"];
+            later: components["schemas"]["TeamMemberHandoverLater"];
+        };
+        /** @description What happened to the sessions of the next 2 weeks. */
+        TeamMemberHandoverNextTwoWeeks: {
+            /** @description Private sessions that went to `privateTo`. */
+            privateHandedOver: number;
+            /** @description Private sessions cancelled (`privateTo` was `null`). */
+            privateCancelled: number;
+            /** @description Class dates that went to `classesTo`. */
+            classesHandedOver: number;
+            /** @description Class dates set to *Trainer nodig* (`classesTo` was `null`). */
+            classesTrainerNeeded: number;
+        };
+        /** @description What happened to the sessions after the next 2 weeks. */
+        TeamMemberHandoverLater: {
+            /** @description Later private sessions set to *Trainer nodig*; none is cancelled. */
+            privateTrainerNeeded: number;
+            /** @description Later class dates set to *Trainer nodig*. */
+            classesTrainerNeeded: number;
+        };
+        /** @description Why the removal was refused; nothing changed. `has_future_sessions` carries the counts of `GET …/future-sessions`. Contains no user-facing text. */
+        RemoveTeamMemberRefusal: {
+            /**
+             * @description `last_owner`: the team member is the last Owner of the workspace; `has_future_sessions`: they have future sessions or a series and the request holds no handover.
+             * @enum {string}
+             */
+            code: "last_owner" | "has_future_sessions";
+            nextTwoWeeks?: components["schemas"]["FutureSessionWindow"];
+            later?: components["schemas"]["FutureSessionWindow"] & unknown;
+            /** @description Whether the person is the regular trainer of a weekly class that has not ended: it has no regular trainer after the removal. */
+            regularTrainerOfSeries?: boolean;
+        };
+        /** @description The handover of the next 2 weeks’ sessions that comes with a removal. */
+        RemoveTeamMemberRequest: {
+            /**
+             * Format: uuid
+             * @description Where the next 2 weeks’ private sessions go: a trainer’s team-member ID, from `GET …/trainers`, or `null` (*Niemand*): they are cancelled with the cancellation email. A team member who does not train in the workspace, one of another workspace and the person being removed answer `422` on `privateTo` with the code `unknown_trainer`.
+             */
+            privateTo: string | null;
+            /**
+             * Format: uuid
+             * @description Where the next 2 weeks’ class dates go: a trainer’s team-member ID, or `null` (*Trainer nodig*). Same `422` on `classesTo`. Class dates and private sessions after the next 2 weeks always get *Trainer nodig*, whatever this says.
+             */
+            classesTo: string | null;
+            /** @description Whether to email the clients (*Klanten informeren*): the trainer-change email (EM-13) to the clients of handed-over private sessions and the booked participants of handed-over class dates, and F026’s cancellation email for a cancelled private session. Nothing is sent for *Trainer nodig*. Left out it is `true`. Never sent for a session that has started. */
+            notifyClients?: boolean;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_handover` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
         };
         /** @description The change would leave the workspace without an Owner; nothing changed. Contains no user-facing text. */
         LastOwner: {
@@ -4235,7 +4331,7 @@ export interface operations {
             };
         };
     };
-    removeTeamMember: {
+    getTeamMemberFutureSessions: {
         parameters: {
             query?: never;
             header?: never;
@@ -4249,7 +4345,90 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The team member was removed. */
+            /** @description The counts, possibly all zero. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMemberFutureSessions"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    removeTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The team-member ID, from the team list. */
+                teamMemberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RemoveTeamMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description The team member was removed after the handover in the request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMemberHandover"];
+                };
+            };
+            /** @description The team member was removed; there was nothing to hand over. */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -4292,13 +4471,22 @@ export interface operations {
                     "application/json": components["schemas"]["NotFound"];
                 };
             };
-            /** @description The team member is the last Owner of the workspace; nothing changed. */
+            /** @description The team member is the last Owner of the workspace, or has future sessions and the request holds no handover; nothing changed. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LastOwner"];
+                    "application/json": components["schemas"]["RemoveTeamMemberRefusal"];
+                };
+            };
+            /** @description The handover names a team member who does not train in the workspace; nothing changed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

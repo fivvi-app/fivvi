@@ -479,6 +479,7 @@ describe('@permission E011 route access', () => {
       'put /v1/workspaces/{workspaceId}/me/billing-details': 'workspace',
       'patch /v1/workspaces/{workspaceId}/clients/{clientId}': 'workspace',
       'get /v1/workspaces/{workspaceId}/team-members': 'workspace',
+      'get /v1/workspaces/{workspaceId}/team-members/{teamMemberId}/future-sessions': 'workspace',
       'patch /v1/workspaces/{workspaceId}/team-members/{teamMemberId}': 'workspace',
       'patch /v1/workspaces/{workspaceId}': 'workspace',
       'put /v1/workspaces/{workspaceId}/trainer-profile': 'workspace',

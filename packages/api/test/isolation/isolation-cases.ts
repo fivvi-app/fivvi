@@ -608,6 +608,9 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // The sessions of a workspace (F020): the read names the seeded session.
   getSession: { seed: aSession, params: { sessionId: 'session' } },
 
+  // What a team member still has coming (F023, #537): the read names the seeded team member.
+  getTeamMemberFutureSessions: { seed: aTeamMember, params: { teamMemberId: 'teamMember' } },
+
   // The routes of one workspace (F002): a read shows its id.
   getWorkspace: { seed: theWorkspace },
 
@@ -723,8 +726,13 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // The report of a switch (F012) records a product event and changes no row.
   recordWorkspaceSwitch: { body: {} },
 
-  // The team of a workspace (F003): the removal names the seeded team member.
-  removeTeamMember: { seed: aTeamMember, params: { teamMemberId: 'teamMember' } },
+  // The team of a workspace (F003): the removal names the seeded team member, who has no sessions,
+  // with a handover to nobody (F023).
+  removeTeamMember: {
+    seed: aTeamMember,
+    params: { teamMemberId: 'teamMember' },
+    body: { privateTo: null, classesTo: null },
+  },
 
   // A rename (F002) takes a valid name and, with it, the workspace's word for its trainers (F068).
   renameWorkspace: {

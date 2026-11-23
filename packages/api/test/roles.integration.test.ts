@@ -200,6 +200,7 @@ describe('@permission F004 roles on every workspace route', () => {
       'getKeptClassDates',
       'getMyBillingDetails',
       'getOffer',
+      'getTeamMemberFutureSessions',
       'getWorkspaceDay',
       'listAccessLog',
       'listGroupClassSeries',
