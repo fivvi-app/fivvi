@@ -622,8 +622,20 @@
   },
   "myCalendar": {
     "app": {
+      "clockBack": "{day}: clocks go back 1 hour",
+      "clockForward": "{day}: clocks go forward 1 hour",
+      "dots": "{count, plural, one {# session} other {# sessions}}",
+      "failed": "Couldn't update the calendar.",
+      "nextMonth": "Next month",
+      "nextWeek": "Next week",
+      "now": "Now {time}",
+      "previousMonth": "Previous month",
+      "previousWeek": "Previous week",
       "tab": "Calendar",
-      "title": "Calendar"
+      "title": "Calendar",
+      "todayHeading": "Today · {date}",
+      "viewMonth": "Month",
+      "weekLine": "Week {week} · {range}"
     },
     "block": "{type} · {name}",
     "blockBooked": "{booked}/{capacity}",

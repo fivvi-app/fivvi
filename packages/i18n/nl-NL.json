@@ -622,8 +622,20 @@
   },
   "myCalendar": {
     "app": {
+      "clockBack": "{day}: wintertijd, de klok gaat 1 uur terug",
+      "clockForward": "{day}: zomertijd, de klok gaat 1 uur vooruit",
+      "dots": "{count, plural, one {# sessie} other {# sessies}}",
+      "failed": "De agenda kon niet worden bijgewerkt.",
+      "nextMonth": "Volgende maand",
+      "nextWeek": "Volgende week",
+      "now": "Nu {time}",
+      "previousMonth": "Vorige maand",
+      "previousWeek": "Vorige week",
       "tab": "Agenda",
-      "title": "Agenda"
+      "title": "Agenda",
+      "todayHeading": "Vandaag · {date}",
+      "viewMonth": "Maand",
+      "weekLine": "Week {week} · {range}"
     },
     "block": "{type} · {name}",
     "blockBooked": "{booked}/{capacity}",

@@ -39,7 +39,11 @@ extension HomeView {
                     || account.capabilities.allows(.session_private_manage_any),
                 onPlan: { openNewSession(from: .today, start: $0) },
                 onOpen: { todayPath.append(PersonalRoute($0)) },
-                onOpenTomorrow: { _ in tab = .calendar }
+                onOpenTomorrow: { date in
+                    agenda.open(day: date)
+                    calendarPath = []
+                    tab = .calendar
+                }
             )
             .task { await today.load() }
             // The Owner's *Hele studio* (F014): who may have it follows the workspace and its capabilities.
@@ -55,10 +59,22 @@ extension HomeView {
         }
     }
 
-    /// TD-04 *Agenda*: the week and the month come with their own ticket (#526).
+    /// TD-04 *Agenda*, with its own stack: a session opens TD-02 or TD-03 of its workspace, and *‹ Agenda* returns.
+    /// *Vandaag* in the bar jumps back to today.
     var calendarStack: some View {
-        NavigationStack {
-            LargeTitleScreen(title: catalog[.calendarTitle], titleIdentifier: "calendar.title") {}
+        NavigationStack(path: $calendarPath) {
+            AgendaView(model: agenda, onOpen: { calendarPath.append(PersonalRoute($0)) })
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button(catalog[.calendarToday]) { agenda.goToToday() }
+                            .accessibilityIdentifier("calendar.today")
+                    }
+                }
+                // **+** in the bar as in the prototype (Agenda's "Nieuw"), off without a connection as on Vandaag.
+                .toolbar { newMenu(from: .calendar, enabled: !agenda.isOffline) }
+                .navigationDestination(for: PersonalRoute.self) { route in
+                    PersonalDestination(route: route, api: api, language: language, account: account)
+                }
         }
     }
 }

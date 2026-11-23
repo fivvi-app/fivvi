@@ -86,6 +86,18 @@ struct SessionFormat {
         return parser.date(from: "\(localDate) 12:00").map(day)
     }
 
+    /// *24 sep*
+    func dayMonth(_ date: Date) -> String { formatted(date, template: "dMMM") }
+
+    /// *24 sep 2026*
+    func dayMonthYear(_ date: Date) -> String { formatted(date, template: "dMMMy") }
+
+    /// *donderdag 24 september*
+    func weekdayDay(_ date: Date) -> String { formatted(date, template: "EEEEdMMMM") }
+
+    /// *september 2026*
+    func monthYear(_ date: Date) -> String { formatted(date, template: "LLLLy") }
+
     /// *donderdag 24 september 2026*
     func longDay(_ date: Date) -> String { formatted(date, template: "EEEEdMMMMy") }
 

@@ -98,6 +98,8 @@ actor StubAPI: APIProtocol {
     let classes = StubClasses()
     /// What `getMyDay` answers (F013).
     let myDay = StubMyDay()
+    /// What `listMySessions` answers (F013, Agenda).
+    let mySessions = StubMySessions()
     /// What `getWorkspaceDay` answers (F014).
     let workspaceDay = StubWorkspaceDay()
     private var goneWorkspaces: Set<String> = []

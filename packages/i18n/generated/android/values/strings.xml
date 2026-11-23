@@ -454,9 +454,36 @@
     <string name="join_link_renew_dialog_title">Aanmeldlink vernieuwen?</string>
     <string name="join_link_renewed">De aanmeldlink is vernieuwd.</string>
     <string name="join_link_title">Aanmeldlink</string>
+    <!-- Note on Agenda (iOS and Android) for the day the clocks go back (autumn). {day} is the short date, e.g. 'zo 25 okt'. -->
+    <string name="my_calendar_app_clock_back">%1$s: wintertijd, de klok gaat 1 uur terug</string>
+    <!-- Note on Agenda (iOS and Android) for the day the clocks go forward (spring). {day} is the short date, e.g. 'zo 29 mrt'. -->
+    <string name="my_calendar_app_clock_forward">%1$s: zomertijd, de klok gaat 1 uur vooruit</string>
+    <!-- Spoken name of the dots under a day of the week strip or the month grid: how many sessions the day has (cancelled ones not counted). -->
+    <plurals name="my_calendar_app_dots">
+        <item quantity="one">%1$d sessie</item>
+        <item quantity="other">%1$d sessies</item>
+    </plurals>
+    <!-- Banner on Agenda when the sessions of the shown week or month could not be read. -->
+    <string name="my_calendar_app_failed">De agenda kon niet worden bijgewerkt.</string>
+    <!-- Accessibility label of the arrow to the next month on the month grid. -->
+    <string name="my_calendar_app_next_month">Volgende maand</string>
+    <!-- Accessibility label of the arrow to the next week on the week strip. -->
+    <string name="my_calendar_app_next_week">Volgende week</string>
+    <!-- Accessible name of the now-line on the timeline of Agenda's Day view; {time} is the time now, e.g. '08:35'. -->
+    <string name="my_calendar_app_now">Nu %1$s</string>
+    <!-- Accessibility label of the arrow to the previous month on the month grid. -->
+    <string name="my_calendar_app_previous_month">Vorige maand</string>
+    <!-- Accessibility label of the arrow to the previous week on the week strip. -->
+    <string name="my_calendar_app_previous_week">Vorige week</string>
     <!-- Label of the second tab of Fivvi Pro: the trainer's calendar across workspaces. -->
     <string name="my_calendar_app_tab">Agenda</string>
     <string name="my_calendar_app_title">Agenda</string>
+    <!-- Heading of today in the week list of Agenda, {date} is the long date. -->
+    <string name="my_calendar_app_today_heading">Vandaag · %1$s</string>
+    <!-- Segment of the control Dag | Week | Maand on Agenda. -->
+    <string name="my_calendar_app_view_month">Maand</string>
+    <!-- Line under the week strip: the ISO week number and the range, e.g. 'Week 43 · 19 okt – 25 okt 2026'. {range} is built from myCalendar.range. -->
+    <string name="my_calendar_app_week_line">Week %2$s · %1$s</string>
     <!-- The first line of a calendar block and the start of its spoken name: the session type in words, a dot, then the client or class name, e.g. 'Privé · Anna' or 'Groep · Kracht'. The type always comes first (colour is never the only signal). -->
     <string name="my_calendar_block">%2$s · %1$s</string>
     <!-- Places taken and capacity of a group class on its block, e.g. '3/8'. -->

@@ -84,4 +84,35 @@ enum PersonalFixtures {
             nextSessionDate: nextSession ?? (tomorrow ? "2026-09-23" : nil), hasSessions: hasSessions
         )
     }
+
+    /// Open Gym comes later (`PRODUCT.md §53`): no screen shows it.
+    static let openGym = PersonalItem(
+        sessionId: "gym", workspace: johns, _type: .openGym, status: .scheduled, startsAt: at("13:00"),
+        endsAt: at("14:00"), timeZone: "Europe/Amsterdam", capacity: 10, booked: 3
+    )
+
+    /// The week of Monday 21 to Sunday 27 September 2026 as `GET /api/v1/me/sessions` answers it: Sarah's Tuesday of
+    /// the spec, and three sessions from 07:00 on Wednesday 23 September (the footer of Vandaag).
+    static let septemberWeek: [PersonalItem] = [
+        anna, mark, kracht, krachtCancelled,
+        session("early", johns, from: "07:00", to: "08:00", client: "Eva Kok", day: "2026-09-23"),
+        session("mid", sarahPT, from: "10:00", to: "11:00", client: "Lisa Smit", day: "2026-09-23"),
+        session(
+            "evening", johns, from: "17:00", to: "18:00", className: "Boksen", booked: 2, capacity: 8, day: "2026-09-23"
+        )
+    ]
+
+    /// The weeks of 19 and 26 October 2026: the clocks go back in the night to Sunday 25 October, and the class
+    /// "Kracht" is at 18:00 on both Tuesdays.
+    static let octoberWeeks: [PersonalItem] = [
+        session(
+            "kracht-20", johns, from: "18:00", to: "19:00", className: "Kracht", booked: 3, capacity: 8,
+            day: "2026-10-20"
+        ),
+        session("mark-22", johns, from: "11:00", to: "12:00", client: "Mark Jansen", day: "2026-10-22"),
+        session(
+            "kracht-27", johns, from: "18:00", to: "19:00", className: "Kracht", booked: 5, capacity: 8,
+            day: "2026-10-27"
+        )
+    ]
 }

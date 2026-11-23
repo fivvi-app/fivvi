@@ -7171,6 +7171,212 @@
         }
       }
     },
+    "myCalendar.app.clockBack" : {
+      "comment" : "Note on Agenda (iOS and Android) for the day the clocks go back (autumn). {day} is the short date, e.g. 'zo 25 okt'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: clocks go back 1 hour"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: wintertijd, de klok gaat 1 uur terug"
+          }
+        }
+      }
+    },
+    "myCalendar.app.clockForward" : {
+      "comment" : "Note on Agenda (iOS and Android) for the day the clocks go forward (spring). {day} is the short date, e.g. 'zo 29 mrt'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: clocks go forward 1 hour"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: zomertijd, de klok gaat 1 uur vooruit"
+          }
+        }
+      }
+    },
+    "myCalendar.app.dots" : {
+      "comment" : "Spoken name of the dots under a day of the week strip or the month grid: how many sessions the day has (cancelled ones not counted).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg session"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg sessions"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg sessie"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg sessies"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "myCalendar.app.failed" : {
+      "comment" : "Banner on Agenda when the sessions of the shown week or month could not be read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't update the calendar."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De agenda kon niet worden bijgewerkt."
+          }
+        }
+      }
+    },
+    "myCalendar.app.nextMonth" : {
+      "comment" : "Accessibility label of the arrow to the next month on the month grid.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next month"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volgende maand"
+          }
+        }
+      }
+    },
+    "myCalendar.app.nextWeek" : {
+      "comment" : "Accessibility label of the arrow to the next week on the week strip.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next week"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volgende week"
+          }
+        }
+      }
+    },
+    "myCalendar.app.now" : {
+      "comment" : "Accessible name of the now-line on the timeline of Agenda's Day view; {time} is the time now, e.g. '08:35'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nu %1$@"
+          }
+        }
+      }
+    },
+    "myCalendar.app.previousMonth" : {
+      "comment" : "Accessibility label of the arrow to the previous month on the month grid.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous month"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorige maand"
+          }
+        }
+      }
+    },
+    "myCalendar.app.previousWeek" : {
+      "comment" : "Accessibility label of the arrow to the previous week on the week strip.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous week"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorige week"
+          }
+        }
+      }
+    },
     "myCalendar.app.tab" : {
       "comment" : "Label of the second tab of Fivvi Pro: the trainer's calendar across workspaces.",
       "extractionState" : "manual",
@@ -7202,6 +7408,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Agenda"
+          }
+        }
+      }
+    },
+    "myCalendar.app.todayHeading" : {
+      "comment" : "Heading of today in the week list of Agenda, {date} is the long date.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today · %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vandaag · %1$@"
+          }
+        }
+      }
+    },
+    "myCalendar.app.viewMonth" : {
+      "comment" : "Segment of the control Dag | Week | Maand on Agenda.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maand"
+          }
+        }
+      }
+    },
+    "myCalendar.app.weekLine" : {
+      "comment" : "Line under the week strip: the ISO week number and the range, e.g. 'Week 43 · 19 okt – 25 okt 2026'. {range} is built from myCalendar.range.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Week %2$@ · %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Week %2$@ · %1$@"
           }
         }
       }

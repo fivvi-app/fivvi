@@ -63,13 +63,23 @@ extension HomeView {
                         if sheetOrigin == .home {
                             path.append(.session(session.id))
                         } else if let workspace = account.workspace {
-                            todayPath.append(.session(workspaceID: workspace.id, id: session.id))
+                            openSaved(.session(workspaceID: workspace.id, id: session.id))
                         }
                     },
                     onCancel: { newSession = nil }
                 )
             }
             .presentationDetents([.large])
+        }
+    }
+
+    /// Where a saved session or class opens: in the stack of the tab the sheet came from, and Agenda reads again.
+    func openSaved(_ route: PersonalRoute) {
+        if sheetOrigin == .calendar {
+            calendarPath.append(route)
+            Task { await agenda.load() }
+        } else {
+            todayPath.append(route)
         }
     }
 

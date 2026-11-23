@@ -423,8 +423,23 @@
     <string name="join_link_renew_dialog_title">Renew the join link?</string>
     <string name="join_link_renewed">The join link has been renewed.</string>
     <string name="join_link_title">Join link</string>
+    <string name="my_calendar_app_clock_back">%1$s: clocks go back 1 hour</string>
+    <string name="my_calendar_app_clock_forward">%1$s: clocks go forward 1 hour</string>
+    <plurals name="my_calendar_app_dots">
+        <item quantity="one">%1$d session</item>
+        <item quantity="other">%1$d sessions</item>
+    </plurals>
+    <string name="my_calendar_app_failed">Couldn\'t update the calendar.</string>
+    <string name="my_calendar_app_next_month">Next month</string>
+    <string name="my_calendar_app_next_week">Next week</string>
+    <string name="my_calendar_app_now">Now %1$s</string>
+    <string name="my_calendar_app_previous_month">Previous month</string>
+    <string name="my_calendar_app_previous_week">Previous week</string>
     <string name="my_calendar_app_tab">Calendar</string>
     <string name="my_calendar_app_title">Calendar</string>
+    <string name="my_calendar_app_today_heading">Today · %1$s</string>
+    <string name="my_calendar_app_view_month">Month</string>
+    <string name="my_calendar_app_week_line">Week %2$s · %1$s</string>
     <string name="my_calendar_block">%2$s · %1$s</string>
     <string name="my_calendar_block_booked">%1$s/%2$s</string>
     <string name="my_calendar_cancelled">Cancelled</string>

@@ -1,4 +1,4 @@
-# F013 native Vandaag (spec #457, AC1 and AC4, TD-01), against the local stack: Sarah (the seeded trainer@example.com, a
+# F013 native Vandaag and Agenda (spec #457, AC1 and AC4 of TD-01, AC6 of TD-04), against the local stack: Sarah (the seeded trainer@example.com, a
 # Trainer of John's Gym, which opens first, and the Owner of Sarah Personal Training) plans a session with Anna from + (the
 # form's own first start is the next full hour, so no clock is read), reopens the app, which opens on its first tab, Vandaag,
 # with the large title and the day of the personal scope (AC1), and then turns the current workspace to Sarah Personal Training
@@ -9,8 +9,12 @@
 # (tab.*, today.*, home.*, newSession.*, session.*). Texts differ by language, so the flow checks what both languages share
 # (the workspace's name) and the ids. The two platform tickets (iOS #524, Android #525) run this one flow. Past 23:00 the
 # planned session is tomorrow's, so Vandaag may have no item to open: the flow then ends after AC1.
+# AC6 (TD-04, Agenda; iOS #526, Android #527): the second tab opens Agenda, with the week strip and its line ("Week 43 · ..."),
+# which is the week of the real clock, so no session or date is asserted; Maand | Month shows the month grid with the month's
+# name, and Dag | Day the strip again. The ids both apps give it: calendar.title, calendar.weekLine, calendar.grid,
+# calendar.monthTitle, calendar.failed (never visible); the three views are found by their words in both languages.
 appId: ${APP_ID}
-name: AC1 AC4 Vandaag shows the day across workspaces and opens an item in its own workspace
+name: AC1 AC4 AC6 Vandaag shows the day across workspaces and opens an item in its own workspace, and Agenda opens
 env:
   # The Android application id and the iOS bundle id.
   APP_ID: app.fivvi.pro
@@ -87,6 +91,43 @@ env:
     id: tab\.calendar
 - assertVisible:
     id: tab\.home
+# AC6: Agenda (TD-04): the week first, then the month grid, then the day with the strip again; never the failed state.
+- tapOn:
+    id: tab\.calendar
+- extendedWaitUntil:
+    visible:
+      id: calendar\.title
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: calendar\.weekLine
+    timeout: 20000
+- assertNotVisible:
+    id: calendar\.failed
+- tapOn:
+    text: (Maand|Month)
+- extendedWaitUntil:
+    visible:
+      id: calendar\.grid
+    timeout: 20000
+- assertVisible:
+    id: calendar\.monthTitle
+- assertNotVisible:
+    id: calendar\.failed
+- tapOn:
+    text: (Dag|Day)
+- extendedWaitUntil:
+    visible:
+      id: calendar\.weekLine
+    timeout: 20000
+- assertNotVisible:
+    id: calendar\.failed
+- tapOn:
+    id: tab\.today
+- extendedWaitUntil:
+    visible:
+      id: today\.title
+    timeout: 20000
 # AC4: the current workspace is turned to Sarah Personal Training (Profiel, on the home tab).
 - tapOn:
     id: tab\.home
