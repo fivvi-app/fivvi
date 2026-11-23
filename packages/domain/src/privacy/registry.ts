@@ -224,7 +224,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     ],
     onDelete: 'anonymize',
     retention: 'TRASH',
-    note: 'The append-only history of a client’s place in a session (F025): from, to, the time, who changed it and from where. IDs, statuses and times only, no free text. Like the place it belongs to, it follows the client: after the client is purged it stays without the link to them, as a count. A trigger refuses every update and delete while the client exists, so the history cannot be rewritten; what the purge does to it is part of the purge (E014).',
+    note: 'The append-only history of a client’s place in a session (F025): from, to, the time, who changed it and from where. IDs, statuses and times only, no free text. The intended end state is that, after the client is purged, it stays without the link to them, as a count. Today a trigger refuses every update and delete, always, so the history cannot be rewritten. That also means anonymizing or purging these rows needs a path the trigger allows, which the privacy tooling (E014) must add.',
   },
   // Invoice details (F059, spec #474).
   {

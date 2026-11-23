@@ -511,10 +511,10 @@ export async function addParticipants(
 }
 
 /**
- * A line of the status history of a client's place in a session (F025): by default the first tap
- * of a Trainer on the web, `booked → attended` a moment after the given time (default: now). The
- * place is the client's participant of the session. The line is written as it is, the place's own
- * status is not changed. Returns the line's ID.
+ * A line of the status history of a client's place in a session (F025): by default `booked →
+ * attended` at the given time (default: now), written by the system (`actor_type` and `source` are
+ * `system`, no team member or account). The place is the client's participant of the session. The
+ * line is written as it is, the place's own status is not changed. Returns the line's ID.
  */
 export async function addParticipantStatusChange(
   db: Pick<DatabaseExecutor, 'insert' | 'select'>,

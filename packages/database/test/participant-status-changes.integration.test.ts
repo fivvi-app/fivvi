@@ -190,14 +190,18 @@ describe('F025 the status history of a place in a session', () => {
           .set({ toStatus: 'no_show' })
           .where(eq(sessionParticipantStatusChanges.id, line.id)),
       ),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({
+      cause: { message: 'session_participant_status_changes is append-only' },
+    });
     await expect(
       w.inScope((scope) =>
         executorOf(scope)
           .delete(sessionParticipantStatusChanges)
           .where(eq(sessionParticipantStatusChanges.id, line.id)),
       ),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({
+      cause: { message: 'session_participant_status_changes is append-only' },
+    });
 
     // Nothing of that stuck.
     const lines = await w.inScope((scope) =>
