@@ -223,6 +223,32 @@
       "whenSection": "When"
     },
     "series": {
+      "dialog": {
+        "cancel": "Cancel",
+        "capacityLabel": "Capacity",
+        "changed": "This series was just changed. You now see the new details.",
+        "description": "Applies to all upcoming classes of this series. Classes with their own changes stay as they are.",
+        "endLabel": "End",
+        "errors": {
+          "capacityInvalid": "Enter a capacity from {min} to {max}.",
+          "endBeforeStart": "The end time must be after the start time.",
+          "invalidDuration": "A class lasts {min} to {max} minutes, in steps of {step}.",
+          "invalidTime": "This isn't a valid time.",
+          "noPermission": "You can't change this series any more.",
+          "noUpcomingDates": "This series has no upcoming classes left to change.",
+          "notSaved": "Not saved. Check your connection and try again.",
+          "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time. Choose another time."
+        },
+        "loadFailed": "The details couldn't be loaded.",
+        "save": "Save",
+        "saved": "Series updated for all upcoming classes.",
+        "section": "The class",
+        "startLabel": "Start",
+        "title": "Edit series",
+        "trainerLabel": "{Word}"
+      },
+      "edit": "Edit",
+      "editLabel": "Edit: series on {weekday} at {start}",
       "from": "from {date}",
       "line": "Every {weekday} {start}–{end} · {trainer} · {spots}",
       "title": "Series"

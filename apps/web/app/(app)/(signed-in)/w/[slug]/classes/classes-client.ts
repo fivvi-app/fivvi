@@ -1,6 +1,7 @@
 import type { Schemas } from '@fivvi/contract';
 import { GROUP_CLASS_LIMITS as LIMITS } from '@fivvi/domain/group-class-limits';
 import { type TrainerConflictRefusal, trainerConflict } from '../sessions/sessions-client';
+import { minutesBetween } from './series';
 
 export type GroupClass = Schemas['GroupClass'];
 export type Session = Schemas['Session'];
@@ -94,6 +95,29 @@ export type EditDateResult =
       end?: EndErrorKey;
       capacity?: 'capacityInvalid';
       scope?: ScopeErrorKey;
+    }
+  | Refused;
+
+export type EditSeriesResult =
+  | {
+      ok: true;
+      /** The series as it now runs (a series split at its first date that hasn't started has a new ID). */
+      series: ClassSeries;
+      /** How many dates kept their own changes (CO-04). */
+      keptDates: number;
+    }
+  /** `series_changed`: someone changed the series first; `series` is the series as it is now. */
+  | { ok: false; reason: 'conflict'; series: ClassSeries }
+  | {
+      ok: false;
+      reason: 'fields';
+      start?: StartErrorKey;
+      /** The date a skipped start belongs to: the first one the clocks skip. */
+      startDate?: string;
+      end?: 'endBeforeStart' | 'invalidDuration' | 'invalidTime';
+      capacity?: 'capacityInvalid';
+      /** `no_upcoming_dates`: the series has no date left to change. */
+      noUpcomingDates?: true;
     }
   | Refused;
 
@@ -375,6 +399,94 @@ export async function editClassDate(
       if (path === 'scope' && code === 'date_in_past') refused.scope = 'dateInPast';
     }
     if (refused.start || refused.end || refused.capacity || refused.scope) return refused;
+  }
+  return refusal(answered.status);
+}
+
+/** What the person typed to change a whole series (F022, *Reeks wijzigen*). */
+export interface EditSeriesInput {
+  /** The `version` of the series the person saw. */
+  version: number;
+  /** The start of every date, `HH:mm`. */
+  localStart: string;
+  /** The end of every date, `HH:mm`: the API takes the length, which is the minutes from the start. */
+  localEnd: string;
+  capacity: string;
+  /** The trainer of every date, or `''` for *Trainer nodig*. */
+  trainerId: string;
+  /** *Toch opslaan* (PS-07): save although the trainer has something then. */
+  allowConflicts?: boolean;
+}
+
+/**
+ * Changes a whole series (`PATCH …/group-classes/{classId}/series/{seriesId}`, F022, CO-04): the
+ * API applies the change from the series' first date that hasn't started, so the web finds no date.
+ * The length is the minutes from the typed start to the typed end; a capacity outside 1 to 100 and
+ * an end that is the start are refused before the request, the API's own refusals are worded the
+ * same way.
+ */
+export async function editClassSeries(
+  workspaceId: string,
+  classId: string,
+  seriesId: string,
+  input: EditSeriesInput,
+  fetchFn: typeof fetch = fetch,
+): Promise<EditSeriesResult> {
+  if (!validCapacity(input.capacity)) {
+    return { ok: false, reason: 'fields', capacity: 'capacityInvalid' };
+  }
+  const durationMinutes = minutesBetween(input.localStart, input.localEnd);
+  if (durationMinutes === null) {
+    // A start or an end that is no time is worded under its field; an end that is the start, under the end.
+    const clock = /^\d{2}:\d{2}$/;
+    if (!clock.test(input.localStart)) return { ok: false, reason: 'fields', start: 'invalidTime' };
+    return {
+      ok: false,
+      reason: 'fields',
+      end: clock.test(input.localEnd) ? 'endBeforeStart' : 'invalidTime',
+    };
+  }
+  const body: Schemas['UpdateClassSeriesRequest'] = {
+    version: input.version,
+    localStartTime: input.localStart,
+    durationMinutes,
+    capacity: whole(input.capacity),
+    trainerId: input.trainerId === '' ? null : input.trainerId,
+  };
+  if (input.allowConflicts) body.allowConflicts = true;
+  const answered = await send(
+    'PATCH',
+    `/api/v1/workspaces/${workspaceId}/group-classes/${classId}/series/${seriesId}`,
+    body,
+    fetchFn,
+  );
+  if ('failed' in answered) return answered.failed;
+  if (answered.status === 200) {
+    const series = answered.body as Schemas['UpdatedClassSeries'] | null;
+    if (!series?.id) return { ok: false, reason: 'generic' };
+    return { ok: true, series, keptDates: series.keptDates };
+  }
+  if (answered.status === 409) {
+    const refused = answered.body as Schemas['UpdateClassSeriesRefusal'] | null;
+    if (refused?.code === 'trainer_conflict') return trainerConflict(refused);
+    if (!refused?.series) return { ok: false, reason: 'generic' };
+    return { ok: false, reason: 'conflict', series: refused.series };
+  }
+  if (answered.status === 400) {
+    const refused: Extract<EditSeriesResult, { reason: 'fields' }> = {
+      ok: false,
+      reason: 'fields',
+    };
+    for (const { path, code, date } of issuesOf(answered.body)) {
+      if (path === 'localStartTime') {
+        refused.start = code === 'time_does_not_exist' ? 'timeDoesNotExist' : 'invalidTime';
+        if (date) refused.startDate = date;
+      }
+      if (path === 'durationMinutes') refused.end = 'invalidDuration';
+      if (path === 'capacity') refused.capacity = 'capacityInvalid';
+      if (path === 'seriesId' && code === 'no_upcoming_dates') refused.noUpcomingDates = true;
+    }
+    if (refused.start || refused.end || refused.capacity || refused.noUpcomingDates) return refused;
   }
   return refusal(answered.status);
 }
