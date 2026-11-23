@@ -12,7 +12,7 @@ struct DayTimelineView: View {
     let now: Date
     let onOpen: (PersonalRow) -> Void
 
-    private let hourHeight: CGFloat = 56
+    private let hourHeight = AgendaTimeline.hourHeight
     private let labelWidth: CGFloat = 52
     private let inset: CGFloat = 10
 
@@ -29,7 +29,7 @@ struct DayTimelineView: View {
                 nowLine(width: width)
             }
         }
-        .frame(height: offset(timeline.totalMinutes) + inset)
+        .frame(height: offset(timeline.totalMinutes + timeline.overflowMinutes) + inset)
         .padding(.horizontal, Tokens.Spacing.space3)
         .background(
             Tokens.Colors.bgSurface,
