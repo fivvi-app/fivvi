@@ -5,6 +5,7 @@ import FivviUI
 
 typealias PersonalDay = Components.Schemas.MyDay
 typealias PersonalItem = Components.Schemas.PersonalSession
+typealias PersonalSessions = Components.Schemas.MySessions
 
 /// A line of Vandaag (TD-01), and later of Agenda (TD-04): one item of the personal scope, worded in the app's language
 /// and in Dutch time. Nothing here decides anything: what the API sent is written down, and the words that only fit when

@@ -201,7 +201,7 @@ final class Responder: @unchecked Sendable {
             let works = authorization == "Bearer \(signIn.token)"
             send(connection, status: works ? 204 : 401, json: works ? nil : Self.unauthorized)
         case ("GET", _) where Self.isDayRoute(path):
-            respondToDay(connection, path: path, date: query["date"] ?? "", authorization: authorization)
+            respondToDay(connection, path: path, query: query, authorization: authorization)
         case (_, _) where Self.isAccountRoute(method: method, path: path):
             respondToAccountRoute(
                 connection, method: method, path: path, authorization: authorization, fields: stringFields
@@ -214,18 +214,22 @@ final class Responder: @unchecked Sendable {
         }
     }
 
-    /// The day routes: the person's own (`GET /api/v1/me/day`, F013) and a workspace's
-    /// (`GET /api/v1/workspaces/{id}/day`, F014).
+    /// The day routes: the person's own (`GET /api/v1/me/day`, F013), their range of days
+    /// (`GET /api/v1/me/sessions`, F013) and a workspace's (`GET /api/v1/workspaces/{id}/day`, F014).
     static func isDayRoute(_ path: String) -> Bool {
-        path == "/api/v1/me/day" || path.hasPrefix("/api/v1/workspaces/") && path.hasSuffix("/day")
+        path == "/api/v1/me/day" || path == "/api/v1/me/sessions"
+            || path.hasPrefix("/api/v1/workspaces/") && path.hasSuffix("/day")
     }
 
-    func respondToDay(_ connection: NWConnection, path: String, date: String, authorization: String?) {
+    func respondToDay(_ connection: NWConnection, path: String, query: [String: String], authorization: String?) {
         let reply: (Int, [String: Any])
+        let date = query["date"] ?? ""
         if authorization != "Bearer \(signIn.token)" {
             reply = (401, Self.notSignedIn)
         } else if path == "/api/v1/me/day" {
             reply = personalRoutes.respond(date: date)
+        } else if path == "/api/v1/me/sessions" {
+            reply = personalRoutes.respondSessions(from: query["from"] ?? "", through: query["to"] ?? "")
         } else {
             reply = personalRoutes.respondWorkspaceDay(date: date, ownName: signIn.name ?? "Owner")
         }

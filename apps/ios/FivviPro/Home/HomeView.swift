@@ -38,6 +38,9 @@ struct HomeView: View {
     /// The Owner's *Mijn dag | Hele studio* (F014): the workspace's day, for a workspace with a team.
     @State var studio: StudioDayModel
     @State var todayPath: [PersonalRoute] = []
+    /// TD-04 *Agenda* (F013): the week or the month of the personal scope.
+    @State var agenda: AgendaModel
+    @State var calendarPath: [PersonalRoute] = []
     /// The tab a sheet was opened from: where the person lands once it saved something.
     @State var sheetOrigin = ProTab.home
     /// PS-04, while its sheet is open (F020).
@@ -72,6 +75,9 @@ struct HomeView: View {
             api: api, catalog: language.catalog, now: UITestClock.provider(),
             onForbidden: { [capabilities = account.capabilities] in await capabilities.forbidden(.calendar_manage) }
         ))
+        _agenda = State(initialValue: AgendaModel(
+            api: api, catalog: language.catalog, store: personal, now: UITestClock.provider()
+        ))
         _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
         _account = State(initialValue: account)
         self.api = api
@@ -102,6 +108,7 @@ struct HomeView: View {
             await account.refresh()
             await today.load()
             await studio.refresh()
+            if tab == .calendar { await agenda.load() }
         }
         // The clients' model follows the workspace the account shows: a new workspace is a new list, none is no list.
         .onChange(of: account.workspace, initial: true) { _, workspace in useWorkspace(workspace) }
@@ -113,6 +120,7 @@ struct HomeView: View {
             clients?.use(catalog)
             today.use(catalog)
             studio.use(catalog)
+            agenda.use(catalog)
         }
     }
 

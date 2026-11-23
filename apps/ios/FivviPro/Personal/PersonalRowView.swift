@@ -10,6 +10,8 @@ struct PersonalRowView: View {
     let row: PersonalRow
     let catalog: Catalog
     let onOpen: () -> Void
+    /// The row's test ids are `<prefix>.row.<id>` and `<prefix>.route.<id>`: Vandaag's are `today`, Agenda's `calendar`.
+    var identifierPrefix = "today"
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -41,7 +43,7 @@ struct PersonalRowView: View {
             .accessibilityActions {
                 if let url = row.routeURL { Button(catalog[.todayOpenRoute]) { openURL(url) } }
             }
-            .accessibilityIdentifier("today.row.\(row.id)")
+            .accessibilityIdentifier("\(identifierPrefix).row.\(row.id)")
             if let url = row.routeURL {
                 Link(destination: url) {
                     Image(systemName: "arrow.up.right")
@@ -49,7 +51,7 @@ struct PersonalRowView: View {
                         .frame(minWidth: 44, minHeight: 44)
                 }
                 .accessibilityHidden(true)
-                .accessibilityIdentifier("today.route.\(row.id)")
+                .accessibilityIdentifier("\(identifierPrefix).route.\(row.id)")
             }
         }
     }

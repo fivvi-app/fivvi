@@ -52,12 +52,6 @@ extension StubAPI {
         fatalError("The app doesn't call confirmEmailChange yet")
     }
 
-    func listMySessions(
-        _ input: Operations.ListMySessions.Input
-    ) async throws -> Operations.ListMySessions.Output {
-        fatalError("The app doesn't call listMySessions yet")
-    }
-
     func getWorkspaceCalendar(
         _ input: Operations.GetWorkspaceCalendar.Input
     ) async throws -> Operations.GetWorkspaceCalendar.Output {

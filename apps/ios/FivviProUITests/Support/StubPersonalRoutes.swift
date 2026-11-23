@@ -44,11 +44,12 @@ final class StubPersonalRoutes: @unchecked Sendable {
 
     private static func item(
         _ id: String, _ workspace: [String: Any], _ start: String, _ end: String, client: String? = nil,
-        className: String? = nil, cancelled: Bool = false, place name: String? = nil
+        className: String? = nil, cancelled: Bool = false, place name: String? = nil, day: String = day
     ) -> [String: Any] {
         var item: [String: Any] = [
             "sessionId": id, "workspace": workspace, "type": className == nil ? "private" : "group",
-            "status": cancelled ? "cancelled" : "scheduled", "startsAt": instant(start), "endsAt": instant(end),
+            "status": cancelled ? "cancelled" : "scheduled", "startsAt": instant(start, day),
+            "endsAt": instant(end, day),
             "timeZone": StubSessionRoutes.zone, "capacity": className == nil ? 1 : 8
         ]
         if className != nil { item["booked"] = 0 }
@@ -85,6 +86,62 @@ final class StubPersonalRoutes: @unchecked Sendable {
             "placesAhead": (which == .solo ? ["John's Gym"] : ["TrainMore Zuid", "John's Gym"]).map { ["name": $0] },
             "tomorrow": ["date": "2026-09-23", "count": 3, "firstStartsAt": Self.instant("07:00", "2026-09-23")],
             "hasSessions": true
+        ])
+    }
+
+    // MARK: The range of days of Agenda (F013, TD-04)
+
+    /// Lisa Smit at the same time as Mark Jansen, so *Dag* shows two blocks side by side on 22 September.
+    static let overlap = "8a0b1c2e-8a54-4b51-9a42-0000000000d1"
+    /// Wednesday 23 September 2026: three sessions from 07:00 (the *Morgen* line of Vandaag).
+    static let tomorrowEarly = "8a0b1c2e-8a54-4b51-9a42-0000000000e1"
+    static let tomorrowMid = "8a0b1c2e-8a54-4b51-9a42-0000000000e2"
+    static let tomorrowEvening = "8a0b1c2e-8a54-4b51-9a42-0000000000e3"
+    /// The class "Kracht" at 18:00 on Tuesday 20 and Tuesday 27 October 2026, on both sides of the change of the clocks.
+    static let krachtOctober20 = "8a0b1c2e-8a54-4b51-9a42-0000000000f1"
+    static let markOctober22 = "8a0b1c2e-8a54-4b51-9a42-0000000000f2"
+    static let krachtOctober27 = "8a0b1c2e-8a54-4b51-9a42-0000000000f3"
+
+    /// `GET /api/v1/me/sessions`: Sarah's Tuesday 22 September 2026 as `respond` has it, with Lisa at 11:00 too, her
+    /// three sessions from 07:00 on 23 September, and the weeks of 19 and 26 October 2026 (the clocks go back on Sunday
+    /// 25 October; the class "Kracht" is at 18:00 on both Tuesdays). It answers the days from `from` to `to`, and an empty
+    /// list for the others.
+    func respondSessions(from first: String, through last: String) -> (status: Int, json: [String: Any]) {
+        let which = day
+        let johns = Self.workspace(0, "John's Gym")
+        let sarah = Self.workspace(1, "Sarah Personal Training")
+        /// A private session: `times` is "09:00-10:00"; the place is the one of its workspace.
+        func visit(
+            _ id: String, _ day: String, _ times: String, _ workspace: [String: Any], _ client: String
+        ) -> (day: String, json: [String: Any]) {
+            let span = times.split(separator: "-").map(String.init)
+            let place = workspace["name"] as? String == "John's Gym" ? "John's Gym" : "TrainMore Zuid"
+            return (day, Self.item(id, workspace, span[0], span[1], client: client, place: place, day: day))
+        }
+        func lesson(
+            _ id: String, _ day: String, _ times: String, _ name: String, cancelled: Bool = false
+        ) -> (day: String, json: [String: Any]) {
+            let span = times.split(separator: "-").map(String.init)
+            return (day, Self.item(id, johns, span[0], span[1], className: name, cancelled: cancelled, day: day))
+        }
+        let all = [
+            visit(Self.anna, "2026-09-22", "09:00-10:00", sarah, "Anna de Vries"),
+            visit(Self.mark, "2026-09-22", "11:00-12:00", johns, "Mark Jansen"),
+            visit(Self.overlap, "2026-09-22", "11:00-12:00", johns, "Lisa Smit"),
+            lesson(Self.kracht, "2026-09-22", "15:00-16:00", "Kracht"),
+            lesson(Self.krachtCancelled, "2026-09-22", "18:00-19:00", "Kracht", cancelled: true),
+            visit(Self.tomorrowEarly, "2026-09-23", "07:00-08:00", johns, "Eva Kok"),
+            visit(Self.tomorrowMid, "2026-09-23", "10:00-11:00", sarah, "Anna de Vries"),
+            lesson(Self.tomorrowEvening, "2026-09-23", "17:00-18:00", "Boksen"),
+            lesson(Self.krachtOctober20, "2026-10-20", "18:00-19:00", "Kracht"),
+            visit(Self.markOctober22, "2026-10-22", "11:00-12:00", johns, "Mark Jansen"),
+            lesson(Self.krachtOctober27, "2026-10-27", "18:00-19:00", "Kracht")
+        ]
+        let shown = which == .empty ? [] : all.filter { $0.day >= first && $0.day <= last }
+            .filter { which == .sarah || $0.json["type"] as? String == "private" }
+        return (200, [
+            "from": first, "to": last, "timeZone": StubSessionRoutes.zone, "workspaceCount": which == .solo ? 1 : 2,
+            "items": shown.map(\.json)
         ])
     }
 
