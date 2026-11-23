@@ -381,6 +381,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     TenantContext: 'type of the tenant scope',
     TenantScope: 'type of the tenant scope',
     TenantScopes: 'type of the tenant scope',
+    TrainerFutureSession: 'type of the session repository (F023)',
     TrainerInvitationView: 'type of the trainer-invitation repository (F011)',
     TrainerSessionView: 'type of the session repository (F023)',
     TrainerView: 'type of the trainer-profile repository (F005)',
@@ -403,6 +404,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     cancelSession: 'repository of the cancellations, takes the workspace scope (F026)',
     changeOffer: 'repository of offers, takes the workspace scope (F052)',
     changeTeamMemberRole: 'repository of the team, takes the workspace scope (F004)',
+    clearSeriesTrainer: 'repository of the class series, takes the workspace scope (F023)',
     closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     consumeRateLimit:
       'query of the rate limits, which have no tenant; takes the executor it is given',
@@ -464,6 +466,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     findTeamMemberName:
       'repository of the team, takes the workspace scope; reads a name only (F011)',
     findTrainer: 'repository of the trainer profiles, takes the workspace scope (F020)',
+    findTrainerProfileId:
+      'repository of the trainer profiles, takes the workspace scope; answers an ID (F023)',
     findWorkspace: 'repository of workspaces, takes the workspace scope (F002)',
     getOrCreateBookingLink: 'repository of booking links, takes the workspace scope (F037)',
     hasMySession:
@@ -484,6 +488,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     linkProviderRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
     listAccessLog: 'repository of the access log, takes the workspace scope (E014)',
     listActiveClassSeries: 'repository of the class series, takes the workspace scope (F022)',
+    listActiveSeriesOfTrainer:
+      'repository of the class series, takes the workspace scope; answers IDs (F023)',
     listAttendanceParticipants: 'repository of attendance, takes the workspace scope (F025)',
     listBookedClients: 'repository of the sessions, takes the workspace scope (F023)',
     listBookingLinks: 'repository of booking links, takes the workspace scope (F037)',
@@ -492,6 +498,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     listClientWorkspaces: 'repository of workspaces, takes the account scope (F030)',
     listClients: 'repository of clients, takes a workspace scope',
     listCoveredClasses: 'repository of offers, takes the workspace scope (F052)',
+    listFutureSessionsOfTrainer:
+      'repository of the sessions, takes the workspace scope; locks what it lists (F023)',
     listGroupClasses: 'repository of the group classes, takes the workspace scope (F021)',
     listLocations: 'repository of the locations, takes the workspace scope (F015)',
     listMySessions:

@@ -51,6 +51,13 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     scope: property.enum(['this', 'following']),
     kind: property.enum(['class', 'private']),
   },
+  // F023: an Owner removed a trainer and handed over their future sessions. The workspace ID and
+  // the platform only (the Owner's account UUID is the distinct ID): not the trainer taking over,
+  // the sessions, the clients or their counts, no name, date or time.
+  trainer_handover: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+  },
   // F005: an Owner switched their own training on or off. The workspace ID and on/off only (the
   // Owner's account UUID is the distinct ID): not the name or email address of anyone.
   trainer_profile_changed: {

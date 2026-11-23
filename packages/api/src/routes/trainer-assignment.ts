@@ -1,7 +1,6 @@
 import {
   assignSessionTrainer,
   findClassSeries,
-  findClient,
   findOwnTeamMember,
   findSession,
   findTrainer,
@@ -16,11 +15,9 @@ import {
 import {
   type AssignTrainerDecision,
   assignTrainer,
-  confirmationLanguage,
   localDateOf,
   sendsTrainerChangeNotice,
 } from '@fivvi/domain';
-import type { TrainerChangeMail } from '@fivvi/email/trainer-change-mail';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
@@ -29,7 +26,7 @@ import {
   NOT_FOUND,
   validationErrorResponse,
 } from '../errors.ts';
-import { trainerChangeEmailEvent } from '../sessions/email-event.ts';
+import { queueTrainerChangeEmails } from '../sessions/trainer-change-emails.ts';
 import {
   allowConflictsField,
   checkDoubleBooking,
@@ -345,13 +342,6 @@ async function factsOf(scope: WorkspaceScope, session: SessionView) {
   };
 }
 
-/** A date as the email lists it. */
-const mailDate = (date: SessionView): TrainerChangeMail['dates'][number] => ({
-  startsAt: date.startsAt,
-  endsAt: date.endsAt,
-  location: { name: date.location.name, address: date.location.address },
-});
-
 /** The `400` or `409` for a refusal of the rules. */
 function refusalOf(
   decision: Extract<AssignTrainerDecision, { outcome: 'refused' }>,
@@ -586,50 +576,14 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
           changed.push(date);
         }
       }
-      changed.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
-      const places = await listBookedClients(
+      clientsNotified = await queueTrainerChangeEmails({
         scope,
-        changed.map((date) => date.id),
-      );
-      const byClient = new Map<string, SessionView[]>();
-      for (const place of places) {
-        const date = changed.find((candidate) => candidate.id === place.sessionId);
-        if (!date) continue;
-        byClient.set(place.clientId, [...(byClient.get(place.clientId) ?? []), date]);
-      }
-      const trainerName = trainer.name.trim() ? trainer.name : null;
-      for (const [clientId, listed] of byClient) {
-        const client = await findClient(scope, clientId);
-        const [first, ...rest] = listed;
-        if (!client || !first) continue;
-        clientsNotified += 1;
-        const mail: TrainerChangeMail = {
-          to: { email: client.email, name: client.name },
-          locale: confirmationLanguage({
-            clientEmailLocale: client.emailLocale,
-            workspaceDefault: workspace.defaultLocale,
-          }),
-          workspaceName: workspace.name,
-          timeZone,
-          session:
-            first.type === 'private'
-              ? { kind: 'private' }
-              : {
-                  kind: 'class',
-                  nameNl: first.groupClass?.nameNl ?? '',
-                  nameEn: first.groupClass?.nameEn ?? null,
-                },
-          dates: [mailDate(first), ...rest.map(mailDate)],
-          trainerName,
-          trainerWord: workspace.trainerWord,
-          event: trainerChangeEmailEvent(
-            trainer.id,
-            client.id,
-            listed.map((date) => ({ sessionId: date.id, version: date.version })),
-          ),
-        };
-        afterCommit(() => sendTrainerChange(mail));
-      }
+        afterCommit,
+        dependencies: { sendTrainerChange },
+        workspace,
+        trainer: { id: trainer.id, name: trainer.name },
+        dates: changed,
+      });
     }
 
     // The workspace ID, the platform, the scope and the kind only (OBSERVABILITY.md §4).

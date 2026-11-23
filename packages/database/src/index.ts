@@ -86,10 +86,12 @@ export { cancelSession, type SessionCancellation } from './repositories/cancella
 export {
   type ClassSeriesChanges,
   type ClassSeriesView,
+  clearSeriesTrainer,
   createClassSeries,
   createSeriesDates,
   findClassSeries,
   listActiveClassSeries,
+  listActiveSeriesOfTrainer,
   listSeriesDates,
   moveDatesToSeries,
   type NewClassSeries,
@@ -265,6 +267,7 @@ export {
   createPrivateSession,
   findSession,
   listBookedClients,
+  listFutureSessionsOfTrainer,
   listTrainerSessionsBetween,
   listUpcomingSessionsOfClient,
   type NewPrivateSession,
@@ -279,6 +282,7 @@ export {
   type SessionTrainerView,
   type SessionType,
   type SessionView,
+  type TrainerFutureSession,
   type TrainerSessionView,
   type UpcomingSessionView,
 } from './repositories/sessions.ts';
@@ -317,6 +321,7 @@ export {
 export {
   findOwnTeamMember,
   findTrainer,
+  findTrainerProfileId,
   listTrainers,
   listTrainersWithProfiles,
   type OwnTeamMember,

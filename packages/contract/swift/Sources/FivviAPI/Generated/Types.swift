@@ -137,6 +137,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/team-members`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)`.
     func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output
+    /// What a team member still has coming
+    ///
+    /// For the removal dialog (the Owner only): the scheduled private sessions and class dates of the team member that have not started, in this workspace only, counted for the next 2 weeks (within 14 days from now, on the workspace’s wall clock) and for later, and whether they are the regular trainer of a series. A cancelled session does not count. A team member who does not train has none. A team member that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/team-members/{teamMemberId}/future-sessions`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/future-sessions/get(getTeamMemberFutureSessions)`.
+    func getTeamMemberFutureSessions(_ input: Operations.GetTeamMemberFutureSessions.Input) async throws -> Operations.GetTeamMemberFutureSessions.Output
     /// Change a team member’s role
     ///
     /// Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A new Trainer gets a trainer profile (a Trainer always trains); a new Owner keeps the one they had. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
@@ -144,9 +151,9 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/patch(changeTeamMemberRole)`.
     func changeTeamMemberRole(_ input: Operations.ChangeTeamMemberRole.Input) async throws -> Operations.ChangeTeamMemberRole.Output
-    /// Remove a team member
+    /// Remove a team member, handing over their future sessions
     ///
-    /// Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: removing the last one answers `409` and changes nothing.
+    /// Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. Their past sessions still show their name. A workspace keeps at least one Owner: removing the last one answers `409` `last_owner` and changes nothing. A person with future private sessions, class dates or a series they are the regular trainer of needs a handover (the request body): without one the answer is `409` `has_future_sessions` with the counts and nothing changes. With it, in one transaction: the next 2 weeks’ private sessions go to `privateTo` or are cancelled (F026) when it is `null`, the next 2 weeks’ class dates go to `classesTo` or get *Trainer nodig*, every later session gets *Trainer nodig* (none is cancelled), the series they were the regular trainer of has none, and the person is removed; the answer is `200` with what changed. The emails go out after the commit when `notifyClients` is not `false`. A handover to a team member who does not train in the workspace answers `422`. A request without a body for a person with nothing coming answers `204`.
     ///
     /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)`.
@@ -783,6 +790,21 @@ extension APIProtocol {
             headers: headers
         ))
     }
+    /// What a team member still has coming
+    ///
+    /// For the removal dialog (the Owner only): the scheduled private sessions and class dates of the team member that have not started, in this workspace only, counted for the next 2 weeks (within 14 days from now, on the workspace’s wall clock) and for later, and whether they are the regular trainer of a series. A cancelled session does not count. A team member who does not train has none. A team member that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/team-members/{teamMemberId}/future-sessions`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/future-sessions/get(getTeamMemberFutureSessions)`.
+    public func getTeamMemberFutureSessions(
+        path: Operations.GetTeamMemberFutureSessions.Input.Path,
+        headers: Operations.GetTeamMemberFutureSessions.Input.Headers = .init()
+    ) async throws -> Operations.GetTeamMemberFutureSessions.Output {
+        try await getTeamMemberFutureSessions(Operations.GetTeamMemberFutureSessions.Input(
+            path: path,
+            headers: headers
+        ))
+    }
     /// Change a team member’s role
     ///
     /// Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A new Trainer gets a trainer profile (a Trainer always trains); a new Owner keeps the one they had. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
@@ -800,19 +822,21 @@ extension APIProtocol {
             body: body
         ))
     }
-    /// Remove a team member
+    /// Remove a team member, handing over their future sessions
     ///
-    /// Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: removing the last one answers `409` and changes nothing.
+    /// Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. Their past sessions still show their name. A workspace keeps at least one Owner: removing the last one answers `409` `last_owner` and changes nothing. A person with future private sessions, class dates or a series they are the regular trainer of needs a handover (the request body): without one the answer is `409` `has_future_sessions` with the counts and nothing changes. With it, in one transaction: the next 2 weeks’ private sessions go to `privateTo` or are cancelled (F026) when it is `null`, the next 2 weeks’ class dates go to `classesTo` or get *Trainer nodig*, every later session gets *Trainer nodig* (none is cancelled), the series they were the regular trainer of has none, and the person is removed; the answer is `200` with what changed. The emails go out after the commit when `notifyClients` is not `false`. A handover to a team member who does not train in the workspace answers `422`. A request without a body for a person with nothing coming answers `204`.
     ///
     /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)`.
     public func removeTeamMember(
         path: Operations.RemoveTeamMember.Input.Path,
-        headers: Operations.RemoveTeamMember.Input.Headers = .init()
+        headers: Operations.RemoveTeamMember.Input.Headers = .init(),
+        body: Operations.RemoveTeamMember.Input.Body? = nil
     ) async throws -> Operations.RemoveTeamMember.Output {
         try await removeTeamMember(Operations.RemoveTeamMember.Input(
             path: path,
-            headers: headers
+            headers: headers,
+            body: body
         ))
     }
     /// The pending invitations of a workspace

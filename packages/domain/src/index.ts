@@ -392,6 +392,20 @@ export {
   type ScheduleClassOnDateRefusal,
   scheduleClassOnDate,
 } from './scheduling/group-class.ts';
+export {
+  countFutureSessions,
+  type FutureSessionCounts,
+  HANDOVER_DAYS,
+  type HandoverAction,
+  type HandoverChange,
+  type HandoverPlan,
+  type HandoverSession,
+  type HandoverSummary,
+  handoverWindowEnd,
+  hasFutureSessions,
+  planHandover,
+  type WindowCounts,
+} from './scheduling/handover.ts';
 export { type Materialization, materialize } from './scheduling/materialize.ts';
 export {
   decidePersonalRange,

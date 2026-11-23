@@ -4,6 +4,7 @@ import {
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
+  deleteTeamMember,
   type SignedInAccount,
   teamMembers,
   trainerProfiles,
@@ -372,6 +373,37 @@ describe('F014 the workspace calendar and day through the API', () => {
       expect(byId(w.boxing.id)).toMatchObject({ className: 'Boxing', capacity: 12 });
       expect(byId(w.boxing.id)).not.toHaveProperty('trainer');
       expect(byId(w.cancelled.id)).toMatchObject({ status: 'cancelled' });
+    });
+
+    it('F023 AC9: after Sarah is removed from the team her past session still carries her ID and name, like before', async () => {
+      const w = await world();
+      const [member] = await admin.db
+        .select({ id: teamMembers.id })
+        .from(teamMembers)
+        .where(
+          and(eq(teamMembers.organizationId, w.gym.id), eq(teamMembers.accountId, w.sarah.id)),
+        );
+      if (!member) throw new Error('Sarah is not in the team.');
+      const before = (await (await calendar(w.gym.id, WEEK, w.john)).json()) as CalendarBody;
+
+      // The repository's removal, as the route does it after the hand-over (F023): her profile stays as a former trainer.
+      const entry = await createTenantScopes(() => app.db).inWorkspaceScope(
+        { accountId: w.john.id, workspaceId: w.gym.id, admit: () => 'team' },
+        (scope) => deleteTeamMember(scope, member.id),
+      );
+      expect(entry).toMatchObject({ status: 'entered', value: true });
+
+      const after = (await (await calendar(w.gym.id, WEEK, w.john)).json()) as CalendarBody;
+      expect(ids(after)).toEqual(ids(before));
+      const mark = after.items.find((item) => item.id === w.markSession.id);
+      expect(mark?.trainer).toEqual({ id: member.id, name: 'Sarah' });
+      // Every session of hers still names her; the one of Tom and the class without a trainer are as before.
+      expect(after.items.find((item) => item.id === w.kracht.id)?.trainer).toEqual({
+        id: member.id,
+        name: 'Sarah',
+      });
+      expect(after.items.find((item) => item.id === w.lisaSession.id)?.trainer?.name).toBe('Tom');
+      expect(after.items.find((item) => item.id === w.boxing.id)).not.toHaveProperty('trainer');
     });
 
     it('shows the series line and what was changed on one date (F022), the class in the viewer’s language', async () => {

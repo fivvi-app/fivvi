@@ -44,6 +44,7 @@ import { shortcutFor } from './calendar-shortcuts';
 import { MoveDialog, type MoveOutcome } from './move-dialog';
 import { type CalendarAccess, type CalendarItem, QuickView } from './quick-view';
 import { type Slot, SlotMenu } from './slot-menu';
+import { slotTrainerId } from './slot-trainer';
 
 export type CalendarView = 'day' | 'week' | 'list';
 type Shown = CalendarItem & { type: 'private' | 'group' };
@@ -165,6 +166,16 @@ export function WorkspaceCalendarView({
     view === 'day' ? items.filter((i) => dayOf(i) === date) : items;
   const unfiltered = inRange(all);
   const visible = inRange(filterItems(all, filters));
+  // A trainer who was removed from the team (F023) is not in `trainers`, but her past sessions
+  // still carry her; the day view gives her a column of her own so those sessions show.
+  const former = [
+    ...new Map(
+      visible
+        .flatMap((item) => (item.trainer ? [item.trainer] : []))
+        .filter(({ id }) => !trainers.some((trainer) => trainer.id === id))
+        .map((trainer) => [trainer.id, trainer] as const),
+    ).values(),
+  ];
 
   function change(next: WorkspaceFilters) {
     setFilters(next);
@@ -198,12 +209,12 @@ export function WorkspaceCalendarView({
     const localStart = axis.wallTime(localDate, startMinute);
     if (!localStart) return;
     const length = endMinute - startMinute;
+    const trainerId = slotTrainerId({ view, columnKey, former });
     setSlot({
       localDate,
       localStart,
       ...(dragged && length >= 15 && length <= 240 ? { durationMinutes: length } : {}),
-      // In the day view the column's trainer; the *Geen trainer* column has none to fill in.
-      ...(view === 'day' && columnKey !== NO_TRAINER ? { trainerId: columnKey } : {}),
+      ...(trainerId ? { trainerId } : {}),
     });
   }
 
@@ -319,6 +330,12 @@ export function WorkspaceCalendarView({
                 day: date,
                 items: visible.filter((item) => item.trainer?.id === id),
               })),
+            ...former.map(({ id, name }) => ({
+              key: id,
+              header: name,
+              day: date,
+              items: visible.filter((item) => item.trainer?.id === id),
+            })),
             ...(visible.some((item) => !item.trainer)
               ? [
                   {

@@ -133,3 +133,24 @@ export async function findTrainer(
     .limit(1);
   return row;
 }
+
+/**
+ * The trainer profile of the team member in the scope's workspace, `undefined` when they do not
+ * train here (or are not on the team): what the removal reads to find their sessions (F023).
+ */
+export async function findTrainerProfileId(
+  scope: WorkspaceScope,
+  teamMemberId: string,
+): Promise<string | undefined> {
+  const [row] = await executorOf(scope)
+    .select({ id: trainerProfiles.id })
+    .from(trainerProfiles)
+    .where(
+      and(
+        eq(trainerProfiles.organizationId, scope.workspaceId),
+        eq(trainerProfiles.teamMemberId, teamMemberId),
+      ),
+    )
+    .limit(1);
+  return row?.id;
+}

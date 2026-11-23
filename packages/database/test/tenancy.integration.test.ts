@@ -199,7 +199,7 @@ describe('@isolation E011 tenancy core tables', () => {
     });
   });
 
-  it('F005 AC9: a trainer profile is one per team member, in the team member’s workspace, and goes with the record', async () => {
+  it('F005 AC9 (one per team member, in the team member’s workspace) and F023 (#537), which replaced “goes with the record”: removing the team member keeps the profile as a former trainer', async () => {
     await withRollback(db, async (tx) => {
       const workspaceA = await workspace(tx);
       const workspaceB = await workspace(tx);
@@ -239,9 +239,14 @@ describe('@isolation E011 tenancy core tables', () => {
         cause: { code: '23503', constraint: 'trainer_profiles_team_member_fk' },
       });
 
-      // Removing the team-member record removes the profile and nothing of the account.
+      // Removing the team-member record keeps the profile as a former trainer (F023, so the sessions
+      // they taught still show who it was): its link to the team member is cleared, its workspace
+      // stays, and nothing of the account goes.
       await tx.delete(teamMembers).where(eq(teamMembers.id, member.id));
-      expect(await tx.$count(trainerProfiles)).toBe(0);
+      const profiles = await tx.select().from(trainerProfiles);
+      expect(
+        profiles.map(({ teamMemberId, organizationId }) => [teamMemberId, organizationId]),
+      ).toEqual([[null, workspaceA]]);
       expect(await tx.$count(authUsers, eq(authUsers.id, sam))).toBe(1);
     });
   });

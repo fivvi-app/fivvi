@@ -1839,6 +1839,341 @@ extension Components {
                 case role
             }
         }
+        /// What a team member still has coming, for the removal dialog. Counts only; no client or class name.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TeamMemberFutureSessions`.
+        public struct TeamMemberFutureSessions: Codable, Hashable, Sendable {
+            /// The team-member ID the counts are about.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMemberFutureSessions/teamMemberId`.
+            public var teamMemberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/TeamMemberFutureSessions/nextTwoWeeks`.
+            public var nextTwoWeeks: Components.Schemas.FutureSessionWindow
+            /// - Remark: Generated from `#/components/schemas/TeamMemberFutureSessions/later`.
+            public struct LaterPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/TeamMemberFutureSessions/later/value1`.
+                public var value1: Components.Schemas.FutureSessionWindow
+                /// Every session after that: a handover always sets them to *Trainer nodig*, none is cancelled.
+                ///
+                /// - Remark: Generated from `#/components/schemas/TeamMemberFutureSessions/later/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `LaterPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: Every session after that: a handover always sets them to *Trainer nodig*, none is cancelled.
+                public init(
+                    value1: Components.Schemas.FutureSessionWindow,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/TeamMemberFutureSessions/later`.
+            public var later: Components.Schemas.TeamMemberFutureSessions.LaterPayload
+            /// Whether the person is the regular trainer of a weekly class that has not ended: it has no regular trainer after the removal.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMemberFutureSessions/regularTrainerOfSeries`.
+            public var regularTrainerOfSeries: Swift.Bool
+            /// Whether removing the person needs a handover: a session in either window, or a series. Without a handover body the removal then answers `409` `has_future_sessions`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMemberFutureSessions/hasFutureSessions`.
+            public var hasFutureSessions: Swift.Bool
+            /// Creates a new `TeamMemberFutureSessions`.
+            ///
+            /// - Parameters:
+            ///   - teamMemberId: The team-member ID the counts are about.
+            ///   - nextTwoWeeks:
+            ///   - later:
+            ///   - regularTrainerOfSeries: Whether the person is the regular trainer of a weekly class that has not ended: it has no regular trainer after the removal.
+            ///   - hasFutureSessions: Whether removing the person needs a handover: a session in either window, or a series. Without a handover body the removal then answers `409` `has_future_sessions`.
+            public init(
+                teamMemberId: Swift.String,
+                nextTwoWeeks: Components.Schemas.FutureSessionWindow,
+                later: Components.Schemas.TeamMemberFutureSessions.LaterPayload,
+                regularTrainerOfSeries: Swift.Bool,
+                hasFutureSessions: Swift.Bool
+            ) {
+                self.teamMemberId = teamMemberId
+                self.nextTwoWeeks = nextTwoWeeks
+                self.later = later
+                self.regularTrainerOfSeries = regularTrainerOfSeries
+                self.hasFutureSessions = hasFutureSessions
+            }
+            public enum CodingKeys: String, CodingKey {
+                case teamMemberId
+                case nextTwoWeeks
+                case later
+                case regularTrainerOfSeries
+                case hasFutureSessions
+            }
+        }
+        /// The sessions that start within 14 days from now, on the workspace’s wall clock: the ones a handover hands to a trainer (or cancels, for a private session, or sets to *Trainer nodig*, for a class date).
+        ///
+        /// - Remark: Generated from `#/components/schemas/FutureSessionWindow`.
+        public struct FutureSessionWindow: Codable, Hashable, Sendable {
+            /// The scheduled private sessions that have not started.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FutureSessionWindow/privateSessions`.
+            public var privateSessions: Swift.Int
+            /// The scheduled class dates that have not started.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FutureSessionWindow/classDates`.
+            public var classDates: Swift.Int
+            /// Creates a new `FutureSessionWindow`.
+            ///
+            /// - Parameters:
+            ///   - privateSessions: The scheduled private sessions that have not started.
+            ///   - classDates: The scheduled class dates that have not started.
+            public init(
+                privateSessions: Swift.Int,
+                classDates: Swift.Int
+            ) {
+                self.privateSessions = privateSessions
+                self.classDates = classDates
+            }
+            public enum CodingKeys: String, CodingKey {
+                case privateSessions
+                case classDates
+            }
+        }
+        /// What the handover changed, all in the one transaction that removed the team member.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TeamMemberHandover`.
+        public struct TeamMemberHandover: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/TeamMemberHandover/nextTwoWeeks`.
+            public var nextTwoWeeks: Components.Schemas.TeamMemberHandoverNextTwoWeeks
+            /// - Remark: Generated from `#/components/schemas/TeamMemberHandover/later`.
+            public var later: Components.Schemas.TeamMemberHandoverLater
+            /// Creates a new `TeamMemberHandover`.
+            ///
+            /// - Parameters:
+            ///   - nextTwoWeeks:
+            ///   - later:
+            public init(
+                nextTwoWeeks: Components.Schemas.TeamMemberHandoverNextTwoWeeks,
+                later: Components.Schemas.TeamMemberHandoverLater
+            ) {
+                self.nextTwoWeeks = nextTwoWeeks
+                self.later = later
+            }
+            public enum CodingKeys: String, CodingKey {
+                case nextTwoWeeks
+                case later
+            }
+        }
+        /// What happened to the sessions of the next 2 weeks.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TeamMemberHandoverNextTwoWeeks`.
+        public struct TeamMemberHandoverNextTwoWeeks: Codable, Hashable, Sendable {
+            /// Private sessions that went to `privateTo`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMemberHandoverNextTwoWeeks/privateHandedOver`.
+            public var privateHandedOver: Swift.Int
+            /// Private sessions cancelled (`privateTo` was `null`).
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMemberHandoverNextTwoWeeks/privateCancelled`.
+            public var privateCancelled: Swift.Int
+            /// Class dates that went to `classesTo`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMemberHandoverNextTwoWeeks/classesHandedOver`.
+            public var classesHandedOver: Swift.Int
+            /// Class dates set to *Trainer nodig* (`classesTo` was `null`).
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMemberHandoverNextTwoWeeks/classesTrainerNeeded`.
+            public var classesTrainerNeeded: Swift.Int
+            /// Creates a new `TeamMemberHandoverNextTwoWeeks`.
+            ///
+            /// - Parameters:
+            ///   - privateHandedOver: Private sessions that went to `privateTo`.
+            ///   - privateCancelled: Private sessions cancelled (`privateTo` was `null`).
+            ///   - classesHandedOver: Class dates that went to `classesTo`.
+            ///   - classesTrainerNeeded: Class dates set to *Trainer nodig* (`classesTo` was `null`).
+            public init(
+                privateHandedOver: Swift.Int,
+                privateCancelled: Swift.Int,
+                classesHandedOver: Swift.Int,
+                classesTrainerNeeded: Swift.Int
+            ) {
+                self.privateHandedOver = privateHandedOver
+                self.privateCancelled = privateCancelled
+                self.classesHandedOver = classesHandedOver
+                self.classesTrainerNeeded = classesTrainerNeeded
+            }
+            public enum CodingKeys: String, CodingKey {
+                case privateHandedOver
+                case privateCancelled
+                case classesHandedOver
+                case classesTrainerNeeded
+            }
+        }
+        /// What happened to the sessions after the next 2 weeks.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TeamMemberHandoverLater`.
+        public struct TeamMemberHandoverLater: Codable, Hashable, Sendable {
+            /// Later private sessions set to *Trainer nodig*; none is cancelled.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMemberHandoverLater/privateTrainerNeeded`.
+            public var privateTrainerNeeded: Swift.Int
+            /// Later class dates set to *Trainer nodig*.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMemberHandoverLater/classesTrainerNeeded`.
+            public var classesTrainerNeeded: Swift.Int
+            /// Creates a new `TeamMemberHandoverLater`.
+            ///
+            /// - Parameters:
+            ///   - privateTrainerNeeded: Later private sessions set to *Trainer nodig*; none is cancelled.
+            ///   - classesTrainerNeeded: Later class dates set to *Trainer nodig*.
+            public init(
+                privateTrainerNeeded: Swift.Int,
+                classesTrainerNeeded: Swift.Int
+            ) {
+                self.privateTrainerNeeded = privateTrainerNeeded
+                self.classesTrainerNeeded = classesTrainerNeeded
+            }
+            public enum CodingKeys: String, CodingKey {
+                case privateTrainerNeeded
+                case classesTrainerNeeded
+            }
+        }
+        /// Why the removal was refused; nothing changed. `has_future_sessions` carries the counts of `GET …/future-sessions`. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRefusal`.
+        public struct RemoveTeamMemberRefusal: Codable, Hashable, Sendable {
+            /// `last_owner`: the team member is the last Owner of the workspace; `has_future_sessions`: they have future sessions or a series and the request holds no handover.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRefusal/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case lastOwner = "last_owner"
+                case hasFutureSessions = "has_future_sessions"
+            }
+            /// `last_owner`: the team member is the last Owner of the workspace; `has_future_sessions`: they have future sessions or a series and the request holds no handover.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRefusal/code`.
+            public var code: Components.Schemas.RemoveTeamMemberRefusal.CodePayload
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRefusal/nextTwoWeeks`.
+            public var nextTwoWeeks: Components.Schemas.FutureSessionWindow?
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRefusal/later`.
+            public struct LaterPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRefusal/later/value1`.
+                public var value1: Components.Schemas.FutureSessionWindow
+                /// Every session after that: a handover always sets them to *Trainer nodig*, none is cancelled.
+                ///
+                /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRefusal/later/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `LaterPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: Every session after that: a handover always sets them to *Trainer nodig*, none is cancelled.
+                public init(
+                    value1: Components.Schemas.FutureSessionWindow,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRefusal/later`.
+            public var later: Components.Schemas.RemoveTeamMemberRefusal.LaterPayload?
+            /// Whether the person is the regular trainer of a weekly class that has not ended: it has no regular trainer after the removal.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRefusal/regularTrainerOfSeries`.
+            public var regularTrainerOfSeries: Swift.Bool?
+            /// Creates a new `RemoveTeamMemberRefusal`.
+            ///
+            /// - Parameters:
+            ///   - code: `last_owner`: the team member is the last Owner of the workspace; `has_future_sessions`: they have future sessions or a series and the request holds no handover.
+            ///   - nextTwoWeeks:
+            ///   - later:
+            ///   - regularTrainerOfSeries: Whether the person is the regular trainer of a weekly class that has not ended: it has no regular trainer after the removal.
+            public init(
+                code: Components.Schemas.RemoveTeamMemberRefusal.CodePayload,
+                nextTwoWeeks: Components.Schemas.FutureSessionWindow? = nil,
+                later: Components.Schemas.RemoveTeamMemberRefusal.LaterPayload? = nil,
+                regularTrainerOfSeries: Swift.Bool? = nil
+            ) {
+                self.code = code
+                self.nextTwoWeeks = nextTwoWeeks
+                self.later = later
+                self.regularTrainerOfSeries = regularTrainerOfSeries
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case nextTwoWeeks
+                case later
+                case regularTrainerOfSeries
+            }
+        }
+        /// The handover of the next 2 weeks’ sessions that comes with a removal.
+        ///
+        /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRequest`.
+        public struct RemoveTeamMemberRequest: Codable, Hashable, Sendable {
+            /// Where the next 2 weeks’ private sessions go: a trainer’s team-member ID, from `GET …/trainers`, or `null` (*Niemand*): they are cancelled with the cancellation email. A team member who does not train in the workspace, one of another workspace and the person being removed answer `422` on `privateTo` with the code `unknown_trainer`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRequest/privateTo`.
+            public var privateTo: Swift.String?
+            /// Where the next 2 weeks’ class dates go: a trainer’s team-member ID, or `null` (*Trainer nodig*). Same `422` on `classesTo`. Class dates and private sessions after the next 2 weeks always get *Trainer nodig*, whatever this says.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRequest/classesTo`.
+            public var classesTo: Swift.String?
+            /// Whether to email the clients (*Klanten informeren*): the trainer-change email (EM-13) to the clients of handed-over private sessions and the booked participants of handed-over class dates, and F026’s cancellation email for a cancelled private session. Nothing is sent for *Trainer nodig*. Left out it is `true`. Never sent for a session that has started.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRequest/notifyClients`.
+            public var notifyClients: Swift.Bool?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_handover` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_handover` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RemoveTeamMemberRequest/surface`.
+            public var surface: Components.Schemas.RemoveTeamMemberRequest.SurfacePayload?
+            /// Creates a new `RemoveTeamMemberRequest`.
+            ///
+            /// - Parameters:
+            ///   - privateTo: Where the next 2 weeks’ private sessions go: a trainer’s team-member ID, from `GET …/trainers`, or `null` (*Niemand*): they are cancelled with the cancellation email. A team member who does not train in the workspace, one of another workspace and the person being removed answer `422` on `privateTo` with the code `unknown_trainer`.
+            ///   - classesTo: Where the next 2 weeks’ class dates go: a trainer’s team-member ID, or `null` (*Trainer nodig*). Same `422` on `classesTo`. Class dates and private sessions after the next 2 weeks always get *Trainer nodig*, whatever this says.
+            ///   - notifyClients: Whether to email the clients (*Klanten informeren*): the trainer-change email (EM-13) to the clients of handed-over private sessions and the booked participants of handed-over class dates, and F026’s cancellation email for a cancelled private session. Nothing is sent for *Trainer nodig*. Left out it is `true`. Never sent for a session that has started.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_handover` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                privateTo: Swift.String? = nil,
+                classesTo: Swift.String? = nil,
+                notifyClients: Swift.Bool? = nil,
+                surface: Components.Schemas.RemoveTeamMemberRequest.SurfacePayload? = nil
+            ) {
+                self.privateTo = privateTo
+                self.classesTo = classesTo
+                self.notifyClients = notifyClients
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case privateTo
+                case classesTo
+                case notifyClients
+                case surface
+            }
+        }
         /// The change would leave the workspace without an Owner; nothing changed. Contains no user-facing text.
         ///
         /// - Remark: Generated from `#/components/schemas/LastOwner`.

@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lt } from 'drizzle-orm';
+import { and, asc, eq, gte, lt, sql } from 'drizzle-orm';
 import {
   authUsers,
   classSeries,
@@ -63,8 +63,11 @@ export async function listWorkspaceCalendar(
       capacity: sessions.capacity,
       version: sessions.version,
       location: locationColumns,
-      trainerId: teamMembers.id,
-      trainerName: authUsers.name,
+      // A trainer who was removed keeps their profile (F023): past sessions still show who it was.
+      trainerId: sql<
+        string | null
+      >`coalesce(${teamMembers.id}, ${trainerProfiles.removedTeamMemberId})`,
+      trainerName: sql<string | null>`coalesce(${authUsers.name}, ${trainerProfiles.removedName})`,
       classNameNl: groupClasses.nameNl,
       classNameEn: groupClasses.nameEn,
       seriesId: sessions.seriesId,

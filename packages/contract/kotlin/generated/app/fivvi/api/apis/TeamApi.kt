@@ -13,7 +13,11 @@ import app.fivvi.api.models.Forbidden
 import app.fivvi.api.models.LastOwner
 import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
+import app.fivvi.api.models.RemoveTeamMemberRefusal
+import app.fivvi.api.models.RemoveTeamMemberRequest
 import app.fivvi.api.models.TeamMember
+import app.fivvi.api.models.TeamMemberFutureSessions
+import app.fivvi.api.models.TeamMemberHandover
 import app.fivvi.api.models.TooManyInvitations
 import app.fivvi.api.models.TrainerInvitation
 import app.fivvi.api.models.TrainerInvitationConflict
@@ -63,6 +67,25 @@ interface TeamApi {
     suspend fun createTrainerInvitation(@Path("workspaceId") workspaceId: java.util.UUID, @Body createTrainerInvitationRequest: CreateTrainerInvitationRequest): Response<TrainerInvitation>
 
     /**
+     * GET v1/workspaces/{workspaceId}/team-members/{teamMemberId}/future-sessions
+     * What a team member still has coming
+     * For the removal dialog (the Owner only): the scheduled private sessions and class dates of the team member that have not started, in this workspace only, counted for the next 2 weeks (within 14 days from now, on the workspace’s wall clock) and for later, and whether they are the regular trainer of a series. A cancelled session does not count. A team member who does not train has none. A team member that is not in the workspace answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The counts, possibly all zero.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param teamMemberId The team-member ID, from the team list.
+     * @return [TeamMemberFutureSessions]
+     */
+    @GET("v1/workspaces/{workspaceId}/team-members/{teamMemberId}/future-sessions")
+    suspend fun getTeamMemberFutureSessions(@Path("workspaceId") workspaceId: java.util.UUID, @Path("teamMemberId") teamMemberId: java.util.UUID): Response<TeamMemberFutureSessions>
+
+    /**
      * GET v1/workspaces/{workspaceId}/team-members
      * The team of a workspace
      * The people on the team of the workspace (the Owner only), sorted by name: team-member ID, name, email address and role. Clients of the workspace are not on the team.
@@ -100,23 +123,26 @@ interface TeamApi {
 
     /**
      * DELETE v1/workspaces/{workspaceId}/team-members/{teamMemberId}
-     * Remove a team member
-     * Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: removing the last one answers &#x60;409&#x60; and changes nothing.
+     * Remove a team member, handing over their future sessions
+     * Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. Their past sessions still show their name. A workspace keeps at least one Owner: removing the last one answers &#x60;409&#x60; &#x60;last_owner&#x60; and changes nothing. A person with future private sessions, class dates or a series they are the regular trainer of needs a handover (the request body): without one the answer is &#x60;409&#x60; &#x60;has_future_sessions&#x60; with the counts and nothing changes. With it, in one transaction: the next 2 weeks’ private sessions go to &#x60;privateTo&#x60; or are cancelled (F026) when it is &#x60;null&#x60;, the next 2 weeks’ class dates go to &#x60;classesTo&#x60; or get *Trainer nodig*, every later session gets *Trainer nodig* (none is cancelled), the series they were the regular trainer of has none, and the person is removed; the answer is &#x60;200&#x60; with what changed. The emails go out after the commit when &#x60;notifyClients&#x60; is not &#x60;false&#x60;. A handover to a team member who does not train in the workspace answers &#x60;422&#x60;. A request without a body for a person with nothing coming answers &#x60;204&#x60;.
      * Responses:
-     *  - 204: The team member was removed.
+     *  - 200: The team member was removed after the handover in the request.
+     *  - 204: The team member was removed; there was nothing to hand over.
      *  - 400: The request did not match the contract.
      *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
      *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
      *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
-     *  - 409: The team member is the last Owner of the workspace; nothing changed.
+     *  - 409: The team member is the last Owner of the workspace, or has future sessions and the request holds no handover; nothing changed.
+     *  - 422: The handover names a team member who does not train in the workspace; nothing changed.
      *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
      *
      * @param workspaceId The workspace ID.
      * @param teamMemberId The team-member ID, from the team list.
-     * @return [Unit]
+     * @param removeTeamMemberRequest  (optional)
+     * @return [TeamMemberHandover]
      */
     @DELETE("v1/workspaces/{workspaceId}/team-members/{teamMemberId}")
-    suspend fun removeTeamMember(@Path("workspaceId") workspaceId: java.util.UUID, @Path("teamMemberId") teamMemberId: java.util.UUID): Response<Unit>
+    suspend fun removeTeamMember(@Path("workspaceId") workspaceId: java.util.UUID, @Path("teamMemberId") teamMemberId: java.util.UUID, @Body removeTeamMemberRequest: RemoveTeamMemberRequest? = null): Response<TeamMemberHandover>
 
     /**
      * POST v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend

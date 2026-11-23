@@ -359,7 +359,7 @@ describe('F003 team list and removal', () => {
       });
     }
     expect(Object.keys(removeOperation.responses).toSorted()).toEqual(
-      ['204', '400', '401', '403', '404', '409', '500'].toSorted(),
+      ['200', '204', '400', '401', '403', '404', '409', '422', '500'].toSorted(),
     );
   });
 

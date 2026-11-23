@@ -30,6 +30,12 @@ extension StubAPI {
         fatalError("The app doesn't call removeTeamMember yet")
     }
 
+    func getTeamMemberFutureSessions(
+        _ input: Operations.GetTeamMemberFutureSessions.Input
+    ) async throws -> Operations.GetTeamMemberFutureSessions.Output {
+        fatalError("The app doesn't call getTeamMemberFutureSessions yet")
+    }
+
     func changeTeamMemberRole(
         _ input: Operations.ChangeTeamMemberRole.Input
     ) async throws -> Operations.ChangeTeamMemberRole.Output {
