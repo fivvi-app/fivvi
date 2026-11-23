@@ -199,7 +199,7 @@ describe('@isolation E011 tenancy core tables', () => {
     });
   });
 
-  it('F005 AC9: a trainer profile is one per team member, in the team member’s workspace, and outlives the record as a former trainer', async () => {
+  it('F005 AC9 (one per team member, in the team member’s workspace) and F023 (#537), which replaced “goes with the record”: removing the team member keeps the profile as a former trainer', async () => {
     await withRollback(db, async (tx) => {
       const workspaceA = await workspace(tx);
       const workspaceB = await workspace(tx);

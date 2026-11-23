@@ -341,7 +341,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     ],
     onDelete: 'anonymize',
     retention: 'FORMER_TRAINER',
-    note: 'A class. Without its usual trainer once the trainer’s profile is removed; the class itself stays with the workspace.',
+    note: 'A class. Without its usual trainer once the trainer is removed from the team (F023); the class itself stays with the workspace.',
   },
   // Offers (F052, spec #468): what a workspace sells and on which terms; no person is named.
   {
@@ -397,7 +397,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     ],
     onDelete: 'anonymize',
     retention: 'FORMER_TRAINER',
-    note: 'A weekly series of a class (F022). Without its usual trainer once the trainer’s profile is removed; the series stays with the workspace, as its dates do.',
+    note: 'A weekly series of a class (F022). A series that has not ended is handed to another trainer or left without one when its trainer is removed from the team (F023); a series that has ended keeps the former trainer’s profile, with the name it had. The series stays with the workspace, as its dates do.',
   },
   {
     table: 'sessions',
@@ -434,7 +434,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     ],
     onDelete: 'anonymize',
     retention: 'FORMER_TRAINER',
-    note: 'A scheduled session. The links to the trainer and to who planned it, changed it last or cancelled it are cleared when the team member is removed; the session stays as the workspace’s record (R9). A cancellation keeps its time and who it came from, and a client’s request keeps its own time (F026, for the cancellation policy of M11); the message an Owner sent with a class date’s cancellation (F026) is the Owner’s own text as typed and may name a person, so it is in the export.',
+    note: 'A scheduled session. The link to the trainer stays when the team member is removed: it points at the former trainer’s profile, which keeps the name it had, so a past session still says who taught it (F023). The links to who planned it, changed it last or cancelled it are cleared when the team member is removed; the session stays as the workspace’s record (R9). A cancellation keeps its time and who it came from, and a client’s request keeps its own time (F026, for the cancellation policy of M11); the message an Owner sent with a class date’s cancellation (F026) is the Owner’s own text as typed and may name a person, so it is in the export.',
   },
   {
     table: 'booking_links',

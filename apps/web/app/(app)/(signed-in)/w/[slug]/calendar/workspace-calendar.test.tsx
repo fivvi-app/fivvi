@@ -316,6 +316,39 @@ describe.each(locales)('F014 Agenda in %s', (locale) => {
     expect(tuesday).not.toContain(t.noTrainer);
     expect(header(view('day', {}, '2026-09-24'))).toContain(t.noTrainer);
   });
+
+  it('F023 AC9: a past session of a removed trainer shows in a column with her name, next to the current trainers', () => {
+    const header = (html: string) =>
+      html.match(/data-slot="week-grid-header".*?data-slot="week-grid-body"/)?.[0] ?? '';
+    // Sarah left the team: she is not in `trainers`, but her session of Tuesday still carries her.
+    const past: Item = {
+      ...base,
+      id: 's-sarah',
+      startsAt: '2026-09-22T12:00:00.000Z',
+      endsAt: '2026-09-22T13:00:00.000Z',
+      trainer: { id: 'm-sarah', name: 'Sarah' },
+      clientName: 'Eva de Vries',
+    };
+    const html = view('day', { items: [...week.items, past] }, '2026-09-22');
+    const columns = header(html);
+    expect(columns).toContain('Sarah');
+    expect(columns).toContain('Sven');
+    expect(columns).toContain('Noor');
+    // No Geen trainer column: her session is not without a trainer.
+    expect(columns).not.toContain(t.noTrainer);
+    // Her block is in the grid, once, under the name she carries.
+    expect(names(html).filter((name) => name?.includes('Eva de Vries'))).toEqual([
+      expect.stringContaining('Sarah'),
+    ]);
+    // A day without her sessions has no column for her.
+    expect(header(view('day', { items: [...week.items, past] }, '2026-09-24'))).not.toContain(
+      'Sarah',
+    );
+    // The week and the list show it too.
+    expect(names(view('week', { items: [...week.items, past] }))).toContainEqual(
+      expect.stringContaining('Eva de Vries'),
+    );
+  });
 });
 
 describe.each(locales)('F014 the sidebar of a workspace in %s', (locale) => {
