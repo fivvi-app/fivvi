@@ -5,6 +5,7 @@ import { emailChangeTakenNoticeEmail } from './templates/email-change-taken-noti
 import { emailChangedNoticeEmail } from './templates/email-changed-notice.tsx';
 import { helloEmail } from './templates/hello.tsx';
 import { privateSessionEmail } from './templates/private-session.tsx';
+import { privateSessionCancelledEmail } from './templates/private-session-cancelled.tsx';
 import { privateSessionMovedEmail } from './templates/private-session-moved.tsx';
 import { signInEmail } from './templates/sign-in.tsx';
 import { trainerChangeEmail } from './templates/trainer-change.tsx';
@@ -123,11 +124,12 @@ export const catalog: readonly CatalogEntry[] = [
   },
   {
     id: 'EM-05',
-    status: 'reserved',
+    status: 'active',
     audience: 'client',
     owner: ['F026'],
-    subjectKeys: ['email.classCancelled.subject', 'email.privateSessionCancelled.subject'],
-    note: 'A class date or a private session is cancelled.',
+    subjectKeys: ['email.privateSessionCancelled.subject'],
+    template: register(privateSessionCancelledEmail),
+    note: 'A class date or a private session is cancelled. The private-session variant exists (F026); the class variant (CO-03) adds its subject key and template with its own ticket.',
   },
   {
     id: 'EM-06',

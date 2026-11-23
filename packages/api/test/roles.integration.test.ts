@@ -256,9 +256,11 @@ describe('@permission F004 roles on every workspace route', () => {
     // only the Owner deactivates), and the workspace calendar (F014: `calendar.read`; the day of the
     // dashboard is the Owner's, `calendar.manage`), and attendance (F025: `attendance.mark.own` for
     // the tap and *Iedereen aanwezig*, `clients.view` for the participants; the rules ask whether
-    // the session is theirs).
+    // the session is theirs), and the cancellation of a private session (F026:
+    // `session.private.cancel.own`; the rules ask whether the session is theirs).
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
+      'cancelPrivateSession',
       'createBookingLink',
       'createPrivateSession',
       'getClient',
@@ -311,6 +313,8 @@ describe('@permission F004 roles on every workspace route', () => {
       listSessionParticipants: 404,
       setParticipantAttendance: 400,
       markEveryoneAttended: 400,
+      // F026: the probe body is no cancellation.
+      cancelPrivateSession: 400,
     });
   });
 

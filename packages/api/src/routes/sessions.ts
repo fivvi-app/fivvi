@@ -130,6 +130,34 @@ export const SessionTrainerSchema = z
   })
   .openapi('SessionTrainer', { description: 'The trainer of a session.' });
 
+export const SessionCancellationSchema = z
+  .object({
+    cancelledAt: z.iso.datetime().openapi({ description: 'When it was cancelled, a UTC instant.' }),
+    cancelledBy: SessionTrainerSchema.optional().openapi({
+      description:
+        'The team member who cancelled it (the banner’s *door {name}*), as in `GET …/trainers`; ' +
+        'left out when that person has been removed.',
+    }),
+    initiator: z.enum(['client', 'workspace']).openapi({
+      description:
+        'Who the cancellation came from: `client` (*De klant*, shown as *op verzoek van de klant*) ' +
+        'or `workspace` (*Wij*). M11 reads it with `cancelledAt` for the cancellation policy.',
+    }),
+    message: z
+      .string()
+      .optional()
+      .openapi({
+        description:
+          'The text the Owner sent with a class date’s cancellation, as typed and never translated; ' +
+          'left out for a private session and for a date cancelled without one.',
+      }),
+  })
+  .openapi('SessionCancellation', {
+    description:
+      'The record of a cancellation (F026): when, by whom and from whom. Every team member who ' +
+      'may read the session reads it.',
+  });
+
 export const SessionSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The session ID.' }),
@@ -160,6 +188,10 @@ export const SessionSchema = z
     // union with `null` is dropped by the Swift generator; an optional property is right in all three clients.
     trainer: SessionTrainerSchema.optional().openapi({
       description: 'Left out when the session has no trainer (the trainer’s profile ended).',
+    }),
+    cancellation: SessionCancellationSchema.optional().openapi({
+      description:
+        'The record of the cancellation (F026); left out while the session is not cancelled.',
     }),
     groupClass: SessionGroupClassSchema.optional().openapi({
       description: 'The class of a class date (F021); left out for the other kinds.',
@@ -572,6 +604,7 @@ export function shown(session: SessionView, timeZone: string) {
     trainer,
     groupClass,
     series,
+    cancellation,
     lastChangedBy: _lastChangedBy,
     ...rest
   } = session;
@@ -580,6 +613,16 @@ export function shown(session: SessionView, timeZone: string) {
     ...rest,
     ...(trainer ? { trainer } : {}),
     ...(groupClass ? { groupClass } : {}),
+    ...(cancellation
+      ? {
+          cancellation: {
+            cancelledAt: cancellation.cancelledAt.toISOString(),
+            ...(cancellation.cancelledBy ? { cancelledBy: cancellation.cancelledBy } : {}),
+            initiator: cancellation.initiator,
+            ...(cancellation.message === null ? {} : { message: cancellation.message }),
+          },
+        }
+      : {}),
     ...(series && rule
       ? {
           series: {

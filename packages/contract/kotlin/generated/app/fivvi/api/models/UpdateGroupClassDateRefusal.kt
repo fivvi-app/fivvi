@@ -31,21 +31,21 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.
+ * Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`), the cancelled date (`session_cancelled`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.
  *
- * @param code `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
- * @param session The date as it is now, for `class_date_changed`.
+ * @param code `class_date_changed`: the date changed since the `version` sent; `session_cancelled`: the date was cancelled (F026) and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+ * @param session The date as it is now, for `class_date_changed` and `session_cancelled`.
  * @param conflicts The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
  */
 @Serializable
 
 data class UpdateGroupClassDateRefusal (
 
-    /* `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07). */
+    /* `class_date_changed`: the date changed since the `version` sent; `session_cancelled`: the date was cancelled (F026) and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07). */
     @SerialName(value = "code")
     val code: UpdateGroupClassDateRefusal.Code,
 
-    /* The date as it is now, for `class_date_changed`. */
+    /* The date as it is now, for `class_date_changed` and `session_cancelled`. */
     @SerialName(value = "session")
     val session: Session? = null,
 
@@ -56,13 +56,14 @@ data class UpdateGroupClassDateRefusal (
 ) {
 
     /**
-     * `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+     * `class_date_changed`: the date changed since the `version` sent; `session_cancelled`: the date was cancelled (F026) and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
      *
-     * Values: CLASS_DATE_CHANGED,TRAINER_CONFLICT
+     * Values: CLASS_DATE_CHANGED,SESSION_CANCELLED,TRAINER_CONFLICT
      */
     @Serializable
     enum class Code(val value: kotlin.String) {
         @SerialName(value = "class_date_changed") CLASS_DATE_CHANGED("class_date_changed"),
+        @SerialName(value = "session_cancelled") SESSION_CANCELLED("session_cancelled"),
         @SerialName(value = "trainer_conflict") TRAINER_CONFLICT("trainer_conflict");
     }
 

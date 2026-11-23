@@ -768,6 +768,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a private session
+         * @description Cancels a private session (PS-06): the session becomes `cancelled` and stays, each client’s place becomes `cancelled` (one line of the status history each, with the caller as actor and `initiator`), and the time (UTC), the team member who cancelled and the `initiator` are stored. The Owner may cancel any private session, a Trainer only their own (`403` otherwise). A cancelled session answers `409` with the code `session_cancelled` (a second cancel too, whatever the version; the state is told before the version); a `version` that is not the session’s answers `409` with `session_changed`, the session as it is now and who changed it last. A session that is not private or not in the workspace answers `404`. When `notify` is on and the session has not started, EM-05 goes to each client after the cancellation is committed, in their email language, else the workspace’s default, and never names another participant. A session that has started is recorded without an email. There is no undo.
+         */
+        post: operations["cancelPrivateSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/calendar": {
         parameters: {
             query?: never;
@@ -1316,7 +1336,7 @@ export interface components {
              */
             teamMemberId: string;
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage" | "attendance.mark.own" | "attendance.mark.any")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.private.cancel.own" | "session.private.cancel.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage" | "attendance.mark.own" | "attendance.mark.any")[];
         };
         /**
          * @description The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
@@ -1359,7 +1379,7 @@ export interface components {
              */
             teamMemberId: string;
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage" | "attendance.mark.own" | "attendance.mark.any")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.private.cancel.own" | "session.private.cancel.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage" | "attendance.mark.own" | "attendance.mark.any")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -1906,6 +1926,7 @@ export interface components {
             version: number;
             location: components["schemas"]["Location"];
             trainer?: components["schemas"]["SessionTrainer"];
+            cancellation?: components["schemas"]["SessionCancellation"];
             groupClass?: components["schemas"]["SessionGroupClass"];
             series?: components["schemas"]["SessionSeries"];
             /** @description The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5). */
@@ -1920,6 +1941,22 @@ export interface components {
             id: string;
             /** @description The account’s name; empty when it has none. */
             name: string;
+        };
+        /** @description The record of the cancellation (F026); left out while the session is not cancelled. */
+        SessionCancellation: {
+            /**
+             * Format: date-time
+             * @description When it was cancelled, a UTC instant.
+             */
+            cancelledAt: string;
+            cancelledBy?: components["schemas"]["SessionTrainer"] & unknown;
+            /**
+             * @description Who the cancellation came from: `client` (*De klant*, shown as *op verzoek van de klant*) or `workspace` (*Wij*). M11 reads it with `cancelledAt` for the cancellation policy.
+             * @enum {string}
+             */
+            initiator: "client" | "workspace";
+            /** @description The text the Owner sent with a class date’s cancellation, as typed and never translated; left out for a private session and for a date cancelled without one. */
+            message?: string;
         };
         /** @description The class of a class date (F021); left out for the other kinds. */
         SessionGroupClass: {
@@ -2294,6 +2331,43 @@ export interface components {
              */
             surface?: "ios" | "android";
         };
+        /** @description The private session after it was cancelled, with how many clients are emailed. */
+        CancelledPrivateSession: {
+            session: components["schemas"]["Session"];
+            /** @description How many clients get the cancellation email (EM-05): the clients of the session when `notify` was on and the session has not started, else 0. It is sent after the answer is decided, in each client’s language; a failure is reported to error tracking and does not undo the cancellation. */
+            clientsNotified: number;
+        };
+        /** @description Why the cancellation was refused; nothing was stored. Contains no user-facing text. */
+        CancelPrivateSessionRefusal: {
+            /**
+             * @description `session_changed`: someone changed the session after the `version` sent; `session_cancelled`: the session was cancelled already (a second cancel) and stays as it is.
+             * @enum {string}
+             */
+            code: "session_changed" | "session_cancelled";
+            session: components["schemas"]["Session"] & unknown;
+            /** @description Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name. */
+            changedBy?: {
+                /** @description The account’s name. */
+                name: string;
+            };
+        };
+        /** @description Who cancels a private session, whether to email the client, and the version seen. */
+        CancelPrivateSessionRequest: {
+            /**
+             * @description Who is cancelling (*Wie annuleert?*): `client` (*De klant*) or `workspace` (*Wij*). It is stored with the time and the team member who cancelled, for the cancellation policy of M11.
+             * @enum {string}
+             */
+            initiator: "client" | "workspace";
+            /** @description Whether to email the client (EM-05; each client of a duo): PS-06’s box, off for `client` and on for `workspace` by default. Not sent when the session has started, whatever this says. */
+            notify: boolean;
+            /** @description The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now. */
+            version: number;
+            /**
+             * @description The app that sends the request: `ios` or `android`; it is the `source` of the cancellation in the status history and the platform of the `private_session_cancelled` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
         /** @description The sessions of a workspace for a range of days: the Agenda’s week, day and list. */
         WorkspaceCalendar: {
             /** @description The first day: `YYYY-MM-DD`. */
@@ -2591,13 +2665,13 @@ export interface components {
             /** @description With `scope: following`: how many dates from this one on were changed on their own and kept as they are (CO-04). Left out for `scope: this`. */
             keptDates?: number;
         };
-        /** @description Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text. */
+        /** @description Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`), the cancelled date (`session_cancelled`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text. */
         UpdateGroupClassDateRefusal: {
             /**
-             * @description `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+             * @description `class_date_changed`: the date changed since the `version` sent; `session_cancelled`: the date was cancelled (F026) and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
              * @enum {string}
              */
-            code: "class_date_changed" | "trainer_conflict";
+            code: "class_date_changed" | "session_cancelled" | "trainer_conflict";
             session?: components["schemas"]["Session"] & unknown;
             /** @description The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`. */
             conflicts?: components["schemas"]["TrainerConflictItem"][];
@@ -5605,7 +5679,7 @@ export interface operations {
                     "application/json": components["schemas"]["NotFound"];
                 };
             };
-            /** @description The date changed since the version in the request (`class_date_changed`), or the trainer already has something at the new time (`trainer_conflict`); nothing was written. */
+            /** @description The date changed since the version in the request (`class_date_changed`), it was cancelled (`session_cancelled`, F026), or the trainer already has something at the new time (`trainer_conflict`); nothing was written. */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6021,6 +6095,89 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttendanceTooEarly"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    cancelPrivateSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The session ID. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelPrivateSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description The session was cancelled. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelledPrivateSession"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The session was cancelled already (`session_cancelled`), or changed after the `version` sent (`session_changed`). Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelPrivateSessionRefusal"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

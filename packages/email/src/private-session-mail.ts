@@ -12,7 +12,11 @@ export interface PrivateSessionMailAddress {
   city: string;
 }
 
-/** What EM-11 (a new session) and EM-04 (a session that moved) need; the private session routes of `packages/api` decide every field (F020). */
+/**
+ * What EM-11 (a new session), EM-04 (a session that moved) and the private-session variant of EM-05
+ * (a session that is cancelled, F026) need; the private session routes of `packages/api` decide
+ * every field (F020, F026).
+ */
 export interface PrivateSessionMail {
   to: { email: string; name: string };
   /** The language of the email, decided by the route (`confirmationLanguage` in `@fivvi/domain`). */
@@ -37,6 +41,12 @@ export interface PrivateSessionMail {
    * `endsAt` are then the new time. Left out for a new session (EM-11).
    */
   previous?: { startsAt: Date; endsAt: Date };
+  /**
+   * Set when the mail says the session is cancelled (EM-05, F026); `startsAt` and `endsAt` are then
+   * the time the session had. It never carries `previous` or `togetherWith`: a cancellation names
+   * no other participant.
+   */
+  cancelled?: true;
   /**
    * The event behind the mail, `{sessionId}:{version}`, with `:{clientId}` added for the client of a duo: one per session, version and client, so the same
    * send repeated reaches the provider with one idempotency key and goes out once (F049).

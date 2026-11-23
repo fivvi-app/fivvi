@@ -366,6 +366,17 @@ export {
   weekDates,
 } from './scheduling/calendar-grid.ts';
 export {
+  type CancelActor,
+  type CancellablePrivateSession,
+  type CancellationInitiator,
+  type CancelledPlace,
+  type CancelPrivateSessionDecision,
+  type CancelPrivateSessionRefusal,
+  type CancelRequest,
+  cancelPrivateSession,
+  mayCancelPrivateSession,
+} from './scheduling/cancel.ts';
+export {
   type ExpandedSeries,
   type ExpandSeriesRefusal,
   expandSeries,

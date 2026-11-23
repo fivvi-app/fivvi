@@ -387,7 +387,7 @@ Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`
 | EM-02 | Je boeking is bevestigd: {class}, {date} | Your booking is confirmed: {class}, {date} | Client | A booking is made, also by moving up from the waitlist or by the team | F031, F062, F028 |
 | EM-03 | Je boeking is geannuleerd: {class}, {date} | Your booking has been cancelled: {class}, {date} | Client | The client cancels (CW-03); the variant "door {workspace}" when the team removes them | F031, F028 |
 | EM-04 | Wijziging: {class} op {date} / Wijziging: je sessie is verplaatst naar {newDate} | Change: {class} on {date} / Change: your session has moved to {newDate} | Client | A booked class date or a private session moves (PS-05, CO-04) | F020, F031 |
-| EM-05 | {class} op {date} gaat niet door / Je sessie op {date} is geannuleerd | {class} on {date} is cancelled / Your session on {date} has been cancelled | Client | A class date (CO-03) or a private session is cancelled | F026 |
+| EM-05 | {class} op {date} gaat niet door / Je sessie op {date} om {time} is geannuleerd | {class} on {date} is cancelled / Your session on {date} at {time} has been cancelled | Client | A class date (CO-03) or a private session is cancelled | F026 |
 | EM-06 | Nieuwe boeking: {name} voor {class} op {date} | New booking: {name} for {class} on {date} | Trainer | A client books or moves up from the waitlist | F050 |
 | EM-07 | Geannuleerd: {name} voor {class} op {date} | Cancelled: {name} for {class} on {date} | Trainer | A client cancels a booking | F050 |
 | EM-08 | Je inlogcode voor Fivvi | Your sign-in code for Fivvi | Anyone signing in | Sign-in requested | F001 |

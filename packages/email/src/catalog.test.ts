@@ -92,6 +92,7 @@ describe('F049 AC1: the email catalog', () => {
       return entry?.status === 'active' ? entry.template.id : undefined;
     };
     expect(templateOf('EM-04')).toBe('private-session-moved');
+    expect(templateOf('EM-05')).toBe('private-session-cancelled');
     expect(templateOf('EM-08')).toBe('sign-in');
     expect(templateOf('EM-09')).toBe('trainer-invitation');
     expect(templateOf('EM-11')).toBe('private-session');
@@ -106,6 +107,7 @@ describe('F049 AC1: the email catalog', () => {
       catalog.filter((entry) => entry.status === status).map((entry) => entry.id);
     expect(byStatus('active')).toEqual([
       'EM-04',
+      'EM-05',
       'EM-08',
       'EM-09',
       'EM-11',
@@ -118,7 +120,6 @@ describe('F049 AC1: the email catalog', () => {
     expect(byStatus('reserved')).toEqual([
       'EM-02',
       'EM-03',
-      'EM-05',
       'EM-06',
       'EM-07',
       'EM-10',

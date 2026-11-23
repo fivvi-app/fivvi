@@ -24,6 +24,7 @@
 package app.fivvi.api.models
 
 import app.fivvi.api.models.Location
+import app.fivvi.api.models.SessionCancellation
 import app.fivvi.api.models.SessionGroupClass
 import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionSeries
@@ -47,6 +48,7 @@ import kotlinx.serialization.Contextual
  * @param location 
  * @param participants The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5).
  * @param trainer 
+ * @param cancellation 
  * @param groupClass 
  * @param series 
  * @param datesAdded How many dates the request made: 12 for a weekly repeat (“12 groepslessen toegevoegd”); left out for one date. The session is the first of them.
@@ -96,6 +98,9 @@ data class ScheduledClassDate (
 
     @SerialName(value = "trainer")
     val trainer: SessionTrainer? = null,
+
+    @SerialName(value = "cancellation")
+    val cancellation: SessionCancellation? = null,
 
     @SerialName(value = "groupClass")
     val groupClass: SessionGroupClass? = null,

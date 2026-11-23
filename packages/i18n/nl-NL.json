@@ -425,6 +425,12 @@
       "when": "Wanneer: {date}, {start} tot {end}",
       "where": "Waar: {location}"
     },
+    "privateSessionCancelled": {
+      "intro": "Je privésessie bij {workspace} is geannuleerd.",
+      "preview": "Je privésessie bij {workspace} gaat niet door.",
+      "subject": "Je sessie op {date} om {time} is geannuleerd",
+      "when": "Gepland was: {date}, {start} tot {end}"
+    },
     "privateSessionMoved": {
       "dateTime": "{date} om {time}",
       "intro": "Je privésessie bij {workspace} is verplaatst.",

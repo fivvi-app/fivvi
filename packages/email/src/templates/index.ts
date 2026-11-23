@@ -5,6 +5,10 @@ export { emailChangedNoticeEmail } from './email-changed-notice.tsx';
 export { type HelloEmailProps, helloEmail } from './hello.tsx';
 export { type PrivateSessionEmailProps, privateSessionEmail } from './private-session.tsx';
 export {
+  type PrivateSessionCancelledEmailProps,
+  privateSessionCancelledEmail,
+} from './private-session-cancelled.tsx';
+export {
   type PrivateSessionMovedEmailProps,
   privateSessionMovedEmail,
 } from './private-session-moved.tsx';

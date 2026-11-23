@@ -82,6 +82,7 @@ export {
   listBookingLinks,
   type NewBookingLink,
 } from './repositories/booking-links.ts';
+export { cancelSession, type SessionCancellation } from './repositories/cancellations.ts';
 export {
   type ClassSeriesChanges,
   type ClassSeriesView,
@@ -260,6 +261,7 @@ export {
 export {
   type AttendanceStatus,
   assignSessionTrainer,
+  type CancellationInitiator,
   createPrivateSession,
   findSession,
   listBookedClients,
@@ -267,6 +269,7 @@ export {
   listUpcomingSessionsOfClient,
   type NewPrivateSession,
   rescheduleSession,
+  type SessionCancellationView,
   type SessionGroupClassView,
   type SessionParticipantView,
   type SessionReschedule,

@@ -1,6 +1,7 @@
 import type { PrivateSessionMail } from './private-session-mail.ts';
 import type { SendEmail } from './send.ts';
 import { privateSessionEmail } from './templates/private-session.tsx';
+import { privateSessionCancelledEmail } from './templates/private-session-cancelled.tsx';
 import { privateSessionMovedEmail } from './templates/private-session-moved.tsx';
 
 export interface PrivateSessionSenderOptions {
@@ -8,8 +9,8 @@ export interface PrivateSessionSenderOptions {
 }
 
 /**
- * The function `packages/api` calls to email EM-11, or EM-04 when the mail says the session moved
- * (F020): renders the template in the language it is given, in the workspace's time zone. The API
+ * The function `packages/api` calls to email EM-11, EM-04 when the mail says the session moved
+ * (F020), or EM-05 when it says the session is cancelled (F026): renders the template in the language it is given, in the workspace's time zone. The API
  * package cannot import the templates itself (they are `.tsx`, which the contract script's Node
  * cannot load), so `apps/web` wires this in.
  */
@@ -37,6 +38,12 @@ export function createPrivateSessionSender({
       timeZone: mail.timeZone,
       event: mail.event,
     };
+    if (mail.cancelled) {
+      // A cancellation names no other client: `togetherWith` is not passed on.
+      const { togetherWith: _togetherWith, ...cancelled } = common;
+      await sendEmail({ template: privateSessionCancelledEmail, props: cancelled, ...delivery });
+      return;
+    }
     if (mail.previous) {
       await sendEmail({
         template: privateSessionMovedEmail,

@@ -487,6 +487,11 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
       return c.json(NOT_FOUND, 404);
     }
     const timeZone = workspace.timeZone;
+    // A cancelled session stays as it is (F026): the state is told before the version, so a form
+    // opened before the cancellation learns why it cannot save.
+    if (current.status === 'cancelled') {
+      return c.json(conflict('session_cancelled', current, timeZone), 409);
+    }
     // A save from an old version never gets as far as the rules (F020's 409, with the session).
     if (current.version !== body.version) {
       return c.json(conflict('session_changed', current, timeZone), 409);

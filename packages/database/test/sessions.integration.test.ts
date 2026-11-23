@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   authUsers,
+  cancelSession,
   createDatabase,
   createPrivateSession,
   createTenantScopes,
@@ -10,6 +11,7 @@ import {
   type DatabaseExecutor,
   findSession,
   findTrainer,
+  listParticipantStatusChanges,
   listUpcomingSessionsOfClient,
   locations,
   rescheduleSession,
@@ -604,6 +606,232 @@ describe('F020 sessions and session participants tables', () => {
       await admin.db.delete(teamMembers).where(eq(teamMembers.id, johnRole.id));
       const gone = await admin.db.select().from(sessions).where(eq(sessions.id, planned.id));
       expect(gone[0]).toMatchObject({ updatedByTeamMemberId: null, version: 2 });
+    });
+
+    it('F026: cancels a session once: the record, the version and each place with its history line; a second cancel and a stale version change nothing', async () => {
+      const { gym, john, johnRole, anna, profileId } = await gymWithJohnAndSarah();
+      const mark = await addClient(admin.db, { workspaceId: gym.id });
+      const duo = await addSession(admin.db, {
+        workspaceId: gym.id,
+        clientId: anna.id,
+        secondClientId: mark.id,
+        trainerProfileId: profileId,
+        createdByTeamMemberId: johnRole.id,
+        startsAt: new Date('2026-09-24T07:00:00.000Z'),
+      });
+      const cancelledAt = new Date('2026-09-22T11:30:00.000Z');
+      const cancellation = {
+        sessionId: duo.id,
+        expectedVersion: 1,
+        cancelledAt,
+        cancelledBy: { teamMemberId: johnRole.id, accountId: john.id },
+        initiator: 'workspace' as const,
+        source: 'ios' as const,
+        clientIds: [anna.id, mark.id],
+      };
+
+      const stale = await asTeam(john.id, gym.id, (scope) =>
+        cancelSession(scope, { ...cancellation, expectedVersion: 2 }),
+      );
+      const cancelled = await asTeam(john.id, gym.id, (scope) =>
+        cancelSession(scope, cancellation),
+      );
+      const again = await asTeam(john.id, gym.id, (scope) =>
+        cancelSession(scope, { ...cancellation, expectedVersion: 2 }),
+      );
+
+      expect(stale).toBeUndefined();
+      expect(again).toBeUndefined();
+      expect(cancelled).toMatchObject({
+        status: 'cancelled',
+        version: 2,
+        cancellation: {
+          cancelledAt,
+          cancelledBy: { id: johnRole.id, name: 'John' },
+          initiator: 'workspace',
+          message: null,
+        },
+        lastChangedBy: { id: johnRole.id },
+        participants: [
+          { clientId: anna.id, attendanceStatus: 'cancelled' },
+          { clientId: mark.id, attendanceStatus: 'cancelled' },
+        ],
+      });
+      const places = await admin.db
+        .select({
+          id: sessionParticipants.id,
+          statusChangedAt: sessionParticipants.statusChangedAt,
+        })
+        .from(sessionParticipants)
+        .where(eq(sessionParticipants.sessionId, duo.id));
+      const history = await asTeam(john.id, gym.id, (scope) =>
+        listParticipantStatusChanges(
+          scope,
+          places.map((place) => place.id),
+        ),
+      );
+      expect(history).toHaveLength(2);
+      for (const line of history) {
+        expect(line).toMatchObject({
+          from: 'booked',
+          to: 'cancelled',
+          changedAt: cancelledAt,
+          actorType: 'team_member',
+          actorTeamMemberId: johnRole.id,
+          actorAccountId: john.id,
+          initiatedBy: 'workspace',
+          source: 'ios',
+        });
+      }
+      for (const place of places) expect(place.statusChangedAt).toEqual(cancelledAt);
+    });
+
+    it('F026: leaves a place that is cancelled already alone and names only the clients it is told to', async () => {
+      const { gym, john, johnRole, anna, profileId } = await gymWithJohnAndSarah();
+      const mark = await addClient(admin.db, { workspaceId: gym.id });
+      const duo = await addSession(admin.db, {
+        workspaceId: gym.id,
+        clientId: anna.id,
+        secondClientId: mark.id,
+        trainerProfileId: profileId,
+        startsAt: new Date('2026-09-24T07:00:00.000Z'),
+      });
+      await admin.db
+        .update(sessionParticipants)
+        .set({ attendanceStatus: 'cancelled' })
+        .where(eq(sessionParticipants.clientId, anna.id));
+
+      const cancelled = await asTeam(john.id, gym.id, (scope) =>
+        cancelSession(scope, {
+          sessionId: duo.id,
+          expectedVersion: 1,
+          cancelledAt: new Date('2026-09-22T11:30:00.000Z'),
+          cancelledBy: { teamMemberId: johnRole.id, accountId: john.id },
+          initiator: 'client',
+          source: 'web',
+          clientIds: [anna.id, mark.id],
+        }),
+      );
+
+      expect(cancelled?.participants.map((place) => place.attendanceStatus)).toEqual([
+        'cancelled',
+        'cancelled',
+      ]);
+      const lines = await admin.db.execute(
+        sql`select count(*)::int as n from session_participant_status_changes where client_id = ${anna.id}`,
+      );
+      // Anna's place was cancelled before this: no line for it now.
+      expect((lines.rows[0] as { n: number }).n).toBe(0);
+    });
+
+    it('F026: the time and the initiator of a cancellation come together, and who clicked or a message only with them', async () => {
+      const { gym, profileId } = await gymWithJohnAndSarah();
+      const session = await addSession(admin.db, {
+        workspaceId: gym.id,
+        trainerProfileId: profileId,
+        status: 'cancelled',
+      });
+      const set = (values: Partial<typeof sessions.$inferInsert>) =>
+        admin.db.update(sessions).set(values).where(eq(sessions.id, session.id));
+
+      await expect(set({ cancellationInitiator: 'client' })).rejects.toThrow();
+      await expect(set({ cancelledAt: new Date() })).rejects.toThrow();
+      await expect(set({ cancellationMessage: 'Sorry!' })).rejects.toThrow();
+      await set({
+        cancelledAt: new Date(),
+        cancellationInitiator: 'workspace',
+        cancellationMessage: 'Sorry!',
+      });
+
+      const [row] = await admin.db.select().from(sessions).where(eq(sessions.id, session.id));
+      expect(row).toMatchObject({
+        cancellationInitiator: 'workspace',
+        cancellationMessage: 'Sorry!',
+      });
+    });
+
+    it('F026: cancelled_at is only ever set on a cancelled session: a scheduled session refuses it, with or without an initiator', async () => {
+      const { gym, profileId } = await gymWithJohnAndSarah();
+      const session = await addSession(admin.db, {
+        workspaceId: gym.id,
+        trainerProfileId: profileId,
+      });
+      const set = (values: Partial<typeof sessions.$inferInsert>) =>
+        admin.db.update(sessions).set(values).where(eq(sessions.id, session.id));
+
+      await expect(
+        set({ cancelledAt: new Date(), cancellationInitiator: 'workspace' }),
+      ).rejects.toThrow();
+      // There is no undo: a cancelled session cannot go back to scheduled with its record.
+      await set({
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        cancellationInitiator: 'client',
+      });
+      await expect(set({ status: 'scheduled' })).rejects.toThrow();
+
+      const [row] = await admin.db.select().from(sessions).where(eq(sessions.id, session.id));
+      expect(row?.status).toBe('cancelled');
+    });
+
+    it('F026: cancellation_requested_at (the time of a client’s request, M5) is nullable and a scheduled session may carry it', async () => {
+      const { gym, profileId } = await gymWithJohnAndSarah();
+      const session = await addSession(admin.db, {
+        workspaceId: gym.id,
+        trainerProfileId: profileId,
+      });
+      const read = async () =>
+        (await admin.db.select().from(sessions).where(eq(sessions.id, session.id)))[0];
+      const columns = await admin.db.execute(
+        sql`select is_nullable, data_type from information_schema.columns
+            where table_name = 'sessions' and column_name = 'cancellation_requested_at'`,
+      );
+
+      expect(columns.rows).toEqual([{ is_nullable: 'YES', data_type: 'timestamp with time zone' }]);
+      expect((await read())?.cancellationRequestedAt).toBeNull();
+      const requestedAt = new Date('2026-09-21T08:15:00.000Z');
+      await admin.db
+        .update(sessions)
+        .set({ cancellationRequestedAt: requestedAt })
+        .where(eq(sessions.id, session.id));
+      expect(await read()).toMatchObject({
+        status: 'scheduled',
+        cancelledAt: null,
+        cancellationInitiator: null,
+        cancellationRequestedAt: requestedAt,
+      });
+    });
+
+    it('F026: the team member who cancelled is cleared when they are removed; the record of the cancellation stays', async () => {
+      const { gym, john, johnRole, anna, profileId } = await gymWithJohnAndSarah();
+      const session = await addSession(admin.db, {
+        workspaceId: gym.id,
+        clientId: anna.id,
+        trainerProfileId: profileId,
+        startsAt: new Date('2026-09-24T07:00:00.000Z'),
+      });
+      const cancelledAt = new Date('2026-09-22T11:30:00.000Z');
+      await asTeam(john.id, gym.id, (scope) =>
+        cancelSession(scope, {
+          sessionId: session.id,
+          expectedVersion: 1,
+          cancelledAt,
+          cancelledBy: { teamMemberId: johnRole.id, accountId: john.id },
+          initiator: 'client',
+          source: 'web',
+          clientIds: [anna.id],
+        }),
+      );
+
+      await admin.db.delete(teamMembers).where(eq(teamMembers.id, johnRole.id));
+
+      const [row] = await admin.db.select().from(sessions).where(eq(sessions.id, session.id));
+      expect(row).toMatchObject({
+        status: 'cancelled',
+        cancelledAt,
+        cancelledByTeamMemberId: null,
+        cancellationInitiator: 'client',
+      });
     });
 
     it('AC9: lists the next sessions of a client in order, from now, private and scheduled only', async () => {

@@ -12,6 +12,9 @@ import app.fivvi.api.models.AssignTrainerRequest
 import app.fivvi.api.models.Attendance
 import app.fivvi.api.models.AttendanceRefusal
 import app.fivvi.api.models.AttendanceTooEarly
+import app.fivvi.api.models.CancelPrivateSessionRefusal
+import app.fivvi.api.models.CancelPrivateSessionRequest
+import app.fivvi.api.models.CancelledPrivateSession
 import app.fivvi.api.models.Forbidden
 import app.fivvi.api.models.MarkEveryoneAttendedRequest
 import app.fivvi.api.models.NotFound
@@ -50,6 +53,27 @@ interface SessionsApi {
      */
     @POST("v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer")
     suspend fun assignTrainer(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID, @Body assignTrainerRequest: AssignTrainerRequest): Response<TrainerAssigned>
+
+    /**
+     * POST v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel
+     * Cancel a private session
+     * Cancels a private session (PS-06): the session becomes &#x60;cancelled&#x60; and stays, each client’s place becomes &#x60;cancelled&#x60; (one line of the status history each, with the caller as actor and &#x60;initiator&#x60;), and the time (UTC), the team member who cancelled and the &#x60;initiator&#x60; are stored. The Owner may cancel any private session, a Trainer only their own (&#x60;403&#x60; otherwise). A cancelled session answers &#x60;409&#x60; with the code &#x60;session_cancelled&#x60; (a second cancel too, whatever the version; the state is told before the version); a &#x60;version&#x60; that is not the session’s answers &#x60;409&#x60; with &#x60;session_changed&#x60;, the session as it is now and who changed it last. A session that is not private or not in the workspace answers &#x60;404&#x60;. When &#x60;notify&#x60; is on and the session has not started, EM-05 goes to each client after the cancellation is committed, in their email language, else the workspace’s default, and never names another participant. A session that has started is recorded without an email. There is no undo.
+     * Responses:
+     *  - 200: The session was cancelled.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 409: The session was cancelled already (`session_cancelled`), or changed after the `version` sent (`session_changed`). Nothing was stored.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param sessionId The session ID.
+     * @param cancelPrivateSessionRequest 
+     * @return [CancelledPrivateSession]
+     */
+    @POST("v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel")
+    suspend fun cancelPrivateSession(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID, @Body cancelPrivateSessionRequest: CancelPrivateSessionRequest): Response<CancelledPrivateSession>
 
     /**
      * POST v1/workspaces/{workspaceId}/sessions/private

@@ -174,7 +174,7 @@ interface GroupClassesApi {
      *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
      *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
      *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
-     *  - 409: The date changed since the version in the request (`class_date_changed`), or the trainer already has something at the new time (`trainer_conflict`); nothing was written.
+     *  - 409: The date changed since the version in the request (`class_date_changed`), it was cancelled (`session_cancelled`, F026), or the trainer already has something at the new time (`trainer_conflict`); nothing was written.
      *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
      *
      * @param workspaceId The workspace ID.

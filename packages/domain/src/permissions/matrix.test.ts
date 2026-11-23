@@ -14,6 +14,7 @@ const TRAINER_CAPABILITIES: readonly Capability[] = [
   'clients.manage',
   'location.read',
   'session.private.manage.own',
+  'session.private.cancel.own',
   'class.read',
   'join_link.view',
   'booking_link.copy',
@@ -22,7 +23,7 @@ const TRAINER_CAPABILITIES: readonly Capability[] = [
 ];
 
 describe('@permission F004 permission matrix', () => {
-  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own, class.read, join_link.view, booking_link.copy, calendar.read and attendance.mark.own', () => {
+  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own, session.private.cancel.own, class.read, join_link.view, booking_link.copy, calendar.read and attendance.mark.own', () => {
     expect(ROLES).toEqual(['owner', 'trainer']);
     expect(CAPABILITIES).toEqual([
       'workspace.manage',
@@ -36,6 +37,8 @@ describe('@permission F004 permission matrix', () => {
       'team.invite',
       'session.private.manage.own',
       'session.private.manage.any',
+      'session.private.cancel.own',
+      'session.private.cancel.any',
       'session.assign',
       'class.manage',
       'class.read',
@@ -75,6 +78,9 @@ describe('@permission F004 permission matrix', () => {
     // F020: a Trainer plans their own private sessions, only the Owner plans for any trainer.
     expect(rolesWith('session.private.manage.own')).toEqual(['owner', 'trainer']);
     expect(rolesWith('session.private.manage.any')).toEqual(['owner']);
+    // F026: a Trainer cancels their own private sessions, only the Owner cancels any (spec decision 3).
+    expect(rolesWith('session.private.cancel.own')).toEqual(['owner', 'trainer']);
+    expect(rolesWith('session.private.cancel.any')).toEqual(['owner']);
     // F023 (owner decision, 4 November 2026): only the Owner assigns and changes a session's trainer.
     expect(rolesWith('session.assign')).toEqual(['owner']);
     // F021: only the Owner manages group classes and puts them on a date; the whole team reads them.

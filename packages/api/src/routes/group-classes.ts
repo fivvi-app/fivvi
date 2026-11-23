@@ -626,13 +626,14 @@ const ClassSeriesRefusalSchema = z
 // refusals apart; `session` comes with `class_date_changed`, `conflicts` with `trainer_conflict`.
 const ClassDateRefusalSchema = z
   .object({
-    code: z.enum(['class_date_changed', 'trainer_conflict']).openapi({
+    code: z.enum(['class_date_changed', 'session_cancelled', 'trainer_conflict']).openapi({
       description:
-        '`class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: ' +
+        '`class_date_changed`: the date changed since the `version` sent; `session_cancelled`: ' +
+        'the date was cancelled (F026) and stays as it is; `trainer_conflict`: ' +
         'the trainer already has something at the new time (PS-07).',
     }),
     session: SessionSchema.optional().openapi({
-      description: 'The date as it is now, for `class_date_changed`.',
+      description: 'The date as it is now, for `class_date_changed` and `session_cancelled`.',
     }),
     conflicts: z.array(TrainerConflictItemSchema).optional().openapi({
       description:
@@ -642,8 +643,9 @@ const ClassDateRefusalSchema = z
   .openapi('UpdateGroupClassDateRefusal', {
     description:
       'Why the date edit was refused; nothing was written. The version refusal ' +
-      '(`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one ' +
-      'object, told apart by `code`. Contains no user-facing text.',
+      '(`class_date_changed`), the cancelled date (`session_cancelled`) and the body of ' +
+      '`TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no ' +
+      'user-facing text.',
   });
 
 // The capabilities come from the permission matrix in @fivvi/domain (F004): the Owner manages
@@ -954,8 +956,9 @@ const updateGroupClassDateRoute = defineRoute(
       400: validationErrorResponse,
       409: {
         description:
-          'The date changed since the version in the request (`class_date_changed`), or the ' +
-          'trainer already has something at the new time (`trainer_conflict`); nothing was written.',
+          'The date changed since the version in the request (`class_date_changed`), it was ' +
+          'cancelled (`session_cancelled`, F026), or the trainer already has something at the new ' +
+          'time (`trainer_conflict`); nothing was written.',
         content: {
           'application/json': { schema: ClassDateRefusalSchema },
         },
@@ -1650,6 +1653,14 @@ export function registerGroupClasses(app: OpenAPIHono) {
       code: 'class_date_changed' as const,
       session: shown(session, workspace.timeZone),
     });
+    // A cancelled date stays as it is (F026): the state is told before the version, as in the rules
+    // of the private session, so a form opened before the cancellation learns why it cannot save.
+    if (current.status === 'cancelled') {
+      return c.json(
+        { code: 'session_cancelled' as const, session: shown(current, workspace.timeZone) },
+        409,
+      );
+    }
     const editScope = body.scope ?? 'this';
     if (editScope === 'following' && !current.series) {
       return c.json(invalid('scope', 'not_in_series'), 400);

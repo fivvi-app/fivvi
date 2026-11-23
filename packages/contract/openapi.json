@@ -288,6 +288,8 @@
                 "team.invite",
                 "session.private.manage.own",
                 "session.private.manage.any",
+                "session.private.cancel.own",
+                "session.private.cancel.any",
                 "session.assign",
                 "class.manage",
                 "class.read",
@@ -404,6 +406,8 @@
                 "team.invite",
                 "session.private.manage.own",
                 "session.private.manage.any",
+                "session.private.cancel.own",
+                "session.private.cancel.any",
                 "session.assign",
                 "class.manage",
                 "class.read",
@@ -1645,6 +1649,9 @@
           "trainer": {
             "$ref": "#/components/schemas/SessionTrainer"
           },
+          "cancellation": {
+            "$ref": "#/components/schemas/SessionCancellation"
+          },
           "groupClass": {
             "$ref": "#/components/schemas/SessionGroupClass"
           },
@@ -1691,6 +1698,43 @@
           "name"
         ],
         "description": "Left out when the session has no trainer (the trainer’s profile ended)."
+      },
+      "SessionCancellation": {
+        "type": "object",
+        "properties": {
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was cancelled, a UTC instant."
+          },
+          "cancelledBy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SessionTrainer"
+              },
+              {
+                "description": "The team member who cancelled it (the banner’s *door {name}*), as in `GET …/trainers`; left out when that person has been removed."
+              }
+            ]
+          },
+          "initiator": {
+            "type": "string",
+            "enum": [
+              "client",
+              "workspace"
+            ],
+            "description": "Who the cancellation came from: `client` (*De klant*, shown as *op verzoek van de klant*) or `workspace` (*Wij*). M11 reads it with `cancelledAt` for the cancellation policy."
+          },
+          "message": {
+            "type": "string",
+            "description": "The text the Owner sent with a class date’s cancellation, as typed and never translated; left out for a private session and for a date cancelled without one."
+          }
+        },
+        "required": [
+          "cancelledAt",
+          "initiator"
+        ],
+        "description": "The record of the cancellation (F026); left out while the session is not cancelled."
       },
       "SessionGroupClass": {
         "type": "object",
@@ -2506,6 +2550,100 @@
         ],
         "description": "*Iedereen aanwezig*: every participant still open becomes attended."
       },
+      "CancelledPrivateSession": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "clientsNotified": {
+            "type": "integer",
+            "description": "How many clients get the cancellation email (EM-05): the clients of the session when `notify` was on and the session has not started, else 0. It is sent after the answer is decided, in each client’s language; a failure is reported to error tracking and does not undo the cancellation."
+          }
+        },
+        "required": [
+          "session",
+          "clientsNotified"
+        ],
+        "description": "The private session after it was cancelled, with how many clients are emailed."
+      },
+      "CancelPrivateSessionRefusal": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "session_changed",
+              "session_cancelled"
+            ],
+            "description": "`session_changed`: someone changed the session after the `version` sent; `session_cancelled`: the session was cancelled already (a second cancel) and stays as it is."
+          },
+          "session": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Session"
+              },
+              {
+                "description": "The session as it is now."
+              }
+            ]
+          },
+          "changedBy": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The account’s name."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "description": "Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name."
+          }
+        },
+        "required": [
+          "code",
+          "session"
+        ],
+        "description": "Why the cancellation was refused; nothing was stored. Contains no user-facing text."
+      },
+      "CancelPrivateSessionRequest": {
+        "type": "object",
+        "properties": {
+          "initiator": {
+            "type": "string",
+            "enum": [
+              "client",
+              "workspace"
+            ],
+            "description": "Who is cancelling (*Wie annuleert?*): `client` (*De klant*) or `workspace` (*Wij*). It is stored with the time and the team member who cancelled, for the cancellation policy of M11."
+          },
+          "notify": {
+            "type": "boolean",
+            "description": "Whether to email the client (EM-05; each client of a duo): PS-06’s box, off for `client` and on for `workspace` by default. Not sent when the session has started, whatever this says."
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`; it is the `source` of the cancellation in the status history and the platform of the `private_session_cancelled` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "initiator",
+          "notify",
+          "version"
+        ],
+        "description": "Who cancels a private session, whether to email the client, and the version seen."
+      },
       "WorkspaceCalendar": {
         "type": "object",
         "properties": {
@@ -3249,9 +3387,10 @@
             "type": "string",
             "enum": [
               "class_date_changed",
+              "session_cancelled",
               "trainer_conflict"
             ],
-            "description": "`class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07)."
+            "description": "`class_date_changed`: the date changed since the `version` sent; `session_cancelled`: the date was cancelled (F026) and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07)."
           },
           "session": {
             "allOf": [
@@ -3259,7 +3398,7 @@
                 "$ref": "#/components/schemas/Session"
               },
               {
-                "description": "The date as it is now, for `class_date_changed`."
+                "description": "The date as it is now, for `class_date_changed` and `session_cancelled`."
               }
             ]
           },
@@ -3274,7 +3413,7 @@
         "required": [
           "code"
         ],
-        "description": "Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text."
+        "description": "Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`), the cancelled date (`session_cancelled`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text."
       },
       "UpdateGroupClassDateRequest": {
         "type": "object",
@@ -8394,7 +8533,7 @@
             }
           },
           "409": {
-            "description": "The date changed since the version in the request (`class_date_changed`), or the trainer already has something at the new time (`trainer_conflict`); nothing was written.",
+            "description": "The date changed since the version in the request (`class_date_changed`), it was cancelled (`session_cancelled`, F026), or the trainer already has something at the new time (`trainer_conflict`); nothing was written.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9058,6 +9197,140 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AttendanceTooEarly"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel": {
+      "post": {
+        "operationId": "cancelPrivateSession",
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Cancel a private session",
+        "description": "Cancels a private session (PS-06): the session becomes `cancelled` and stays, each client’s place becomes `cancelled` (one line of the status history each, with the caller as actor and `initiator`), and the time (UTC), the team member who cancelled and the `initiator` are stored. The Owner may cancel any private session, a Trainer only their own (`403` otherwise). A cancelled session answers `409` with the code `session_cancelled` (a second cancel too, whatever the version; the state is told before the version); a `version` that is not the session’s answers `409` with `session_changed`, the session as it is now and who changed it last. A session that is not private or not in the workspace answers `404`. When `notify` is on and the session has not started, EM-05 goes to each client after the cancellation is committed, in their email language, else the workspace’s default, and never names another participant. A session that has started is recorded without an email. There is no undo.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "session.private.cancel.own",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The session ID."
+            },
+            "required": true,
+            "description": "The session ID.",
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelPrivateSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The session was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelledPrivateSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The session was cancelled already (`session_cancelled`), or changed after the `version` sent (`session_changed`). Nothing was stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelPrivateSessionRefusal"
                 }
               }
             }

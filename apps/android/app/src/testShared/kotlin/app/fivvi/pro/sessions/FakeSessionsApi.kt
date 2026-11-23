@@ -5,6 +5,8 @@ import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.models.AddressLookupResult
 import app.fivvi.api.models.AssignTrainerRequest
 import app.fivvi.api.models.Attendance
+import app.fivvi.api.models.CancelPrivateSessionRequest
+import app.fivvi.api.models.CancelledPrivateSession
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.LocationAddress
@@ -167,6 +169,12 @@ class FakeSessionsApi : SessionsApi {
         getStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
         return sessions[sessionId]?.let { Response.success(it) } ?: Response.error(404, "{}".toResponseBody(JSON))
     }
+
+    override suspend fun cancelPrivateSession(
+        workspaceId: UUID,
+        sessionId: UUID,
+        cancelPrivateSessionRequest: CancelPrivateSessionRequest,
+    ): Response<CancelledPrivateSession> = error("FakeSessionsApi.cancelPrivateSession is not expected in this test")
 
     override suspend fun assignTrainer(
         workspaceId: UUID,

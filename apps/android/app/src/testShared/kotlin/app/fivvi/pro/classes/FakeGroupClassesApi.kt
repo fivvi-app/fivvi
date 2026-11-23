@@ -95,8 +95,8 @@ fun classDateOf(
         List(booked) { participant(it, SessionParticipant.AttendanceStatus.BOOKED) } +
             List(cancelled) { participant(booked + it, SessionParticipant.AttendanceStatus.CANCELLED) },
         trainer?.let { SessionTrainer(it.id, it.name) },
-        SessionGroupClass(groupClass.id, groupClass.nameNl, groupClass.nameEn),
-        series,
+        groupClass = SessionGroupClass(groupClass.id, groupClass.nameNl, groupClass.nameEn),
+        series = series,
     )
 }
 
