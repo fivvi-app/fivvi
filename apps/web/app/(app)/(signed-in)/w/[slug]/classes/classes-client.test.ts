@@ -806,6 +806,24 @@ describe('F021 TW-03 classes client', () => {
         reason: 'fields',
         noUpcomingDates: true,
       });
+      const capacity = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'capacity', code: 'invalid_capacity' }],
+      });
+      expect(await editClassSeries('w1', 'c1', 'r1', input, capacity)).toEqual({
+        ok: false,
+        reason: 'fields',
+        capacity: 'capacityInvalid',
+      });
+      const time = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'localStartTime', code: 'invalid_time' }],
+      });
+      expect(await editClassSeries('w1', 'c1', 'r1', input, time)).toEqual({
+        ok: false,
+        reason: 'fields',
+        start: 'invalidTime',
+      });
     });
 
     it.each([

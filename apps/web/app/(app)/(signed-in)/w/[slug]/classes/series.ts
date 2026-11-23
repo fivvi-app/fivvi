@@ -53,3 +53,13 @@ const FIELD_ORDER: readonly ChangedField[] = ['time', 'trainer', 'capacity', 'lo
 export function orderedFields(fields: readonly ChangedField[]): ChangedField[] {
   return FIELD_ORDER.filter((field) => fields.includes(field));
 }
+
+/**
+ * The trainer the series dialog's select shows: the chosen one when the loaded trainers have them,
+ * *Trainer nodig* (`''`) when they don't (a trainer who left the workspace). While the trainers
+ * aren't loaded (`null`) the series' own trainer is the only option, so the choice stands.
+ */
+export function shownTrainerId(trainerId: string, trainers: readonly { id: string }[] | null) {
+  if (trainers === null || trainers.some(({ id }) => id === trainerId)) return trainerId;
+  return '';
+}

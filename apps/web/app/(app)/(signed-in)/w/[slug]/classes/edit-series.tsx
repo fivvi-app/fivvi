@@ -30,7 +30,7 @@ import {
   type Trainer,
 } from './classes-client';
 import { FormSection } from './form-section';
-import { referenceDay, seriesEnd } from './series';
+import { referenceDay, seriesEnd, shownTrainerId } from './series';
 
 type Trainers =
   | { status: 'loading' }
@@ -134,6 +134,11 @@ export function EditSeries({
 
   /** Saves the series; `allowConflicts` is *Toch opslaan* of PS-07: the same change, on the same version. */
   async function save(allowConflicts: boolean) {
+    // What the select shows is what is sent: a trainer who is not in the list is *Trainer nodig*.
+    const trainerId = shownTrainerId(
+      value.trainerId,
+      loaded.status === 'ready' ? loaded.trainers : null,
+    );
     setErrors(null);
     setFormError(null);
     setChanged(false);
@@ -141,6 +146,7 @@ export function EditSeries({
     const result = await editClassSeries(workspaceId, classId, series.id, {
       version,
       ...value,
+      trainerId,
       ...(allowConflicts ? { allowConflicts } : {}),
     });
     setPending(false);
@@ -155,10 +161,10 @@ export function EditSeries({
       return setDoubleBooking({
         conflicts: result.conflicts,
         trainerName:
-          value.trainerId === teamMemberId
+          trainerId === teamMemberId
             ? null
             : loaded.status === 'ready'
-              ? (loaded.trainers.find(({ id }) => id === value.trainerId)?.name ?? null)
+              ? (loaded.trainers.find(({ id }) => id === trainerId)?.name ?? null)
               : null,
       });
     }

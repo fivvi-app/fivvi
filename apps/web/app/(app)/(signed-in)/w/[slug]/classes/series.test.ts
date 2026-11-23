@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { minutesBetween, orderedFields, referenceDay, seriesEnd, weekdayOf } from './series';
+import {
+  minutesBetween,
+  orderedFields,
+  referenceDay,
+  seriesEnd,
+  shownTrainerId,
+  weekdayOf,
+} from './series';
 
 describe('F022 series helpers', () => {
   it('AC1: the weekday of the chosen date is the one the series repeats on', () => {
@@ -34,5 +41,14 @@ describe('F022 series helpers', () => {
     expect(minutesBetween('18:00', '18:00')).toBeNull();
     expect(minutesBetween('', '19:00')).toBeNull();
     expect(minutesBetween('18:00', '7pm')).toBeNull();
+  });
+
+  it('AC1: the trainer sent is the one the select shows, Trainer nodig when the trainer is not in the list', () => {
+    const trainers = [{ id: 't1' }, { id: 't2' }];
+    expect(shownTrainerId('t2', trainers)).toBe('t2');
+    expect(shownTrainerId('gone', trainers)).toBe('');
+    expect(shownTrainerId('', trainers)).toBe('');
+    // Not loaded: the series' own trainer is the only option.
+    expect(shownTrainerId('t1', null)).toBe('t1');
   });
 });
