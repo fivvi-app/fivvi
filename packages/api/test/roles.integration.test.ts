@@ -188,6 +188,7 @@ describe('@permission F004 roles on every workspace route', () => {
         access?.type === 'workspace' && !(access.roles as readonly string[]).includes('trainer'),
     );
     expect(ownerRoutes.map(({ name }) => name).sort()).toEqual([
+      'assignTrainer',
       'changeTeamMemberRole',
       'createGroupClass',
       'createOffer',
@@ -204,6 +205,7 @@ describe('@permission F004 roles on every workspace route', () => {
       'listGroupClassSeries',
       'listOffers',
       'listTeamMembers',
+      'listTrainerCandidates',
       'listTrainerInvitations',
       'lookupAddress',
       'putClientBillingDetails',
@@ -335,6 +337,7 @@ describe('@permission F004 roles on every workspace route', () => {
                   'getSession',
                   'getGroupClass',
                   'getKeptClassDates',
+                  'listTrainerCandidates',
                   'getOffer',
                   'listGroupClassSeries',
                   'deactivateBookingLink',
