@@ -226,7 +226,7 @@ const aClassWithASeriesAndADate: IsolationCase['seed'] = async (db, { workspaceI
     materializedUntil: occurrenceDate,
     endsOn: null,
   });
-  await addSession(db, {
+  const { id: session } = await addSession(db, {
     workspaceId,
     type: 'group',
     groupClassId,
@@ -234,7 +234,7 @@ const aClassWithASeriesAndADate: IsolationCase['seed'] = async (db, { workspaceI
     series: { id, occurrenceDate },
     startsAt: new Date(`${occurrenceDate}T17:00:00Z`),
   });
-  return { class: groupClassId, series: id };
+  return { class: groupClassId, series: id, session };
 };
 
 /** An offer of the workspace the seed was called for: what the offer routes list, read and change (F052). */
@@ -497,6 +497,12 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // The code is on the workspace's own row; the suite counts it among that workspace's values, so
   // a response with another workspace's code fails.
   getJoinLink: { seed: theJoinCode },
+
+  // The dates of a series that keep their own changes (F022, #1521): the read names the seeded date of a series.
+  getKeptClassDates: {
+    seed: aClassWithASeriesAndADate,
+    params: { sessionId: 'session' },
+  },
 
   // Account route: it reads the caller's own account.
   getMe: {},

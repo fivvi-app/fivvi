@@ -4,6 +4,7 @@
 import {
   type ApplyFollowingDecision,
   applyThisAndFollowing,
+  countKeptDates,
   type SeriesChange,
   type SeriesDate,
   type SeriesState,
@@ -60,9 +61,7 @@ export function applyToUpcomingDates(
   if (!differsFrom(series, change)) {
     return {
       outcome: 'unchanged',
-      keptDates: existing.filter(
-        (date) => date.occurrenceDate >= first.occurrenceDate && date.detachedFields.length > 0,
-      ).length,
+      keptDates: countKeptDates(existing, first.occurrenceDate, { fromDateIsAsked: false }),
     };
   }
   return applyThisAndFollowing(series, first.occurrenceDate, change, existing, today, {

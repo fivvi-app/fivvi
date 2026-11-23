@@ -4354,6 +4354,35 @@ extension Components {
                 case surface
             }
         }
+        /// How many dates a change from this date on would leave as they are.
+        ///
+        /// - Remark: Generated from `#/components/schemas/KeptClassDates`.
+        public struct KeptClassDates: Codable, Hashable, Sendable {
+            /// The date the count is read from.
+            ///
+            /// - Remark: Generated from `#/components/schemas/KeptClassDates/sessionId`.
+            public var sessionId: Swift.String
+            /// How many dates after this one, in the same series, were changed on their own and would keep those changes when the series is changed from this date on (CO-04, “1 les heeft eigen wijzigingen en blijft zoals hij is”): the number the save with `scope: following` answers as `keptDates`. This date itself is not counted.
+            ///
+            /// - Remark: Generated from `#/components/schemas/KeptClassDates/keptDates`.
+            public var keptDates: Swift.Int
+            /// Creates a new `KeptClassDates`.
+            ///
+            /// - Parameters:
+            ///   - sessionId: The date the count is read from.
+            ///   - keptDates: How many dates after this one, in the same series, were changed on their own and would keep those changes when the series is changed from this date on (CO-04, “1 les heeft eigen wijzigingen en blijft zoals hij is”): the number the save with `scope: following` answers as `keptDates`. This date itself is not counted.
+            public init(
+                sessionId: Swift.String,
+                keptDates: Swift.Int
+            ) {
+                self.sessionId = sessionId
+                self.keptDates = keptDates
+            }
+            public enum CodingKeys: String, CodingKey {
+                case sessionId
+                case keptDates
+            }
+        }
         /// The class date with its changes, and how many other dates kept their own.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdatedClassDate`.

@@ -126,6 +126,12 @@ extension StubAPI {
         fatalError("The app doesn't call listGroupClassSeries yet")
     }
 
+    func getKeptClassDates(
+        _ input: Operations.GetKeptClassDates.Input
+    ) async throws -> Operations.GetKeptClassDates.Output {
+        fatalError("The app doesn't call getKeptClassDates yet")
+    }
+
     func getJoinLink(_ input: Operations.GetJoinLink.Input) async throws -> Operations.GetJoinLink.Output {
         fatalError("The app doesn't call getJoinLink yet")
     }

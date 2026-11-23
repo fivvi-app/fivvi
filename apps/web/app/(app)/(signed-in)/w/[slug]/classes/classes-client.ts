@@ -403,6 +403,28 @@ export async function editClassDate(
   return refusal(answered.status);
 }
 
+/**
+ * How many dates from this one on keep their own changes (`GET …/sessions/{sessionId}/kept-dates`,
+ * F022, CO-04): said before *Opslaan* when *Deze en volgende lessen* is chosen. Only the API counts;
+ * a count that cannot be read says nothing and the save still tells it afterwards.
+ */
+export async function loadKeptDates(
+  workspaceId: string,
+  sessionId: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; keptDates: number } | { ok: false }> {
+  try {
+    const answer = await fetchFn(
+      `/api/v1/workspaces/${workspaceId}/sessions/${sessionId}/kept-dates`,
+    );
+    if (answer.status !== 200) return { ok: false };
+    const { keptDates } = (await answer.json()) as Partial<Schemas['KeptClassDates']>;
+    return typeof keptDates === 'number' ? { ok: true, keptDates } : { ok: false };
+  } catch {
+    return { ok: false };
+  }
+}
+
 /** What the person typed to change a whole series (F022, *Reeks wijzigen*). */
 export interface EditSeriesInput {
   /** The `version` of the series the person saw. */

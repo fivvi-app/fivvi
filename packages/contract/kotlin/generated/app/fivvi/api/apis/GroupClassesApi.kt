@@ -12,6 +12,7 @@ import app.fivvi.api.models.CreateGroupClassRequest
 import app.fivvi.api.models.CreatedGroupClass
 import app.fivvi.api.models.Forbidden
 import app.fivvi.api.models.GroupClass
+import app.fivvi.api.models.KeptClassDates
 import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.ScheduleGroupClassDateRequest
@@ -65,6 +66,25 @@ interface GroupClassesApi {
      */
     @GET("v1/workspaces/{workspaceId}/group-classes/{classId}")
     suspend fun getGroupClass(@Path("workspaceId") workspaceId: java.util.UUID, @Path("classId") classId: java.util.UUID): Response<GroupClass>
+
+    /**
+     * GET v1/workspaces/{workspaceId}/sessions/{sessionId}/kept-dates
+     * How many dates keep their own changes from a date on
+     * Before the Owner saves a date with &#x60;scope: following&#x60; (CO-04, *Deze en volgende lessen*), says how many of the series’ dates after this one were changed on their own and would stay as they are: the same count the save answers as &#x60;keptDates&#x60;, read without writing anything (the Owner only; a Trainer gets &#x60;403&#x60;). A session that is not a class date of the workspace (a private session too) answers &#x60;404&#x60;; a class date that is in no series answers &#x60;400&#x60; on &#x60;sessionId&#x60; (&#x60;not_in_series&#x60;).
+     * Responses:
+     *  - 200: How many dates keep their own changes.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param sessionId The session ID.
+     * @return [KeptClassDates]
+     */
+    @GET("v1/workspaces/{workspaceId}/sessions/{sessionId}/kept-dates")
+    suspend fun getKeptClassDates(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID): Response<KeptClassDates>
 
     /**
      * GET v1/workspaces/{workspaceId}/group-classes/{classId}/series
