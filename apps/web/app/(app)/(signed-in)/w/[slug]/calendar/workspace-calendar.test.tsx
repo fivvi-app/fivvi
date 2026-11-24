@@ -98,6 +98,8 @@ const access = {
   canSeeClients: true,
   canManageCalendar: true,
   canAssign: true,
+  canCancelAny: true,
+  canCancelOwn: true,
   teamMemberId: 'm-paula',
 };
 

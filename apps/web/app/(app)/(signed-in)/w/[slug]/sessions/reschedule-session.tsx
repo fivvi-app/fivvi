@@ -46,7 +46,8 @@ export function RescheduleSession({
   client,
   defaultLocale,
   ownSession,
-  startOpen = false,
+  open,
+  onOpenChange,
 }: {
   workspaceId: string;
   session: Session;
@@ -55,19 +56,19 @@ export function RescheduleSession({
   defaultLocale: Locale;
   /** The signed-in person is the session's trainer: PS-07 says "Je hebt dan al iets". */
   ownSession: boolean;
-  /** The dialog is open from the start (`?move=1`). */
-  startOpen?: boolean;
+  /** Whether the dialog is open: held by the page, because PS-06's *Verplaatsen* opens it too. */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations('sessions.page');
   const { day, time } = useSessionFormat(session.timeZone);
-  const [open, setOpen] = useState(startOpen);
   const [moved, setMoved] = useState<{ message: string; session: Session } | null>(null);
   // The page reloads after a move; until it has, the session the person moved is the newest one.
   const current = moved && moved.session.version > session.version ? moved.session : session;
 
   return (
     <>
-      <Button type="button" onClick={() => setOpen(true)}>
+      <Button type="button" onClick={() => onOpenChange(true)}>
         {t('reschedule')}
       </Button>
       {moved ? (
@@ -78,7 +79,7 @@ export function RescheduleSession({
           {moved.message}
         </p>
       ) : null}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
         {open ? (
           <RescheduleForm
             workspaceId={workspaceId}
@@ -86,9 +87,9 @@ export function RescheduleSession({
             client={client}
             defaultLocale={defaultLocale}
             ownSession={ownSession}
-            close={() => setOpen(false)}
+            close={() => onOpenChange(false)}
             moved={(result) => {
-              setOpen(false);
+              onOpenChange(false);
               setMoved({
                 message: t('moved', { date: day(result.startsAt), time: time(result.startsAt) }),
                 session: result,

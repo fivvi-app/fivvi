@@ -20,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * doesn't have (the API answers 404 for another workspace's too, 400 for an id that is no UUID)
  * and one that is neither a private session nor a class date are a 404; a class date goes to CO-01.
  * `?move=1` (the calendar's *Verplaatsen*) opens PS-05 at once; `?edit=1` (*Wijzigen*) opens CO-04;
+ * `?cancel=1` (the quick view's *Annuleren*, F026) opens PS-06 for a person who may cancel the session;
  * `?assign=1` (the quick view's and *Aandacht nodig*'s *Trainer toewijzen*, F023) opens the trainer dialog for the Owner. The session is read from
  * `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`, so the page shows what the API holds.
  */
@@ -28,7 +29,7 @@ export default async function SessionPage({
   searchParams,
 }: PageProps<'/w/[slug]/sessions/[id]'>) {
   const { slug: slugParam, id: sessionId } = await params;
-  const { move, edit, assign } = await searchParams;
+  const { move, edit, assign, cancel } = await searchParams;
   const { id, name, slug, capabilities, trainerWord, teamMemberId } = await workspaceOf(slugParam);
   if (!capabilities.includes('clients.view')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
@@ -45,9 +46,16 @@ export default async function SessionPage({
   if (session.type === 'group' && session.groupClass) {
     // `?edit=1` (the calendar's *Wijzigen*) goes on to CO-04.
     const date = `/w/${slugParam}/classes/${session.groupClass.id}/${sessionId}`;
-    // `?assign=1` (the calendar's *Trainer toewijzen*, *Aandacht nodig*'s *Toewijzen*) opens CO-02.
+    // `?assign=1` (the calendar's *Trainer toewijzen*, *Aandacht nodig*'s *Toewijzen*) opens CO-02,
+    // `?cancel=1` (the calendar's *Les annuleren*) opens CO-03.
     redirect(
-      (edit === '1' ? `${date}?edit=1` : assign === '1' ? `${date}?assign=1` : date) as Route,
+      (edit === '1'
+        ? `${date}?edit=1`
+        : assign === '1'
+          ? `${date}?assign=1`
+          : cancel === '1'
+            ? `${date}?cancel=1`
+            : date) as Route,
     );
   }
   const participant = session.participants[0];
@@ -75,7 +83,13 @@ export default async function SessionPage({
         capabilities.includes('session.private.manage.any')
       }
       teamMemberId={teamMemberId}
+      canCancel={
+        capabilities.includes('session.private.cancel.any') ||
+        (capabilities.includes('session.private.cancel.own') &&
+          session.trainer?.id === teamMemberId)
+      }
       startMoving={move === '1'}
+      startCancelling={cancel === '1'}
       {...(capabilities.includes('session.assign')
         ? { assign: { workspaceName: name, startOpen: assign === '1' } }
         : {})}

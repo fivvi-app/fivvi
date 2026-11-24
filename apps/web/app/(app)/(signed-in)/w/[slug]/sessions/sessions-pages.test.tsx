@@ -141,6 +141,92 @@ describe.each(locales)('F020 the session page and + Nieuw in %s', (locale) => {
     expect(html).not.toContain(escapeHtml(copy.sessions.page.reschedule));
   });
 
+  describe('F026 PS-06 and the cancelled session page', () => {
+    const cancelAction = escapeHtml(copy.sessions.cancel.action);
+    const owned = (overrides: Partial<Schemas['Session']> = {}, canCancel = true) =>
+      render(
+        locale,
+        <SessionView
+          workspaceId="w1"
+          slug="johns-gym"
+          session={{ ...session, ...overrides }}
+          client={anna}
+          defaultLocale="nl-NL"
+          canMove
+          canCancel={canCancel}
+          teamMemberId="m-sarah"
+          trainerWord={trainerWordForms('trainer', locale)}
+          assign={{ workspaceName: "John's Gym", startOpen: false }}
+        />,
+      );
+    // Sarah cancelled it on Tuesday 22 September at 12:15 (Amsterdam) at Anna's request.
+    const cancellation = (initiator: 'client' | 'workspace') => ({
+      cancelledAt: '2026-09-22T10:15:00.000Z',
+      cancelledBy: { id: 't1', name: 'Sarah' },
+      initiator,
+    });
+    const day = new Intl.DateTimeFormat(formatting, {
+      timeZone: 'Europe/Amsterdam',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    }).format(new Date('2026-09-22T10:15:00.000Z'));
+
+    it('AC5: Annuleren is there for a person who may cancel this session, and only for them', () => {
+      expect(owned()).toContain(cancelAction);
+      expect(owned({}, false)).not.toContain(cancelAction);
+    });
+
+    it('AC3: a cancelled session shows who cancelled it and when, at the client’s request, and offers only Klantprofiel', () => {
+      const html = owned({ status: 'cancelled', cancellation: cancellation('client') });
+
+      expect(html).toContain(
+        escapeHtml(
+          `${copy.sessions.page.cancelledBanner
+            .replace('{date}', day)
+            .replace('{time}', '12:15')
+            .replace('{name}', 'Sarah')} · ${copy.sessions.page.cancelledByClient}`,
+        ),
+      );
+      expect(html).toContain(escapeHtml(copy.sessions.page.clientProfile));
+      for (const gone of [
+        cancelAction,
+        copy.sessions.page.reschedule,
+        copy.sessions.trainerDialog.titleChange.replace(
+          '{word}',
+          trainerWordForms('trainer', locale).word,
+        ),
+      ]) {
+        expect(html).not.toContain(`>${escapeHtml(gone)}<`);
+      }
+    });
+
+    it('AC3: a cancellation by the workspace has no suffix; one whose canceller was removed has no name', () => {
+      const byUs = owned({ status: 'cancelled', cancellation: cancellation('workspace') });
+      expect(byUs).toContain(
+        escapeHtml(
+          copy.sessions.page.cancelledBanner
+            .replace('{date}', day)
+            .replace('{time}', '12:15')
+            .replace('{name}', 'Sarah'),
+        ),
+      );
+      expect(byUs).not.toContain(escapeHtml(copy.sessions.page.cancelledByClient));
+      expect(byUs).not.toContain(' · ');
+      const noName = owned({
+        status: 'cancelled',
+        cancellation: { cancelledAt: '2026-09-22T10:15:00.000Z', initiator: 'client' },
+      });
+      expect(noName).toContain(
+        escapeHtml(
+          copy.sessions.page.cancelledBannerUnknown
+            .replace('{date}', day)
+            .replace('{time}', '12:15'),
+        ),
+      );
+    });
+  });
+
   it('a session without a trainer (the profile ended) says so with the workspace’s word', () => {
     const html = view({ trainer: undefined });
 

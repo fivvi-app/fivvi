@@ -11,6 +11,8 @@ const owner: CalendarAccess = {
   canSeeClients: true,
   canManageCalendar: true,
   canAssign: true,
+  canCancelAny: true,
+  canCancelOwn: true,
   teamMemberId: 'm-john',
 };
 const trainer: CalendarAccess = {
@@ -20,6 +22,8 @@ const trainer: CalendarAccess = {
   canSeeClients: true,
   canManageCalendar: false,
   canAssign: false,
+  canCancelAny: false,
+  canCancelOwn: true,
   teamMemberId: 'm-sarah',
 };
 const session = (trainerId: string | undefined, overrides = {}) => ({
@@ -38,6 +42,8 @@ describe('F014 AC12: the quick view of a block', () => {
       change: false,
       clientProfile: true,
       assign: 'change',
+      cancel: true,
+      cancelClass: false,
     });
   });
 
@@ -48,11 +54,21 @@ describe('F014 AC12: the quick view of a block', () => {
       change: false,
       clientProfile: true,
       assign: null,
+      cancel: true,
+      cancelClass: false,
     });
   });
 
   it('gives a Trainer Openen only on a colleague’s session, and on one without a trainer', () => {
-    const only = { open: true, move: false, change: false, clientProfile: false, assign: null };
+    const only = {
+      open: true,
+      move: false,
+      change: false,
+      clientProfile: false,
+      assign: null,
+      cancel: false,
+      cancelClass: false,
+    };
     expect(quickViewActions(session('m-tom'), trainer)).toEqual(only);
     expect(quickViewActions(session(undefined), trainer)).toEqual(only);
   });
@@ -67,6 +83,8 @@ describe('F014 AC12: the quick view of a block', () => {
       change: true,
       clientProfile: false,
       assign: null,
+      cancel: false,
+      cancelClass: true,
     });
     expect(group(owner, 'cancelled').change).toBe(false);
     expect(group(trainer).change).toBe(false);
@@ -101,5 +119,37 @@ describe('F023 the quick view offers the trainer dialog', () => {
   it('AC12: a Trainer has none, and nobody has one on a cancelled block', () => {
     expect(quickViewActions(group(undefined), trainer).assign).toBeNull();
     expect(quickViewActions(session('m-sarah', { status: 'cancelled' }), owner).assign).toBeNull();
+  });
+});
+
+describe('F026 AC5: the quick view offers the cancel actions by role', () => {
+  const group = (trainerId: string | undefined, overrides = {}) =>
+    session(trainerId, { type: 'group', clients: undefined, ...overrides });
+
+  it('the Owner has Annuleren on any private session and Les annuleren on a class date', () => {
+    expect(quickViewActions(session('m-sarah'), owner)).toMatchObject({
+      cancel: true,
+      cancelClass: false,
+    });
+    expect(quickViewActions(group('m-sarah'), owner)).toMatchObject({
+      cancel: false,
+      cancelClass: true,
+    });
+  });
+
+  it('a Trainer has Annuleren on their own private session only, and never Les annuleren', () => {
+    expect(quickViewActions(session('m-sarah'), trainer).cancel).toBe(true);
+    expect(quickViewActions(session('m-tom'), trainer).cancel).toBe(false);
+    expect(quickViewActions(session(undefined), trainer).cancel).toBe(false);
+    expect(quickViewActions(group('m-sarah'), trainer).cancelClass).toBe(false);
+  });
+
+  it('a cancelled block has neither', () => {
+    expect(quickViewActions(session('m-sarah', { status: 'cancelled' }), owner)).toMatchObject({
+      cancel: false,
+    });
+    expect(quickViewActions(group('m-sarah', { status: 'cancelled' }), owner)).toMatchObject({
+      cancelClass: false,
+    });
   });
 });

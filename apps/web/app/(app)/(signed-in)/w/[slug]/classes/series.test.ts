@@ -5,6 +5,7 @@ import {
   referenceDay,
   seriesEnd,
   shownTrainerId,
+  stoppedFrom,
   weekdayOf,
 } from './series';
 
@@ -50,5 +51,35 @@ describe('F022 series helpers', () => {
     expect(shownTrainerId('', trainers)).toBe('');
     // Not loaded: the series' own trainer is the only option.
     expect(shownTrainerId('t1', null)).toBe('t1');
+  });
+});
+
+// F026 AC7 (spec #462, ticket #560): TW-03 says a series stopped when the Owner cancelled it from a date on.
+describe('F026 AC7: the stopped series', () => {
+  const series = (startsOn: string, endsOn?: string) => ({
+    startsOn,
+    ...(endsOn ? { endsOn } : {}),
+  });
+
+  it('stops from the day after its last day: cancelled from 3 November, the series ends on 2 November', () => {
+    expect(
+      stoppedFrom(series('2026-10-06', '2026-11-02'), [series('2026-10-06', '2026-11-02')]),
+    ).toBe('2026-11-03');
+  });
+
+  it('a series that runs until it is stopped has no stop', () => {
+    expect(stoppedFrom(series('2026-10-06'), [series('2026-10-06')])).toBeNull();
+  });
+
+  it('cancelled from its first date the end is that date’s own day, which is where it stopped', () => {
+    expect(
+      stoppedFrom(series('2026-10-06', '2026-10-06'), [series('2026-10-06', '2026-10-06')]),
+    ).toBe('2026-10-06');
+  });
+
+  it('a series that ended because a later one took over from a date on did not stop', () => {
+    const first = series('2026-10-06', '2026-10-12');
+    const later = series('2026-10-13');
+    expect(stoppedFrom(first, [first, later])).toBeNull();
   });
 });
