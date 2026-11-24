@@ -112,7 +112,13 @@ export function HandoverForm({
       {anyNobody ? (
         <p className="text-sm text-muted-foreground">{t('nobodyNote', { ...trainerWord })}</p>
       ) : null}
-      {later > 0 ? <p className="text-sm">{t('later', { ...trainerWord, count: later })}</p> : null}
+      {later > 0 ? (
+        <p className="text-sm">
+          {later === 1
+            ? t('laterOne', { ...trainerWord })
+            : t('laterOther', { ...trainerWord, count: later })}
+        </p>
+      ) : null}
       {future.regularTrainerOfSeries ? (
         <p className="text-sm">{t('seriesNote', { ...trainerWord, name: member.name })}</p>
       ) : null}

@@ -1059,13 +1059,11 @@
         <item quantity="one">%1$d privésessie is geannuleerd.</item>
         <item quantity="other">%1$d privésessies zijn geannuleerd.</item>
     </plurals>
-    <plurals name="team_handover_later">
-        <item quantity="one">Daarna: %2$d sessie krijgt %1$s nodig. Je wijst die later toe bij Aandacht nodig.</item>
-        <item quantity="other">Daarna: %2$d sessies krijgen %1$s nodig. Je wijst ze later toe bij Aandacht nodig.</item>
-    </plurals>
+    <string name="team_handover_later_one">Daarna: 1 sessie krijgt ‘%1$s nodig’. Je wijst die later toe bij Aandacht nodig.</string>
+    <string name="team_handover_later_other">Daarna: %2$s sessies krijgen ‘%1$s nodig’. Je wijst ze later toe bij Aandacht nodig.</string>
     <string name="team_handover_next_two_weeks">De komende 2 weken: %1$s.</string>
     <string name="team_handover_nobody">Niemand</string>
-    <string name="team_handover_nobody_note">Met niemand: lessen krijgen %1$s nodig, privésessies worden geannuleerd en die klanten krijgen een e-mail.</string>
+    <string name="team_handover_nobody_note">Met niemand: lessen krijgen ‘%1$s nodig’, privésessies worden geannuleerd en die klanten krijgen een e-mail.</string>
     <string name="team_handover_notify">Klanten informeren per e-mail</string>
     <string name="team_handover_parts_join">%1$s en %2$s</string>
     <plurals name="team_handover_private_count">

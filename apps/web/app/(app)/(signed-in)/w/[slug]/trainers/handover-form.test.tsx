@@ -99,7 +99,15 @@ describe.each(locales)('F023 the handover when removing a trainer in %s', (local
   });
 
   it('Later sessions: says how many sessions after the next 2 weeks get Trainer nodig and are assigned under Aandacht nodig', () => {
-    expect(text(draw())).toContain(t('later', { ...word, count: 8 }));
+    expect(text(draw())).toContain(t('laterOther', { ...word, count: 8 }));
+  });
+
+  it('Later sessions: a single one is the singular', () => {
+    const html = text(
+      draw({ future: { ...future, later: { privateSessions: 1, classDates: 0 } } }),
+    );
+
+    expect(html).toContain(t('laterOne', { ...word }));
   });
 
   it('no later sessions, no Daarna line', () => {
@@ -107,7 +115,7 @@ describe.each(locales)('F023 the handover when removing a trainer in %s', (local
       draw({ future: { ...future, later: { privateSessions: 0, classDates: 0 } } }),
     );
 
-    expect(html).not.toContain(t('later', { ...word, count: 1 }).slice(0, 8));
+    expect(html).not.toContain(t('laterOther', { ...word, count: 2 }).slice(0, 8));
   });
 
   it('a weekly class the person is the regular trainer of is named', () => {
@@ -131,6 +139,6 @@ describe.each(locales)('F023 the handover when removing a trainer in %s', (local
 
     expect(html).not.toContain('<select');
     expect(html).not.toContain('type="checkbox"');
-    expect(text(html)).toContain(t('later', { ...word, count: 8 }));
+    expect(text(html)).toContain(t('laterOther', { ...word, count: 8 }));
   });
 });

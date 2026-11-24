@@ -864,13 +864,11 @@
         <item quantity="one">%1$d private session was cancelled.</item>
         <item quantity="other">%1$d private sessions were cancelled.</item>
     </plurals>
-    <plurals name="team_handover_later">
-        <item quantity="one">After that: %2$d session gets %1$s needed. You assign it later under Needs attention.</item>
-        <item quantity="other">After that: %2$d sessions get %1$s needed. You assign them later under Needs attention.</item>
-    </plurals>
+    <string name="team_handover_later_one">After that: 1 session gets ‘%1$s needed’. You assign it later under Needs attention.</string>
+    <string name="team_handover_later_other">After that: %2$s sessions get ‘%1$s needed’. You assign them later under Needs attention.</string>
     <string name="team_handover_next_two_weeks">The next 2 weeks: %1$s.</string>
     <string name="team_handover_nobody">Nobody</string>
-    <string name="team_handover_nobody_note">With nobody: classes get %1$s needed, private sessions are cancelled and those clients get an email.</string>
+    <string name="team_handover_nobody_note">With nobody: classes get ‘%1$s needed’, private sessions are cancelled and those clients get an email.</string>
     <string name="team_handover_notify">Notify clients by email</string>
     <string name="team_handover_parts_join">%1$s and %2$s</string>
     <plurals name="team_handover_private_count">

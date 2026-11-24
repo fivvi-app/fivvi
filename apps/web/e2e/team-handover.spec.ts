@@ -121,7 +121,9 @@ test.describe('F023 removing a trainer with a handover', () => {
       ),
     ).toBeVisible();
     // Sessions after the next 2 weeks get Trainer nodig and are assigned later, under Aandacht nodig.
-    await expect(dialog.getByText(handover('later', { ...text.word, count: 4 }))).toBeVisible();
+    await expect(
+      dialog.getByText(handover('laterOther', { ...text.word, count: 4 })),
+    ).toBeVisible();
     await expect(dialog.getByRole('button', { name: handover('submit') })).toBeDisabled();
     await expect(dialog.getByRole('checkbox', { name: handover('notify') })).toBeChecked();
     await expectNoAxeViolations(page, `the removal handover in ${appLocale}`);
