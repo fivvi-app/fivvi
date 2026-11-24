@@ -64,7 +64,14 @@ class ClassDateViewModelTest {
 
     private fun viewModel(id: UUID, teamMemberId: UUID = john.id, canManage: Boolean = true, added: Int? = null) =
         ClassDateViewModel(
-            ClassApis(classes, sessions, FakeLocationsApi(), FakeTrainersApi(), FakeWorkspacesApi()),
+            ClassApis(
+                classes,
+                sessions,
+                FakeLocationsApi(),
+                FakeTrainersApi(),
+                FakeWorkspacesApi(),
+                FakeBookingLinksApi(),
+            ),
             workspace,
             id,
             teamMemberId,
@@ -282,7 +289,14 @@ class ClassDateViewModelTest {
 
     private fun cancellable(id: UUID, isOnline: () -> Boolean = { true }, onCancelled: () -> Unit = {}) =
         ClassDateViewModel(
-            ClassApis(classes, sessions, FakeLocationsApi(), FakeTrainersApi(), FakeWorkspacesApi()),
+            ClassApis(
+                classes,
+                sessions,
+                FakeLocationsApi(),
+                FakeTrainersApi(),
+                FakeWorkspacesApi(),
+                FakeBookingLinksApi(),
+            ),
             workspace,
             id,
             john.id,

@@ -66,7 +66,7 @@ class NewGroupClassViewModelTest {
 
     // The person, by their team-member ID in the workspace: John's (the Owner) unless given.
     private fun viewModel(teamMemberId: UUID = john.id) = NewGroupClassViewModel(
-        ClassApis(classes, sessions, locations, trainers, FakeWorkspacesApi()),
+        ClassApis(classes, sessions, locations, trainers, FakeWorkspacesApi(), FakeBookingLinksApi()),
         workspace,
         teamMemberId,
         onNotAllowed = { notAllowed += it.code() },

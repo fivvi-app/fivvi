@@ -46,7 +46,15 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         classes.classes[mobility.id] = mobility
         val date = classDateOf(UUID.randomUUID(), mobility, sarah)
         sessions.sessions[date.id] = date
-        val apis = ClassApis(classes, sessions, FakeLocationsApi(), FakeTrainersApi(), FakeWorkspacesApi())
+        val apis =
+            ClassApis(
+                classes,
+                sessions,
+                FakeLocationsApi(),
+                FakeTrainersApi(),
+                FakeWorkspacesApi(),
+                FakeBookingLinksApi(),
+            )
         compose.showAtLargestFontScale(language, height = 1_800.dp) {
             // The account read that follows a refusal fails, so what a 403 took away stays away.
             val listed = viewModel(key = "capabilities") {
