@@ -742,7 +742,7 @@ describe('F026 cancellations: a private session, a class date and the rest of a 
     expect(await historyOf(session.id)).toHaveLength(2);
   });
 
-  it('AC13: Mike (Fit Studio) gets 404, Anna’s client account is refused (403, as on every team route: it has a place, not this access), an anonymous caller 401', async () => {
+  it('AC13: Mike (Fit Studio) gets 404, Anna’s client account gets 403 (as on every team route: it has a place in the workspace, not this access), an anonymous caller 401', async () => {
     const w = await world();
     const { server } = setup();
     const session = await sarahsSession(w);
@@ -1722,7 +1722,7 @@ describe('F026 cancellations: a private session, a class date and the rest of a 
     expect(keys.size).toBe(2);
   });
 
-  it('AC13: Mike (Fit Studio) gets 404, Anna’s client account is refused, an anonymous caller 401; a private session and an unknown date answer 404', async () => {
+  it('AC13: Mike (Fit Studio) gets 404, Anna’s client account gets 403 (it has a place in the workspace, not this access), an anonymous caller 401; a private session and an unknown date answer 404', async () => {
     const w = await world();
     const { server } = setup();
     const date = (await kracht(w)).on('2026-10-20');
