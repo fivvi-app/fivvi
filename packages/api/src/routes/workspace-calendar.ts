@@ -88,11 +88,15 @@ const CalendarQuerySchema = z.object({
   to: z
     .string()
     .regex(DATE)
+    .optional()
     .openapi({
       param: { name: 'to', in: 'query' },
       description:
         'The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with ' +
-        '`before_from`; more than 42 days from `from` answers `400` with `range_too_long`.',
+        '`before_from`; more than 42 days from `from` answers `400` with `range_too_long`. ' +
+        'Left out, the read has no last day, and only with `groupClassId` (the upcoming dates of ' +
+        'one class, however far ahead; F037): without `groupClassId` it answers `400` on `to` ' +
+        'with `required`.',
     }),
   trainerIds: listOf(z.array(z.uuid()))
     .optional()
@@ -230,14 +234,17 @@ export const WorkspaceCalendarSessionSchema = z
 export const WorkspaceCalendarSchema = z
   .object({
     from: z.string().openapi({ description: 'The first day: `YYYY-MM-DD`.' }),
-    to: z.string().openapi({ description: 'The last day, included: `YYYY-MM-DD`.' }),
+    to: z.string().optional().openapi({
+      description: 'The last day, included: `YYYY-MM-DD`. Left out when the request had none.',
+    }),
     timeZone: z.string().openapi({
       description: 'The workspace’s IANA time zone: the days follow its wall clock (ADR-012).',
     }),
     items: z.array(WorkspaceCalendarSessionSchema).openapi({
       description:
         'The workspace’s sessions that start from the start of `from` to the end of `to`, after ' +
-        'the filters, in time order. Never a session of another workspace.',
+        'the filters, in time order (with no `to`, every one from `from` on). Never a session of ' +
+        'another workspace.',
     }),
   })
   .openapi('WorkspaceCalendar', {
@@ -447,7 +454,10 @@ function viewerLocaleOf(c: Context<WorkspaceEnv>) {
   });
 }
 
-async function readWindow(scope: WorkspaceScope, window: { from: Date; to: Date }) {
+async function readWindow(
+  scope: WorkspaceScope,
+  window: { from: Date; to?: Date; groupClassId?: string },
+) {
   return (await listWorkspaceCalendar(scope, window)).map(toItem);
 }
 
@@ -461,29 +471,40 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
     const scope = c.get('scope');
     const workspace = await findWorkspace(scope);
     if (!workspace) return c.json(NOT_FOUND, 404);
-    const range = decidePersonalRange(from, to, workspace.timeZone);
-    if (range.outcome === 'refused') {
-      switch (range.reason) {
-        case 'invalid-from':
-          return c.json(invalid('from', 'invalid_date'), 400);
-        case 'invalid-to':
-          return c.json(invalid('to', 'invalid_date'), 400);
-        case 'to-before-from':
-          return c.json(invalid('to', 'before_from'), 400);
-        case 'too-long':
-          return c.json(invalid('to', 'range_too_long'), 400);
+    // No last day: the upcoming dates of one class, however far ahead (F037), from the start of `from`.
+    let window: { from: Date; to?: Date; groupClassId?: string };
+    if (to === undefined) {
+      if (!groupClassId) return c.json(invalid('to', 'required'), 400);
+      const first = localDayBounds(from, workspace.timeZone);
+      if (!first) return c.json(invalid('from', 'invalid_date'), 400);
+      window = { from: first.start, groupClassId };
+    } else {
+      const range = decidePersonalRange(from, to, workspace.timeZone);
+      if (range.outcome === 'refused') {
+        switch (range.reason) {
+          case 'invalid-from':
+            return c.json(invalid('from', 'invalid_date'), 400);
+          case 'invalid-to':
+            return c.json(invalid('to', 'invalid_date'), 400);
+          case 'to-before-from':
+            return c.json(invalid('to', 'before_from'), 400);
+          case 'too-long':
+            return c.json(invalid('to', 'range_too_long'), 400);
+        }
       }
+      window = {
+        from: range.start,
+        to: range.end,
+        ...(groupClassId ? { groupClassId } : {}),
+      };
     }
     const viewerLocale = viewerLocaleOf(c);
-    const items = filterWorkspaceCalendar(
-      await readWindow(scope, { from: range.start, to: range.end }),
-      {
-        ...(trainerIds ? { trainerIds } : {}),
-        ...(types ? { types } : {}),
-        ...(groupClassId ? { groupClassId } : {}),
-        ...(includeCancelled === undefined ? {} : { includeCancelled }),
-      },
-    );
+    const items = filterWorkspaceCalendar(await readWindow(scope, window), {
+      ...(trainerIds ? { trainerIds } : {}),
+      ...(types ? { types } : {}),
+      ...(groupClassId ? { groupClassId } : {}),
+      ...(includeCancelled === undefined ? {} : { includeCancelled }),
+    });
 
     // The workspace ID and the platform only: no client, class or trainer, no time or filter
     // (OBSERVABILITY.md §4). The web sends no bearer token; an app names its surface, and one that
@@ -503,7 +524,7 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
     return c.json(
       {
         from,
-        to,
+        ...(to === undefined ? {} : { to }),
         timeZone: workspace.timeZone,
         items: items.map((item) => shown(item, workspace.timeZone, viewerLocale)),
       },

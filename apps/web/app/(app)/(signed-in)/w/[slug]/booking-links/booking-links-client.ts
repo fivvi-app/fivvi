@@ -1,5 +1,5 @@
 import type { Schemas } from '@fivvi/contract';
-import { addDays, localDateOf } from '@fivvi/domain/zoned-time';
+import { localDateOf } from '@fivvi/domain/zoned-time';
 
 export type BookingLink = Schemas['BookingLink'];
 export type CreateBookingLink = Pick<Schemas['CreateBookingLinkRequest'], 'scope' | 'language'> & {
@@ -106,20 +106,17 @@ export interface ClassDate {
   id: string;
   /** The start, a UTC instant. */
   startsAt: string;
-  /** The workspace's time zone: the date is written in it. */
-  timeZone: string;
 }
 
-/** The longest range the calendar read answers: more than 42 days is a `400` (`range_too_long`). */
-const RANGE_DAYS = 42;
-/** The calendar holds a class's dates 12 weeks ahead (F022): two windows of its longest range reach them. */
-const WINDOWS = 2;
+const isClassDate = (item: unknown): item is ClassDate =>
+  typeof (item as ClassDate | null)?.id === 'string' &&
+  typeof (item as ClassDate).startsAt === 'string';
 
 /**
- * The upcoming dates of one class, for the **Eén les op een datum** picker (F037, #1519): the
- * workspace calendar (`GET …/calendar`, `groupClassId`, cancelled dates left out) from today on the
- * workspace's wall clock, in as many windows as the 12 weeks need (a window is 42 days at most), then
- * the dates that have not begun, in time order. The API decides what a date is; this only asks.
+ * The upcoming dates of one class, for the **Eén les op een datum** picker (F037, #1519): one read
+ * of the workspace calendar (`GET …/calendar`, `groupClassId`, no `to`, cancelled dates left out)
+ * from today on the workspace's wall clock, however far ahead the dates lie, then the dates that
+ * have not begun, in the API's time order. The API decides what a date is; this only asks.
  */
 export async function listClassDates(
   workspaceId: string,
@@ -128,41 +125,23 @@ export async function listClassDates(
   fetchFn: typeof fetch = fetch,
   now: Date = new Date(),
 ): Promise<{ ok: true; dates: ClassDate[] } | Refused> {
-  const today = localDateOf(now, timeZone);
-  const windows = Array.from({ length: WINDOWS }, (_, index) => ({
-    from: addDays(today, index * RANGE_DAYS),
-    to: addDays(today, (index + 1) * RANGE_DAYS - 1),
-  }));
-  const answers = await Promise.all(
-    windows.map(({ from, to }) =>
-      call(
-        `/api/v1/workspaces/${workspaceId}/calendar?${new URLSearchParams({
-          from,
-          to,
-          groupClassId,
-          includeCancelled: 'false',
-        })}`,
-        { method: 'GET' },
-        fetchFn,
-      ),
-    ),
+  const answered = await call(
+    `/api/v1/workspaces/${workspaceId}/calendar?${new URLSearchParams({
+      from: localDateOf(now, timeZone),
+      groupClassId,
+      includeCancelled: 'false',
+    })}`,
+    { method: 'GET' },
+    fetchFn,
   );
-  const dates: ClassDate[] = [];
-  for (const answered of answers) {
-    if ('failed' in answered) return answered.failed;
-    if (answered.status !== 200) return refusal(answered.status);
-    const items = (answered.body as { items?: unknown } | null)?.items;
-    if (!Array.isArray(items)) return { ok: false, reason: 'generic' };
-    for (const {
-      id,
-      status,
-      startsAt,
-      timeZone: zone,
-    } of items as Schemas['WorkspaceCalendarSession'][]) {
-      if (status === 'scheduled' && Date.parse(startsAt) > now.getTime()) {
-        dates.push({ id, startsAt, timeZone: zone });
-      }
-    }
-  }
-  return { ok: true, dates };
+  if ('failed' in answered) return answered.failed;
+  if (answered.status !== 200) return refusal(answered.status);
+  const items = (answered.body as { items?: unknown } | null)?.items;
+  if (!Array.isArray(items) || !items.every(isClassDate)) return { ok: false, reason: 'generic' };
+  return {
+    ok: true,
+    dates: items
+      .filter(({ startsAt }) => Date.parse(startsAt) > now.getTime())
+      .map(({ id, startsAt }) => ({ id, startsAt })),
+  };
 }

@@ -17873,10 +17873,10 @@ public enum Operations {
                 ///
                 /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/from`.
                 public var from: Swift.String
-                /// The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`.
+                /// The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`. Left out, the read has no last day, and only with `groupClassId` (the upcoming dates of one class, however far ahead; F037): without `groupClassId` it answers `400` on `to` with `required`.
                 ///
                 /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/to`.
-                public var to: Swift.String
+                public var to: Swift.String?
                 /// Only the sessions of these trainers (team-member IDs, as in `GET …/trainers`); repeat the parameter for each. A session without a trainer matches none. Left out: every trainer.
                 ///
                 /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/trainerIds`.
@@ -17917,7 +17917,7 @@ public enum Operations {
                 ///
                 /// - Parameters:
                 ///   - from: The first day: `YYYY-MM-DD`, on the workspace’s wall clock. A date that is none (30 February) answers `400` on `from`.
-                ///   - to: The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`.
+                ///   - to: The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`. Left out, the read has no last day, and only with `groupClassId` (the upcoming dates of one class, however far ahead; F037): without `groupClassId` it answers `400` on `to` with `required`.
                 ///   - trainerIds: Only the sessions of these trainers (team-member IDs, as in `GET …/trainers`); repeat the parameter for each. A session without a trainer matches none. Left out: every trainer.
                 ///   - types: Only these kinds of session: `private` (*Privé*) and `group` (*Groep*); repeat the parameter for each. Left out: every kind.
                 ///   - groupClassId: Only the dates of this class (a class ID, as in `GET …/group-classes`): the class dates of one class, no private session. A class of another workspace matches nothing. Left out: every session. For *Eén les op een datum* (F037).
@@ -17925,7 +17925,7 @@ public enum Operations {
                 ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
                 public init(
                     from: Swift.String,
-                    to: Swift.String,
+                    to: Swift.String? = nil,
                     trainerIds: [Swift.String]? = nil,
                     types: Operations.GetWorkspaceCalendar.Input.Query.TypesPayload? = nil,
                     groupClassId: Swift.String? = nil,

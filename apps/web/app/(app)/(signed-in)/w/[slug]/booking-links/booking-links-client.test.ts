@@ -98,35 +98,29 @@ describe('F037 TW-07 booking links client', () => {
   describe('listClassDates', () => {
     // Tuesday 10 November 2026, 12:00 in Amsterdam: the Tuesday 18:00 date of this day still lies ahead.
     const now = new Date('2026-11-10T11:00:00.000Z');
-    const item = (id: string, startsAt: string, status = 'scheduled') => ({
+    const item = (id: string, startsAt: string) => ({
       id,
       type: 'group',
-      status,
+      status: 'scheduled',
       startsAt,
       endsAt: startsAt,
       timeZone: 'Europe/Amsterdam',
     });
-    const answers = (...windows: unknown[][]) => {
-      const queue = [...windows];
-      return vi.fn<typeof fetch>(() =>
-        Promise.resolve(Response.json({ items: queue.shift() ?? [] }, { status: 200 })),
-      );
-    };
+    const answers = (items: unknown[]) =>
+      vi.fn<typeof fetch>(() => Promise.resolve(Response.json({ items }, { status: 200 })));
 
-    it('AC2: asks the calendar for this class’s dates that are not cancelled, from today on the workspace’s clock, in two windows of at most 42 days', async () => {
-      const fetchFn = answers([], []);
+    it('AC2: asks the calendar once for this class’s dates that are not cancelled, from today on the workspace’s clock, with no last day', async () => {
+      const fetchFn = answers([]);
 
       await listClassDates('w1', 'c1', 'Europe/Amsterdam', fetchFn, now);
 
-      const urls = fetchFn.mock.calls.map(([url]) => String(url));
-      expect(urls).toEqual([
-        '/api/v1/workspaces/w1/calendar?from=2026-11-10&to=2026-12-21&groupClassId=c1&includeCancelled=false',
-        '/api/v1/workspaces/w1/calendar?from=2026-12-22&to=2027-02-01&groupClassId=c1&includeCancelled=false',
+      expect(fetchFn.mock.calls.map(([url]) => String(url))).toEqual([
+        '/api/v1/workspaces/w1/calendar?from=2026-11-10&groupClassId=c1&includeCancelled=false',
       ]);
     });
 
     it('AC2: takes “today” on the workspace’s wall clock, not the browser’s', async () => {
-      const fetchFn = answers([], []);
+      const fetchFn = answers([]);
       // 23:30 UTC on the 10th is already the 11th in Amsterdam.
       await listClassDates(
         'w1',
@@ -138,29 +132,37 @@ describe('F037 TW-07 booking links client', () => {
       expect(String(fetchFn.mock.calls[0]?.[0])).toContain('from=2026-11-11&');
     });
 
-    it('AC2: lists the dates that lie ahead in time order and leaves out a date that has begun or is cancelled', async () => {
+    it('AC2: lists the dates that lie ahead in the API’s order, however far ahead, and leaves out a date that has begun', async () => {
       const result = await listClassDates(
         'w1',
         'c1',
         'Europe/Amsterdam',
-        answers(
-          [
-            item('begun', '2026-11-10T10:00:00.000Z'),
-            item('cancelled', '2026-11-10T17:00:00.000Z', 'cancelled'),
-            item('tuesday', '2026-11-17T17:00:00.000Z'),
-          ],
-          [item('later', '2026-12-29T17:00:00.000Z')],
-        ),
+        answers([
+          item('begun', '2026-11-10T10:00:00.000Z'),
+          item('tuesday', '2026-11-17T17:00:00.000Z'),
+          item('later', '2027-03-30T17:00:00.000Z'),
+        ]),
         now,
       );
 
       expect(result).toEqual({
         ok: true,
         dates: [
-          { id: 'tuesday', startsAt: '2026-11-17T17:00:00.000Z', timeZone: 'Europe/Amsterdam' },
-          { id: 'later', startsAt: '2026-12-29T17:00:00.000Z', timeZone: 'Europe/Amsterdam' },
+          { id: 'tuesday', startsAt: '2026-11-17T17:00:00.000Z' },
+          { id: 'later', startsAt: '2027-03-30T17:00:00.000Z' },
         ],
       });
+    });
+
+    it('answers "generic" when the answer is not a list of dates', async () => {
+      const bad = (body: unknown) =>
+        vi.fn<typeof fetch>(() => Promise.resolve(Response.json(body, { status: 200 })));
+      for (const body of [{}, { items: [{ id: 1 }] }, { items: [null] }]) {
+        expect(await listClassDates('w1', 'c1', 'Europe/Amsterdam', bad(body), now)).toEqual({
+          ok: false,
+          reason: 'generic',
+        });
+      }
     });
 
     it('answers "forbidden", "home", "generic" or "noConnection" when a window is refused or the network is down', async () => {

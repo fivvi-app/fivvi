@@ -2578,11 +2578,11 @@ export interface components {
         WorkspaceCalendar: {
             /** @description The first day: `YYYY-MM-DD`. */
             from: string;
-            /** @description The last day, included: `YYYY-MM-DD`. */
-            to: string;
+            /** @description The last day, included: `YYYY-MM-DD`. Left out when the request had none. */
+            to?: string;
             /** @description The workspace’s IANA time zone: the days follow its wall clock (ADR-012). */
             timeZone: string;
-            /** @description The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order. Never a session of another workspace. */
+            /** @description The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order (with no `to`, every one from `from` on). Never a session of another workspace. */
             items: components["schemas"]["WorkspaceCalendarSession"][];
         };
         /** @description A session of the workspace as a block of its calendar. It holds no note, email address or other contact detail of a client. */
@@ -6656,8 +6656,8 @@ export interface operations {
             query: {
                 /** @description The first day: `YYYY-MM-DD`, on the workspace’s wall clock. A date that is none (30 February) answers `400` on `from`. */
                 from: string;
-                /** @description The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`. */
-                to: string;
+                /** @description The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`. Left out, the read has no last day, and only with `groupClassId` (the upcoming dates of one class, however far ahead; F037): without `groupClassId` it answers `400` on `to` with `required`. */
+                to?: string;
                 /** @description Only the sessions of these trainers (team-member IDs, as in `GET …/trainers`); repeat the parameter for each. A session without a trainer matches none. Left out: every trainer. */
                 trainerIds?: string[];
                 /** @description Only these kinds of session: `private` (*Privé*) and `group` (*Groep*); repeat the parameter for each. Left out: every kind. */

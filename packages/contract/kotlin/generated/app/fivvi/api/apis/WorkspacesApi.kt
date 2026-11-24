@@ -88,7 +88,7 @@ interface WorkspacesApi {
      *
      * @param workspaceId The workspace ID.
      * @param from The first day: &#x60;YYYY-MM-DD&#x60;, on the workspace’s wall clock. A date that is none (30 February) answers &#x60;400&#x60; on &#x60;from&#x60;.
-     * @param to The last day, included: &#x60;YYYY-MM-DD&#x60;. Before &#x60;from&#x60; answers &#x60;400&#x60; on &#x60;to&#x60; with &#x60;before_from&#x60;; more than 42 days from &#x60;from&#x60; answers &#x60;400&#x60; with &#x60;range_too_long&#x60;.
+     * @param to The last day, included: &#x60;YYYY-MM-DD&#x60;. Before &#x60;from&#x60; answers &#x60;400&#x60; on &#x60;to&#x60; with &#x60;before_from&#x60;; more than 42 days from &#x60;from&#x60; answers &#x60;400&#x60; with &#x60;range_too_long&#x60;. Left out, the read has no last day, and only with &#x60;groupClassId&#x60; (the upcoming dates of one class, however far ahead; F037): without &#x60;groupClassId&#x60; it answers &#x60;400&#x60; on &#x60;to&#x60; with &#x60;required&#x60;. (optional)
      * @param trainerIds Only the sessions of these trainers (team-member IDs, as in &#x60;GET …/trainers&#x60;); repeat the parameter for each. A session without a trainer matches none. Left out: every trainer. (optional)
      * @param types Only these kinds of session: &#x60;private&#x60; (*Privé*) and &#x60;group&#x60; (*Groep*); repeat the parameter for each. Left out: every kind. (optional)
      * @param groupClassId Only the dates of this class (a class ID, as in &#x60;GET …/group-classes&#x60;): the class dates of one class, no private session. A class of another workspace matches nothing. Left out: every session. For *Eén les op een datum* (F037). (optional)
@@ -97,7 +97,7 @@ interface WorkspacesApi {
      * @return [WorkspaceCalendar]
      */
     @GET("v1/workspaces/{workspaceId}/calendar")
-    suspend fun getWorkspaceCalendar(@Path("workspaceId") workspaceId: java.util.UUID, @Query("from") from: kotlin.String, @Query("to") to: kotlin.String, @Query("trainerIds") trainerIds: @JvmSuppressWildcards kotlin.collections.List<java.util.UUID>? = null, @Query("types") types: @JvmSuppressWildcards kotlin.collections.List<kotlin.String>? = null, @Query("groupClassId") groupClassId: java.util.UUID? = null, @Query("includeCancelled") includeCancelled: kotlin.Boolean? = null, @Query("surface") surface: SurfaceGetWorkspaceCalendar? = null): Response<WorkspaceCalendar>
+    suspend fun getWorkspaceCalendar(@Path("workspaceId") workspaceId: java.util.UUID, @Query("from") from: kotlin.String, @Query("to") to: kotlin.String? = null, @Query("trainerIds") trainerIds: @JvmSuppressWildcards kotlin.collections.List<java.util.UUID>? = null, @Query("types") types: @JvmSuppressWildcards kotlin.collections.List<kotlin.String>? = null, @Query("groupClassId") groupClassId: java.util.UUID? = null, @Query("includeCancelled") includeCancelled: kotlin.Boolean? = null, @Query("surface") surface: SurfaceGetWorkspaceCalendar? = null): Response<WorkspaceCalendar>
 
     /**
      * GET v1/workspaces/{workspaceId}/day

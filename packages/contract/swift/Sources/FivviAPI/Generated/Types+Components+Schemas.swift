@@ -4760,15 +4760,15 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar/from`.
             public var from: Swift.String
-            /// The last day, included: `YYYY-MM-DD`.
+            /// The last day, included: `YYYY-MM-DD`. Left out when the request had none.
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar/to`.
-            public var to: Swift.String
+            public var to: Swift.String?
             /// The workspace’s IANA time zone: the days follow its wall clock (ADR-012).
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar/timeZone`.
             public var timeZone: Swift.String
-            /// The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order. Never a session of another workspace.
+            /// The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order (with no `to`, every one from `from` on). Never a session of another workspace.
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar/items`.
             public var items: [Components.Schemas.WorkspaceCalendarSession]
@@ -4776,12 +4776,12 @@ extension Components {
             ///
             /// - Parameters:
             ///   - from: The first day: `YYYY-MM-DD`.
-            ///   - to: The last day, included: `YYYY-MM-DD`.
+            ///   - to: The last day, included: `YYYY-MM-DD`. Left out when the request had none.
             ///   - timeZone: The workspace’s IANA time zone: the days follow its wall clock (ADR-012).
-            ///   - items: The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order. Never a session of another workspace.
+            ///   - items: The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order (with no `to`, every one from `from` on). Never a session of another workspace.
             public init(
                 from: Swift.String,
-                to: Swift.String,
+                to: Swift.String? = nil,
                 timeZone: Swift.String,
                 items: [Components.Schemas.WorkspaceCalendarSession]
             ) {

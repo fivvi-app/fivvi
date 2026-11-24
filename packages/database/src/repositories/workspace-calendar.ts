@@ -48,12 +48,14 @@ export interface WorkspaceCalendarRow {
 
 /**
  * The sessions of the scope's workspace that start from `window.from` up to, not including,
- * `window.to`, in time order, cancelled ones included (the calendar shows them struck through).
+ * `window.to` (no end when left out: the upcoming dates of one class, F037), in time order,
+ * cancelled ones included (the calendar shows them struck through). `window.groupClassId` keeps
+ * the dates of that class only.
  * Two queries: the sessions with their location, trainer, class and series, and their places.
  */
 export async function listWorkspaceCalendar(
   scope: WorkspaceScope,
-  window: { readonly from: Date; readonly to: Date },
+  window: { readonly from: Date; readonly to?: Date; readonly groupClassId?: string },
 ): Promise<WorkspaceCalendarRow[]> {
   const rows = await executorOf(scope)
     .select({
@@ -120,7 +122,8 @@ export async function listWorkspaceCalendar(
       and(
         eq(sessions.organizationId, scope.workspaceId),
         gte(sessions.startsAt, window.from),
-        lt(sessions.startsAt, window.to),
+        window.to ? lt(sessions.startsAt, window.to) : undefined,
+        window.groupClassId ? eq(sessions.groupClassId, window.groupClassId) : undefined,
       ),
     )
     .orderBy(asc(sessions.startsAt), asc(sessions.endsAt), asc(sessions.id));

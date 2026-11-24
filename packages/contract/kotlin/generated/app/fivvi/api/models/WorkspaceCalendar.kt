@@ -33,9 +33,9 @@ import kotlinx.serialization.Contextual
  * The sessions of a workspace for a range of days: the Agenda’s week, day and list.
  *
  * @param from The first day: `YYYY-MM-DD`.
- * @param to The last day, included: `YYYY-MM-DD`.
  * @param timeZone The workspace’s IANA time zone: the days follow its wall clock (ADR-012).
- * @param items The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order. Never a session of another workspace.
+ * @param items The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order (with no `to`, every one from `from` on). Never a session of another workspace.
+ * @param to The last day, included: `YYYY-MM-DD`. Left out when the request had none.
  */
 @Serializable
 
@@ -45,17 +45,17 @@ data class WorkspaceCalendar (
     @SerialName(value = "from")
     val from: kotlin.String,
 
-    /* The last day, included: `YYYY-MM-DD`. */
-    @SerialName(value = "to")
-    val to: kotlin.String,
-
     /* The workspace’s IANA time zone: the days follow its wall clock (ADR-012). */
     @SerialName(value = "timeZone")
     val timeZone: kotlin.String,
 
-    /* The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order. Never a session of another workspace. */
+    /* The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order (with no `to`, every one from `from` on). Never a session of another workspace. */
     @SerialName(value = "items")
-    val items: kotlin.collections.List<WorkspaceCalendarSession>
+    val items: kotlin.collections.List<WorkspaceCalendarSession>,
+
+    /* The last day, included: `YYYY-MM-DD`. Left out when the request had none. */
+    @SerialName(value = "to")
+    val to: kotlin.String? = null
 
 ) {
 

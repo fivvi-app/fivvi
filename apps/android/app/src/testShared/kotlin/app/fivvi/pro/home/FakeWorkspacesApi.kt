@@ -49,7 +49,7 @@ class FakeWorkspacesApi : WorkspacesApi {
     override suspend fun getWorkspaceCalendar(
         workspaceId: UUID,
         from: String,
-        to: String,
+        to: String?,
         trainerIds: List<UUID>?,
         types: List<String>?,
         groupClassId: UUID?,

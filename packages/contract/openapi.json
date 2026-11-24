@@ -3030,7 +3030,7 @@
           },
           "to": {
             "type": "string",
-            "description": "The last day, included: `YYYY-MM-DD`."
+            "description": "The last day, included: `YYYY-MM-DD`. Left out when the request had none."
           },
           "timeZone": {
             "type": "string",
@@ -3041,12 +3041,11 @@
             "items": {
               "$ref": "#/components/schemas/WorkspaceCalendarSession"
             },
-            "description": "The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order. Never a session of another workspace."
+            "description": "The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order (with no `to`, every one from `from` on). Never a session of another workspace."
           }
         },
         "required": [
           "from",
-          "to",
           "timeZone",
           "items"
         ],
@@ -10177,10 +10176,10 @@
             "schema": {
               "type": "string",
               "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-              "description": "The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`."
+              "description": "The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`. Left out, the read has no last day, and only with `groupClassId` (the upcoming dates of one class, however far ahead; F037): without `groupClassId` it answers `400` on `to` with `required`."
             },
-            "required": true,
-            "description": "The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`.",
+            "required": false,
+            "description": "The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`. Left out, the read has no last day, and only with `groupClassId` (the upcoming dates of one class, however far ahead; F037): without `groupClassId` it answers `400` on `to` with `required`.",
             "name": "to",
             "in": "query"
           },
