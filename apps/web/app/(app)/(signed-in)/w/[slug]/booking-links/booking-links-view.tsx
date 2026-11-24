@@ -36,6 +36,7 @@ import { NewBookingLinkContent } from './new-booking-link-dialog';
  */
 export function BookingLinksView({
   workspaceId,
+  timeZone,
   join,
   links: initial,
   classes,
@@ -43,6 +44,8 @@ export function BookingLinksView({
   trainerWord,
 }: {
   workspaceId: string;
+  /** The workspace's time zone: the dates of *Eén les op een datum* are written in it. */
+  timeZone: string;
   /** The join-link card: given to a person with `join_link.view`. */
   join: { url: string; canRenew: boolean } | null;
   /** The workspace's links as `GET …/booking-links` gives them. */
@@ -168,6 +171,7 @@ export function BookingLinksView({
         {making ? (
           <NewBookingLinkContent
             workspaceId={workspaceId}
+            timeZone={timeZone}
             classes={classes}
             created={() => void reload()}
             forbidden={() => {

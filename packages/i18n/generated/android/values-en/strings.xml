@@ -40,6 +40,11 @@
     <string name="booking_links_new_class_required">Choose a class.</string>
     <string name="booking_links_new_create">Create link</string>
     <string name="booking_links_new_created">Booking link created.</string>
+    <string name="booking_links_new_date_choose">Choose a date</string>
+    <string name="booking_links_new_date_label">Date</string>
+    <string name="booking_links_new_date_loading">Loading dates…</string>
+    <string name="booking_links_new_date_none">This class has no upcoming dates.</string>
+    <string name="booking_links_new_date_required">Choose a date.</string>
     <string name="booking_links_new_done">Done</string>
     <string name="booking_links_new_language_hint">The visitor can always switch language themselves.</string>
     <string name="booking_links_new_language_label">Page language</string>
@@ -51,6 +56,7 @@
     <string name="booking_links_new_what_all">All bookings</string>
     <string name="booking_links_new_what_class">One class</string>
     <string name="booking_links_new_what_group">Group classes</string>
+    <string name="booking_links_new_what_session">One class on a date</string>
     <string name="booking_links_new_what_label">What</string>
     <string name="booking_links_scope_all">All bookings</string>
     <string name="booking_links_scope_class">Class: %1$s</string>

@@ -70,6 +70,7 @@ describe.each(locales)('F037 TW-07 Boekingslinks in %s', (locale) => {
       locale,
       <BookingLinksView
         workspaceId="w1"
+        timeZone="Europe/Amsterdam"
         join={{ url: JOIN_URL, canRenew: canManage }}
         links={links}
         classes={[
@@ -169,6 +170,7 @@ describe.each(locales)('F037 TW-07 Boekingslinks in %s', (locale) => {
       locale,
       <BookingLinksView
         workspaceId="w1"
+        timeZone="Europe/Amsterdam"
         join={null}
         links={[all]}
         classes={[]}
