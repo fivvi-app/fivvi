@@ -760,6 +760,14 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MyDay/workspaceCount`.
             public var workspaceCount: Swift.Int
+            /// The workspaces the account trains in and the view spans, in name order, each with the kinds of session it offers. `workspaceCount` is their number.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/workspaces`.
+            public var workspaces: [Components.Schemas.PersonalWorkspaceOffers]
+            /// Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together offer more than one kind. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/showsKindLabel`.
+            public var showsKindLabel: Swift.Bool
             /// The day’s items in time order, cancelled ones included.
             ///
             /// - Remark: Generated from `#/components/schemas/MyDay/items`.
@@ -790,6 +798,8 @@ extension Components {
             ///   - date: The day shown: `YYYY-MM-DD`, in `timeZone`.
             ///   - timeZone: The zone of the personal scope: `Europe/Amsterdam`. The day starts and ends on its wall clock.
             ///   - workspaceCount: The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one.
+            ///   - workspaces: The workspaces the account trains in and the view spans, in name order, each with the kinds of session it offers. `workspaceCount` is their number.
+            ///   - showsKindLabel: Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together offer more than one kind. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items.
             ///   - items: The day’s items in time order, cancelled ones included.
             ///   - summary:
             ///   - next:
@@ -802,6 +812,8 @@ extension Components {
                 date: Swift.String,
                 timeZone: Swift.String,
                 workspaceCount: Swift.Int,
+                workspaces: [Components.Schemas.PersonalWorkspaceOffers],
+                showsKindLabel: Swift.Bool,
                 items: [Components.Schemas.PersonalSession],
                 summary: Components.Schemas.MyDaySummary,
                 next: Components.Schemas.MyDayNext? = nil,
@@ -814,6 +826,8 @@ extension Components {
                 self.date = date
                 self.timeZone = timeZone
                 self.workspaceCount = workspaceCount
+                self.workspaces = workspaces
+                self.showsKindLabel = showsKindLabel
                 self.items = items
                 self.summary = summary
                 self.next = next
@@ -827,6 +841,8 @@ extension Components {
                 case date
                 case timeZone
                 case workspaceCount
+                case workspaces
+                case showsKindLabel
                 case items
                 case summary
                 case next
@@ -835,6 +851,60 @@ extension Components {
                 case tomorrow
                 case nextSessionDate
                 case hasSessions
+            }
+        }
+        /// A workspace the personal view spans, with what it offers.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PersonalWorkspaceOffers`.
+        public struct PersonalWorkspaceOffers: Codable, Hashable, Sendable {
+            /// The workspace ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspaceOffers/id`.
+            public var id: Swift.String
+            /// The URL name: `/w/{slug}` on the web.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspaceOffers/slug`.
+            public var slug: Swift.String
+            /// The name shown in the product.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspaceOffers/name`.
+            public var name: Swift.String
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspaceOffers/OffersPayload`.
+            @frozen public enum OffersPayloadPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case _private = "private"
+                case group = "group"
+            }
+            /// The kinds of session the workspace offers, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspaceOffers/offers`.
+            public typealias OffersPayload = [Components.Schemas.PersonalWorkspaceOffers.OffersPayloadPayload]
+            /// The kinds of session the workspace offers, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspaceOffers/offers`.
+            public var offers: Components.Schemas.PersonalWorkspaceOffers.OffersPayload
+            /// Creates a new `PersonalWorkspaceOffers`.
+            ///
+            /// - Parameters:
+            ///   - id: The workspace ID.
+            ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - name: The name shown in the product.
+            ///   - offers: The kinds of session the workspace offers, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later).
+            public init(
+                id: Swift.String,
+                slug: Swift.String,
+                name: Swift.String,
+                offers: Components.Schemas.PersonalWorkspaceOffers.OffersPayload
+            ) {
+                self.id = id
+                self.slug = slug
+                self.name = name
+                self.offers = offers
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case slug
+                case name
+                case offers
             }
         }
         /// A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds.
@@ -1371,6 +1441,14 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MySessions/workspaceCount`.
             public var workspaceCount: Swift.Int
+            /// The workspaces the account trains in and the view spans, in name order, each with the kinds of session it offers. `workspaceCount` is their number.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/workspaces`.
+            public var workspaces: [Components.Schemas.PersonalWorkspaceOffers]
+            /// Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together offer more than one kind. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/showsKindLabel`.
+            public var showsKindLabel: Swift.Bool
             /// The sessions from the start of `from` to the end of `to`, in time order.
             ///
             /// - Remark: Generated from `#/components/schemas/MySessions/items`.
@@ -1382,18 +1460,24 @@ extension Components {
             ///   - to: The last day, included: `YYYY-MM-DD`.
             ///   - timeZone: The zone of the personal scope: `Europe/Amsterdam`. The days follow its wall clock.
             ///   - workspaceCount: The workspaces the account trains in and the view spans.
+            ///   - workspaces: The workspaces the account trains in and the view spans, in name order, each with the kinds of session it offers. `workspaceCount` is their number.
+            ///   - showsKindLabel: Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together offer more than one kind. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items.
             ///   - items: The sessions from the start of `from` to the end of `to`, in time order.
             public init(
                 from: Swift.String,
                 to: Swift.String,
                 timeZone: Swift.String,
                 workspaceCount: Swift.Int,
+                workspaces: [Components.Schemas.PersonalWorkspaceOffers],
+                showsKindLabel: Swift.Bool,
                 items: [Components.Schemas.PersonalSession]
             ) {
                 self.from = from
                 self.to = to
                 self.timeZone = timeZone
                 self.workspaceCount = workspaceCount
+                self.workspaces = workspaces
+                self.showsKindLabel = showsKindLabel
                 self.items = items
             }
             public enum CodingKeys: String, CodingKey {
@@ -1401,6 +1485,8 @@ extension Components {
                 case to
                 case timeZone
                 case workspaceCount
+                case workspaces
+                case showsKindLabel
                 case items
             }
         }

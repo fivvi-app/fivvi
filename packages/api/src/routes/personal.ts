@@ -7,6 +7,7 @@ import {
   type PersonalSessionRow,
   type PersonalWorkspace,
   type TenantScope,
+  workspaceHasGroupClasses,
 } from '@fivvi/database';
 import {
   addDays,
@@ -14,10 +15,12 @@ import {
   localDateOf,
   localDayBounds,
   mergePersonalDay,
+  offersMoreThanOneKind,
   orderPersonalSessions,
   PERSONAL_RANGE_MAX_DAYS,
   PERSONAL_TIME_ZONE,
   type PersonalSessionTimes,
+  workspaceOffers,
 } from '@fivvi/domain';
 import { parseAcceptLanguage, pickContentLanguage, resolveInterfaceLanguage } from '@fivvi/i18n';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
@@ -106,6 +109,37 @@ const PersonalWorkspaceSchema = z
   .openapi('PersonalWorkspace', {
     description: 'The workspace an item of the personal view is in.',
   });
+
+const PersonalWorkspaceOffersSchema = z
+  .object({
+    id: z.uuid().openapi({ description: 'The workspace ID.' }),
+    slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
+    name: z.string().openapi({ description: 'The name shown in the product.' }),
+    offers: z.array(z.enum(['private', 'group'])).openapi({
+      description:
+        'The kinds of session the workspace offers, private sessions first: `private` always, ' +
+        '`group` once it has a group class that is not archived. Open Gym is not listed (it comes ' +
+        'later).',
+    }),
+  })
+  .openapi('PersonalWorkspaceOffers', {
+    description: 'A workspace the personal view spans, with what it offers.',
+  });
+
+const workspacesField = z.array(PersonalWorkspaceOffersSchema).openapi({
+  description:
+    'The workspaces the account trains in and the view spans, in name order, each with the ' +
+    'kinds of session it offers. `workspaceCount` is their number.',
+});
+
+const showsKindLabelField = z.boolean().openapi({
+  description:
+    'Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in ' +
+    '`workspaces` together offer more than one kind. It does not depend on the items of the ' +
+    'answer: a day with only private sessions still names the kind for a person whose workspace ' +
+    'also runs classes. The apps and the web show the label by this and never work it out from ' +
+    'the items.',
+});
 
 export const PersonalSessionClientSchema = z
   .object({
@@ -207,6 +241,8 @@ export const MyDaySchema = z
           'The workspaces the account trains in and the view spans. The apps show a workspace name ' +
           'on a row only when it is more than one.',
       }),
+    workspaces: workspacesField,
+    showsKindLabel: showsKindLabelField,
     items: z.array(PersonalSessionSchema).openapi({
       description: 'The day’s items in time order, cancelled ones included.',
     }),
@@ -314,6 +350,8 @@ export const MySessionsSchema = z
     workspaceCount: z.number().int().openapi({
       description: 'The workspaces the account trains in and the view spans.',
     }),
+    workspaces: workspacesField,
+    showsKindLabel: showsKindLabelField,
     items: z.array(PersonalSessionSchema).openapi({
       description: 'The sessions from the start of `from` to the end of `to`, in time order.',
     }),
@@ -338,7 +376,8 @@ const getMyDayRoute = defineRoute(
       'Everything the signed-in account is the current trainer of on one day, in all the ' +
       'workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with ' +
       'the number done), for today the next free gap and the places still ahead, the tomorrow ' +
-      'line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that ' +
+      'line, the date of the next session when the day is empty, the number of workspaces and what each ' +
+      'one offers, with whether a row names its kind. Each workspace is read on its own; the answer is merged here. An account that ' +
       'trains in no workspace (an Owner who does not train, a client account) gets an empty answer, ' +
       'not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.',
     security: SIGNED_IN,
@@ -460,7 +499,8 @@ function invalid(path: string, code: string) {
 /**
  * Reads the sessions from `from` up to `to` of each workspace the account trains in, one workspace
  * at a time, each in a context of its own (ADR-006). The workspaces come in name order; the callers
- * merge the lists. Answers the workspaces too, for a caller that reads them again.
+ * merge the lists. Answers the workspaces too, for a caller that reads them again, and what each
+ * one offers, with whether the kind label shows (`showsKindLabel`, decided in `packages/domain`).
  */
 async function readWorkspaces(
   scope: TenantScope,
@@ -468,12 +508,24 @@ async function readWorkspaces(
   viewerLocale: string,
 ) {
   const workspaces = await listMyTrainingWorkspaces(scope);
-  const perWorkspace = await inEachWorkspace(scope, workspaces, async (workspaceScope, workspace) =>
-    (await listMySessions(workspaceScope, window)).map((row) =>
+  const read = await inEachWorkspace(scope, workspaces, async (workspaceScope, workspace) => ({
+    items: (await listMySessions(workspaceScope, window)).map((row) =>
       toItem(row, workspace, viewerLocale),
     ),
-  );
-  return { workspaces, perWorkspace };
+    offered: {
+      id: workspace.id,
+      slug: workspace.slug,
+      name: workspace.name,
+      offers: workspaceOffers({ hasGroupClasses: await workspaceHasGroupClasses(workspaceScope) }),
+    },
+  }));
+  const offered = read.map((entry) => entry.offered);
+  return {
+    workspaces,
+    perWorkspace: read.map((entry) => entry.items),
+    offered,
+    showsKindLabel: offersMoreThanOneKind(offered.map((workspace) => workspace.offers)),
+  };
 }
 
 /**
@@ -526,7 +578,7 @@ export function registerPersonal(app: OpenAPIHono) {
     const now = c.get('dependencies').clock.now();
 
     // Today and tomorrow in one query per workspace; the domain splits them.
-    const { workspaces, perWorkspace } = await readWorkspaces(
+    const { workspaces, perWorkspace, offered, showsKindLabel } = await readWorkspaces(
       scope,
       { from: today.start, to: tomorrow.end },
       viewerLocaleOf(c),
@@ -558,6 +610,8 @@ export function registerPersonal(app: OpenAPIHono) {
         date: merged.date,
         timeZone: PERSONAL_TIME_ZONE,
         workspaceCount: perWorkspace.length,
+        workspaces: offered,
+        showsKindLabel,
         items: merged.items.map(shown),
         summary: {
           count: merged.summary.count,
@@ -621,7 +675,7 @@ export function registerPersonal(app: OpenAPIHono) {
           return c.json(invalid('to', 'range_too_long'), 400);
       }
     }
-    const { perWorkspace } = await readWorkspaces(
+    const { perWorkspace, offered, showsKindLabel } = await readWorkspaces(
       c.get('scope'),
       { from: range.start, to: range.end },
       viewerLocaleOf(c),
@@ -633,6 +687,8 @@ export function registerPersonal(app: OpenAPIHono) {
         to,
         timeZone: PERSONAL_TIME_ZONE,
         workspaceCount: perWorkspace.length,
+        workspaces: offered,
+        showsKindLabel,
         items: orderPersonalSessions(perWorkspace.flat()).map(shown),
       },
       200,

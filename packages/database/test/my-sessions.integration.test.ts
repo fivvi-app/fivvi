@@ -14,6 +14,7 @@ import {
   locations,
   sessionParticipants,
   type TenantScope,
+  workspaceHasGroupClasses,
 } from '../src/index.ts';
 import * as schema from '../src/schema/index.ts';
 import {
@@ -132,6 +133,46 @@ describe('F013 the personal read model', () => {
       expect(await inAccountScope(w.lisa.id, (scope) => listMyTrainingWorkspaces(scope))).toEqual(
         [],
       );
+    });
+  });
+
+  describe('what a workspace offers (#1534)', () => {
+    it('has group classes once it has a class that is not archived, and no class means none', async () => {
+      const w = await world();
+      await addGroupClass(admin.db, { workspaceId: w.gym.id, nameNl: 'Kracht' });
+      const archived = await addGroupClass(admin.db, { workspaceId: w.own.id, nameNl: 'Oud' });
+      await admin.db
+        .update(schema.groupClasses)
+        .set({ archivedAt: new Date('2026-09-01T00:00:00Z') })
+        .where(eq(schema.groupClasses.id, archived.id));
+
+      const read = await inAccountScope(w.sarah.id, async (scope) => {
+        const workspaces = await listMyTrainingWorkspaces(scope);
+        return inEachWorkspace(scope, workspaces, async (workspaceScope, workspace) => ({
+          name: workspace.name,
+          classes: await workspaceHasGroupClasses(workspaceScope),
+        }));
+      });
+
+      expect(read.map(({ name, classes }) => [name, classes])).toEqual(
+        [
+          [w.gym.marker, true],
+          [w.own.marker, false],
+        ].toSorted((a, b) => String(a[0]).localeCompare(String(b[0]))),
+      );
+    });
+
+    it('does not count the classes of another workspace', async () => {
+      const w = await world();
+      await addGroupClass(admin.db, { workspaceId: w.other.id, nameNl: 'Yoga' });
+
+      const read = await inAccountScope(w.sarah.id, (scope) =>
+        inEachWorkspace(scope, [{ id: w.gym.id }], (workspaceScope) =>
+          workspaceHasGroupClasses(workspaceScope),
+        ),
+      );
+
+      expect(read).toEqual([false]);
     });
   });
 

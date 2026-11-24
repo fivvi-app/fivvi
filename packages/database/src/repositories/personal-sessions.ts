@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, lt, min } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lt, min } from 'drizzle-orm';
 import {
   clients,
   groupClasses,
@@ -271,6 +271,19 @@ export async function hasMySession(scope: WorkspaceScope): Promise<boolean> {
         inArray(sessions.trainerProfileId, myTrainerProfile(scope)),
       ),
     )
+    .limit(1);
+  return found.length > 0;
+}
+
+/**
+ * Whether the scope's workspace has a group class that is not archived: what decides that it
+ * offers group classes (`workspaceOffers` in `packages/domain`, F013 #1534).
+ */
+export async function workspaceHasGroupClasses(scope: WorkspaceScope): Promise<boolean> {
+  const found = await executorOf(scope)
+    .select({ id: groupClasses.id })
+    .from(groupClasses)
+    .where(and(eq(groupClasses.organizationId, scope.workspaceId), isNull(groupClasses.archivedAt)))
     .limit(1);
   return found.length > 0;
 }
