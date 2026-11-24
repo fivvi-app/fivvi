@@ -74,12 +74,51 @@
     <string name="classes_app_manage_on_web">Dit beheer je op het web</string>
     <string name="classes_app_new_title">Nieuwe groepsles</string>
     <string name="classes_app_owner_note">Les wijzigen, een vaste reeks en %1$s beheer je op het web.</string>
+    <string name="classes_cancel_action">Les annuleren</string>
+    <string name="classes_cancel_already_cancelled">Deze les is geannuleerd.</string>
+    <string name="classes_cancel_back">Terug</string>
+    <string name="classes_cancel_changed_by">Deze les is net gewijzigd door %1$s.</string>
+    <string name="classes_cancel_changed_by_unknown">Deze les is net gewijzigd.</string>
+    <plurals name="classes_cancel_class_count">
+        <item quantity="one">%1$d les</item>
+        <item quantity="other">%1$d lessen</item>
+    </plurals>
+    <plurals name="classes_cancel_count_following">
+        <item quantity="one">%2$d deelnemer in %1$s krijgt een e-mail.</item>
+        <item quantity="other">%2$d deelnemers in %1$s krijgen een e-mail.</item>
+    </plurals>
+    <string name="classes_cancel_count_none">Er zijn nog geen deelnemers, dus niemand krijgt een e-mail.</string>
+    <plurals name="classes_cancel_count_this">
+        <item quantity="one">%1$d deelnemer krijgt een e-mail in de eigen gekozen taal.</item>
+        <item quantity="other">%1$d deelnemers krijgen een e-mail, ieder in de eigen gekozen taal.</item>
+    </plurals>
+    <string name="classes_cancel_done">%1$s op %2$s is geannuleerd.</string>
+    <plurals name="classes_cancel_done_notified">
+        <item quantity="one">%1$d deelnemer is geïnformeerd.</item>
+        <item quantity="other">%1$d deelnemers zijn geïnformeerd.</item>
+    </plurals>
+    <string name="classes_cancel_load_failed">De gegevens konden niet worden geladen.</string>
+    <string name="classes_cancel_message_hint">Je bericht wordt niet vertaald.</string>
+    <string name="classes_cancel_message_label">Bericht aan deelnemers (optioneel)</string>
+    <string name="classes_cancel_no_permission">Je mag deze les niet annuleren.</string>
+    <string name="classes_cancel_not_saved">Niet geannuleerd. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="classes_cancel_scope_following">Deze en alle volgende lessen (de reeks stopt)</string>
+    <string name="classes_cancel_scope_label">Wat annuleer je?</string>
+    <string name="classes_cancel_scope_this">Alleen deze les</string>
+    <string name="classes_cancel_started">Deze les is al begonnen. Het wordt vastgelegd en niemand krijgt een e-mail.</string>
+    <string name="classes_cancel_submit">Les annuleren</string>
+    <string name="classes_cancel_subtitle">%1$s · %2$s, %4$s–%3$s</string>
+    <string name="classes_cancel_title">Les annuleren?</string>
     <string name="classes_date_back">Alle lessen</string>
     <plurals name="classes_date_booked">
         <item quantity="one">%1$s/%2$s geboekt · %3$d plek vrij</item>
         <item quantity="other">%1$s/%2$s geboekt · %3$d plekken vrij</item>
     </plurals>
     <string name="classes_date_booked_label">Boekingen</string>
+    <string name="classes_date_cancelled_banner">Geannuleerd op %1$s om %3$s door %2$s</string>
+    <string name="classes_date_cancelled_banner_unknown">Geannuleerd op %1$s om %2$s</string>
+    <string name="classes_date_cancelled_participant">%2$s · %1$s, %3$s</string>
+    <string name="classes_date_cancelled_section">Geannuleerd</string>
     <string name="classes_date_changed_field_capacity">capaciteit</string>
     <string name="classes_date_changed_field_location">locatie</string>
     <string name="classes_date_changed_field_time">tijd</string>
@@ -210,6 +249,7 @@
     <string name="classes_series_edit_label">Wijzigen: reeks van %2$s %1$s</string>
     <string name="classes_series_from">vanaf %1$s</string>
     <string name="classes_series_line">Elke %5$s %3$s–%1$s · %4$s · %2$s</string>
+    <string name="classes_series_stopped">Gestopt vanaf %1$s</string>
     <string name="classes_series_title">Reeksen</string>
     <plurals name="classes_spots">
         <item quantity="one">%1$d plek</item>
@@ -745,6 +785,27 @@
     <string name="roles_trainer">Trainer</string>
     <!-- Role label of a Trainer of a workspace, shown as a plain label, in the workspace's word (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor. The role itself stays Trainer. -->
     <string name="roles_trainer_label">%1$s</string>
+    <string name="sessions_cancel_action">Annuleren</string>
+    <string name="sessions_cancel_already_cancelled">Deze sessie is geannuleerd.</string>
+    <string name="sessions_cancel_back">Terug</string>
+    <string name="sessions_cancel_changed_by">Deze sessie is net gewijzigd door %1$s.</string>
+    <string name="sessions_cancel_changed_by_unknown">Deze sessie is net gewijzigd.</string>
+    <string name="sessions_cancel_done">Sessie geannuleerd.</string>
+    <string name="sessions_cancel_no_permission">Je hebt geen rechten meer voor deze sessie.</string>
+    <string name="sessions_cancel_notify">%1$s informeren per e-mail</string>
+    <!-- PS-06: under the notify box; {email} is the client's address, {language} the language of the email ("in het Nederlands" / "in het Engels", sessions.form.languageNl/languageEn). -->
+    <string name="sessions_cancel_notify_note">%1$s · %2$s</string>
+    <string name="sessions_cancel_nudge_cancel_anyway">Toch annuleren</string>
+    <string name="sessions_cancel_nudge_question">Al een ander moment voorgesteld?</string>
+    <string name="sessions_cancel_nudge_reschedule">Verplaatsen</string>
+    <string name="sessions_cancel_started">Deze sessie is al begonnen. De klant krijgt geen e-mail.</string>
+    <string name="sessions_cancel_submit">Sessie annuleren</string>
+    <string name="sessions_cancel_subtitle">%1$s · %2$s, %4$s–%3$s</string>
+    <string name="sessions_cancel_title">Sessie annuleren?</string>
+    <string name="sessions_cancel_who_client">De klant</string>
+    <string name="sessions_cancel_who_label">Wie annuleert?</string>
+    <!-- PS-06: the workspace is cancelling (the initiator "workspace"); "Wij" in Dutch. -->
+    <string name="sessions_cancel_who_us">Wij</string>
     <string name="sessions_double_booking_back">Terug</string>
     <string name="sessions_double_booking_item">%1$s, %4$s–%2$s: %3$s (%5$s)</string>
     <string name="sessions_double_booking_note">Dit is een waarschuwing. Je kunt het toch opslaan.</string>
@@ -822,6 +883,10 @@
     <!-- Label of the first field of the private session form when it is opened from the personal calendar: the workspace the session is planned in. A plain line with one workspace. -->
     <string name="sessions_form_workspace_label">Werkruimte</string>
     <string name="sessions_page_cancelled">Deze sessie is geannuleerd.</string>
+    <string name="sessions_page_cancelled_banner">Geannuleerd op %1$s om %3$s door %2$s</string>
+    <string name="sessions_page_cancelled_banner_unknown">Geannuleerd op %1$s om %2$s</string>
+    <string name="sessions_page_cancelled_by_client">op verzoek van de klant</string>
+    <string name="sessions_page_cancelled_by_workspace">op verzoek van ons</string>
     <string name="sessions_page_client_label">Klant</string>
     <string name="sessions_page_client_profile">Klantprofiel</string>
     <string name="sessions_page_heading">Privésessie met %1$s</string>
