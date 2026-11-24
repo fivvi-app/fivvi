@@ -351,9 +351,10 @@ jobs:
 
       # CI gives the flows of both languages 45 minutes with a prebuilt app (24 to 31 measured in November 2026, #1578).
       # Here the step also builds the debug app and starts the stack, as `pnpm test:maestro` does, so the build gets 10
-      # more, as the tests step above gets for its build: 45 + 10 = 55. Measured in run 43717147404: nl-NL alone took about 11 minutes from the start of
-      # the step (1 min 40 s for the stack and the build with a warm Gradle cache, then 9 min 18 s of flows), so both
-      # languages take about 21 minutes, more with a cold Gradle cache. A step that hangs ends the job.
+      # more, as the tests step above gets for its build: 45 + 10 = 55. Measured in run 43717147404: nl-NL alone took
+      # about 11 minutes from the start of the step (1 min 40 s for the stack and the build with a warm Gradle cache,
+      # then 9 min 18 s of flows), so both languages take about 21 minutes, more with a cold Gradle cache. A step that
+      # hangs ends the job.
       - name: Maestro flows (nl-NL and en)
         timeout-minutes: 55
         run: scripts/release.sh tests android-maestro
