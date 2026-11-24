@@ -17845,7 +17845,7 @@ public enum Operations {
     }
     /// The workspace calendar: the sessions of a range of days
     ///
-    /// Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
+    /// Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types`, `groupClassId` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/calendar`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/calendar/get(getWorkspaceCalendar)`.
@@ -17894,6 +17894,10 @@ public enum Operations {
                 ///
                 /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/types`.
                 public var types: Operations.GetWorkspaceCalendar.Input.Query.TypesPayload?
+                /// Only the dates of this class (a class ID, as in `GET …/group-classes`): the class dates of one class, no private session. A class of another workspace matches nothing. Left out: every session. For *Eén les op een datum* (F037).
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/groupClassId`.
+                public var groupClassId: Swift.String?
                 /// *Geannuleerde tonen*: `true` (the default) keeps the cancelled sessions, `false` leaves them out.
                 ///
                 /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/calendar/GET/query/includeCancelled`.
@@ -17916,6 +17920,7 @@ public enum Operations {
                 ///   - to: The last day, included: `YYYY-MM-DD`. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`.
                 ///   - trainerIds: Only the sessions of these trainers (team-member IDs, as in `GET …/trainers`); repeat the parameter for each. A session without a trainer matches none. Left out: every trainer.
                 ///   - types: Only these kinds of session: `private` (*Privé*) and `group` (*Groep*); repeat the parameter for each. Left out: every kind.
+                ///   - groupClassId: Only the dates of this class (a class ID, as in `GET …/group-classes`): the class dates of one class, no private session. A class of another workspace matches nothing. Left out: every session. For *Eén les op een datum* (F037).
                 ///   - includeCancelled: *Geannuleerde tonen*: `true` (the default) keeps the cancelled sessions, `false` leaves them out.
                 ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
                 public init(
@@ -17923,6 +17928,7 @@ public enum Operations {
                     to: Swift.String,
                     trainerIds: [Swift.String]? = nil,
                     types: Operations.GetWorkspaceCalendar.Input.Query.TypesPayload? = nil,
+                    groupClassId: Swift.String? = nil,
                     includeCancelled: Swift.Bool? = nil,
                     surface: Operations.GetWorkspaceCalendar.Input.Query.SurfacePayload? = nil
                 ) {
@@ -17930,6 +17936,7 @@ public enum Operations {
                     self.to = to
                     self.trainerIds = trainerIds
                     self.types = types
+                    self.groupClassId = groupClassId
                     self.includeCancelled = includeCancelled
                     self.surface = surface
                 }

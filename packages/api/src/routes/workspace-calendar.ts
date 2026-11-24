@@ -110,6 +110,16 @@ const CalendarQuerySchema = z.object({
         'Only these kinds of session: `private` (*Privé*) and `group` (*Groep*); repeat the ' +
         'parameter for each. Left out: every kind.',
     }),
+  groupClassId: z
+    .uuid()
+    .optional()
+    .openapi({
+      param: { name: 'groupClassId', in: 'query' },
+      description:
+        'Only the dates of this class (a class ID, as in `GET …/group-classes`): the class dates ' +
+        'of one class, no private session. A class of another workspace matches nothing. Left ' +
+        'out: every session. For *Eén les op een datum* (F037).',
+    }),
   includeCancelled: z
     .preprocess(
       (value) => (value === 'true' ? true : value === 'false' ? false : value),
@@ -322,7 +332,7 @@ const getWorkspaceCalendarRoute = defineRoute(
       'start and end (UTC instants plus the time zone), trainer, location, the client’s display ' +
       'name, the class name in the viewer’s language, booked and capacity, the series line and ' +
       'what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, ' +
-      '`types` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.',
+      '`types`, `groupClassId` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.',
     security: SIGNED_IN,
     request: { params: WorkspaceParamsSchema, query: CalendarQuerySchema },
     responses: {
@@ -379,6 +389,7 @@ function toItem(row: WorkspaceCalendarRow): CalendarItem {
     startsAt: row.startsAt,
     endsAt: row.endsAt,
     trainerId: row.trainer?.id ?? null,
+    groupClassId: row.groupClassId,
   };
 }
 
@@ -445,7 +456,8 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
   const router = new OpenAPIHono<WorkspaceEnv>({ defaultHook: answerValidationFailure });
 
   router.openapi(getWorkspaceCalendarRoute, async (c) => {
-    const { from, to, trainerIds, types, includeCancelled, surface } = c.req.valid('query');
+    const { from, to, trainerIds, types, groupClassId, includeCancelled, surface } =
+      c.req.valid('query');
     const scope = c.get('scope');
     const workspace = await findWorkspace(scope);
     if (!workspace) return c.json(NOT_FOUND, 404);
@@ -468,6 +480,7 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
       {
         ...(trainerIds ? { trainerIds } : {}),
         ...(types ? { types } : {}),
+        ...(groupClassId ? { groupClassId } : {}),
         ...(includeCancelled === undefined ? {} : { includeCancelled }),
       },
     );

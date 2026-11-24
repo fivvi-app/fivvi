@@ -857,7 +857,7 @@ export interface paths {
         };
         /**
          * The workspace calendar: the sessions of a range of days
-         * @description Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
+         * @description Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types`, `groupClassId` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
          */
         get: operations["getWorkspaceCalendar"];
         put?: never;
@@ -6662,6 +6662,8 @@ export interface operations {
                 trainerIds?: string[];
                 /** @description Only these kinds of session: `private` (*Privé*) and `group` (*Groep*); repeat the parameter for each. Left out: every kind. */
                 types?: ("private" | "group")[];
+                /** @description Only the dates of this class (a class ID, as in `GET …/group-classes`): the class dates of one class, no private session. A class of another workspace matches nothing. Left out: every session. For *Eén les op een datum* (F037). */
+                groupClassId?: string;
                 /** @description *Geannuleerde tonen*: `true` (the default) keeps the cancelled sessions, `false` leaves them out. */
                 includeCancelled?: boolean;
                 /** @description The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */

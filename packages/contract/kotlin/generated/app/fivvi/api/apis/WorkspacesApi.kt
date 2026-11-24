@@ -77,7 +77,7 @@ interface WorkspacesApi {
     /**
      * GET v1/workspaces/{workspaceId}/calendar
      * The workspace calendar: the sessions of a range of days
-     * Every session of the workspace that starts from the start of &#x60;from&#x60; to the end of &#x60;to&#x60; (at most 42 days, on the workspace&#39;s wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. &#x60;trainerIds&#x60;, &#x60;types&#x60; and &#x60;includeCancelled&#x60; narrow it. Notes are never in it. Every team member may read.
+     * Every session of the workspace that starts from the start of &#x60;from&#x60; to the end of &#x60;to&#x60; (at most 42 days, on the workspace&#39;s wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. &#x60;trainerIds&#x60;, &#x60;types&#x60;, &#x60;groupClassId&#x60; and &#x60;includeCancelled&#x60; narrow it. Notes are never in it. Every team member may read.
      * Responses:
      *  - 200: The sessions.
      *  - 400: The request did not match the contract.
@@ -91,12 +91,13 @@ interface WorkspacesApi {
      * @param to The last day, included: &#x60;YYYY-MM-DD&#x60;. Before &#x60;from&#x60; answers &#x60;400&#x60; on &#x60;to&#x60; with &#x60;before_from&#x60;; more than 42 days from &#x60;from&#x60; answers &#x60;400&#x60; with &#x60;range_too_long&#x60;.
      * @param trainerIds Only the sessions of these trainers (team-member IDs, as in &#x60;GET …/trainers&#x60;); repeat the parameter for each. A session without a trainer matches none. Left out: every trainer. (optional)
      * @param types Only these kinds of session: &#x60;private&#x60; (*Privé*) and &#x60;group&#x60; (*Groep*); repeat the parameter for each. Left out: every kind. (optional)
+     * @param groupClassId Only the dates of this class (a class ID, as in &#x60;GET …/group-classes&#x60;): the class dates of one class, no private session. A class of another workspace matches nothing. Left out: every session. For *Eén les op een datum* (F037). (optional)
      * @param includeCancelled *Geannuleerde tonen*: &#x60;true&#x60; (the default) keeps the cancelled sessions, &#x60;false&#x60; leaves them out. (optional)
      * @param surface The app that sends the request: &#x60;ios&#x60; or &#x60;android&#x60;. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. (optional)
      * @return [WorkspaceCalendar]
      */
     @GET("v1/workspaces/{workspaceId}/calendar")
-    suspend fun getWorkspaceCalendar(@Path("workspaceId") workspaceId: java.util.UUID, @Query("from") from: kotlin.String, @Query("to") to: kotlin.String, @Query("trainerIds") trainerIds: @JvmSuppressWildcards kotlin.collections.List<java.util.UUID>? = null, @Query("types") types: @JvmSuppressWildcards kotlin.collections.List<kotlin.String>? = null, @Query("includeCancelled") includeCancelled: kotlin.Boolean? = null, @Query("surface") surface: SurfaceGetWorkspaceCalendar? = null): Response<WorkspaceCalendar>
+    suspend fun getWorkspaceCalendar(@Path("workspaceId") workspaceId: java.util.UUID, @Query("from") from: kotlin.String, @Query("to") to: kotlin.String, @Query("trainerIds") trainerIds: @JvmSuppressWildcards kotlin.collections.List<java.util.UUID>? = null, @Query("types") types: @JvmSuppressWildcards kotlin.collections.List<kotlin.String>? = null, @Query("groupClassId") groupClassId: java.util.UUID? = null, @Query("includeCancelled") includeCancelled: kotlin.Boolean? = null, @Query("surface") surface: SurfaceGetWorkspaceCalendar? = null): Response<WorkspaceCalendar>
 
     /**
      * GET v1/workspaces/{workspaceId}/day

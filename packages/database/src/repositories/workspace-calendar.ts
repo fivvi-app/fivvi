@@ -37,6 +37,8 @@ export interface WorkspaceCalendarRow {
   readonly trainer: { readonly id: string; readonly name: string } | null;
   readonly clients: PersonalSessionRow['clients'];
   readonly clientName: string | null;
+  /** The class of a group session (F037 lists a class's dates); `null` for any other kind. */
+  readonly groupClassId: string | null;
   /** The names of the class of a group session; `null` for any other kind. */
   readonly classNameNl: string | null;
   readonly classNameEn: string | null;
@@ -68,6 +70,7 @@ export async function listWorkspaceCalendar(
         string | null
       >`coalesce(${teamMembers.id}, ${trainerProfiles.removedTeamMemberId})`,
       trainerName: sql<string | null>`coalesce(${authUsers.name}, ${trainerProfiles.removedName})`,
+      groupClassId: sessions.groupClassId,
       classNameNl: groupClasses.nameNl,
       classNameEn: groupClasses.nameEn,
       seriesId: sessions.seriesId,
@@ -136,6 +139,7 @@ export async function listWorkspaceCalendar(
     version: row.version,
     location: toLocationView(row.location),
     trainer: row.trainerId ? { id: row.trainerId, name: row.trainerName ?? '' } : null,
+    groupClassId: row.groupClassId,
     classNameNl: row.classNameNl,
     classNameEn: row.classNameEn,
     series:
