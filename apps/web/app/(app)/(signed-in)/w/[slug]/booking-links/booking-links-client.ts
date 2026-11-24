@@ -1,4 +1,5 @@
 import type { Schemas } from '@fivvi/contract';
+import { localDateOf } from '@fivvi/domain/zoned-time';
 
 export type BookingLink = Schemas['BookingLink'];
 export type CreateBookingLink = Pick<Schemas['CreateBookingLinkRequest'], 'scope' | 'language'> & {
@@ -98,4 +99,49 @@ export async function deactivateBookingLink(
   if ('failed' in answered) return answered.failed;
   if (answered.status !== 200 || !isLink(answered.body)) return refusal(answered.status);
   return { ok: true, link: answered.body };
+}
+
+/** A date of a class the *Eén les op een datum* picker offers. */
+export interface ClassDate {
+  id: string;
+  /** The start, a UTC instant. */
+  startsAt: string;
+}
+
+const isClassDate = (item: unknown): item is ClassDate =>
+  typeof (item as ClassDate | null)?.id === 'string' &&
+  typeof (item as ClassDate).startsAt === 'string';
+
+/**
+ * The upcoming dates of one class, for the **Eén les op een datum** picker (F037, #1519): one read
+ * of the workspace calendar (`GET …/calendar`, `groupClassId`, no `to`, cancelled dates left out)
+ * from today on the workspace's wall clock, however far ahead the dates lie, then the dates that
+ * have not begun, in the API's time order. The API decides what a date is; this only asks.
+ */
+export async function listClassDates(
+  workspaceId: string,
+  groupClassId: string,
+  timeZone: string,
+  fetchFn: typeof fetch = fetch,
+  now: Date = new Date(),
+): Promise<{ ok: true; dates: ClassDate[] } | Refused> {
+  const answered = await call(
+    `/api/v1/workspaces/${workspaceId}/calendar?${new URLSearchParams({
+      from: localDateOf(now, timeZone),
+      groupClassId,
+      includeCancelled: 'false',
+    })}`,
+    { method: 'GET' },
+    fetchFn,
+  );
+  if ('failed' in answered) return answered.failed;
+  if (answered.status !== 200) return refusal(answered.status);
+  const items = (answered.body as { items?: unknown } | null)?.items;
+  if (!Array.isArray(items) || !items.every(isClassDate)) return { ok: false, reason: 'generic' };
+  return {
+    ok: true,
+    dates: items
+      .filter(({ startsAt }) => Date.parse(startsAt) > now.getTime())
+      .map(({ id, startsAt }) => ({ id, startsAt })),
+  };
 }

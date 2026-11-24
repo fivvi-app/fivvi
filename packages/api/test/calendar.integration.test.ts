@@ -296,6 +296,8 @@ describe('F014 the workspace calendar and day through the API', () => {
       anna,
       tomGym,
       sarahGym,
+      krachtClass,
+      boxingClass,
       kracht,
       krachtNext,
       boxing,
@@ -474,9 +476,117 @@ describe('F014 the workspace calendar and day through the API', () => {
       expect(await filtered(`&trainerIds=${crypto.randomUUID()}`)).toEqual([]);
     });
 
+    it('F037 AC2 (date part): the groupClassId filter lists the dates of one class of this workspace only', async () => {
+      const w = await world();
+      const filtered = async (suffix: string, who = w.john) =>
+        ids((await (await calendar(w.gym.id, `${WEEK}${suffix}`, who)).json()) as CalendarBody);
+      // Another workspace's class with a date in this very week: only the tenant scope keeps it out.
+      const otherClass = await addGroupClass(admin.db, {
+        workspaceId: w.own.id,
+        nameNl: 'Kracht',
+      });
+      const otherDate = await addSession(admin.db, {
+        workspaceId: w.own.id,
+        type: 'group',
+        groupClassId: otherClass.id,
+        capacity: 8,
+        participant: false,
+        trainerProfileId: await profileOf(w.own.id, w.sarah.id),
+        startsAt: zonedTime('2026-09-23T10:00'),
+      });
+
+      // Kracht's dates, the cancelled one too until it is left out; no date of Boxing, no private session.
+      expect(await filtered(`&groupClassId=${w.krachtClass.id}`)).toEqual([
+        w.kracht.id,
+        w.cancelled.id,
+      ]);
+      expect(await filtered(`&groupClassId=${w.krachtClass.id}&includeCancelled=false`)).toEqual([
+        w.kracht.id,
+      ]);
+      expect(await filtered(`&groupClassId=${w.boxingClass.id}`)).toEqual([w.boxing.id]);
+      // A Trainer reads it too; another workspace's class, or none, gives an empty list.
+      expect(await filtered(`&groupClassId=${w.krachtClass.id}`, w.sarah)).toEqual([
+        w.kracht.id,
+        w.cancelled.id,
+      ]);
+      expect(await filtered(`&groupClassId=${otherClass.id}`)).toEqual([]);
+      expect(await filtered(`&groupClassId=${crypto.randomUUID()}`)).toEqual([]);
+      // Her own workspace does see it, so the empty answer above is the scope's, not an empty week.
+      const own = await calendar(w.own.id, `${WEEK}&groupClassId=${otherClass.id}`, w.sarah);
+      expect(ids((await own.json()) as CalendarBody)).toEqual([otherDate.id]);
+    });
+
+    it('F037 AC2 (date part): with no `to` the groupClassId read lists the dates of the class however far ahead', async () => {
+      const w = await world();
+      // Day 84 from 21 September is 14 December: a series that starts late, and a one-off date, lie beyond.
+      const lateSeries = await addSession(admin.db, {
+        workspaceId: w.gym.id,
+        type: 'group',
+        groupClassId: w.krachtClass.id,
+        capacity: 8,
+        participant: false,
+        trainerProfileId: w.sarahGym,
+        startsAt: zonedTime('2026-12-15T10:00'),
+      });
+      const oneOff = await addSession(admin.db, {
+        workspaceId: w.gym.id,
+        type: 'group',
+        groupClassId: w.krachtClass.id,
+        capacity: 8,
+        participant: false,
+        trainerProfileId: w.sarahGym,
+        startsAt: zonedTime('2027-06-01T10:00'),
+      });
+      const later = async (query: string, who = w.john) => {
+        const response = await calendar(w.gym.id, query, who);
+        expect(response.status).toBe(200);
+        return (await response.json()) as CalendarBody & { to?: string };
+      };
+
+      const body = await later(
+        `from=2026-09-21&groupClassId=${w.krachtClass.id}&includeCancelled=false`,
+      );
+      expect(ids(body)).toEqual([w.kracht.id, w.krachtNext.id, lateSeries.id, oneOff.id]);
+      expect(body.to).toBeUndefined();
+      // From a later day on, the earlier dates drop out; another class's dates never come in.
+      expect(ids(await later(`from=2026-10-01&groupClassId=${w.krachtClass.id}`))).toEqual([
+        lateSeries.id,
+        oneOff.id,
+      ]);
+      expect(ids(await later(`from=2026-09-21&groupClassId=${w.boxingClass.id}`))).toEqual([
+        w.boxing.id,
+      ]);
+      // Another workspace's class: nothing, however far ahead its dates lie.
+      const elsewhere = await calendar(
+        w.own.id,
+        `from=2026-09-21&groupClassId=${w.krachtClass.id}`,
+        w.sarah,
+      );
+      expect(ids((await elsewhere.json()) as CalendarBody)).toEqual([]);
+    });
+
+    it('F037: no `to` answers 400 without a groupClassId, and a `from` that is none answers 400', async () => {
+      const w = await world();
+      const without = await calendar(w.gym.id, 'from=2026-09-21', w.john);
+      expect(without.status).toBe(400);
+      expect(await without.json()).toMatchObject({
+        issues: [{ path: 'to', code: 'required' }],
+      });
+      const impossible = await calendar(
+        w.gym.id,
+        `from=2026-02-30&groupClassId=${w.krachtClass.id}`,
+        w.john,
+      );
+      expect(impossible.status).toBe(400);
+      expect(await impossible.json()).toMatchObject({
+        issues: [{ path: 'from', code: 'invalid_date' }],
+      });
+    });
+
     it('answers 400 on a filter that is none', async () => {
       const w = await world();
       for (const suffix of [
+        '&groupClassId=kracht',
         '&types=yoga',
         '&types=open_gym',
         '&trainerIds=sarah',
@@ -1020,6 +1130,26 @@ describe('F014 the workspace calendar and day through the API', () => {
         operationId: 'getWorkspaceDay',
         'x-access': access('calendar.manage', ['owner']),
       });
+    });
+
+    it('F037: the calendar takes no `to` (optional) and its answer then has none', () => {
+      const parameters = contract.paths['/v1/workspaces/{workspaceId}/calendar'].get.parameters;
+      expect(parameters).toContainEqual(
+        expect.objectContaining({ name: 'to', in: 'query', required: false }),
+      );
+      expect(contract.components.schemas.WorkspaceCalendar.required).not.toContain('to');
+    });
+
+    it('F037: the calendar names its groupClassId filter as a uuid query parameter', () => {
+      const parameters = contract.paths['/v1/workspaces/{workspaceId}/calendar'].get.parameters;
+      expect(parameters).toContainEqual(
+        expect.objectContaining({
+          name: 'groupClassId',
+          in: 'query',
+          required: false,
+          schema: expect.objectContaining({ type: 'string', format: 'uuid' }),
+        }),
+      );
     });
 
     it('#1544: hasSessions is a required boolean of the day', () => {

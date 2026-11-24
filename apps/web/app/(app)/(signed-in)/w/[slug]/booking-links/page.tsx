@@ -27,7 +27,7 @@ export default async function BookingLinksPage({ params }: PageProps<'/w/[slug]/
   const cookie = (await headers()).get('cookie');
   const init = { headers: cookie ? { cookie } : {} };
   const canManage = capabilities.includes('booking_link.manage');
-  const [links, join, classes] = await Promise.all([
+  const [links, join, classes, workspace] = await Promise.all([
     apiClient.GET('/v1/workspaces/{workspaceId}/booking-links', {
       params: { path: { workspaceId: id } },
       ...init,
@@ -44,6 +44,13 @@ export default async function BookingLinksPage({ params }: PageProps<'/w/[slug]/
           ...init,
         })
       : null,
+    // The zone the dates of *Eén les op een datum* are written in.
+    canManage
+      ? apiClient.GET('/v1/workspaces/{workspaceId}', {
+          params: { path: { workspaceId: id } },
+          ...init,
+        })
+      : null,
   ]);
   if (!links.data)
     throw new Error('GET /v1/workspaces/{workspaceId}/booking-links did not answer.');
@@ -53,9 +60,13 @@ export default async function BookingLinksPage({ params }: PageProps<'/w/[slug]/
   if (classes && !classes.data) {
     throw new Error('GET /v1/workspaces/{workspaceId}/group-classes did not answer.');
   }
+  if (workspace && !workspace.data) {
+    throw new Error('GET /v1/workspaces/{workspaceId} did not answer.');
+  }
   return (
     <BookingLinksView
       workspaceId={id}
+      timeZone={workspace?.data?.timeZone ?? 'Europe/Amsterdam'}
       join={
         join?.data
           ? { url: join.data.url, canRenew: capabilities.includes('join_link.renew') }

@@ -342,7 +342,7 @@ public protocol APIProtocol: Sendable {
     func previewClassCancellation(_ input: Operations.PreviewClassCancellation.Input) async throws -> Operations.PreviewClassCancellation.Output
     /// The workspace calendar: the sessions of a range of days
     ///
-    /// Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
+    /// Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types`, `groupClassId` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/calendar`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/calendar/get(getWorkspaceCalendar)`.
@@ -1267,7 +1267,7 @@ extension APIProtocol {
     }
     /// The workspace calendar: the sessions of a range of days
     ///
-    /// Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
+    /// Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types`, `groupClassId` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/calendar`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/calendar/get(getWorkspaceCalendar)`.

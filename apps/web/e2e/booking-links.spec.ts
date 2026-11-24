@@ -17,8 +17,8 @@ import { expect, expectNoAxeViolations, test } from './fixtures';
 // links, *Nieuwe boekingslink*, *Deactiveren*) and *Boekingslink kopiëren* on CO-01. Copy comes from
 // the catalogs. Each spec has accounts and workspaces of its own: John is the Owner and Sarah a
 // Trainer of John's Gym; the class is Kracht (Strength in English) every Tuesday 18:00. The dates
-// are relative to the day the spec runs. The form's *Eén les op een datum* waits for an API that lists a
-// class's upcoming dates, so the date links of this spec are made through CO-01 or the API.
+// are relative to the day the spec runs. *Eén les op een datum* lists the class's upcoming dates from the
+// workspace calendar (#1519).
 const GYM = "John's Gym";
 const PHONE = { width: 390, height: 844 };
 
@@ -97,6 +97,7 @@ test.describe('F037 booking links on the web', () => {
   }
 
   const className = (locale: Locale) => (locale === 'en' ? 'Strength' : 'Kracht');
+  const boxingLabel = (locale: Locale) => (locale === 'en' ? 'Boxing' : 'Boksen');
 
   async function openBookingLinks(page: Page, copy: Messages, slug: string) {
     await page.goto(`/w/${slug}`);
@@ -244,21 +245,48 @@ test.describe('F037 booking links on the web', () => {
       (await links(page.request, workspaceId)).filter(({ scope }) => scope === 'class'),
     ).toHaveLength(1);
 
-    // A date link (made through the API here) is listed as "Les op di 17 nov: Kracht".
-    const dateLink = await page.request.post(`/api/v1/workspaces/${workspaceId}/booking-links`, {
+    // One class on a date: the class's dates are listed, and the date link is "Les op di 17 nov: Kracht".
+    const dateOption = `${writtenTuesday(appLocale)} 18:00`;
+    await page.getByRole('button', { name: form.open }).click();
+    await dialog.getByLabel(form.whatLabel).selectOption({ label: form.what.session });
+    await dialog.getByLabel(form.classLabel).selectOption({ label: className(appLocale) });
+    await expect(dialog.getByLabel(form.dateLabel)).toContainText(dateOption);
+    await expectNoAxeViolations(page, `the new booking link form with a date in ${appLocale}`);
+    await dialog.getByRole('button', { name: form.create }).click();
+    await expect(dialog.getByRole('alert')).toHaveText(form.dateRequired);
+    await dialog.getByLabel(form.dateLabel).selectOption({ label: dateOption });
+    await dialog.getByRole('button', { name: form.create }).click();
+    await expect(dialog.getByRole('status')).toHaveText(form.created);
+    const dateUrl = (await dialog.getByTestId('new-link-url').textContent()) ?? '';
+    await dialog.getByRole('button', { name: form.done }).click();
+    const dateRow = rowOf(
+      page,
+      copy,
+      copy.bookingLinks.scope.session
+        .replace('{date}', writtenTuesday(appLocale))
+        .replace('{class}', className(appLocale)),
+    );
+    await expect(dateRow).toContainText(copy.bookingLinks.language.visitor);
+    await expect(dateRow.locator('code')).toHaveText(dateUrl);
+    const dateLinks = (await links(page.request, workspaceId)).filter(
+      ({ scope }) => scope === 'session',
+    );
+    expect(dateLinks).toMatchObject([{ url: dateUrl, language: 'visitor', active: true }]);
+
+    // Making it again shows the same link, and it is the one the API gets for that session.
+    await page.getByRole('button', { name: form.open }).click();
+    await dialog.getByLabel(form.whatLabel).selectOption({ label: form.what.session });
+    await dialog.getByLabel(form.classLabel).selectOption({ label: className(appLocale) });
+    await dialog.getByLabel(form.dateLabel).selectOption({ label: dateOption });
+    await dialog.getByRole('button', { name: form.create }).click();
+    await expect(dialog.getByTestId('new-link-url')).toHaveText(dateUrl);
+    await dialog.getByRole('button', { name: form.done }).click();
+    await expect(dateRow).toHaveCount(1);
+    const sameAgain = await page.request.post(`/api/v1/workspaces/${workspaceId}/booking-links`, {
       data: { scope: 'session', language: 'visitor', sessionId },
     });
-    expect(dateLink.status()).toBe(201);
-    await page.reload();
-    await expect(
-      rowOf(
-        page,
-        copy,
-        copy.bookingLinks.scope.session
-          .replace('{date}', writtenTuesday(appLocale))
-          .replace('{class}', className(appLocale)),
-      ),
-    ).toContainText(copy.bookingLinks.language.visitor);
+    expect(sameAgain.status()).toBe(200);
+    expect(((await sameAgain.json()) as LinkBody).url).toBe(dateUrl);
 
     // A Groepslessen link in Dutch is one more link, and the standing ones stay first.
     await page.getByRole('button', { name: form.open }).click();
@@ -273,6 +301,64 @@ test.describe('F037 booking links on the web', () => {
       'group:visitor',
     ]);
     await expect(rowOf(page, copy, copy.bookingLinks.language.nl)).toHaveCount(1);
+  });
+
+  test('AC2: the date picker lists only the upcoming dates of the class', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await openBookingLinks(page, copy, slug);
+    const workspaceId = await gymId(page.request);
+    const { classId } = await seedClassDate(page.request, workspaceId);
+    const schedule = async (id: string, localDate: string) => {
+      const planned = await page.request.post(
+        `/api/v1/workspaces/${workspaceId}/group-classes/${id}/dates`,
+        { data: { localDate, localStart: '18:00' } },
+      );
+      expect(planned.status()).toBe(201);
+      return ((await planned.json()) as { id: string }).id;
+    };
+    const nextWeek = new Date(`${tuesday()}T12:00:00Z`);
+    nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
+    const nextTuesday = nextWeek.toISOString().slice(0, 10);
+    const written = (date: string) =>
+      new Intl.DateTimeFormat(formattingLocales[appLocale], {
+        timeZone: 'Europe/Amsterdam',
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      }).format(new Date(`${date}T12:00:00Z`));
+    // A cancelled Kracht date and a date of another class: neither is offered.
+    await cancelSession(await schedule(classId, nextTuesday));
+    const boxing = await page.request.post(`/api/v1/workspaces/${workspaceId}/group-classes`, {
+      data: { nameNl: 'Boksen', nameEn: 'Boxing', capacity: 8, durationMinutes: 60 },
+    });
+    const boxingId = ((await boxing.json()) as { groupClass: { id: string } }).groupClass.id;
+    const wednesdayDate = new Date(`${tuesday()}T12:00:00Z`);
+    wednesdayDate.setUTCDate(wednesdayDate.getUTCDate() + 1);
+    const wednesday = wednesdayDate.toISOString().slice(0, 10);
+    await schedule(boxingId, wednesday);
+
+    for (const viewport of [undefined, PHONE]) {
+      if (viewport) await page.setViewportSize(viewport);
+      await page.reload();
+      const form = copy.bookingLinks.new;
+      await page.getByRole('button', { name: form.open }).click();
+      const dialog = page.getByRole('dialog', { name: form.title });
+      await dialog.getByLabel(form.whatLabel).selectOption({ label: form.what.session });
+      await dialog.getByLabel(form.classLabel).selectOption({ label: className(appLocale) });
+      const options = dialog.getByLabel(form.dateLabel).getByRole('option');
+      await expect(options).toHaveText([form.dateChoose, `${written(tuesday())} 18:00`]);
+      await expectNoAxeViolations(page, `the date picker in ${appLocale}`);
+      // Boxing has its own date, and none of Kracht's.
+      await dialog.getByLabel(form.classLabel).selectOption({ label: boxingLabel(appLocale) });
+      await expect(options).toHaveText([form.dateChoose, `${written(wednesday)} 18:00`]);
+      await page.keyboard.press('Escape');
+    }
   });
 
   test('AC7: deactivate a booking link', async ({ page, context, appLocale, messages: copy }) => {

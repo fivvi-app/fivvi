@@ -81,6 +81,27 @@ describe('F014 AC3 (API): the filters of the workspace calendar', () => {
   it('an empty list of trainers or types is no filter', () => {
     expect(ids(filterWorkspaceCalendar(items, { trainerIds: [], types: [] }))).toEqual(ids(items));
   });
+
+  it('F037 AC2 (date part): narrows to the dates of one class, whatever the other filters leave', () => {
+    const classes = [
+      session('kracht', '2026-09-22T10:00', { type: 'group', groupClassId: 'strength' }),
+      session('cancelled', '2026-09-22T18:00', {
+        type: 'group',
+        status: 'cancelled',
+        groupClassId: 'strength',
+      }),
+      session('boxing', '2026-09-24T19:15', { type: 'group', groupClassId: 'boxing' }),
+      session('mark', '2026-09-22T07:00'),
+    ];
+    expect(ids(filterWorkspaceCalendar(classes, { groupClassId: 'strength' }))).toEqual([
+      'kracht',
+      'cancelled',
+    ]);
+    expect(
+      ids(filterWorkspaceCalendar(classes, { groupClassId: 'strength', includeCancelled: false })),
+    ).toEqual(['kracht']);
+    expect(ids(filterWorkspaceCalendar(classes, { groupClassId: 'nobody' }))).toEqual([]);
+  });
 });
 
 describe('F014 AC10 (API): the rows of one day', () => {

@@ -49,9 +49,10 @@ class FakeWorkspacesApi : WorkspacesApi {
     override suspend fun getWorkspaceCalendar(
         workspaceId: UUID,
         from: String,
-        to: String,
+        to: String?,
         trainerIds: List<UUID>?,
         types: List<String>?,
+        groupClassId: UUID?,
         includeCancelled: Boolean?,
         surface: WorkspacesApi.SurfaceGetWorkspaceCalendar?,
     ): Response<WorkspaceCalendar> = error("FakeWorkspacesApi.getWorkspaceCalendar is not expected in this test")

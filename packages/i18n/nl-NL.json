@@ -59,6 +59,11 @@
       "classRequired": "Kies een les.",
       "create": "Link maken",
       "created": "Boekingslink gemaakt.",
+      "dateChoose": "Kies een datum",
+      "dateLabel": "Datum",
+      "dateLoading": "Datums laden…",
+      "dateNone": "Deze les heeft geen komende datums.",
+      "dateRequired": "Kies een datum.",
       "done": "Klaar",
       "languageHint": "De bezoeker kan altijd zelf van taal wisselen.",
       "languageLabel": "Taal van de pagina",
@@ -72,7 +77,8 @@
       "what": {
         "all": "Alle boekingen",
         "class": "Eén les",
-        "group": "Groepslessen"
+        "group": "Groepslessen",
+        "session": "Eén les op een datum"
       },
       "whatLabel": "Wat"
     },

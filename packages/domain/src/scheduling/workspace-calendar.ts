@@ -22,6 +22,8 @@ export interface WorkspaceCalendarSession {
   readonly endsAt: Date;
   /** The trainer's team-member ID (what the API calls a trainer); `null` for *Trainer nodig*. */
   readonly trainerId: string | null;
+  /** The class of a class date (F037: the dates of one class); left out or `null` for any other kind. */
+  readonly groupClassId?: string | null;
 }
 
 /** The filters of the calendar; a filter left out, or empty, narrows nothing. */
@@ -29,6 +31,8 @@ export interface WorkspaceCalendarFilters {
   /** Team-member IDs. A session without a trainer matches none of them. */
   readonly trainerIds?: readonly string[];
   readonly types?: readonly ('private' | 'group')[];
+  /** Only the dates of this class (F037: *Eén les op een datum* lists a class's dates). */
+  readonly groupClassId?: string;
   /** *Geannuleerde tonen*: on unless `false`. */
   readonly includeCancelled?: boolean;
 }
@@ -38,12 +42,13 @@ export function filterWorkspaceCalendar<T extends WorkspaceCalendarSession>(
   sessions: readonly T[],
   filters: WorkspaceCalendarFilters,
 ): T[] {
-  const { trainerIds = [], types = [], includeCancelled = true } = filters;
+  const { trainerIds = [], types = [], groupClassId, includeCancelled = true } = filters;
   return sessions.filter(
     (session) =>
       (trainerIds.length === 0 ||
         (session.trainerId !== null && trainerIds.includes(session.trainerId))) &&
       (types.length === 0 || (session.type !== 'open_gym' && types.includes(session.type))) &&
+      (groupClassId === undefined || session.groupClassId === groupClassId) &&
       (includeCancelled || session.status !== 'cancelled'),
   );
 }

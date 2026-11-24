@@ -45,6 +45,11 @@
     <string name="booking_links_new_class_required">Kies een les.</string>
     <string name="booking_links_new_create">Link maken</string>
     <string name="booking_links_new_created">Boekingslink gemaakt.</string>
+    <string name="booking_links_new_date_choose">Kies een datum</string>
+    <string name="booking_links_new_date_label">Datum</string>
+    <string name="booking_links_new_date_loading">Datums laden…</string>
+    <string name="booking_links_new_date_none">Deze les heeft geen komende datums.</string>
+    <string name="booking_links_new_date_required">Kies een datum.</string>
     <string name="booking_links_new_done">Klaar</string>
     <string name="booking_links_new_language_hint">De bezoeker kan altijd zelf van taal wisselen.</string>
     <string name="booking_links_new_language_label">Taal van de pagina</string>
@@ -56,6 +61,7 @@
     <string name="booking_links_new_what_all">Alle boekingen</string>
     <string name="booking_links_new_what_class">Eén les</string>
     <string name="booking_links_new_what_group">Groepslessen</string>
+    <string name="booking_links_new_what_session">Eén les op een datum</string>
     <string name="booking_links_new_what_label">Wat</string>
     <string name="booking_links_scope_all">Alle boekingen</string>
     <string name="booking_links_scope_class">Les: %1$s</string>

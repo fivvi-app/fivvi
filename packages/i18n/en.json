@@ -59,6 +59,11 @@
       "classRequired": "Choose a class.",
       "create": "Create link",
       "created": "Booking link created.",
+      "dateChoose": "Choose a date",
+      "dateLabel": "Date",
+      "dateLoading": "Loading dates…",
+      "dateNone": "This class has no upcoming dates.",
+      "dateRequired": "Choose a date.",
       "done": "Done",
       "languageHint": "The visitor can always switch language themselves.",
       "languageLabel": "Page language",
@@ -72,7 +77,8 @@
       "what": {
         "all": "All bookings",
         "class": "One class",
-        "group": "Group classes"
+        "group": "Group classes",
+        "session": "One class on a date"
       },
       "whatLabel": "What"
     },

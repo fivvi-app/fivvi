@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createBookingLink, deactivateBookingLink, listBookingLinks } from './booking-links-client';
+import {
+  createBookingLink,
+  deactivateBookingLink,
+  listBookingLinks,
+  listClassDates,
+} from './booking-links-client';
 
 const reply = (status: number, body: unknown = {}) =>
   vi.fn<typeof fetch>(() => Promise.resolve(Response.json(body, { status })));
@@ -86,6 +91,97 @@ describe('F037 TW-07 booking links client', () => {
       expect(await deactivateBookingLink('w1', 'l1', reply(403))).toEqual({
         ok: false,
         reason: 'forbidden',
+      });
+    });
+  });
+
+  describe('listClassDates', () => {
+    // Tuesday 10 November 2026, 12:00 in Amsterdam: the Tuesday 18:00 date of this day still lies ahead.
+    const now = new Date('2026-11-10T11:00:00.000Z');
+    const item = (id: string, startsAt: string) => ({
+      id,
+      type: 'group',
+      status: 'scheduled',
+      startsAt,
+      endsAt: startsAt,
+      timeZone: 'Europe/Amsterdam',
+    });
+    const answers = (items: unknown[]) =>
+      vi.fn<typeof fetch>(() => Promise.resolve(Response.json({ items }, { status: 200 })));
+
+    it('AC2: asks the calendar once for this class’s dates that are not cancelled, from today on the workspace’s clock, with no last day', async () => {
+      const fetchFn = answers([]);
+
+      await listClassDates('w1', 'c1', 'Europe/Amsterdam', fetchFn, now);
+
+      expect(fetchFn.mock.calls.map(([url]) => String(url))).toEqual([
+        '/api/v1/workspaces/w1/calendar?from=2026-11-10&groupClassId=c1&includeCancelled=false',
+      ]);
+    });
+
+    it('AC2: takes “today” on the workspace’s wall clock, not the browser’s', async () => {
+      const fetchFn = answers([]);
+      // 23:30 UTC on the 10th is already the 11th in Amsterdam.
+      await listClassDates(
+        'w1',
+        'c1',
+        'Europe/Amsterdam',
+        fetchFn,
+        new Date('2026-11-10T23:30:00Z'),
+      );
+      expect(String(fetchFn.mock.calls[0]?.[0])).toContain('from=2026-11-11&');
+    });
+
+    it('AC2: lists the dates that lie ahead in the API’s order, however far ahead, and leaves out a date that has begun', async () => {
+      const result = await listClassDates(
+        'w1',
+        'c1',
+        'Europe/Amsterdam',
+        answers([
+          item('begun', '2026-11-10T10:00:00.000Z'),
+          item('tuesday', '2026-11-17T17:00:00.000Z'),
+          item('later', '2027-03-30T17:00:00.000Z'),
+        ]),
+        now,
+      );
+
+      expect(result).toEqual({
+        ok: true,
+        dates: [
+          { id: 'tuesday', startsAt: '2026-11-17T17:00:00.000Z' },
+          { id: 'later', startsAt: '2027-03-30T17:00:00.000Z' },
+        ],
+      });
+    });
+
+    it('answers "generic" when the answer is not a list of dates', async () => {
+      const bad = (body: unknown) =>
+        vi.fn<typeof fetch>(() => Promise.resolve(Response.json(body, { status: 200 })));
+      for (const body of [{}, { items: [{ id: 1 }] }, { items: [null] }]) {
+        expect(await listClassDates('w1', 'c1', 'Europe/Amsterdam', bad(body), now)).toEqual({
+          ok: false,
+          reason: 'generic',
+        });
+      }
+    });
+
+    it('answers "forbidden", "home", "generic" or "noConnection" when a window is refused or the network is down', async () => {
+      expect(await listClassDates('w1', 'c1', 'Europe/Amsterdam', reply(403), now)).toEqual({
+        ok: false,
+        reason: 'forbidden',
+      });
+      expect(await listClassDates('w1', 'c1', 'Europe/Amsterdam', reply(401), now)).toEqual({
+        ok: false,
+        reason: 'home',
+      });
+      expect(await listClassDates('w1', 'c1', 'Europe/Amsterdam', reply(500), now)).toEqual({
+        ok: false,
+        reason: 'generic',
+      });
+      const offline = vi.fn<typeof fetch>(() => Promise.reject(new TypeError('offline')));
+      expect(await listClassDates('w1', 'c1', 'Europe/Amsterdam', offline, now)).toEqual({
+        ok: false,
+        reason: 'noConnection',
       });
     });
   });

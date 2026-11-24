@@ -37,6 +37,8 @@ export interface WorkspaceCalendarRow {
   readonly trainer: { readonly id: string; readonly name: string } | null;
   readonly clients: PersonalSessionRow['clients'];
   readonly clientName: string | null;
+  /** The class of a group session (F037 lists a class's dates); `null` for any other kind. */
+  readonly groupClassId: string | null;
   /** The names of the class of a group session; `null` for any other kind. */
   readonly classNameNl: string | null;
   readonly classNameEn: string | null;
@@ -46,12 +48,14 @@ export interface WorkspaceCalendarRow {
 
 /**
  * The sessions of the scope's workspace that start from `window.from` up to, not including,
- * `window.to`, in time order, cancelled ones included (the calendar shows them struck through).
+ * `window.to` (no end when left out: the upcoming dates of one class, F037), in time order,
+ * cancelled ones included (the calendar shows them struck through). `window.groupClassId` keeps
+ * the dates of that class only.
  * Two queries: the sessions with their location, trainer, class and series, and their places.
  */
 export async function listWorkspaceCalendar(
   scope: WorkspaceScope,
-  window: { readonly from: Date; readonly to: Date },
+  window: { readonly from: Date; readonly to?: Date; readonly groupClassId?: string },
 ): Promise<WorkspaceCalendarRow[]> {
   const rows = await executorOf(scope)
     .select({
@@ -68,6 +72,7 @@ export async function listWorkspaceCalendar(
         string | null
       >`coalesce(${teamMembers.id}, ${trainerProfiles.removedTeamMemberId})`,
       trainerName: sql<string | null>`coalesce(${authUsers.name}, ${trainerProfiles.removedName})`,
+      groupClassId: sessions.groupClassId,
       classNameNl: groupClasses.nameNl,
       classNameEn: groupClasses.nameEn,
       seriesId: sessions.seriesId,
@@ -117,7 +122,8 @@ export async function listWorkspaceCalendar(
       and(
         eq(sessions.organizationId, scope.workspaceId),
         gte(sessions.startsAt, window.from),
-        lt(sessions.startsAt, window.to),
+        window.to ? lt(sessions.startsAt, window.to) : undefined,
+        window.groupClassId ? eq(sessions.groupClassId, window.groupClassId) : undefined,
       ),
     )
     .orderBy(asc(sessions.startsAt), asc(sessions.endsAt), asc(sessions.id));
@@ -136,6 +142,7 @@ export async function listWorkspaceCalendar(
     version: row.version,
     location: toLocationView(row.location),
     trainer: row.trainerId ? { id: row.trainerId, name: row.trainerName ?? '' } : null,
+    groupClassId: row.groupClassId,
     classNameNl: row.classNameNl,
     classNameEn: row.classNameEn,
     series:
