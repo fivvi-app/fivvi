@@ -38,7 +38,7 @@ fun ClassDateFlow(
     onBack: () -> Unit,
     connectivity: Connectivity,
     onCancelled: () -> Unit,
-    now: () -> Instant = Instant::now,
+    now: () -> Instant,
     copy: ((String) -> Unit)? = null,
 ) {
     val allowed by capabilities.capabilities.collectAsStateWithLifecycle()

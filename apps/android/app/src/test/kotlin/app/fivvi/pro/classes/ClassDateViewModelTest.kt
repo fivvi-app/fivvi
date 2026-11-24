@@ -10,6 +10,7 @@ import app.fivvi.pro.sessions.FakeSessionsApi
 import app.fivvi.pro.sessions.trainerOf
 import java.io.IOException
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDateTime
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +31,9 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class ClassDateViewModelTest {
     private val workspace = workspaceIdOf("John's Gym")
+
+    // Monday 16 November 2026, 08:20 in Amsterdam: a fixed clock, never the real one.
+    private val now = Instant.parse("2026-11-16T07:20:00Z")
     private val sessions = FakeSessionsApi()
     private val classes = FakeGroupClassesApi(sessions)
     private val sarah = trainerOf("Sarah")
@@ -77,6 +81,7 @@ class ClassDateViewModelTest {
             teamMemberId,
             canManage,
             added,
+            now = { now },
             onNotAllowed = { notAllowed += it.code() },
         )
 
@@ -302,6 +307,7 @@ class ClassDateViewModelTest {
             john.id,
             canManage = true,
             isOnline = isOnline,
+            now = { now },
             onCancelled = onCancelled,
             onNotAllowed = { notAllowed += it.code() },
             onCancelNotAllowed = { cancelNotAllowed += it.code() },

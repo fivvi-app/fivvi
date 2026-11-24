@@ -36,6 +36,7 @@ import app.fivvi.pro.sessions.sessionOf
 import app.fivvi.pro.sessions.trainerOf
 import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -90,12 +91,12 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
         launch()
     }
 
-    private fun launchAsJohn() {
+    private fun launchAsJohn(now: Instant? = null) {
         me.answerAccount(email = "owner@example.com", name = "John", teamMemberId = john.id)
-        launch()
+        launch(now)
     }
 
-    private fun launch() {
+    private fun launch(now: Instant? = null) {
         trainers.trainers = listOf(john, sarah, tom)
         sessions.trainers += listOf(john, sarah, tom).associateBy { it.id }
         app.launch(
@@ -107,6 +108,7 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
             sessionsApi = sessions,
             locationsApi = locations,
             groupClassesApi = classes,
+            now = now,
         )
         compose.waitUntilTagExists(HomeTags.OPEN_CLIENTS)
     }
@@ -217,6 +219,24 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
 
         compose.onNodeWithTag(ClassDateTags.MANAGE_ON_WEB).assertTextEquals(string(R.string.classes_app_manage_on_web))
         compose.onNodeWithTag(ClassDateTags.OWNER_NOTE).assertIsDisplayed()
+    }
+
+    // F037 AC8: the first item of John's ⋯ on TD-03 is *Boekingslink delen*. The menu is a popup window that does not take
+    // the test's language override, so its text is read here through the app, in both languages. The clock is fixed before
+    // the date (the form's first start is the next full hour after it), so the date is still to come.
+    @Test
+    fun test_F037_AC8_johnsMenuOnTd03StartsWithBoekingslinkDelenInTheLanguageOfTheApp() {
+        launchAsJohn(now = Instant.parse("2026-11-16T07:20:00Z"))
+        openNewClass()
+        type(NewClassTags.NAME_NL, "Mobility")
+        app.hideKeyboard(compose)
+        save()
+        compose.waitUntilTagExists(ClassDateTags.MENU)
+
+        compose.onNodeWithTag(ClassDateTags.MENU).performClick()
+        compose.waitUntilTagExists(ClassDateTags.SHARE_LINK_MENU)
+
+        compose.onNodeWithTag(ClassDateTags.SHARE_LINK_MENU).assertTextEquals(string(R.string.classes_app_share_link))
     }
 
     // AC7: Sarah's + has no Groepsles and shows the footnote.

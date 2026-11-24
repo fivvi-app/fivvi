@@ -192,7 +192,7 @@ class ClassDateViewModel(
     /** Whether the phone is online, from the network (`Connectivity`); a model made without one says online. */
     private val isOnline: () -> Boolean = { true },
     /** The time now, to tell a date to come from one that has started. */
-    private val now: () -> Instant = Instant::now,
+    private val now: () -> Instant,
     /** Puts a text on the phone's clipboard. */
     private val copy: (String) -> Unit = {},
     /** Told once the date is cancelled, so the lists that show it (Vandaag, Agenda) read again. */

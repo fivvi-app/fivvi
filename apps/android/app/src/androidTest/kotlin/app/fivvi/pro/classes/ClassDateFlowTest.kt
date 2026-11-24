@@ -23,6 +23,7 @@ import app.fivvi.pro.sessions.trainerOf
 import app.fivvi.pro.showAtLargestFontScale
 import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
+import java.time.Instant
 import java.util.UUID
 import org.junit.Rule
 import org.junit.Test
@@ -76,6 +77,7 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
                 onBack = {},
                 connectivity = FakeConnectivity(),
                 onCancelled = {},
+                now = { Instant.parse("2026-11-16T07:20:00Z") },
             )
         }
         compose.waitUntilTagExists(ClassDateTags.TITLE)

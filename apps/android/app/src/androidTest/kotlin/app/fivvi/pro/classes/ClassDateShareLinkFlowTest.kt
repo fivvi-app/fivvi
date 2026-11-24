@@ -155,8 +155,8 @@ class ClassDateShareLinkFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, priv
 
         compose.onNodeWithTag(ClassDateTags.MENU).performClick()
         compose.waitUntilTagExists(ClassDateTags.SHARE_LINK_MENU)
-        // (The menu is a popup window, which does not take the test's language override: its text is the resource of
-        // the button, which the first test reads in both languages.)
+        // (The menu is a popup window, which does not take the test's language override: its text is read through the app,
+        // in ClassFlowTest.)
         val share = compose.onNodeWithTag(ClassDateTags.SHARE_LINK_MENU).getUnclippedBoundsInRoot()
         val edit = compose.onNodeWithTag(ClassDateTags.EDIT).getUnclippedBoundsInRoot()
         assertTrue("the first item, above Les wijzigen", share.top < edit.top)
