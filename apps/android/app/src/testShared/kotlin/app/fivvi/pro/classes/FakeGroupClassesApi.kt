@@ -1,6 +1,9 @@
 package app.fivvi.pro.classes
 
 import app.fivvi.api.apis.GroupClassesApi
+import app.fivvi.api.models.CancelClassDateRequest
+import app.fivvi.api.models.CancelledClassDate
+import app.fivvi.api.models.ClassCancellationPreview
 import app.fivvi.api.models.ClassSeries
 import app.fivvi.api.models.CreateGroupClassRequest
 import app.fivvi.api.models.CreatedGroupClass
@@ -199,6 +202,18 @@ class FakeGroupClassesApi(private val sessions: FakeSessionsApi) : GroupClassesA
         getStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
         return classes[classId]?.let { Response.success(it) } ?: Response.error(404, "{}".toResponseBody(JSON))
     }
+
+    override suspend fun cancelClassDate(
+        workspaceId: UUID,
+        sessionId: UUID,
+        cancelClassDateRequest: CancelClassDateRequest,
+    ): Response<CancelledClassDate> = error("FakeGroupClassesApi.cancelClassDate is not expected in this test")
+
+    override suspend fun previewClassCancellation(
+        workspaceId: UUID,
+        sessionId: UUID,
+    ): Response<ClassCancellationPreview> =
+        error("FakeGroupClassesApi.previewClassCancellation is not expected in this test")
 
     override suspend fun getKeptClassDates(workspaceId: UUID, sessionId: UUID): Response<KeptClassDates> =
         error("FakeGroupClassesApi.getKeptClassDates is not expected in this test")

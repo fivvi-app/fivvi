@@ -366,15 +366,28 @@ export {
   weekDates,
 } from './scheduling/calendar-grid.ts';
 export {
+  CANCELLATION_MESSAGE_MAX_LENGTH,
   type CancelActor,
+  type CancelClassDateDecision,
+  type CancelClassDateRefusal,
+  type CancelClassDateRequest,
+  type CancellableClassDate,
+  type CancellablePlace,
   type CancellablePrivateSession,
   type CancellationInitiator,
+  type CancelledClassDate,
   type CancelledPlace,
   type CancelPrivateSessionDecision,
   type CancelPrivateSessionRefusal,
   type CancelRequest,
+  type CancelScope,
+  type ClassCancellationCounts,
+  type ClassCancellationPreview,
+  cancelClassDate,
   cancelPrivateSession,
+  type LaterSeriesDate,
   mayCancelPrivateSession,
+  previewClassCancellation,
 } from './scheduling/cancel.ts';
 export {
   type ExpandedSeries,

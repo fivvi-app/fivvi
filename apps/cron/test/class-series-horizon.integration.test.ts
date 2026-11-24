@@ -259,6 +259,52 @@ describe('F022 AC3: the daily task keeps a series 12 weeks ahead', () => {
     expect((await db.select().from(jobRuns))[0]?.message).toBe('extended=1, dates=0, failed=0');
   });
 
+  it('F026 AC7 (#558): no dates after the end an Owner gave the series by cancelling the rest of it, and the cancelled date stays', async () => {
+    const gym = await createWorkspace(admin.db, { label: 'johns-gym' });
+    // Cancelled "this and following" from Tuesday 3 November: the series ends on 2 November, that
+    // date stays as it is (cancelled) and the later dates were removed. The calendar was filled to 13 October.
+    const series = await addClassSeries(admin.db, {
+      workspaceId: gym.id,
+      materializedUntil: '2026-10-13',
+      endsOn: '2026-11-02',
+    });
+    for (const [date, startsAt, status] of [
+      ['2026-10-06', '2026-10-06T16:00:00Z', 'scheduled'],
+      ['2026-10-13', '2026-10-13T16:00:00Z', 'scheduled'],
+      ['2026-11-03', '2026-11-03T17:00:00Z', 'cancelled'],
+    ] as const) {
+      await addSession(admin.db, {
+        workspaceId: gym.id,
+        groupClassId: series.groupClassId,
+        participant: false,
+        type: 'group',
+        status,
+        startsAt: new Date(startsAt),
+        series: { id: series.id, occurrenceDate: date },
+      });
+    }
+    // On 13 October the task has days to fill before the end (20 and 27 October), and none after it
+    // although the horizon reaches into January.
+    const result = await cron().run();
+
+    expect(result.failed).toBe(false);
+    expect(await datesOf(series.id)).toEqual([
+      '2026-10-06',
+      '2026-10-13',
+      '2026-10-20',
+      '2026-10-27',
+      '2026-11-03',
+    ]);
+    const [cancelled] = await admin.db
+      .select({ status: sessions.status, version: sessions.version })
+      .from(sessions)
+      .where(and(eq(sessions.seriesId, series.id), eq(sessions.occurrenceDate, '2026-11-03')));
+    expect(cancelled).toEqual({ status: 'cancelled', version: 1 });
+    expect((await db.select().from(jobRuns)).map((run) => run.message)).toEqual([
+      'extended=1, dates=2, failed=0',
+    ]);
+  });
+
   it('reads "today" in the time zone of the series, not in UTC', async () => {
     const gym = await createWorkspace(admin.db, { label: 'johns-gym' });
     // Mondays 18:00 in Auckland, filled to 27 December.

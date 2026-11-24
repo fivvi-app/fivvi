@@ -4392,6 +4392,366 @@ extension Components {
                 case surface
             }
         }
+        /// The class date after it was cancelled, with how many dates and people the cancellation reached.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CancelledClassDate`.
+        public struct CancelledClassDate: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/CancelledClassDate/session`.
+            public struct SessionPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/CancelledClassDate/session/value1`.
+                public var value1: Components.Schemas.Session
+                /// The class date that was chosen, as it is now: `cancelled`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/CancelledClassDate/session/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SessionPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The class date that was chosen, as it is now: `cancelled`.
+                public init(
+                    value1: Components.Schemas.Session,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/CancelledClassDate/session`.
+            public var session: Components.Schemas.CancelledClassDate.SessionPayload
+            /// How many dates became *Geannuleerd*, the chosen one included: 1 for `this`; for `following` also the later dates with participants or changes of their own.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelledClassDate/datesCancelled`.
+            public var datesCancelled: Swift.Int
+            /// How many later dates of the series were removed from the calendar: those with no participant, no change of their own and nothing pointing at them (`following` only).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelledClassDate/datesRemoved`.
+            public var datesRemoved: Swift.Int
+            /// How many different people get the cancellation email (EM-05): the participants whose place was cancelled on a date that has not started, else 0. It is sent after the answer is decided, each in their own language; a failure is reported to error tracking and does not undo the cancellation.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelledClassDate/participantsNotified`.
+            public var participantsNotified: Swift.Int
+            /// The last day of the series after `following` (*de reeks stopt*): `YYYY-MM-DD`, the day before the chosen date (for the first date of a series, its own day). Left out for `this`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelledClassDate/seriesEndsOn`.
+            public var seriesEndsOn: Swift.String?
+            /// Creates a new `CancelledClassDate`.
+            ///
+            /// - Parameters:
+            ///   - session:
+            ///   - datesCancelled: How many dates became *Geannuleerd*, the chosen one included: 1 for `this`; for `following` also the later dates with participants or changes of their own.
+            ///   - datesRemoved: How many later dates of the series were removed from the calendar: those with no participant, no change of their own and nothing pointing at them (`following` only).
+            ///   - participantsNotified: How many different people get the cancellation email (EM-05): the participants whose place was cancelled on a date that has not started, else 0. It is sent after the answer is decided, each in their own language; a failure is reported to error tracking and does not undo the cancellation.
+            ///   - seriesEndsOn: The last day of the series after `following` (*de reeks stopt*): `YYYY-MM-DD`, the day before the chosen date (for the first date of a series, its own day). Left out for `this`.
+            public init(
+                session: Components.Schemas.CancelledClassDate.SessionPayload,
+                datesCancelled: Swift.Int,
+                datesRemoved: Swift.Int,
+                participantsNotified: Swift.Int,
+                seriesEndsOn: Swift.String? = nil
+            ) {
+                self.session = session
+                self.datesCancelled = datesCancelled
+                self.datesRemoved = datesRemoved
+                self.participantsNotified = participantsNotified
+                self.seriesEndsOn = seriesEndsOn
+            }
+            public enum CodingKeys: String, CodingKey {
+                case session
+                case datesCancelled
+                case datesRemoved
+                case participantsNotified
+                case seriesEndsOn
+            }
+        }
+        /// Why the cancellation of a class date was refused; nothing was stored. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CancelClassDateRefusal`.
+        public struct CancelClassDateRefusal: Codable, Hashable, Sendable {
+            /// `session_changed`: someone changed the date after the `version` sent; `session_cancelled`: the date was cancelled already (a second cancel) and stays as it is.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRefusal/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case sessionChanged = "session_changed"
+                case sessionCancelled = "session_cancelled"
+            }
+            /// `session_changed`: someone changed the date after the `version` sent; `session_cancelled`: the date was cancelled already (a second cancel) and stays as it is.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRefusal/code`.
+            public var code: Components.Schemas.CancelClassDateRefusal.CodePayload
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRefusal/session`.
+            public struct SessionPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/CancelClassDateRefusal/session/value1`.
+                public var value1: Components.Schemas.Session
+                /// The class date as it is now.
+                ///
+                /// - Remark: Generated from `#/components/schemas/CancelClassDateRefusal/session/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SessionPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The class date as it is now.
+                public init(
+                    value1: Components.Schemas.Session,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRefusal/session`.
+            public var session: Components.Schemas.CancelClassDateRefusal.SessionPayload
+            /// Who changed the date last, for `session_changed`; left out when that person has been removed, has no name, or for a date nobody changed since it was planned.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRefusal/changedBy`.
+            public struct ChangedByPayload: Codable, Hashable, Sendable {
+                /// The account’s name.
+                ///
+                /// - Remark: Generated from `#/components/schemas/CancelClassDateRefusal/changedBy/name`.
+                public var name: Swift.String
+                /// Creates a new `ChangedByPayload`.
+                ///
+                /// - Parameters:
+                ///   - name: The account’s name.
+                public init(name: Swift.String) {
+                    self.name = name
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case name
+                }
+            }
+            /// Who changed the date last, for `session_changed`; left out when that person has been removed, has no name, or for a date nobody changed since it was planned.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRefusal/changedBy`.
+            public var changedBy: Components.Schemas.CancelClassDateRefusal.ChangedByPayload?
+            /// Creates a new `CancelClassDateRefusal`.
+            ///
+            /// - Parameters:
+            ///   - code: `session_changed`: someone changed the date after the `version` sent; `session_cancelled`: the date was cancelled already (a second cancel) and stays as it is.
+            ///   - session:
+            ///   - changedBy: Who changed the date last, for `session_changed`; left out when that person has been removed, has no name, or for a date nobody changed since it was planned.
+            public init(
+                code: Components.Schemas.CancelClassDateRefusal.CodePayload,
+                session: Components.Schemas.CancelClassDateRefusal.SessionPayload,
+                changedBy: Components.Schemas.CancelClassDateRefusal.ChangedByPayload? = nil
+            ) {
+                self.code = code
+                self.session = session
+                self.changedBy = changedBy
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case session
+                case changedBy
+            }
+        }
+        /// How much of a series to cancel, with an optional message for the participants, and the version seen.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CancelClassDateRequest`.
+        public struct CancelClassDateRequest: Codable, Hashable, Sendable {
+            /// `this`: only this class date (*Alleen deze les*); `following`: this date and every later date of its series, after which the series stops (*Deze en alle volgende lessen*, only for a date in a series: `400` on `scope` with the code `not_in_series` otherwise). With `following` the later dates with participants or changes of their own are cancelled, the others (only a projection of the rule) are removed, and the series ends the day before this date; the daily task adds no date after it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRequest/scope`.
+            @frozen public enum ScopePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case this = "this"
+                case following = "following"
+            }
+            /// `this`: only this class date (*Alleen deze les*); `following`: this date and every later date of its series, after which the series stops (*Deze en alle volgende lessen*, only for a date in a series: `400` on `scope` with the code `not_in_series` otherwise). With `following` the later dates with participants or changes of their own are cancelled, the others (only a projection of the rule) are removed, and the series ends the day before this date; the daily task adds no date after it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRequest/scope`.
+            public var scope: Components.Schemas.CancelClassDateRequest.ScopePayload
+            /// Optional text for the participants, at most 500 characters, sent in the email and kept as typed (escaped, never translated). It is ignored for a date that has started, which is recorded without emails. A blank text is no message.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRequest/message`.
+            public var message: Swift.String?
+            /// The `version` of the class date the Owner saw. If it has been changed since, nothing is stored and the answer is `409` with the date as it is now.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRequest/version`.
+            public var version: Swift.Int
+            /// The app that sends the request: `ios` or `android`; the `source` of the cancellation in the status history and the platform of the `class_cancelled` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`; the `source` of the cancellation in the status history and the platform of the `class_cancelled` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CancelClassDateRequest/surface`.
+            public var surface: Components.Schemas.CancelClassDateRequest.SurfacePayload?
+            /// Creates a new `CancelClassDateRequest`.
+            ///
+            /// - Parameters:
+            ///   - scope: `this`: only this class date (*Alleen deze les*); `following`: this date and every later date of its series, after which the series stops (*Deze en alle volgende lessen*, only for a date in a series: `400` on `scope` with the code `not_in_series` otherwise). With `following` the later dates with participants or changes of their own are cancelled, the others (only a projection of the rule) are removed, and the series ends the day before this date; the daily task adds no date after it.
+            ///   - message: Optional text for the participants, at most 500 characters, sent in the email and kept as typed (escaped, never translated). It is ignored for a date that has started, which is recorded without emails. A blank text is no message.
+            ///   - version: The `version` of the class date the Owner saw. If it has been changed since, nothing is stored and the answer is `409` with the date as it is now.
+            ///   - surface: The app that sends the request: `ios` or `android`; the `source` of the cancellation in the status history and the platform of the `class_cancelled` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+            public init(
+                scope: Components.Schemas.CancelClassDateRequest.ScopePayload,
+                message: Swift.String? = nil,
+                version: Swift.Int,
+                surface: Components.Schemas.CancelClassDateRequest.SurfacePayload? = nil
+            ) {
+                self.scope = scope
+                self.message = message
+                self.version = version
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case scope
+                case message
+                case version
+                case surface
+            }
+        }
+        /// What cancelling a class date would do, for CO-03: how many people get the email and which dates are cancelled or removed, for each scope. It stores and sends nothing.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ClassCancellationPreview`.
+        public struct ClassCancellationPreview: Codable, Hashable, Sendable {
+            /// The class date the preview is for.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationPreview/sessionId`.
+            public var sessionId: Swift.String
+            /// The date has started or passed: cancelling it is recorded for the record, without emails and without the message field (CO-03).
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationPreview/started`.
+            public var started: Swift.Bool
+            /// The date is in a series, so *Deze en alle volgende lessen* is offered.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationPreview/inSeries`.
+            public var inSeries: Swift.Bool
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationPreview/thisDate`.
+            public var thisDate: Components.Schemas.ClassCancellationCounts
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationPreview/following`.
+            public struct FollowingPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/ClassCancellationPreview/following/value1`.
+                public var value1: Components.Schemas.ClassCancellationCounts
+                /// What `scope: following` reaches; left out for a date that is in no series.
+                ///
+                /// - Remark: Generated from `#/components/schemas/ClassCancellationPreview/following/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `FollowingPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: What `scope: following` reaches; left out for a date that is in no series.
+                public init(
+                    value1: Components.Schemas.ClassCancellationCounts,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationPreview/following`.
+            public var following: Components.Schemas.ClassCancellationPreview.FollowingPayload?
+            /// Creates a new `ClassCancellationPreview`.
+            ///
+            /// - Parameters:
+            ///   - sessionId: The class date the preview is for.
+            ///   - started: The date has started or passed: cancelling it is recorded for the record, without emails and without the message field (CO-03).
+            ///   - inSeries: The date is in a series, so *Deze en alle volgende lessen* is offered.
+            ///   - thisDate:
+            ///   - following:
+            public init(
+                sessionId: Swift.String,
+                started: Swift.Bool,
+                inSeries: Swift.Bool,
+                thisDate: Components.Schemas.ClassCancellationCounts,
+                following: Components.Schemas.ClassCancellationPreview.FollowingPayload? = nil
+            ) {
+                self.sessionId = sessionId
+                self.started = started
+                self.inSeries = inSeries
+                self.thisDate = thisDate
+                self.following = following
+            }
+            public enum CodingKeys: String, CodingKey {
+                case sessionId
+                case started
+                case inSeries
+                case thisDate
+                case following
+            }
+        }
+        /// What `scope: this` reaches.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ClassCancellationCounts`.
+        public struct ClassCancellationCounts: Codable, Hashable, Sendable {
+            /// Dates that become *Geannuleerd*, the chosen one included.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationCounts/datesCancelled`.
+            public var datesCancelled: Swift.Int
+            /// Later dates removed from the calendar.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationCounts/datesRemoved`.
+            public var datesRemoved: Swift.Int
+            /// Dates on which somebody gets an email: the “{classes}” of CO-03.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationCounts/datesWithEmails`.
+            public var datesWithEmails: Swift.Int
+            /// Different people who get at least one email: the “{n} deelnemers” of CO-03; 0 for a date that has started or has no participants.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationCounts/participants`.
+            public var participants: Swift.Int
+            /// Emails in all: one for each place that is cancelled on a date that has not started (more than `participants` when someone is booked on several dates).
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassCancellationCounts/emails`.
+            public var emails: Swift.Int
+            /// Creates a new `ClassCancellationCounts`.
+            ///
+            /// - Parameters:
+            ///   - datesCancelled: Dates that become *Geannuleerd*, the chosen one included.
+            ///   - datesRemoved: Later dates removed from the calendar.
+            ///   - datesWithEmails: Dates on which somebody gets an email: the “{classes}” of CO-03.
+            ///   - participants: Different people who get at least one email: the “{n} deelnemers” of CO-03; 0 for a date that has started or has no participants.
+            ///   - emails: Emails in all: one for each place that is cancelled on a date that has not started (more than `participants` when someone is booked on several dates).
+            public init(
+                datesCancelled: Swift.Int,
+                datesRemoved: Swift.Int,
+                datesWithEmails: Swift.Int,
+                participants: Swift.Int,
+                emails: Swift.Int
+            ) {
+                self.datesCancelled = datesCancelled
+                self.datesRemoved = datesRemoved
+                self.datesWithEmails = datesWithEmails
+                self.participants = participants
+                self.emails = emails
+            }
+            public enum CodingKeys: String, CodingKey {
+                case datesCancelled
+                case datesRemoved
+                case datesWithEmails
+                case participants
+                case emails
+            }
+        }
         /// The sessions of a workspace for a range of days: the Agenda’s week, day and list.
         ///
         /// - Remark: Generated from `#/components/schemas/WorkspaceCalendar`.

@@ -189,6 +189,7 @@ describe('@permission F004 roles on every workspace route', () => {
     );
     expect(ownerRoutes.map(({ name }) => name).sort()).toEqual([
       'assignTrainer',
+      'cancelClassDate',
       'changeTeamMemberRole',
       'createGroupClass',
       'createOffer',
@@ -209,6 +210,7 @@ describe('@permission F004 roles on every workspace route', () => {
       'listTrainerCandidates',
       'listTrainerInvitations',
       'lookupAddress',
+      'previewClassCancellation',
       'putClientBillingDetails',
       'putInvoiceDetails',
       'putMyBillingDetails',
@@ -351,6 +353,7 @@ describe('@permission F004 roles on every workspace route', () => {
                   'getSession',
                   'getGroupClass',
                   'getKeptClassDates',
+                  'previewClassCancellation',
                   'listTrainerCandidates',
                   'listSessionParticipants',
                   'getOffer',

@@ -72,7 +72,9 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * calendar (F014, spec #458): 21 to 27 September 2026 in a fourth workspace, "Pilot Gym", with
  * 15 class dates and 30 private sessions (`seed-pilot-week.ts`), whose class dates get 3 to 8
  * participants each, with attendance taken on the dates that are over (F025 AC17,
- * `seed-attendance.ts`). Rows that
+ * `seed-attendance.ts`). And two cancellations in John's Gym's synthetic week (F026 AC16): the
+ * private session on Friday that the client called off, and "Kracht" on Thursday 18:00, a class date
+ * the workspace cancelled. Rows that
  * every environment needs, like the `hello` greeting, are data migrations instead
  * (`src/system-data.ts`).
  */
@@ -255,6 +257,16 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     workspaceId: gym,
     plannedBy: johnInGym.id,
     now: options.now ?? new Date(),
+  });
+  // F026 AC16: one class date of that week cancelled by the workspace, with a place and its history.
+  const [gymZone] = await db
+    .select({ timeZone: organizations.timeZone })
+    .from(organizations)
+    .where(eq(organizations.id, gym));
+  await seedCancelledClassDate(db, {
+    workspaceId: gym,
+    ownerTeamMemberId: johnInGym.id,
+    monday: mondayOf(options.now ?? new Date(), gymZone?.timeZone ?? 'Europe/Amsterdam'),
   });
   await seedPersonalCalendar(db, { gym, personalTraining });
   // The pilot-shaped week of the workspace calendar (F014), in a workspace of its own so that
@@ -879,6 +891,47 @@ async function seedPrivateSessions(
       });
     }
   }
+}
+
+/**
+ * Cancels one class date of the seeded week as the Owner would (F026 AC16, ticket #558): "Kracht" on
+ * the Thursday of the week `now` falls in, 18:00, cancelled by the workspace three days before. A
+ * class date of John's Gym has no participants in M4 (bookings come with M5), so there is no place
+ * to cancel and no message was sent. It is done once: a date that is cancelled already, or is not
+ * there, is left alone, and the next week gets its own.
+ */
+async function seedCancelledClassDate(
+  db: DatabaseExecutor,
+  {
+    workspaceId,
+    ownerTeamMemberId,
+    monday,
+  }: { workspaceId: string; ownerTeamMemberId: string; monday: string },
+): Promise<void> {
+  const [date] = await db
+    .select({ id: sessions.id, status: sessions.status, startsAt: sessions.startsAt })
+    .from(sessions)
+    .innerJoin(groupClasses, eq(groupClasses.id, sessions.groupClassId))
+    .where(
+      and(
+        eq(sessions.organizationId, workspaceId),
+        eq(sessions.type, 'group'),
+        eq(groupClasses.nameNl, 'Kracht'),
+        eq(sessions.occurrenceDate, addDaysTo(monday, 3)),
+      ),
+    );
+  if (!date || date.status === 'cancelled') return;
+  await db
+    .update(sessions)
+    .set({
+      status: 'cancelled',
+      version: sql`${sessions.version} + 1`,
+      cancelledAt: new Date(date.startsAt.getTime() - 3 * 86_400_000),
+      cancelledByTeamMemberId: ownerTeamMemberId,
+      cancellationInitiator: 'workspace',
+      updatedByTeamMemberId: ownerTeamMemberId,
+    })
+    .where(eq(sessions.id, date.id));
 }
 
 /** The synthetic clients of John's Gym (F006 AC15): `@example.com` addresses, every one with an email. */

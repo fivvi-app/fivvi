@@ -808,6 +808,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel-class": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a class date or the rest of its series
+         * @description Cancels a class date (CO-03, the Owner only; a Trainer gets `403`): the date becomes `cancelled` and stays, each participant’s place becomes `cancelled` (one line of the status history each, with the Owner as actor and `workspace` as the initiator), and the time (UTC), the Owner and the message are stored. With `scope: following` the later dates of the series with participants or changes of their own are cancelled the same way, the later dates with neither are removed, and the series ends the day before this date. EM-05 goes to each participant whose place was cancelled on a date that has not started, after the cancellation is committed, in their email language, else the workspace’s default, with the message as typed, and never names another participant; a date that has started is recorded without an email. A cancelled date answers `409` with the code `session_cancelled` (a second cancel too, whatever the version; the state is told before the version); a `version` that is not the date’s answers `409` with `session_changed` and the date as it is now. A session that is not a class date of the workspace (a private session too) answers `404`. There is no undo.
+         */
+        post: operations["cancelClassDate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What cancelling a class date would do
+         * @description Before the Owner confirms *Les annuleren* (CO-03), says for each scope how many people get the cancellation email and which dates are cancelled or removed, without storing or sending anything (the Owner only; a Trainer gets `403`). `started` says the date has started or passed: it is then recorded for the record, with no emails and no message. A cancelled date answers `409` with the code `session_cancelled`. A session that is not a class date of the workspace (a private session too) answers `404`.
+         */
+        get: operations["previewClassCancellation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/calendar": {
         parameters: {
             query?: never;
@@ -2463,6 +2503,76 @@ export interface components {
              * @enum {string}
              */
             surface?: "ios" | "android";
+        };
+        /** @description The class date after it was cancelled, with how many dates and people the cancellation reached. */
+        CancelledClassDate: {
+            session: components["schemas"]["Session"] & unknown;
+            /** @description How many dates became *Geannuleerd*, the chosen one included: 1 for `this`; for `following` also the later dates with participants or changes of their own. */
+            datesCancelled: number;
+            /** @description How many later dates of the series were removed from the calendar: those with no participant, no change of their own and nothing pointing at them (`following` only). */
+            datesRemoved: number;
+            /** @description How many different people get the cancellation email (EM-05): the participants whose place was cancelled on a date that has not started, else 0. It is sent after the answer is decided, each in their own language; a failure is reported to error tracking and does not undo the cancellation. */
+            participantsNotified: number;
+            /** @description The last day of the series after `following` (*de reeks stopt*): `YYYY-MM-DD`, the day before the chosen date (for the first date of a series, its own day). Left out for `this`. */
+            seriesEndsOn?: string;
+        };
+        /** @description Why the cancellation of a class date was refused; nothing was stored. Contains no user-facing text. */
+        CancelClassDateRefusal: {
+            /**
+             * @description `session_changed`: someone changed the date after the `version` sent; `session_cancelled`: the date was cancelled already (a second cancel) and stays as it is.
+             * @enum {string}
+             */
+            code: "session_changed" | "session_cancelled";
+            session: components["schemas"]["Session"] & unknown;
+            /** @description Who changed the date last, for `session_changed`; left out when that person has been removed, has no name, or for a date nobody changed since it was planned. */
+            changedBy?: {
+                /** @description The account’s name. */
+                name: string;
+            };
+        };
+        /** @description How much of a series to cancel, with an optional message for the participants, and the version seen. */
+        CancelClassDateRequest: {
+            /**
+             * @description `this`: only this class date (*Alleen deze les*); `following`: this date and every later date of its series, after which the series stops (*Deze en alle volgende lessen*, only for a date in a series: `400` on `scope` with the code `not_in_series` otherwise). With `following` the later dates with participants or changes of their own are cancelled, the others (only a projection of the rule) are removed, and the series ends the day before this date; the daily task adds no date after it.
+             * @enum {string}
+             */
+            scope: "this" | "following";
+            /** @description Optional text for the participants, at most 500 characters, sent in the email and kept as typed (escaped, never translated). It is ignored for a date that has started, which is recorded without emails. A blank text is no message. */
+            message?: string;
+            /** @description The `version` of the class date the Owner saw. If it has been changed since, nothing is stored and the answer is `409` with the date as it is now. */
+            version: number;
+            /**
+             * @description The app that sends the request: `ios` or `android`; the `source` of the cancellation in the status history and the platform of the `class_cancelled` event. A request with a bearer token must send it (`400` on `surface` with the code `required` otherwise); the web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description What cancelling a class date would do, for CO-03: how many people get the email and which dates are cancelled or removed, for each scope. It stores and sends nothing. */
+        ClassCancellationPreview: {
+            /**
+             * Format: uuid
+             * @description The class date the preview is for.
+             */
+            sessionId: string;
+            /** @description The date has started or passed: cancelling it is recorded for the record, without emails and without the message field (CO-03). */
+            started: boolean;
+            /** @description The date is in a series, so *Deze en alle volgende lessen* is offered. */
+            inSeries: boolean;
+            thisDate: components["schemas"]["ClassCancellationCounts"];
+            following?: components["schemas"]["ClassCancellationCounts"] & unknown;
+        };
+        /** @description What `scope: this` reaches. */
+        ClassCancellationCounts: {
+            /** @description Dates that become *Geannuleerd*, the chosen one included. */
+            datesCancelled: number;
+            /** @description Later dates removed from the calendar. */
+            datesRemoved: number;
+            /** @description Dates on which somebody gets an email: the “{classes}” of CO-03. */
+            datesWithEmails: number;
+            /** @description Different people who get at least one email: the “{n} deelnemers” of CO-03; 0 for a date that has started or has no participants. */
+            participants: number;
+            /** @description Emails in all: one for each place that is cancelled on a date that has not started (more than `participants` when someone is booked on several dates). */
+            emails: number;
         };
         /** @description The sessions of a workspace for a range of days: the Agenda’s week, day and list. */
         WorkspaceCalendar: {
@@ -6366,6 +6476,168 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CancelPrivateSessionRefusal"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    cancelClassDate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The session ID. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelClassDateRequest"];
+            };
+        };
+        responses: {
+            /** @description The class date was cancelled. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelledClassDate"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The date was cancelled already (`session_cancelled`), or changed after the `version` sent (`session_changed`). Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelClassDateRefusal"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    previewClassCancellation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The session ID. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What cancelling the date reaches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassCancellationPreview"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The date was cancelled already (`session_cancelled`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelClassDateRefusal"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

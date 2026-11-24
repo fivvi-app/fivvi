@@ -82,7 +82,13 @@ export {
   listBookingLinks,
   type NewBookingLink,
 } from './repositories/booking-links.ts';
-export { cancelSession, type SessionCancellation } from './repositories/cancellations.ts';
+export {
+  cancelSession,
+  type LaterSeriesDateView,
+  listLaterSeriesDates,
+  removeSeriesDates,
+  type SessionCancellation,
+} from './repositories/cancellations.ts';
 export {
   type ClassSeriesChanges,
   type ClassSeriesView,
@@ -93,6 +99,7 @@ export {
   listActiveClassSeries,
   listActiveSeriesOfTrainer,
   listSeriesDates,
+  lockClassSeriesOfWorkspace,
   moveDatesToSeries,
   type NewClassSeries,
   type NewSeriesDate,

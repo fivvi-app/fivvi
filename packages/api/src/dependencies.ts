@@ -5,6 +5,7 @@ import type {
   TenantScopes,
 } from '@fivvi/database';
 import type { SignUpAllowlist } from '@fivvi/domain';
+import type { ClassCancelledMail } from '@fivvi/email/class-cancelled-mail';
 import type { DemoRequestMail } from '@fivvi/email/demo-request-mail';
 import type { PrivateSessionMail } from '@fivvi/email/private-session-mail';
 import type { TrainerChangeMail } from '@fivvi/email/trainer-change-mail';
@@ -130,6 +131,14 @@ export interface ApiDependencies {
    */
   sendPrivateSession(mail: PrivateSessionMail): Promise<void>;
   /**
+   * Emails the class variant of EM-05 to a participant of a class date that is cancelled (F026): the
+   * template and the sending are the email package's (`createClassCancelledSender`, wired by
+   * apps/web); the route decides whether, to whom, in which language, with which message and with
+   * which key. It runs after the request's transaction has committed; a failed send is reported and
+   * does not fail the request (the date is cancelled).
+   */
+  sendClassCancelled(mail: ClassCancelledMail): Promise<void>;
+  /**
    * Emails EM-13 to a client whose private session or class dates got another trainer (F023): the
    * template and the sending are the email package's (`createTrainerChangeSender`, wired by
    * apps/web); the route decides whether, to whom, in which language, which dates and with which
@@ -178,6 +187,7 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   // Nothing is sent.
   sendTrainerInvitation: () => Promise.reject(new Error('No email configured.')),
   sendPrivateSession: () => Promise.reject(new Error('No email configured.')),
+  sendClassCancelled: () => Promise.reject(new Error('No email configured.')),
   sendTrainerChange: () => Promise.reject(new Error('No email configured.')),
   sendDemoRequest: () => Promise.reject(new Error('No email configured.')),
   clock: { now: () => new Date() },

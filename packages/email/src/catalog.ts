@@ -1,11 +1,11 @@
 import type { EmailMessageKey, EmailTemplate } from './render.tsx';
+import { cancellationEmail } from './templates/cancellation.tsx';
 import { demoRequestEmail } from './templates/demo-request.tsx';
 import { emailChangeCodeEmail } from './templates/email-change-code.tsx';
 import { emailChangeTakenNoticeEmail } from './templates/email-change-taken-notice.tsx';
 import { emailChangedNoticeEmail } from './templates/email-changed-notice.tsx';
 import { helloEmail } from './templates/hello.tsx';
 import { privateSessionEmail } from './templates/private-session.tsx';
-import { privateSessionCancelledEmail } from './templates/private-session-cancelled.tsx';
 import { privateSessionMovedEmail } from './templates/private-session-moved.tsx';
 import { signInEmail } from './templates/sign-in.tsx';
 import { trainerChangeEmail } from './templates/trainer-change.tsx';
@@ -127,9 +127,9 @@ export const catalog: readonly CatalogEntry[] = [
     status: 'active',
     audience: 'client',
     owner: ['F026'],
-    subjectKeys: ['email.privateSessionCancelled.subject'],
-    template: register(privateSessionCancelledEmail),
-    note: 'A class date or a private session is cancelled. The private-session variant exists (F026); the class variant (CO-03) adds its subject key and template with its own ticket.',
+    subjectKeys: ['email.cancellation.subject', 'email.privateSessionCancelled.subject'],
+    template: register(cancellationEmail),
+    note: 'A class date (CO-03) or a private session is cancelled (F026): one template with a class variant and a private-session variant.',
   },
   {
     id: 'EM-06',

@@ -16,6 +16,7 @@ import {
   pingDatabase,
 } from '@fivvi/database';
 import {
+  createClassCancelledSender,
   createDemoRequestSender,
   createPrivateSessionSender,
   createTrainerChangeSender,
@@ -96,6 +97,18 @@ function sendPrivateSession(...[mail]: Parameters<ReturnType<typeof createPrivat
   return privateSessionSender(mail);
 }
 
+let classCancelledSender: ReturnType<typeof createClassCancelledSender> | undefined;
+
+/**
+ * EM-05, the class variant: the notice that a class date is cancelled (F026), sent through the
+ * provider of the environment (Lettermint or the log for `@example.com` outside production). Created
+ * on first use, so `next build` runs without the email settings.
+ */
+function sendClassCancelled(...[mail]: Parameters<ReturnType<typeof createClassCancelledSender>>) {
+  classCancelledSender ??= createClassCancelledSender({ sendEmail: sendEmail() });
+  return classCancelledSender(mail);
+}
+
 let trainerChangeSender: ReturnType<typeof createTrainerChangeSender> | undefined;
 
 /**
@@ -143,6 +156,8 @@ export const apiHandler = createApiHandler({
   sendTrainerInvitation,
   // Emails the confirmation of a private session (F020), after the session is committed.
   sendPrivateSession,
+  // Emails the notice that a class date is cancelled to its participants (F026), after it is committed.
+  sendClassCancelled,
   // Emails the notice of a new trainer to the clients (F023), after the change is committed.
   sendTrainerChange,
   // Emails the website's demo requests to Fivvi's support address (F064).

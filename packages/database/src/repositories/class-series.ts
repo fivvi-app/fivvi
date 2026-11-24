@@ -127,6 +127,23 @@ export async function findClassSeries(
 }
 
 /**
+ * Reads a series of the scope's workspace and locks its row until the end of the transaction, so
+ * the daily task that fills the calendar (F022, E012: it takes the same lock) and an Owner who
+ * stops the series (F026) wait for each other. `undefined` when the workspace has no such series.
+ */
+export async function lockClassSeriesOfWorkspace(
+  scope: WorkspaceScope,
+  seriesId: string,
+): Promise<ClassSeriesView | undefined> {
+  const [locked] = await executorOf(scope)
+    .select({ id: classSeries.id })
+    .from(classSeries)
+    .where(and(eq(classSeries.organizationId, scope.workspaceId), eq(classSeries.id, seriesId)))
+    .for('update');
+  return locked ? findClassSeries(scope, locked.id) : undefined;
+}
+
+/**
  * The series of a class that still has dates to come or running: no end, or an end on or after
  * `today` (a local date). In the order they start.
  */

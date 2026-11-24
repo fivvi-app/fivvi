@@ -6,6 +6,7 @@ import { createSendEmail } from './send.ts';
 import { dutch, english } from './test-languages.ts';
 
 const mail = {
+  kind: 'planned' as const,
   to: { email: 'anna@example.com', name: 'Anna de Vries' },
   locale: dutch,
   workspaceName: "John's Gym",
@@ -113,6 +114,7 @@ describe('F020 EM-11 sender', () => {
       ...mail,
       startsAt: new Date('2026-09-25T08:00:00Z'),
       endsAt: new Date('2026-09-25T09:00:00Z'),
+      kind: 'moved' as const,
       previous: { startsAt: mail.startsAt, endsAt: mail.endsAt },
     };
 
@@ -150,7 +152,7 @@ describe('F020 EM-11 sender', () => {
   });
 
   describe('EM-05, when the mail says the session is cancelled (F026)', () => {
-    const cancelled = { ...mail, cancelled: true as const, event: 'session-1:2:client-1' };
+    const cancelled = { ...mail, kind: 'cancelled' as const, event: 'session-1:2:client-1' };
 
     it('AC12: sends EM-05 in the given language with the idempotency key of EM-05 and the event', async () => {
       const { transport, send } = setup();
@@ -161,7 +163,7 @@ describe('F020 EM-11 sender', () => {
       expect(transport.sent[0]).toMatchObject({
         to: { email: 'anna@example.com', name: 'Anna de Vries' },
         locale: 'nl-NL',
-        template: 'private-session-cancelled',
+        template: 'cancellation',
         subject: 'Je sessie op donderdag 24 september om 09:00 is geannuleerd',
         idempotencyKey: emailIdempotencyKey('EM-05', cancelled.event),
       });
@@ -184,7 +186,8 @@ describe('F020 EM-11 sender', () => {
     it('names no other client of a duo', async () => {
       const { transport, send } = setup();
 
-      await send({ ...cancelled, togetherWith: 'Mark' });
+      // The type has no `togetherWith` for a cancellation; the sender ignores one that is passed anyway.
+      await send({ ...cancelled, togetherWith: 'Mark' } as typeof cancelled);
 
       expect(transport.sent[0]?.text).not.toContain('Mark');
     });

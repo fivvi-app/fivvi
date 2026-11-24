@@ -92,7 +92,7 @@ describe('F049 AC1: the email catalog', () => {
       return entry?.status === 'active' ? entry.template.id : undefined;
     };
     expect(templateOf('EM-04')).toBe('private-session-moved');
-    expect(templateOf('EM-05')).toBe('private-session-cancelled');
+    expect(templateOf('EM-05')).toBe('cancellation');
     expect(templateOf('EM-08')).toBe('sign-in');
     expect(templateOf('EM-09')).toBe('trainer-invitation');
     expect(templateOf('EM-11')).toBe('private-session');

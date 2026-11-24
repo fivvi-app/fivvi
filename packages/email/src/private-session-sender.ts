@@ -1,7 +1,7 @@
 import type { PrivateSessionMail } from './private-session-mail.ts';
 import type { SendEmail } from './send.ts';
+import { cancellationEmail } from './templates/cancellation.tsx';
 import { privateSessionEmail } from './templates/private-session.tsx';
-import { privateSessionCancelledEmail } from './templates/private-session-cancelled.tsx';
 import { privateSessionMovedEmail } from './templates/private-session-moved.tsx';
 
 export interface PrivateSessionSenderOptions {
@@ -30,7 +30,6 @@ export function createPrivateSessionSender({
         : null,
       trainerName: mail.trainerName,
       trainerWord: mail.trainerWord,
-      togetherWith: mail.togetherWith ?? null,
     };
     const delivery = {
       to: mail.to,
@@ -38,24 +37,33 @@ export function createPrivateSessionSender({
       timeZone: mail.timeZone,
       event: mail.event,
     };
-    if (mail.cancelled) {
-      // A cancellation names no other client: `togetherWith` is not passed on.
-      const { togetherWith: _togetherWith, ...cancelled } = common;
-      await sendEmail({ template: privateSessionCancelledEmail, props: cancelled, ...delivery });
-      return;
+    switch (mail.kind) {
+      case 'cancelled':
+        // A cancellation names no other client, and no class: it is the private-session variant.
+        await sendEmail({
+          template: cancellationEmail,
+          props: { ...common, kind: 'private', className: null, classNameEn: null, message: null },
+          ...delivery,
+        });
+        return;
+      case 'moved':
+        await sendEmail({
+          template: privateSessionMovedEmail,
+          props: {
+            ...common,
+            previousStartsAt: mail.previous.startsAt,
+            previousEndsAt: mail.previous.endsAt,
+          },
+          ...delivery,
+        });
+        return;
+      case 'planned':
+        await sendEmail({
+          template: privateSessionEmail,
+          props: { ...common, togetherWith: mail.togetherWith ?? null },
+          ...delivery,
+        });
+        return;
     }
-    if (mail.previous) {
-      await sendEmail({
-        template: privateSessionMovedEmail,
-        props: {
-          ...common,
-          previousStartsAt: mail.previous.startsAt,
-          previousEndsAt: mail.previous.endsAt,
-        },
-        ...delivery,
-      });
-      return;
-    }
-    await sendEmail({ template: privateSessionEmail, props: common, ...delivery });
   };
 }

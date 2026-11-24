@@ -11,9 +11,11 @@ import {
   type DatabaseExecutor,
   findSession,
   findTrainer,
+  listLaterSeriesDates,
   listParticipantStatusChanges,
   listUpcomingSessionsOfClient,
   locations,
+  removeSeriesDates,
   rescheduleSession,
   sessionParticipants,
   sessions,
@@ -22,8 +24,11 @@ import {
   type WorkspaceScope,
 } from '../src/index.ts';
 import {
+  addBookingLink,
+  addClassSeries,
   addClient,
   addGroupClass,
+  addParticipants,
   addSession,
   addTeamRole,
   createAccount,
@@ -838,6 +843,139 @@ describe('F020 sessions and session participants tables', () => {
         cancelledByTeamMemberId: null,
         cancellationInitiator: 'client',
       });
+    });
+
+    // The rest of a series (ticket #558): Kracht, Tuesdays 18:00 from 6 October 2026.
+    async function krachtSeries() {
+      const { gym, john, anna } = await gymWithJohnAndSarah();
+      const series = await addClassSeries(admin.db, { workspaceId: gym.id });
+      const date = (occurrenceDate: string, extra: Record<string, unknown> = {}) =>
+        addSession(admin.db, {
+          workspaceId: gym.id,
+          type: 'group',
+          groupClassId: series.groupClassId,
+          participant: false,
+          series: { id: series.id, occurrenceDate },
+          startsAt: new Date(`${occurrenceDate}T16:00:00.000Z`),
+          ...extra,
+        });
+      return { gym, john, anna, series, date };
+    }
+
+    it('F026 AC7: lists the later dates of a series by date with their places, their own changes and their links, and locks nothing of another series or workspace', async () => {
+      const { gym, john, anna, series, date } = await krachtSeries();
+      const mark = await addClient(admin.db, { workspaceId: gym.id });
+      await date('2026-10-13');
+      const chosen = await date('2026-10-20');
+      const booked = await date('2026-11-03');
+      await addParticipants(admin.db, {
+        workspaceId: gym.id,
+        session: booked,
+        clients: [anna, mark],
+      });
+      await addParticipants(admin.db, {
+        workspaceId: gym.id,
+        session: booked,
+        clients: [await addClient(admin.db, { workspaceId: gym.id })],
+        status: 'cancelled',
+      });
+      const own = await date('2026-10-27', {
+        series: { id: series.id, occurrenceDate: '2026-10-27', detachedFields: ['trainer'] },
+      });
+      const linked = await date('2026-11-10');
+      await addBookingLink(admin.db, {
+        workspaceId: gym.id,
+        scope: 'session',
+        sessionId: linked.id,
+      });
+      const cancelled = await date('2026-11-17', { status: 'cancelled' });
+      // Another series of the class and another workspace have dates after 20 October too.
+      const otherSeries = await addClassSeries(admin.db, {
+        workspaceId: gym.id,
+        groupClassId: series.groupClassId,
+      });
+      await addSession(admin.db, {
+        workspaceId: gym.id,
+        type: 'group',
+        groupClassId: series.groupClassId,
+        participant: false,
+        series: { id: otherSeries.id, occurrenceDate: '2026-11-03' },
+      });
+      const stranger = await krachtSeries();
+      await stranger.date('2026-11-03');
+
+      const later = await asTeam(john.id, gym.id, (scope) =>
+        listLaterSeriesDates(scope, series.id, '2026-10-20', { lock: true }),
+      );
+
+      expect(later.map((row) => [row.id, row.occurrenceDate, row.status])).toEqual([
+        [own.id, '2026-10-27', 'scheduled'],
+        [booked.id, '2026-11-03', 'scheduled'],
+        [linked.id, '2026-11-10', 'scheduled'],
+        [cancelled.id, '2026-11-17', 'cancelled'],
+      ]);
+      expect(later.map((row) => row.id)).not.toContain(chosen.id);
+      expect(later[0]).toMatchObject({
+        detachedFields: ['trainer'],
+        participants: [],
+        referenced: false,
+        version: 1,
+        startsAt: new Date('2026-10-27T16:00:00.000Z'),
+      });
+      expect(later[1]?.participants).toEqual([
+        { clientId: anna.id, status: 'booked' },
+        { clientId: mark.id, status: 'booked' },
+        expect.objectContaining({ status: 'cancelled' }),
+      ]);
+      expect(later[2]).toMatchObject({ referenced: true, participants: [] });
+      // Another workspace's scope sees none of it.
+      const seen = await asTeam(stranger.john.id, stranger.gym.id, (scope) =>
+        listLaterSeriesDates(scope, series.id, '2026-10-20'),
+      );
+      expect(seen).toEqual([]);
+    });
+
+    it('F026 AC7: removes only the dates that have nothing of their own, and says how many', async () => {
+      const { gym, john, anna, series, date } = await krachtSeries();
+      const bare = [await date('2026-11-03'), await date('2026-11-10')];
+      const withPlace = await date('2026-11-17');
+      await addParticipants(admin.db, { workspaceId: gym.id, session: withPlace, clients: [anna] });
+      const withOwn = await date('2026-11-24', {
+        series: { id: series.id, occurrenceDate: '2026-11-24', detachedFields: ['capacity'] },
+      });
+      const withLink = await date('2026-12-01');
+      await addBookingLink(admin.db, {
+        workspaceId: gym.id,
+        scope: 'session',
+        sessionId: withLink.id,
+      });
+      const alreadyCancelled = await date('2026-12-08', { status: 'cancelled' });
+      const alone = await addSession(admin.db, {
+        workspaceId: gym.id,
+        type: 'group',
+        participant: false,
+      });
+      const stranger = await krachtSeries();
+      const theirs = await stranger.date('2026-11-03');
+      const all = [...bare, withPlace, withOwn, withLink, alreadyCancelled, alone, theirs].map(
+        (row) => row.id,
+      );
+
+      const removed = await asTeam(john.id, gym.id, (scope) => removeSeriesDates(scope, all));
+
+      expect(removed).toBe(2);
+      const left = await admin.db.select({ id: sessions.id }).from(sessions);
+      const ids = left.map((row) => row.id);
+      for (const gone of bare) expect(ids).not.toContain(gone.id);
+      for (const kept of [withPlace, withOwn, withLink, alreadyCancelled, alone, theirs]) {
+        expect(ids).toContain(kept.id);
+      }
+      const places = await admin.db
+        .select({ id: sessionParticipants.id })
+        .from(sessionParticipants)
+        .where(eq(sessionParticipants.sessionId, withPlace.id));
+      expect(places).toHaveLength(1);
+      expect(await asTeam(john.id, gym.id, (scope) => removeSeriesDates(scope, []))).toBe(0);
     });
 
     it('AC9: lists the next sessions of a client in order, from now, private and scheduled only', async () => {

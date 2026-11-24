@@ -147,6 +147,15 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     language_mode: property.enum(['visitor', 'nl', 'en']),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F026: the Owner cancelled a class date, alone or with the rest of its series. The workspace ID,
+  // the platform and the scope (`this` or `following`) only (the Owner's account UUID is the
+  // distinct ID): no class, date, series or participant ID, no name, email address, message, date
+  // or time.
+  class_cancelled: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+    scope: property.enum(['this', 'following']),
+  },
   // F026: a team member cancelled a private session. The workspace ID, the platform and who it came
   // from (`client` or `workspace`) only (the team member's account UUID is the distinct ID): no
   // session, client or trainer ID, name, email address, message, date or time.

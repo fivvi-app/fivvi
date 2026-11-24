@@ -305,6 +305,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     InvoiceSettingsChange: 'type of the invoice details repository (F059)',
     InvoiceSettingsView: 'type of the invoice details repository (F059)',
     JoinLinkView: 'type of the workspace repository (F029)',
+    LaterSeriesDateView: 'type of the cancellation repository (F026)',
     LocationAddress: 'type of the location repository (F015)',
     LocationChanges: 'type of the location repository (F015)',
     LocationView: 'type of the location repository (F015)',
@@ -501,6 +502,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     listFutureSessionsOfTrainer:
       'repository of the sessions, takes the workspace scope; locks what it lists (F023)',
     listGroupClasses: 'repository of the group classes, takes the workspace scope (F021)',
+    listLaterSeriesDates: 'repository of the cancellations, takes the workspace scope (F026)',
     listLocations: 'repository of the locations, takes the workspace scope (F015)',
     listMySessions:
       'repository of the personal sessions, takes the workspace scope; the account’s own sessions (F013)',
@@ -530,6 +532,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     listUpcomingSessionsOfClient: 'repository of the sessions, takes the workspace scope (F020)',
     listWorkspaceCalendar:
       'repository of the workspace calendar, takes the workspace scope; every session of that workspace (F014)',
+    lockClassSeriesOfWorkspace: 'repository of the class series, takes the workspace scope (F026)',
     lockInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     lockInvitationQuota: 'repository of the trainer invitations, takes the workspace scope (F011)',
     lockOwners: 'repository of the team, takes the workspace scope (F003)',
@@ -552,6 +555,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     refreshPayout: 'repository of the payouts, takes the workspace scope (F061)',
     refundLedger:
       'the refund ledger over a function that opens a workspace scope (F060); every call goes through the scope, no connection of its own',
+    removeSeriesDates: 'repository of the cancellations, takes the workspace scope (F026)',
     renewJoinLink: 'repository of workspaces, takes the workspace scope (F029)',
     rescheduleSession: 'repository of the sessions, takes the workspace scope (F020)',
     resendInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
