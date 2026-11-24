@@ -52,6 +52,7 @@ class FakeWorkspacesApi : WorkspacesApi {
         to: String,
         trainerIds: List<UUID>?,
         types: List<String>?,
+        groupClassId: UUID?,
         includeCancelled: Boolean?,
         surface: WorkspacesApi.SurfaceGetWorkspaceCalendar?,
     ): Response<WorkspaceCalendar> = error("FakeWorkspacesApi.getWorkspaceCalendar is not expected in this test")
