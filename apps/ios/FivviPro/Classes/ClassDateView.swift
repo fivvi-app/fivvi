@@ -8,8 +8,10 @@ import FivviUI
 /// TD-03 *Groepsles* (F021): the class's name with the date and time under it, the description cut to a few lines with
 /// *Meer* / *Minder*, a group with the location and the trainer (*Trainer nodig* without one), *{booked}/{capacity}
 /// geboekt* with *Nog geen boekingen.*, and for the Owner the footnote that editing, a fixed series and the trainers are
-/// managed on the web. The Owner's ⋯ menu has *Les wijzigen*, which says the same, and below a divider the destructive
-/// *Les annuleren* (F026): a native confirmation that says how many booked clients get an email; a Trainer has no menu.
+/// managed on the web. The Owner's ⋯ menu starts with *Boekingslink delen* (F037, "Boekingslink gekopieerd" in a toast; also a button below the booked card,
+/// for the Owner and the Trainers, not on a cancelled or past date), has *Les wijzigen*, which says the same, and below
+/// a divider the destructive *Les annuleren* (F026): a native confirmation that says how many booked clients get an
+/// email; a Trainer has no menu.
 /// A cancelled date shows "Geannuleerd op … door …" and no actions. The sections of later features (participants,
 /// attendance) are not shown yet.
 struct ClassDateView: View {
@@ -51,6 +53,7 @@ struct ClassDateView: View {
         } message: {
             Text(model.cancelMessageText)
         }
+        .toast(Binding(get: { model.shareToast }, set: { if $0 == nil { model.dismissShareToast() } }))
         .environment(\.locale, catalog.formattingLocale)
     }
 
@@ -93,6 +96,12 @@ struct ClassDateView: View {
             if let offline = model.cancelOfflineText {
                 StatusMessage(text: offline, kind: .info, id: "classDate.cancelOffline")
             }
+            if let failure = model.shareLinkFailureText {
+                StatusMessage(text: failure, kind: .error, id: "classDate.shareFailed")
+            }
+            if let offline = model.shareLinkOfflineText {
+                StatusMessage(text: offline, kind: .info, id: "classDate.shareOffline")
+            }
             if let onWeb = model.manageOnWebText {
                 StatusMessage(text: onWeb, kind: .info, id: "classDate.manageOnWeb")
             }
@@ -110,6 +119,7 @@ struct ClassDateView: View {
                 trainerRow
             }
             bookedCard
+            if model.showsShareLink { shareLinkButton }
             if let note = model.ownerNoteText {
                 Text(note)
                     .font(.system(Tokens.TextStyle.footnote))
@@ -205,8 +215,32 @@ struct ClassDateView: View {
         }
     }
 
+    /// *Boekingslink delen*, below the booked card (the participants come with F025).
+    private var shareLinkButton: some View {
+        PillButtonStack {
+            Button {
+                Task { await model.shareLink() }
+            } label: {
+                Label(model.shareLinkText, systemImage: "link")
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.pill(.tonal))
+            .disabled(!model.canTapShareLink)
+            .accessibilityIdentifier("classDate.shareLink")
+        }
+    }
+
     private var menu: some View {
         Menu {
+            if model.showsShareLinkInMenu {
+                Button { Task { await model.shareLink() } } label: {
+                    Label(model.shareLinkText, systemImage: "link")
+                }
+                .disabled(!model.canTapShareLink)
+                .accessibilityIdentifier("classDate.shareLinkMenu")
+            }
             Button(model.editText) { model.editTapped() }
                 .accessibilityIdentifier("classDate.edit")
             Divider()

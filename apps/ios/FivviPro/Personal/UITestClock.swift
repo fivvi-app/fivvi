@@ -1,6 +1,6 @@
 import Foundation
 
-/// The clock the personal screens read. A Debug build takes `-UITestNow <ISO 8601 instant>`, which fixes it, so a UI test
+/// The clock the personal screens and TD-03 (a class date has started or not) read. A Debug build takes `-UITestNow <ISO 8601 instant>`, which fixes it, so a UI test
 /// can say it is 08:35 on 22 September 2026 and read "Straks · over 25 min" whatever the real time is.
 enum UITestClock {
     static let key = "UITestNow"

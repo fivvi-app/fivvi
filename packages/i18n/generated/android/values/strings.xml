@@ -87,6 +87,12 @@
     <string name="classes_app_manage_on_web">Dit beheer je op het web</string>
     <string name="classes_app_new_title">Nieuwe groepsles</string>
     <string name="classes_app_owner_note">Les wijzigen, een vaste reeks en %1$s beheer je op het web.</string>
+    <!-- TD-03 in the apps (F037): the button below the participants and the first item of the Owner's ⋯ menu. Gets or makes the link of this class date in the visitor's language and puts it on the clipboard. -->
+    <string name="classes_app_share_link">Boekingslink delen</string>
+    <!-- TD-03 in the apps (F037): shown after Boekingslink delen has put the date's short link on the clipboard. -->
+    <string name="classes_app_share_link_copied">Boekingslink gekopieerd</string>
+    <!-- TD-03 in the apps (F037): shown on the class date page while the phone is offline, where Boekingslink delen is disabled; nothing is queued. -->
+    <string name="classes_app_share_link_offline">Je bent offline. Delen kan als je weer verbinding hebt.</string>
     <string name="classes_cancel_action">Les annuleren</string>
     <string name="classes_cancel_already_cancelled">Deze les is geannuleerd.</string>
     <string name="classes_cancel_back">Terug</string>

@@ -1344,6 +1344,60 @@
         }
       }
     },
+    "classes.app.shareLink" : {
+      "comment" : "TD-03 in the apps (F037): the button below the participants and the first item of the Owner's ⋯ menu. Gets or makes the link of this class date in the visitor's language and puts it on the clipboard.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share booking link"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boekingslink delen"
+          }
+        }
+      }
+    },
+    "classes.app.shareLinkCopied" : {
+      "comment" : "TD-03 in the apps (F037): shown after Boekingslink delen has put the date's short link on the clipboard.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Booking link copied"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boekingslink gekopieerd"
+          }
+        }
+      }
+    },
+    "classes.app.shareLinkOffline" : {
+      "comment" : "TD-03 in the apps (F037): shown on the class date page while the phone is offline, where Boekingslink delen is disabled; nothing is queued.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline. You can share once you're back online."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent offline. Delen kan als je weer verbinding hebt."
+          }
+        }
+      }
+    },
     "classes.cancel.action" : {
       "extractionState" : "manual",
       "localizations" : {

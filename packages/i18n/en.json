@@ -107,7 +107,10 @@
       "edit": "Edit class",
       "manageOnWeb": "You manage this on the web",
       "newTitle": "New group class",
-      "ownerNote": "You manage editing a class, a fixed series and {words} on the web."
+      "ownerNote": "You manage editing a class, a fixed series and {words} on the web.",
+      "shareLink": "Share booking link",
+      "shareLinkCopied": "Booking link copied",
+      "shareLinkOffline": "You're offline. You can share once you're back online."
     },
     "cancel": {
       "action": "Cancel class",

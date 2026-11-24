@@ -10,7 +10,8 @@ class PrivateSessionUITestCase: SignInUITestCase {
 
     /// Sarah (synthetic): a Trainer of John's Gym, or John, its Owner.
     func launch(
-        owner: Bool = false, recordsLinks: Bool = false, opensClassDate: String? = nil, offline: Bool = false
+        owner: Bool = false, recordsLinks: Bool = false, opensClassDate: String? = nil, now: String? = nil,
+        offline: Bool = false
     ) throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
             signIn: StubServer.SignIn(
@@ -22,7 +23,7 @@ class PrivateSessionUITestCase: SignInUITestCase {
         return (
             SignInScreen.launch(
                 against: server, session: .signedIn, recordsOpenedLinks: recordsLinks, opensClassDate: opensClassDate,
-                connectivity: offline ? "offline" : nil
+                now: now, connectivity: offline ? "offline" : nil
             ),
             server
         )

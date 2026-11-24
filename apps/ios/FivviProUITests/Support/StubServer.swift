@@ -118,6 +118,9 @@ final class StubServer: Sendable {
     /// The class-date cancel bodies the app sent so far (`POST …/cancel-class`), like `cancelledSessions` (F026).
     var cancelledClassDates: [[String: String]] { responder.sessionRoutes.classCancels }
 
+    /// The booking link bodies the app sent so far (`POST …/booking-links`), each value as text (F037).
+    var bookingLinkRequests: [[String: String]] { responder.sessionRoutes.bookingLinkRequests }
+
     /// Puts `count` people (at most 3) on the seeded class date, so its cancellation has people to email (F026).
     func bookOnSeededClassDate(_ count: Int) {
         responder.sessionRoutes.bookOnSeededClassDate(count)

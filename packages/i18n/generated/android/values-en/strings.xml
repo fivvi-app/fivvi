@@ -80,6 +80,9 @@
     <string name="classes_app_manage_on_web">You manage this on the web</string>
     <string name="classes_app_new_title">New group class</string>
     <string name="classes_app_owner_note">You manage editing a class, a fixed series and %1$s on the web.</string>
+    <string name="classes_app_share_link">Share booking link</string>
+    <string name="classes_app_share_link_copied">Booking link copied</string>
+    <string name="classes_app_share_link_offline">You\'re offline. You can share once you\'re back online.</string>
     <string name="classes_cancel_action">Cancel class</string>
     <string name="classes_cancel_already_cancelled">This class has been cancelled.</string>
     <string name="classes_cancel_back">Back</string>
