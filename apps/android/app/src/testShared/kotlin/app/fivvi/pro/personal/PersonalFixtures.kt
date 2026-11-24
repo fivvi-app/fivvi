@@ -11,6 +11,7 @@ import app.fivvi.api.models.MyDaySummary
 import app.fivvi.api.models.MyDayTomorrow
 import app.fivvi.api.models.PersonalSession
 import app.fivvi.api.models.PersonalWorkspace
+import app.fivvi.api.models.PersonalWorkspaceOffers
 import app.fivvi.core.me.workspaceIdOf
 import java.time.Instant
 import java.time.LocalDate
@@ -146,10 +147,38 @@ object PersonalFixtures {
         ),
     )
 
-    /** Sarah's day: four items in two workspaces, Anna next, a free gap and two places ahead. */
+    /**
+     * What the API says each workspace offers (#1534): John's Gym runs classes, Sarah Personal Training does not. With
+     * [showsKindLabel] false the gym offers private sessions only too.
+     */
+    fun offered(workspaceCount: Int, showsKindLabel: Boolean): List<PersonalWorkspaceOffers> {
+        val gym = PersonalWorkspaceOffers(
+            johns.id,
+            johns.slug,
+            johns.name,
+            if (showsKindLabel) {
+                listOf(PersonalWorkspaceOffers.Offers.PRIVATE, PersonalWorkspaceOffers.Offers.GROUP)
+            } else {
+                listOf(PersonalWorkspaceOffers.Offers.PRIVATE)
+            },
+        )
+        val own = PersonalWorkspaceOffers(
+            sarahPT.id,
+            sarahPT.slug,
+            sarahPT.name,
+            listOf(PersonalWorkspaceOffers.Offers.PRIVATE),
+        )
+        return listOf(gym, own).take(workspaceCount)
+    }
+
+    /**
+     * Sarah's day: four items in two workspaces, Anna next, a free gap and two places ahead. [showsKindLabel] is what the
+     * API answers: true while a workspace of hers runs classes, whatever the day holds.
+     */
     fun sarah(
         items: List<PersonalSession> = listOf(anna, mark, kracht, krachtCancelled),
         workspaceCount: Int = 2,
+        showsKindLabel: Boolean = true,
         done: Int = 0,
         gap: Pair<String, String>? = "12:00" to "13:30",
         places: List<String> = listOf("TrainMore Zuid", "John's Gym"),
@@ -158,6 +187,8 @@ object PersonalFixtures {
         date = DAY,
         timeZone = "Europe/Amsterdam",
         workspaceCount = workspaceCount,
+        workspaces = offered(workspaceCount, showsKindLabel),
+        showsKindLabel = showsKindLabel,
         items = items,
         summary = summaryOf(items, done),
         hasSessions = true,
@@ -175,6 +206,8 @@ object PersonalFixtures {
         date = DAY,
         timeZone = "Europe/Amsterdam",
         workspaceCount = 1,
+        workspaces = offered(1, false),
+        showsKindLabel = false,
         items = emptyList(),
         summary = MyDaySummary(0, 0),
         hasSessions = hasSessions,

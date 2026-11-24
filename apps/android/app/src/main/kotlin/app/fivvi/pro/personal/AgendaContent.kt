@@ -49,7 +49,7 @@ class AgendaContent(private val state: AgendaState, private val now: Instant, pr
         it.type !=
             PersonalSession.Type.OPEN_GYM
     }
-    private val builder = PersonalRows(items, response?.workspaceCount ?: 1, now, format)
+    private val builder = PersonalRows(response?.showsKindLabel ?: false, response?.workspaceCount ?: 1, now, format)
     private val today = calendar.day(now)
 
     private fun items(on: LocalDate) = items.filter { calendar.day(it.startsAt) == on }

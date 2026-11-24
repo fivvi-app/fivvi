@@ -36,7 +36,7 @@ sealed interface PersonalPill {
 
 /**
  * A line of Vandaag (TD-01), and later of Agenda (TD-04): one item of the personal scope, written down in Dutch time. Nothing
- * here decides anything: what the API sent is kept, and what only fits when the person has more than one kind or team
+ * here decides anything: what the API sent is kept, and what only fits when the person has more than one kind (the API says so) or team
  * ([namesKind], [showsWorkspace]) is switched on only then (F013 AC2, the design of `DECISIONS.md` §3). The texts around
  * these come from the string catalog on screen.
  */
@@ -49,7 +49,7 @@ data class PersonalRow(
     /** *09:00* */
     val startText: String,
     val endText: String,
-    /** The row says *Privésessie* or *Groepsles*: the person's items are of more than one kind. */
+    /** The row says *Privésessie* or *Groepsles*: the API says the person's workspaces offer more than one kind. */
     val namesKind: Boolean,
     /** The row says its workspace, with the colour dot: the person is on more than one team. */
     val showsWorkspace: Boolean,
@@ -66,13 +66,12 @@ data class PersonalRow(
 
 /** Builds the rows of a list of items, in the language's formatting locale and Dutch time. */
 class PersonalRows(
-    items: List<PersonalSession>,
+    /** The API says the person's workspaces offer more than one kind (`showsKindLabel`): each row names its kind. */
+    private val namesKinds: Boolean,
     private val workspaceCount: Int,
     private val now: Instant,
     private val format: SessionFormat,
 ) {
-    /** The items are of more than one kind, so each row names its kind. */
-    private val namesKinds = items.map { it.type }.toSet().size > 1
 
     fun row(item: PersonalSession): PersonalRow {
         val isGroup = item.type == PersonalSession.Type.GROUP
@@ -158,7 +157,7 @@ data class PersonalNext(val row: PersonalRow, private val startsAt: Instant, pri
  */
 class TodayContent(private val day: MyDay, now: Instant, private val format: SessionFormat) {
     private val items = day.items.filter { it.type != PersonalSession.Type.OPEN_GYM }
-    private val builder = PersonalRows(items, day.workspaceCount, now, format)
+    private val builder = PersonalRows(day.showsKindLabel, day.workspaceCount, now, format)
 
     /** *4 sessies · 09:00–19:00 · 1 klaar*, or `null` for *Geen sessies vandaag*. */
     val summary: PersonalSummary? = run {
