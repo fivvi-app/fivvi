@@ -89,6 +89,7 @@ extension HomeView {
             let capabilities = account.capabilities
             SessionScreen(
                 api: api, workspace: workspace, sessionID: id, language: language, capabilities: capabilities,
+                connectivity: connectivity, onCancelled: { Task { await personalChanged() } },
                 onOpenClient: { path.append(.client(ClientRoute(id: $0))) }
             )
             .id(id)
@@ -106,12 +107,14 @@ struct SessionScreen: View {
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, language: AppLanguage,
-        capabilities: WorkspaceCapabilities, onOpenClient: ((String) -> Void)?
+        capabilities: WorkspaceCapabilities, connectivity: Connectivity, onCancelled: @escaping @MainActor () -> Void,
+        onOpenClient: ((String) -> Void)?
     ) {
         _model = State(initialValue: SessionViewModel(
             api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog,
             canCancelAny: capabilities.allows(.session_private_cancel_any, in: workspace.id),
             canCancelOwn: capabilities.allows(.session_private_cancel_own, in: workspace.id),
+            isOnline: { connectivity.isOnline }, onCancelled: onCancelled,
             onForbidden: { await capabilities.forbidden($0, in: workspace.id) }
         ))
         workspaceID = workspace.id

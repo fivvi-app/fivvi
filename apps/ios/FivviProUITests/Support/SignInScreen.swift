@@ -45,12 +45,13 @@ struct SignInScreen {
         appearance: String? = nil,
         recordsOpenedLinks: Bool = false,
         countsRenders: Bool = false,
-        opensClassDate: String? = nil
+        opensClassDate: String? = nil,
+        connectivity: String? = nil
     ) -> SignInScreen {
         SignInScreen(app: AppLaunch.launch(
             against: server, session: session, deviceLanguages: deviceLanguages, perAppLanguage: perAppLanguage,
             textSize: textSize, appearance: appearance, recordsOpenedLinks: recordsOpenedLinks,
-            countsRenders: countsRenders, opensClassDate: opensClassDate
+            countsRenders: countsRenders, opensClassDate: opensClassDate, connectivity: connectivity
         ))
     }
 

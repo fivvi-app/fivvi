@@ -31,8 +31,8 @@ final class ClassDateViewModel {
     /// The confirmation of *Les annuleren*, once the API said who would get the email; nil when it is not asked.
     private(set) var cancelAsk: CancelAsk?
     private(set) var cancelFailure: CancelFailure?
-    /// The last read or cancellation couldn't reach the API: *Les annuleren* is off and says why.
-    private(set) var isOffline = false
+    /// The last read or cancellation couldn't reach the API (the fallback when the phone's network path said online).
+    private var requestFailedOffline = false
     private(set) var isCancelling = false
     private(set) var catalog: Catalog
     let workspace: CurrentWorkspace
@@ -43,13 +43,21 @@ final class ClassDateViewModel {
     private let added: Int?
     private let sessionID: String
     private let api: any APIProtocol
+    /// Whether the phone is online, from the network path (`Connectivity`); a model made without one says online.
+    private let isOnline: @MainActor () -> Bool
+    /// Told once the date is cancelled, so the lists that show it (Vandaag, Agenda) read again.
+    private let onCancelled: @MainActor () -> Void
     private let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, catalog: Catalog, canManage: Bool,
         added: Int? = nil,
+        isOnline: @escaping @MainActor () -> Bool = { true },
+        onCancelled: @escaping @MainActor () -> Void = {},
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
+        self.isOnline = isOnline
+        self.onCancelled = onCancelled
         self.api = api
         self.workspace = workspace
         self.sessionID = sessionID
@@ -184,12 +192,67 @@ final class ClassDateViewModel {
         if manageOnWebText != nil { manageOnWebText = catalog[.classDateManageOnWeb] }
     }
 
+    // MARK: Reading
+
+    func load() async {
+        state = .loading
+        await read()
+    }
+
+    /// Reads the date again and leaves what is on screen until the answer is there.
+    func refresh() async {
+        await read()
+    }
+
+    private func read() async {
+        do {
+            switch try await api.getSession(.init(path: .init(workspaceId: workspace.id, sessionId: sessionID))) {
+            case let .ok(found):
+                session = try found.body.json
+                state = .loaded
+                requestFailedOffline = false
+            case .forbidden:
+                await onForbidden(.class_read)
+                state = .noPermission
+            case .notFound:
+                state = .noPermission
+            default:
+                failed()
+                return
+            }
+        } catch {
+            let cause = ClientRequestError(thrown: error)
+            if cause == .offline { requestFailedOffline = true }
+            if cause != .cancelled { failed() }
+            return
+        }
+        await readClass()
+    }
+
+    /// The description is on the class, not on the date. Only to fill the screen, so a failure here changes nothing.
+    private func readClass() async {
+        guard let id = session?.groupClass?.id else { return }
+        let input = Operations.GetGroupClass.Input(path: .init(workspaceId: workspace.id, classId: id))
+        if case let .ok(found)? = try? await api.getGroupClass(input) {
+            groupClass = try? found.body.json
+        }
+    }
+
+    private func failed() {
+        if state != .loaded { state = .failed }
+    }
+}
+
+extension ClassDateViewModel {
     // MARK: Les annuleren (F026)
 
     var isCancelled: Bool { session?.status == .cancelled }
 
     /// The Owner may cancel a date that is still planned (`class.manage`).
     var canCancel: Bool { canManage && session?.status == .scheduled }
+
+    /// *Les annuleren* is off: the network path says offline, or the last read or cancellation couldn't reach the API.
+    var isOffline: Bool { requestFailedOffline || !isOnline() }
 
     /// *Les annuleren* is on while the phone is online (nothing is queued).
     var canStartCancel: Bool { canCancel && !isOffline && !isCancelling }
@@ -208,7 +271,7 @@ final class ClassDateViewModel {
     }
 
     /// *Je bent offline. Annuleren kan als je weer verbinding hebt.*, where *Les annuleren* is off for lack of a connection.
-    var cancelOfflineText: String? { isOffline && canCancel ? catalog[.sessionCancelOffline] : nil }
+    var cancelOfflineText: String? { isOffline && canCancel ? catalog[.classCancelOffline] : nil }
 
     var cancelFailureText: String? {
         switch cancelFailure {
@@ -243,7 +306,7 @@ final class ClassDateViewModel {
             ) {
             case let .ok(found):
                 let preview = try found.body.json
-                isOffline = false
+                requestFailedOffline = false
                 cancelAsk = CancelAsk(participants: preview.thisDate.participants, started: preview.started)
             case .forbidden:
                 await onForbidden(.class_manage)
@@ -256,7 +319,11 @@ final class ClassDateViewModel {
                 cancelFailure = .notSaved
             }
         } catch {
-            if ClientRequestError(thrown: error) == .offline { isOffline = true } else { cancelFailure = .notSaved }
+            if ClientRequestError(thrown: error) == .offline {
+                requestFailedOffline = true
+            } else {
+                cancelFailure = .notSaved
+            }
         }
     }
 
@@ -278,12 +345,14 @@ final class ClassDateViewModel {
             switch try await api.cancelClassDate(input) {
             case let .ok(cancelled):
                 self.session = try cancelled.body.json.session.value1
-                isOffline = false
+                requestFailedOffline = false
+                onCancelled()
             case let .conflict(conflict):
                 let refusal = try conflict.body.json
                 self.session = refusal.session.value1
                 cancelFailure = refusal.code == .sessionCancelled
                     ? .cancelled : .changed(byName: refusal.changedBy?.name)
+                if refusal.code == .sessionCancelled { onCancelled() }
             case .forbidden:
                 await onForbidden(.class_manage)
                 cancelFailure = .noPermission
@@ -291,58 +360,12 @@ final class ClassDateViewModel {
                 cancelFailure = .notSaved
             }
         } catch {
-            if ClientRequestError(thrown: error) == .offline { isOffline = true } else { cancelFailure = .notSaved }
-        }
-    }
-
-    // MARK: Reading
-
-    func load() async {
-        state = .loading
-        await read()
-    }
-
-    /// Reads the date again and leaves what is on screen until the answer is there.
-    func refresh() async {
-        await read()
-    }
-
-    private func read() async {
-        do {
-            switch try await api.getSession(.init(path: .init(workspaceId: workspace.id, sessionId: sessionID))) {
-            case let .ok(found):
-                session = try found.body.json
-                state = .loaded
-                isOffline = false
-            case .forbidden:
-                await onForbidden(.class_read)
-                state = .noPermission
-            case .notFound:
-                state = .noPermission
-            default:
-                failed()
-                return
+            if ClientRequestError(thrown: error) == .offline {
+                requestFailedOffline = true
+            } else {
+                cancelFailure = .notSaved
             }
-        } catch {
-            let cause = ClientRequestError(thrown: error)
-            if cause == .offline { isOffline = true }
-            if cause != .cancelled { failed() }
-            return
         }
-        await readClass()
-    }
-
-    /// The description is on the class, not on the date. Only to fill the screen, so a failure here changes nothing.
-    private func readClass() async {
-        guard let id = session?.groupClass?.id else { return }
-        let input = Operations.GetGroupClass.Input(path: .init(workspaceId: workspace.id, classId: id))
-        if case let .ok(found)? = try? await api.getGroupClass(input) {
-            groupClass = try? found.body.json
-        }
-    }
-
-    private func failed() {
-        if state != .loaded { state = .failed }
     }
 }
 

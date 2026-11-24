@@ -56,6 +56,7 @@ extension StringKey {
     static let classCancelChangedBy = StringKey("classes.cancel.changedBy")
     static let classCancelChangedByUnknown = StringKey("classes.cancel.changedByUnknown")
     static let classCancelCountNone = StringKey("classes.cancel.countNone")
+    static let classCancelOffline = StringKey("classes.app.cancelOffline")
     static let classCancelNoPermission = StringKey("classes.cancel.noPermission")
     static let classCancelNotSaved = StringKey("classes.cancel.notSaved")
     static let classCancelStarted = StringKey("classes.cancel.started")

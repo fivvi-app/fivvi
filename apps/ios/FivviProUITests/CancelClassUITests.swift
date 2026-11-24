@@ -21,7 +21,7 @@ final class CancelClassUITests: PrivateSessionUITestCase {
         let alert = app.alerts.firstMatch
         XCTAssertTrue(alert.waitUntilExists(timeout: timeout), requestLog)
         XCTAssertTrue(alert.staticTexts[catalog["classes.cancel.title"]].firstMatch.exists)
-        XCTAssertTrue(alert.staticTexts.matching(NSPredicate(format: "label CONTAINS '3'")).firstMatch.exists)
+        XCTAssertTrue(alert.staticTexts[String(format: catalog["classes.app.cancelBody"], 3)].firstMatch.exists)
         XCTAssertEqual(alert.buttons["classDate.cancel.back"].firstMatch.label, catalog["classes.cancel.back"])
         XCTAssertEqual(alert.buttons["classDate.cancel.submit"].firstMatch.label, catalog["classes.cancel.submit"])
         XCTAssertTrue(server.cancelledClassDates.isEmpty, "nothing is cancelled before the confirmation")
@@ -63,19 +63,21 @@ final class CancelClassUITests: PrivateSessionUITestCase {
     }
 
     func test_F026_AC4_lesAnnulerenIsOffOffline() throws {
-        let (screen, server) = try launch(owner: true, opensClassDate: StubSessionRoutes.seededClassDateID)
+        // The phone's network path says offline (`-UITestConnectivity offline`): Les annuleren is off before any request fails.
+        let (screen, server) = try launch(
+            owner: true, opensClassDate: StubSessionRoutes.seededClassDateID, offline: true
+        )
         let app = screen.app
         XCTAssertTrue(app.buttons["classDate.menu"].waitUntilExists(timeout: timeout), requestLog)
-        server.setOffline(true)
-        app.buttons["classDate.menu"].tap()
-        app.buttons["classDate.cancel"].tap()
 
         let offline = app.staticTexts["classDate.cancelOffline"]
         XCTAssertTrue(offline.waitUntilExists(timeout: timeout), requestLog)
-        XCTAssertEqual(offline.label, catalog["sessions.cancel.offline"])
-        XCTAssertFalse(app.alerts.firstMatch.exists, "nothing to confirm without a connection")
+        XCTAssertEqual(offline.label, catalog["classes.app.cancelOffline"])
         app.buttons["classDate.menu"].tap()
-        XCTAssertFalse(app.buttons["classDate.cancel"].isEnabled, "the item is off")
+        let cancel = app.buttons["classDate.cancel"]
+        XCTAssertTrue(cancel.waitUntilExists(timeout: timeout))
+        XCTAssertFalse(cancel.isEnabled, "the item is off")
+        XCTAssertFalse(app.alerts.firstMatch.exists, "nothing to confirm without a connection")
         XCTAssertTrue(server.cancelledClassDates.isEmpty, "nothing is queued")
     }
 }

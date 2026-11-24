@@ -114,17 +114,10 @@ final class CancelSessionUITests: PrivateSessionUITestCase {
     }
 
     func test_F026_AC4_cancelDisabledOffline() throws {
-        let (screen, server) = try launch()
+        // The phone's network path says offline (`-UITestConnectivity offline`): Annuleren is off before any request fails.
+        let (screen, server) = try launch(offline: true)
         let app = screen.app
         openSeededSession(app)
-        XCTAssertFalse(app.staticTexts["session.cancelOffline"].exists)
-
-        // The phone goes offline; the screen reads again when the app comes back to the foreground.
-        server.setOffline(true)
-        XCUIDevice.shared.press(.home)
-        _ = app.wait(for: .runningBackground, timeout: timeout)
-        app.activate()
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: timeout))
 
         let offline = app.staticTexts["session.cancelOffline"]
         XCTAssertTrue(offline.waitUntilExists(timeout: timeout), requestLog)
@@ -134,6 +127,17 @@ final class CancelSessionUITests: PrivateSessionUITestCase {
         XCTAssertTrue(cancel.waitUntilExists(timeout: timeout))
         XCTAssertFalse(cancel.isEnabled, "Annuleren is off offline")
         XCTAssertTrue(server.cancelledSessions.isEmpty, "nothing is queued")
+    }
+
+    func test_F026_AC4_cancelIsOnWhileOnline() throws {
+        let (screen, _) = try launch()
+        let app = screen.app
+        openSeededSession(app)
+        XCTAssertFalse(app.staticTexts["session.cancelOffline"].exists)
+        app.buttons["session.menu"].tap()
+        let cancel = app.buttons["session.cancel"]
+        XCTAssertTrue(cancel.waitUntilExists(timeout: timeout), requestLog)
+        XCTAssertTrue(cancel.isEnabled)
     }
 
     func test_F026_AC5_aTrainerHasNoAnnulerenOnSomeoneElsesSession() throws {

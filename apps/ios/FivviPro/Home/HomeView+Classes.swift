@@ -47,7 +47,8 @@ extension HomeView {
         if let workspace = account.workspace, case .loaded = account.state {
             ClassDateScreen(
                 api: api, workspace: workspace, sessionID: id, added: added, language: language,
-                capabilities: account.capabilities
+                capabilities: account.capabilities, connectivity: connectivity,
+                onCancelled: { Task { await personalChanged() } }
             )
             .id(id)
         }
@@ -61,11 +62,12 @@ struct ClassDateScreen: View {
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, added: Int?, language: AppLanguage,
-        capabilities: WorkspaceCapabilities
+        capabilities: WorkspaceCapabilities, connectivity: Connectivity, onCancelled: @escaping @MainActor () -> Void
     ) {
         _model = State(initialValue: ClassDateViewModel(
             api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog,
             canManage: capabilities.allows(.class_manage, in: workspace.id), added: added,
+            isOnline: { connectivity.isOnline }, onCancelled: onCancelled,
             onForbidden: { await capabilities.forbidden($0, in: workspace.id) }
         ))
         self.language = language

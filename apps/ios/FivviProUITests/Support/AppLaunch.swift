@@ -34,6 +34,8 @@ enum AppLaunch {
     ///   - startTab: the tab the app opens on (`ProTab.initial` in the app): the home, where the tests of its screens are
     ///     written; nil is the real start, Vandaag (F013).
     ///   - now: the personal screens' clock, an ISO 8601 instant (`UITestClock` in the app).
+    ///   - connectivity: "online" or "offline" fixes whether the phone is online (`Connectivity.forLaunch` in the app),
+    ///     so a test of the offline state doesn't depend on the network of the machine; the system's when nil.
     ///   - countsRenders: the app shows how often its screens rendered in `uitest.renders` (`RenderProbe` in the app),
     ///     so a test can tell a screen that renders without end.
     static func launch(
@@ -47,7 +49,8 @@ enum AppLaunch {
         countsRenders: Bool = false,
         opensClassDate: String? = nil,
         startTab: String? = "home",
-        now: String? = nil
+        now: String? = nil,
+        connectivity: String? = nil
     ) -> XCUIApplication {
         let app = XCUIApplication()
         let languages = deviceLanguages ?? [TestCatalog.configuredLanguage]
@@ -65,7 +68,8 @@ enum AppLaunch {
             ("-UITestPerAppLanguage", perAppLanguage), ("-UIPreferredContentSizeCategoryName", textSize),
             ("-UITestAppearance", appearance), ("-UITestRecordOpenedLinks", recordsOpenedLinks ? "YES" : nil),
             ("-UITestCountRenders", countsRenders ? "YES" : nil), ("-UITestStartTab", startTab),
-            ("-UITestNow", now), ("-UITestOpenClassDate", opensClassDate)
+            ("-UITestNow", now), ("-UITestOpenClassDate", opensClassDate),
+            ("-UITestConnectivity", connectivity)
         ]
         for case let (key, value?) in options { app.launchArguments += [key, value] }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"

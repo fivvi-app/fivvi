@@ -90,7 +90,8 @@
   },
   "classes": {
     "app": {
-      "cancelBody": "{participants, plural, one {The # booked client gets an email. You can add a message to it on the web.} other {The # booked clients get an email. You can add a message to it on the web.}}",
+      "cancelBody": "{participants, plural, one {The booked client gets an email. You can add a message to it on the web.} other {The # booked clients get an email. You can add a message to it on the web.}}",
+      "cancelOffline": "You're offline. You can cancel once you're back online.",
       "capacityLess": "Decrease capacity",
       "capacityMore": "Increase capacity",
       "descriptionInDutch": "In Dutch",

@@ -45,12 +45,13 @@ final class CancelledItemsUITests: SignInUITestCase {
         // Vandaag: the session stays, struck through with *Geannuleerd*, and is no longer the next one.
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.staticTexts["today.title"].waitUntilExists(timeout: timeout))
-        XCUIDevice.shared.press(.home)
-        _ = app.wait(for: .runningBackground, timeout: timeout)
-        app.activate()
         let row = app.buttons["today.row.\(StubPersonalRoutes.anna)"]
         XCTAssertTrue(row.waitUntilExists(timeout: timeout), log)
-        XCTAssertTrue(row.label.contains(catalog["myDay.cancelled"]), row.label)
+        // Vandaag read the day again when the session was cancelled, with no trip through the background.
+        let struckThrough = Polling.until(timeout: timeout, interval: 0.2) {
+            row.label.contains(catalog["myDay.cancelled"])
+        }
+        XCTAssertTrue(struckThrough, row.label)
 
         // Agenda: the same session in the week, marked *Geannuleerd*.
         app.tabBars.buttons["tab.calendar"].tap()

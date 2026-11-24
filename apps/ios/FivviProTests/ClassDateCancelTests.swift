@@ -33,10 +33,13 @@ final class ClassDateCancelTests: XCTestCase {
         )
     }
 
-    private func screen(_ api: StubAPI, id: String, canManage: Bool = true) -> ClassDateViewModel {
+    private func screen(
+        _ api: StubAPI, id: String, canManage: Bool = true, isOnline: @escaping @MainActor () -> Bool = { true },
+        onCancelled: @escaping @MainActor () -> Void = {}
+    ) -> ClassDateViewModel {
         ClassDateViewModel(
             api: api, workspace: SessionFixtures.workspace, sessionID: id, catalog: Catalog(locale: language),
-            canManage: canManage
+            canManage: canManage, isOnline: isOnline, onCancelled: onCancelled
         )
     }
 
@@ -68,11 +71,25 @@ final class ClassDateCancelTests: XCTestCase {
         let catalog = TestCatalog(language)
         XCTAssertEqual(ask.participants, 3)
         XCTAssertEqual(model.cancelTitleText, catalog["classes.cancel.title"], "Les annuleren?")
-        XCTAssertTrue(model.cancelMessageText.contains("3"), model.cancelMessageText)
+        XCTAssertEqual(model.cancelMessageText, String(format: catalog["classes.app.cancelBody"], 3))
         XCTAssertFalse(model.cancelMessageText.contains("%"), model.cancelMessageText)
         XCTAssertEqual(model.cancelSubmitText, catalog["classes.cancel.submit"])
         XCTAssertEqual(model.cancelBackText, catalog["classes.cancel.back"], "Terug, never Annuleren")
         XCTAssertEqual(api.sessions.previews, [date.id])
+    }
+
+    func test_F026_Design_oneBookedClientGetsTheSingularWithoutANumber() async throws {
+        let api = SessionFixtures.api()
+        let date = kracht(api, booked: 1)
+        let model = screen(api, id: date.id)
+        await model.load()
+
+        await model.askToCancel()
+
+        XCTAssertEqual(model.cancelAsk?.participants, 1)
+        XCTAssertEqual(model.cancelMessageText, String(format: TestCatalog(language)["classes.app.cancelBody"], 1))
+        XCTAssertFalse(model.cancelMessageText.contains("1"), "the singular has no number: \(model.cancelMessageText)")
+        XCTAssertFalse(model.cancelMessageText.contains("#"), model.cancelMessageText)
     }
 
     func test_F026_AC8_withoutParticipantsTheConfirmationSaysNobodyGetsAnEmail() async {
@@ -150,13 +167,47 @@ final class ClassDateCancelTests: XCTestCase {
 
         XCTAssertNil(model.cancelAsk, "no confirmation without the preview: nothing is cancelled")
         XCTAssertTrue(model.isOffline)
-        XCTAssertEqual(model.cancelOfflineText, TestCatalog(language)["sessions.cancel.offline"])
+        XCTAssertEqual(model.cancelOfflineText, TestCatalog(language)["classes.app.cancelOffline"])
         XCTAssertFalse(model.canStartCancel, "the item is off")
 
         api.sessions.fail(.preview, with: nil)
         await model.refresh()
         XCTAssertFalse(model.isOffline)
         XCTAssertTrue(model.canStartCancel)
+    }
+
+    func test_F026_AC4_theNetworkPathSayingOfflineTurnsLesAnnulerenOffBeforeAnyRequestFails() async {
+        let api = SessionFixtures.api()
+        let date = kracht(api)
+        var online = false
+        let model = screen(api, id: date.id, isOnline: { online })
+        await model.load()
+
+        XCTAssertEqual(model.state, .loaded, "the read worked: only the network path says offline")
+        XCTAssertTrue(model.isOffline)
+        XCTAssertFalse(model.canStartCancel)
+        XCTAssertEqual(model.cancelOfflineText, TestCatalog(language)["classes.app.cancelOffline"])
+        await model.askToCancel()
+        XCTAssertTrue(api.sessions.previews.isEmpty, "nothing is asked of the API without a connection")
+        XCTAssertNil(model.cancelAsk)
+
+        online = true
+        XCTAssertTrue(model.canStartCancel, "back online, Les annuleren is on again")
+        XCTAssertNil(model.cancelOfflineText)
+    }
+
+    func test_F026_AC3_aCancelledDateTellsTheListsToReadAgain() async {
+        let api = SessionFixtures.api()
+        let date = kracht(api)
+        var told = 0
+        let model = screen(api, id: date.id, onCancelled: { told += 1 })
+        await model.load()
+        await model.askToCancel()
+        XCTAssertEqual(told, 0)
+
+        await model.confirmCancel()
+
+        XCTAssertEqual(told, 1, "Vandaag and Agenda read the cancelled date")
     }
 
     func test_F026_AC4_aCancelThatCouldNotReachTheApiSaysItIsOffline() async {
@@ -170,7 +221,7 @@ final class ClassDateCancelTests: XCTestCase {
         await model.confirmCancel()
 
         XCTAssertFalse(model.isCancelled)
-        XCTAssertEqual(model.cancelOfflineText, TestCatalog(language)["sessions.cancel.offline"])
+        XCTAssertEqual(model.cancelOfflineText, TestCatalog(language)["classes.app.cancelOffline"])
     }
 
     func test_F026_AC11_aDateChangedMeanwhileSaysWhoAndIsShownAsItIsNow() async {

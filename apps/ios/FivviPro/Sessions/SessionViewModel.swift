@@ -30,8 +30,8 @@ final class SessionViewModel {
     private(set) var movedText: String?
     /// The person has just cancelled it: the screen says so, as the web's "Sessie geannuleerd." does.
     private(set) var justCancelled = false
-    /// The last read or cancellation couldn't reach the API: *Annuleren* is off and says why.
-    private(set) var isOffline = false
+    /// The last read or cancellation couldn't reach the API (the fallback when the phone's network path said online).
+    private var requestFailedOffline = false
     private(set) var catalog: Catalog
     let workspace: CurrentWorkspace
     private let sessionID: String
@@ -39,13 +39,21 @@ final class SessionViewModel {
     private let canCancelAny: Bool
     private let canCancelOwn: Bool
     private let api: any APIProtocol
+    /// Whether the phone is online, from the network path (`Connectivity`); a model made without one says online.
+    private let isOnline: @MainActor () -> Bool
+    /// Told once the session is cancelled, so the lists that show it (Vandaag, Agenda) read again.
+    private let onCancelled: @MainActor () -> Void
     private let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, catalog: Catalog,
         canCancelAny: Bool = false, canCancelOwn: Bool = false,
+        isOnline: @escaping @MainActor () -> Bool = { true },
+        onCancelled: @escaping @MainActor () -> Void = {},
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
+        self.isOnline = isOnline
+        self.onCancelled = onCancelled
         self.canCancelAny = canCancelAny
         self.canCancelOwn = canCancelOwn
         self.api = api
@@ -119,6 +127,9 @@ final class SessionViewModel {
         movedText = text
     }
 
+    /// *Annuleren* is off: the network path says offline, or the last read or cancellation couldn't reach the API.
+    var isOffline: Bool { requestFailedOffline || !isOnline() }
+
     /// *Annuleren* (PS-06) is offered: the session is still planned and the person may cancel it, the Owner any session and
     /// a Trainer their own.
     var canCancel: Bool {
@@ -145,11 +156,12 @@ final class SessionViewModel {
         session = cancelled
         movedText = nil
         justCancelled = true
-        isOffline = false
+        requestFailedOffline = false
+        onCancelled()
     }
 
     /// A cancellation couldn't reach the API.
-    func cancelWasOffline() { isOffline = true }
+    func cancelWasOffline() { requestFailedOffline = true }
 
     func use(_ catalog: Catalog) { self.catalog = catalog }
 
@@ -173,7 +185,7 @@ final class SessionViewModel {
                 if let current = session, current.version != fresh.version { movedText = nil }
                 session = fresh
                 state = .loaded
-                isOffline = false
+                requestFailedOffline = false
             case .forbidden:
                 await onForbidden(.clients_view)
                 state = .noPermission
@@ -185,7 +197,7 @@ final class SessionViewModel {
             }
         } catch {
             let cause = ClientRequestError(thrown: error)
-            if cause == .offline { isOffline = true }
+            if cause == .offline { requestFailedOffline = true }
             if cause != .cancelled { failed() }
             return
         }

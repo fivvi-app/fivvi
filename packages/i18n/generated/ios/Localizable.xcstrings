@@ -1010,7 +1010,7 @@
                   "one" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "The %arg booked client gets an email. You can add a message to it on the web."
+                      "value" : "The booked client gets an email. You can add a message to it on the web."
                     }
                   },
                   "other" : {
@@ -1038,7 +1038,7 @@
                   "one" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "De %arg geboekte klant krijgt een e-mail. Je kunt er een bericht bij zetten op het web."
+                      "value" : "De geboekte klant krijgt een e-mail. Je kunt er een bericht bij zetten op het web."
                     }
                   },
                   "other" : {
@@ -1050,6 +1050,24 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "classes.app.cancelOffline" : {
+      "comment" : "CO-03 in the apps: shown on the class date page while the phone is offline, where Les annuleren is disabled; nothing is queued.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline. You can cancel once you're back online."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent offline. Annuleren kan als je weer verbinding hebt."
           }
         }
       }
@@ -11682,7 +11700,7 @@
       }
     },
     "sessions.cancel.offline" : {
-      "comment" : "PS-06 and CO-03 in the apps: shown while the phone is offline, where the cancel action is disabled; nothing is queued.",
+      "comment" : "PS-06 in the apps: shown on the session page while the phone is offline, where the cancel action is disabled; nothing is queued. Les annuleren has its own text (classes.app.cancelOffline).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

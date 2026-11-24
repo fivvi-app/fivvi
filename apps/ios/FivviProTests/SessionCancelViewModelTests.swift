@@ -13,11 +13,13 @@ final class SessionCancelViewModelTests: XCTestCase {
 
     private func model(
         _ api: StubAPI, id: String, memberID: String = StubSessions.myMemberID, cancelAny: Bool = false,
-        cancelOwn: Bool = false
+        cancelOwn: Bool = false, isOnline: @escaping @MainActor () -> Bool = { true },
+        onCancelled: @escaping @MainActor () -> Void = {}
     ) -> SessionViewModel {
         SessionViewModel(
             api: api, workspace: SessionFixtures.workspace(as: memberID), sessionID: id,
-            catalog: Catalog(locale: language), canCancelAny: cancelAny, canCancelOwn: cancelOwn
+            catalog: Catalog(locale: language), canCancelAny: cancelAny, canCancelOwn: cancelOwn,
+            isOnline: isOnline, onCancelled: onCancelled
         )
     }
 
@@ -141,6 +143,37 @@ final class SessionCancelViewModelTests: XCTestCase {
         await screen.refresh()
         XCTAssertFalse(screen.isOffline)
         XCTAssertNil(screen.cancelOfflineText)
+    }
+
+    func test_F026_AC4_theNetworkPathSayingOfflineTurnsTheCancelItemOffBeforeAnyRequestFails() async {
+        let api = SessionFixtures.api()
+        let session = planned(api)
+        var online = false
+        let screen = model(api, id: session.id, cancelAny: true, isOnline: { online })
+        await screen.load()
+
+        XCTAssertEqual(screen.state, .loaded, "the read worked: only the network path says offline")
+        XCTAssertTrue(screen.isOffline)
+        XCTAssertEqual(screen.cancelOfflineText, TestCatalog(language)["sessions.cancel.offline"])
+
+        online = true
+        XCTAssertFalse(screen.isOffline, "back online, Annuleren is on again")
+        XCTAssertNil(screen.cancelOfflineText)
+    }
+
+    func test_F026_AC3_aCancellationTellsTheListsToReadAgain() async throws {
+        let api = SessionFixtures.api()
+        let session = planned(api)
+        var told = 0
+        let screen = model(api, id: session.id, cancelAny: true, onCancelled: { told += 1 })
+        await screen.load()
+        let form = try XCTUnwrap(screen.cancelForm(now: SessionFixtures.now))
+        XCTAssertEqual(told, 0, "nothing is cancelled yet")
+
+        let cancelled = await form.cancel()
+        screen.didCancel(try XCTUnwrap(cancelled))
+
+        XCTAssertEqual(told, 1, "Vandaag and Agenda read the cancelled session")
     }
 
     func test_F026_AC4_aCancelThatCouldNotReachTheApiMarksTheScreenOffline() async throws {

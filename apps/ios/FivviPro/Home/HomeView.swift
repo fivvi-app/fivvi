@@ -49,6 +49,8 @@ struct HomeView: View {
     @State var newClass: NewGroupClassViewModel?
     let api: any APIProtocol
     let language: AppLanguage
+    /// Whether the phone is online: TD-02 and TD-03 turn *Annuleren* off without it (F026).
+    let connectivity: Connectivity
     private let welcomeURL: URL
 
     var catalog: Catalog { language.catalog }
@@ -58,8 +60,8 @@ struct HomeView: View {
     /// `onSignedOut` runs after the person signed out and the token is gone; its argument says whether the API
     /// refused the token of the sign-out call.
     init(
-        api: any APIProtocol, store: any SessionStore, language: AppLanguage, welcomeURL: URL,
-        onAccount: @escaping (String) -> Void,
+        api: any APIProtocol, store: any SessionStore, language: AppLanguage, connectivity: Connectivity,
+        welcomeURL: URL, onAccount: @escaping (String) -> Void,
         onSignedOut: @escaping (Bool) -> Void,
         personal: any PersonalStore = FilePersonalStore.shared
     ) {
@@ -82,6 +84,7 @@ struct HomeView: View {
         _account = State(initialValue: account)
         self.api = api
         self.language = language
+        self.connectivity = connectivity
         self.welcomeURL = welcomeURL
     }
 

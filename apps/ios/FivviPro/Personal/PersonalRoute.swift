@@ -74,9 +74,17 @@ struct PersonalDestination: View {
     let api: any APIProtocol
     let language: AppLanguage
     let account: AccountViewModel
+    let connectivity: Connectivity
+    /// A session or class date was cancelled: the tab's list reads again.
+    let onCancelled: @MainActor () -> Void
     @State private var model: PersonalDestinationModel
 
-    init(route: PersonalRoute, api: any APIProtocol, language: AppLanguage, account: AccountViewModel) {
+    init(
+        route: PersonalRoute, api: any APIProtocol, language: AppLanguage, account: AccountViewModel,
+        connectivity: Connectivity, onCancelled: @escaping @MainActor () -> Void
+    ) {
+        self.connectivity = connectivity
+        self.onCancelled = onCancelled
         self.route = route
         self.api = api
         self.language = language
@@ -91,12 +99,13 @@ struct PersonalDestination: View {
                 case let .session(_, id):
                     SessionScreen(
                         api: api, workspace: workspace, sessionID: id, language: language,
-                        capabilities: account.capabilities, onOpenClient: nil
+                        capabilities: account.capabilities, connectivity: connectivity,
+                        onCancelled: onCancelled, onOpenClient: nil
                     )
                 case let .classDate(_, id):
                     ClassDateScreen(
                         api: api, workspace: workspace, sessionID: id, added: nil, language: language,
-                        capabilities: account.capabilities
+                        capabilities: account.capabilities, connectivity: connectivity, onCancelled: onCancelled
                     )
                 }
             } else if let message = model.message(language.catalog) {
