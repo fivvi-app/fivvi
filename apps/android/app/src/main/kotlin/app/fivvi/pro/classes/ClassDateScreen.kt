@@ -10,12 +10,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +50,7 @@ import app.fivvi.designtokens.title1
 import app.fivvi.pro.clients.BackButton
 import app.fivvi.pro.sessions.Loading
 import app.fivvi.pro.sessions.Notice
+import app.fivvi.pro.sessions.SessionFormat
 import app.fivvi.pro.sessions.rememberSessionFormat
 import app.fivvi.pro.sessions.trainerWordForms
 import java.time.ZoneId
@@ -69,6 +74,12 @@ object ClassDateTags {
     const val OWNER_NOTE = "classDate.ownerNote"
     const val MENU = "classDate.menu"
     const val EDIT = "classDate.edit"
+    const val CANCEL = "classDate.cancel"
+    const val CANCELLED = "classDate.cancelled"
+    const val CANCEL_FAILED = "classDate.cancelFailed"
+    const val CANCEL_OFFLINE = "classDate.cancelOffline"
+    const val CANCEL_SUBMIT = "classDate.cancel.submit"
+    const val CANCEL_BACK = "classDate.cancel.back"
     const val LOADING = "classDate.loading"
     const val ERROR = "classDate.error"
     const val RETRY = "classDate.retry"
@@ -83,6 +94,12 @@ class ClassDateActions(
     val onToggleDescription: () -> Unit,
     /** *Les wijzigen* of the Owner's ⋯ menu. */
     val onEdit: () -> Unit,
+    /** *Les annuleren* of the Owner's ⋯ menu (F026): asks the API who would get the email. */
+    val onCancel: () -> Unit = {},
+    /** *Les annuleren* of the confirmation. */
+    val onConfirmCancel: () -> Unit = {},
+    /** *Terug* of the confirmation. */
+    val onDismissCancel: () -> Unit = {},
 )
 
 // Until *Meer*, the description is cut to this many lines.
@@ -92,8 +109,10 @@ private const val CUT_LINES = 3
  * TD-03 *Groepsles* (F021): the class's name with the date and time under it, the description cut to a few lines with
  * *Meer* / *Minder*, a group with the location and the trainer (*Trainer nodig* without one), *{booked}/{capacity}
  * geboekt* with *Nog geen boekingen.*, and for the Owner the footnote that editing, a fixed series and the trainers are
- * managed on the web. The Owner's ⋯ menu has *Les wijzigen*, which says the same; a Trainer has no menu. The sections of
- * later features (participants, attendance, cancelling) are not shown yet. [workspaceName] is named when the person has no
+ * managed on the web. The Owner's ⋯ menu has *Les wijzigen*, which says the same, and below a divider the destructive
+ * *Les annuleren* (F026): a native confirmation that says how many booked clients get an email; a Trainer has no menu. A
+ * cancelled date shows "Geannuleerd op … door …" and no actions. The sections of later features (participants, attendance)
+ * are not shown yet. [workspaceName] is named when the person has no
  * access.
  */
 @Composable
@@ -107,7 +126,7 @@ fun ClassDateScreen(
         Row(Modifier.fillMaxWidth().padding(end = Spacing.space2), verticalAlignment = Alignment.CenterVertically) {
             BackButton(ClassDateTags.BACK, actions.onBack)
             Box(Modifier.weight(1f))
-            if (state.load == ClassDateLoad.Loaded && state.hasMenu) Menu(actions.onEdit)
+            if (state.load == ClassDateLoad.Loaded && state.hasMenu) Menu(state, actions)
         }
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(
@@ -154,6 +173,36 @@ fun ClassDateScreen(
             }
         }
     }
+    state.cancelAsk?.let { CancelDialog(it, actions) }
+}
+
+// The confirmation of *Les annuleren*: says how many booked clients get an email, or that nobody does.
+@Composable
+private fun CancelDialog(ask: CancelAsk, actions: ClassDateActions) {
+    AlertDialog(
+        onDismissRequest = actions.onDismissCancel,
+        modifier = Modifier.testTagsAsIds(),
+        confirmButton = {
+            TextButton(onClick = actions.onConfirmCancel, modifier = Modifier.testTag(ClassDateTags.CANCEL_SUBMIT)) {
+                Text(stringResource(R.string.classes_cancel_submit), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = actions.onDismissCancel, modifier = Modifier.testTag(ClassDateTags.CANCEL_BACK)) {
+                Text(stringResource(R.string.classes_cancel_back))
+            }
+        },
+        title = { Text(stringResource(R.string.classes_cancel_title)) },
+        text = {
+            Text(
+                when {
+                    ask.started -> stringResource(R.string.classes_cancel_started)
+                    ask.participants == 0 -> stringResource(R.string.classes_cancel_count_none)
+                    else -> pluralStringResource(R.plurals.classes_app_cancel_body, ask.participants, ask.participants)
+                },
+            )
+        },
+    )
 }
 
 @Composable
@@ -219,6 +268,13 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
             style = MaterialTheme.typography.subhead,
         )
     }
+    cancelledText(state, format)?.let { Message(it, ClassDateTags.CANCELLED) }
+    cancelFailureText(state.cancelFailure)?.let {
+        Notice(it, ClassDateTags.CANCEL_FAILED, error = true)
+    }
+    if (state.isOffline && state.canCancel) {
+        Notice(stringResource(R.string.classes_app_cancel_offline), ClassDateTags.CANCEL_OFFLINE, error = false)
+    }
     if (state.manageOnWeb) Message(stringResource(R.string.classes_app_manage_on_web), ClassDateTags.MANAGE_ON_WEB)
     state.description(english)?.let { Description(it, state.descriptionOpen, actions.onToggleDescription) }
     InsetGroupedList {
@@ -281,7 +337,7 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
             }
         }
     }
-    if (state.canManage) {
+    if (state.canManage && !state.isCancelled) {
         Text(
             text = stringResource(R.string.classes_app_owner_note, forms.words),
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space4).testTag(ClassDateTags.OWNER_NOTE),
@@ -289,6 +345,33 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
             style = MaterialTheme.typography.footnote,
         )
     }
+}
+
+// "Geannuleerd op di 20 okt om 10:12 door John", on a cancelled date; `null` otherwise.
+@Composable
+private fun cancelledText(state: ClassDateState, format: SessionFormat): String? {
+    if (!state.isCancelled) return null
+    val cancellation = state.session?.cancellation ?: return stringResource(R.string.classes_cancel_already_cancelled)
+    val day = format.day(cancellation.cancelledAt)
+    val time = format.time(cancellation.cancelledAt)
+    // Placeholders in the order of their names: date, name, time.
+    return cancellation.cancelledBy?.let {
+        stringResource(R.string.classes_date_cancelled_banner, day, it.name, time)
+    } ?: stringResource(R.string.classes_date_cancelled_banner_unknown, day, time)
+}
+
+@Composable
+private fun cancelFailureText(failure: CancelFailure?): String? = when (failure) {
+    is CancelFailure.Changed -> failure.byName?.let { stringResource(R.string.classes_cancel_changed_by, it) }
+        ?: stringResource(R.string.classes_cancel_changed_by_unknown)
+
+    CancelFailure.Cancelled -> stringResource(R.string.classes_cancel_already_cancelled)
+
+    CancelFailure.NoPermission -> stringResource(R.string.classes_cancel_no_permission)
+
+    CancelFailure.NotSaved -> stringResource(R.string.classes_cancel_not_saved)
+
+    null -> null
 }
 
 @Composable
@@ -330,9 +413,10 @@ private fun Description(description: ClassText, open: Boolean, onToggle: () -> U
     }
 }
 
-// The Owner's menu: *Les wijzigen*, which says the class is managed on the web. F024 and F026 add their items.
+// The Owner's menu: *Les wijzigen*, which says the class is managed on the web, and below a divider the destructive *Les
+// annuleren* (off while offline). F024 adds its items.
 @Composable
-private fun Menu(onEdit: () -> Unit) {
+private fun Menu(state: ClassDateState, actions: ClassDateActions) {
     var open by rememberSaveable { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }, modifier = Modifier.testTag(ClassDateTags.MENU)) {
@@ -343,9 +427,20 @@ private fun Menu(onEdit: () -> Unit) {
                 text = { Text(stringResource(R.string.classes_app_edit)) },
                 onClick = {
                     open = false
-                    onEdit()
+                    actions.onEdit()
                 },
                 modifier = Modifier.testTag(ClassDateTags.EDIT),
+            )
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.classes_cancel_action)) },
+                onClick = {
+                    open = false
+                    actions.onCancel()
+                },
+                enabled = state.canStartCancel,
+                colors = MenuDefaults.itemColors(textColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.testTag(ClassDateTags.CANCEL),
             )
         }
     }

@@ -57,11 +57,30 @@ data class SessionState(
     val clientRecord: Client? = null,
     /** The session as it was just moved: the screen says where it went. */
     val moved: Session? = null,
+    /** The person has `session.private.cancel.any` (the Owner) or `.own` (a Trainer, for a session of their own) (F026). */
+    val mayCancelAny: Boolean = false,
+    val mayCancelOwn: Boolean = false,
+    /** The phone's connection, from the network (`Connectivity`); the state of a model made without one says online. */
+    val online: Boolean = true,
+    /** The last read or cancellation couldn't reach the API: the fallback when the network said online. */
+    val requestFailedOffline: Boolean = false,
+    /** The person has just cancelled it: the screen says so, as the web's "Sessie geannuleerd." does. */
+    val justCancelled: Boolean = false,
 ) {
     val client: SessionParticipant? get() = session?.participants?.firstOrNull()
     val isCancelled: Boolean get() = session?.status == Session.Status.CANCELLED
     val trainerIsMe: Boolean get() = session?.trainer?.id.let { it != null && it == myTeamMemberId }
     val routeUrl: String? get() = SessionRoute.url(session?.location?.address)
+
+    /** *Annuleren* is off: the network says offline, or the last read or cancellation couldn't reach the API. */
+    val isOffline: Boolean get() = requestFailedOffline || !online
+
+    /**
+     * *Annuleren* (PS-06) is offered: the session is still planned and the person may cancel it, the Owner any session and a
+     * Trainer their own.
+     */
+    val canCancel: Boolean
+        get() = session?.status == Session.Status.SCHEDULED && (mayCancelAny || (mayCancelOwn && trainerIsMe))
 
     /** The language the client's emails go out in: their own, else the workspace's default. */
     val emailLocale: Locale
@@ -105,6 +124,14 @@ class SessionViewModel(
     /** The session moved: it shows the new time at once and says where it went. */
     fun didMove(moved: Session) = _state.update { it.copy(session = moved, moved = moved) }
 
+    /** The session is cancelled: it shows the record at once and says so. */
+    fun didCancel(cancelled: Session) = _state.update {
+        it.copy(session = cancelled, moved = null, justCancelled = true, requestFailedOffline = false)
+    }
+
+    /** A cancellation couldn't reach the API. */
+    fun cancelWasOffline() = _state.update { it.copy(requestFailedOffline = true) }
+
     private fun load() {
         reading?.cancel()
         reading = viewModelScope.launch { read() }
@@ -114,6 +141,7 @@ class SessionViewModel(
         val response = try {
             apis.sessions.getSession(workspaceId, sessionId)
         } catch (_: IOException) {
+            _state.update { it.copy(requestFailedOffline = true) }
             return failed()
         } catch (_: SerializationException) {
             return failed()
@@ -125,6 +153,7 @@ class SessionViewModel(
                 it.copy(
                     load = SessionLoad.Loaded,
                     session = fresh,
+                    requestFailedOffline = false,
                     moved = if (current != null && current.version != fresh.version) null else it.moved,
                 )
             }

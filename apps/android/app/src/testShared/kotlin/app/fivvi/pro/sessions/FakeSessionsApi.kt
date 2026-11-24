@@ -17,6 +17,7 @@ import app.fivvi.api.models.PlannedPrivateSession
 import app.fivvi.api.models.ReschedulePrivateSessionRequest
 import app.fivvi.api.models.ReschedulePrivateSessionResult
 import app.fivvi.api.models.Session
+import app.fivvi.api.models.SessionCancellation
 import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionTrainer
 import app.fivvi.api.models.SetAttendanceRequest
@@ -104,6 +105,20 @@ class FakeSessionsApi : SessionsApi {
     val moved = mutableListOf<Triple<UUID, UUID, ReschedulePrivateSessionRequest>>()
     val read = mutableListOf<UUID>()
 
+    /** Every cancellation asked for: the workspace, the session and the request. */
+    val cancelled = mutableListOf<Triple<UUID, UUID, CancelPrivateSessionRequest>>()
+    val cancelAnswers = ArrayDeque<suspend (UUID, CancelPrivateSessionRequest) -> Response<CancelledPrivateSession>>()
+
+    /** When a cancellation is recorded: Tuesday 22 September 2026, 10:12 in Amsterdam. */
+    var cancelledAt: OffsetDateTime = LocalDateTime.of(2026, 9, 22, 10, 12).atZone(ZoneId.of("Europe/Amsterdam"))
+        .toOffsetDateTime()
+
+    /** Told with the session each time a cancellation is stored: a test makes the lists of Vandaag and Agenda follow. */
+    var onCancelled: (Session) -> Unit = {}
+
+    /** Who changed a session first, as a `409 session_changed` names them. */
+    var changedBy: String? = "Tom"
+
     /** The workspace and the ID of every session read: a screen of Vandaag asks in the workspace of its item (F013 AC4). */
     val readIn = mutableListOf<Pair<UUID, UUID>>()
     val createAnswers = ArrayDeque<suspend (PlanPrivateSessionRequest) -> Response<PlannedPrivateSession>>()
@@ -170,11 +185,41 @@ class FakeSessionsApi : SessionsApi {
         return sessions[sessionId]?.let { Response.success(it) } ?: Response.error(404, "{}".toResponseBody(JSON))
     }
 
+    /**
+     * Cancels the session as the API does (F026): a session cancelled already answers `409 session_cancelled`, one changed since
+     * the request's `version` answers `409 session_changed`; otherwise it is stored as `cancelled` with its record (the time
+     * [cancelledAt], the initiator and [cancelledBy]) and the version counted up. The clients are told (`clientsNotified`) when
+     * the request says `notify` and the session has not started by [cancelledAt].
+     */
     override suspend fun cancelPrivateSession(
         workspaceId: UUID,
         sessionId: UUID,
         cancelPrivateSessionRequest: CancelPrivateSessionRequest,
-    ): Response<CancelledPrivateSession> = error("FakeSessionsApi.cancelPrivateSession is not expected in this test")
+    ): Response<CancelledPrivateSession> {
+        cancelled += Triple(workspaceId, sessionId, cancelPrivateSessionRequest)
+        failure?.let { throw it }
+        if (cancelAnswers.isNotEmpty()) return cancelAnswers.removeFirst()(sessionId, cancelPrivateSessionRequest)
+        val old = sessions[sessionId] ?: return Response.error(404, "{}".toResponseBody(JSON))
+        if (old.status == Session.Status.CANCELLED) return conflict(old, code = "session_cancelled")
+        if (old.version != cancelPrivateSessionRequest.version) return conflict(old, changedBy = changedBy)
+        val record = SessionCancellation(
+            cancelledAt,
+            when (cancelPrivateSessionRequest.initiator) {
+                CancelPrivateSessionRequest.Initiator.CLIENT -> SessionCancellation.Initiator.CLIENT
+                CancelPrivateSessionRequest.Initiator.WORKSPACE -> SessionCancellation.Initiator.WORKSPACE
+            },
+            SessionTrainer(me.id, me.name),
+        )
+        val session = old.copy(status = Session.Status.CANCELLED, version = old.version + 1, cancellation = record)
+        sessions[sessionId] = session
+        onCancelled(session)
+        val told = if (cancelPrivateSessionRequest.notify && old.startsAt.isAfter(cancelledAt)) {
+            old.participants.size
+        } else {
+            0
+        }
+        return Response.success(CancelledPrivateSession(session, told))
+    }
 
     override suspend fun assignTrainer(
         workspaceId: UUID,

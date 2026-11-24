@@ -2,6 +2,7 @@ package app.fivvi.pro.sessions
 
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.LocationAddress
+import app.fivvi.api.models.Session
 import app.fivvi.api.models.Trainer
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.clients.FakeClientsApi
@@ -183,5 +184,52 @@ class SessionViewModelTest {
             "https://www.google.com/maps/dir/?api=1&destination=Damrak%201%2C%201011AB%20Amsterdam",
             viewModel().state.value.routeUrl,
         )
+    }
+
+    @Test
+    fun test_F026_AC5_theOwnerMayCancelAnySessionAndATrainerOnlyTheirOwn() {
+        val state = viewModel(teamMemberId = tom.id).state.value
+
+        assertFalse(state.copy(mayCancelOwn = true).canCancel)
+        assertTrue(state.copy(mayCancelAny = true).canCancel)
+        assertTrue(viewModel(teamMemberId = sarah.id).state.value.copy(mayCancelOwn = true).canCancel)
+        assertFalse(viewModel(teamMemberId = sarah.id).state.value.canCancel)
+    }
+
+    @Test
+    fun test_F026_AC3_aCancelledSessionCannotBeCancelledAgain() {
+        val cancelled = sessionOf(client = anna, trainer = sarah, status = Session.Status.CANCELLED)
+
+        assertFalse(viewModel().state.value.copy(session = cancelled, mayCancelAny = true).canCancel)
+    }
+
+    @Test
+    fun test_F026_AC4_annulerenIsOffWhileTheNetworkSaysOfflineOrTheLastReadCouldNotReachTheApi() {
+        val viewModel = viewModel()
+        assertFalse(viewModel.state.value.isOffline)
+        assertTrue(viewModel.state.value.copy(online = false).isOffline)
+
+        sessions.failure = IOException("offline")
+        viewModel.refresh()
+        assertTrue(viewModel.state.value.isOffline)
+
+        sessions.failure = null
+        viewModel.refresh()
+        assertFalse(viewModel.state.value.isOffline)
+    }
+
+    @Test
+    fun test_F026_AC3_aCancellationShowsTheRecordAtOnceAndSaysSo() {
+        val viewModel = viewModel()
+        val cancelled = session.copy(status = Session.Status.CANCELLED, version = 2)
+
+        viewModel.cancelWasOffline()
+        assertTrue(viewModel.state.value.isOffline)
+        viewModel.didCancel(cancelled)
+
+        assertEquals(cancelled, viewModel.state.value.session)
+        assertTrue(viewModel.state.value.isCancelled)
+        assertTrue(viewModel.state.value.justCancelled)
+        assertFalse(viewModel.state.value.isOffline)
     }
 }

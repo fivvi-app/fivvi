@@ -12,6 +12,7 @@ import app.fivvi.core.AppLanguage
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.net.FakeConnectivity
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.FakeWorkspacesApi
@@ -60,6 +61,8 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
                 sessionKey = "token-1",
                 opening = 1,
                 onBack = {},
+                connectivity = FakeConnectivity(),
+                onCancelled = {},
             )
         }
         compose.waitUntilTagExists(ClassDateTags.TITLE)

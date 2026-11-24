@@ -27,6 +27,8 @@ import app.fivvi.core.LanguageStore
 import app.fivvi.core.auth.InMemorySessionStore
 import app.fivvi.core.auth.Session
 import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.net.Connectivity
+import app.fivvi.core.net.FakeConnectivity
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.pro.classes.FakeGroupClassesApi
 import app.fivvi.pro.clients.FakeClientsApi
@@ -77,6 +79,7 @@ class AppRule : ExternalResource() {
         startTab: ProTab = ProTab.HOME,
         personal: PersonalStore = MemoryPersonalStore(),
         now: Instant? = null,
+        connectivity: Connectivity = FakeConnectivity(),
     ) {
         // The account stores the language of the phone, so the stored preference changes nothing unless a test says so.
         (meApi as? FakeMeApi)?.defaultPreferredLocale = storedOf(perApp + device)
@@ -90,6 +93,7 @@ class AppRule : ExternalResource() {
             override val locationsApi = locationsApi
             override val groupClassesApi = groupClassesApi
             override val session = session
+            override val connectivity = connectivity
 
             override fun signOutApi(token: String) = signOutApi(token)
 

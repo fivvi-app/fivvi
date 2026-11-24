@@ -12,9 +12,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.api.models.Session
+import app.fivvi.api.models.SessionCancellation
 import app.fivvi.core.R
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.InsetGroupedList
@@ -59,6 +62,9 @@ object SessionTags {
     const val RETRY = "session.retry"
     const val NO_PERMISSION = "session.noPermission"
     const val CANCELLED = "session.cancelled"
+    const val CANCEL = "session.cancel"
+    const val CANCEL_DONE = "session.cancelDone"
+    const val CANCEL_OFFLINE = "session.cancelOffline"
     const val MOVED = "session.moved"
     const val LOCATION = "session.location"
     const val ROUTE = "session.route"
@@ -76,13 +82,16 @@ class SessionActions(
     val onOpenClient: (UUID) -> Unit,
     /** Opens the route to the location in the maps app, with the URL it is given. */
     val onRoute: (String) -> Unit,
+    /** *Annuleren* of the ⋯ menu (PS-06, F026): shown while the person may cancel the session. */
+    val onCancel: () -> Unit = {},
 )
 
 /**
  * TD-02 *Privésessie* (F020): the title *Privésessie met Anna* with the date and time under it, a group with the location
  * and its *Route* button (which opens the maps app with the address) and the workspace with the trainer, and the client.
- * The ⋯ menu has *Verplaatsen* (PS-05, for whoever may plan sessions, not for a cancelled session) and *Klantprofiel*.
- * The sections of later features (workout, last time, notes, attendance) are not shown yet.
+ * The ⋯ menu has *Verplaatsen* (PS-05, for whoever may plan sessions, not for a cancelled session), *Klantprofiel* and,
+ * below a divider, the destructive *Annuleren* (PS-06, F026: the Owner for any session, a Trainer for their own; off while
+ * offline). A cancelled session shows "Geannuleerd op … door …" and offers *Klantprofiel* only. The sections of later features (workout, last time, notes, attendance) are not shown yet.
  */
 @Composable
 fun SessionScreen(state: SessionState, workspaceName: String, actions: SessionActions, modifier: Modifier = Modifier) {
@@ -175,8 +184,10 @@ private fun Loaded(session: Session, state: SessionState, workspaceName: String,
             format.time(session.startsAt),
         ),
     )
-    if (state.isCancelled) {
-        Message(stringResource(R.string.sessions_page_cancelled), SessionTags.CANCELLED)
+    if (state.justCancelled) Message(stringResource(R.string.sessions_cancel_done), SessionTags.CANCEL_DONE)
+    if (state.isCancelled) Message(cancelledText(session, format), SessionTags.CANCELLED)
+    if (state.isOffline && state.canCancel) {
+        Message(stringResource(R.string.sessions_cancel_offline), SessionTags.CANCEL_OFFLINE)
     }
     state.moved?.let {
         Message(
@@ -207,6 +218,24 @@ private fun Loaded(session: Session, state: SessionState, workspaceName: String,
                 }
             }
         }
+    }
+}
+
+// "Geannuleerd op do 24 sep om 10:12 door Sarah · op verzoek van de klant"; the plain line when the API sent no record of the
+// cancellation.
+@Composable
+private fun cancelledText(session: Session, format: SessionFormat): String {
+    val cancellation = session.cancellation ?: return stringResource(R.string.sessions_page_cancelled)
+    val day = format.day(cancellation.cancelledAt)
+    val time = format.time(cancellation.cancelledAt)
+    // Placeholders in the order of their names: date, name, time.
+    val banner = cancellation.cancelledBy?.let {
+        stringResource(R.string.sessions_page_cancelled_banner, day, it.name, time)
+    } ?: stringResource(R.string.sessions_page_cancelled_banner_unknown, day, time)
+    return if (cancellation.initiator == SessionCancellation.Initiator.CLIENT) {
+        "$banner · ${stringResource(R.string.sessions_page_cancelled_by_client)}"
+    } else {
+        banner
     }
 }
 
@@ -312,6 +341,19 @@ private fun Menu(state: SessionState, actions: SessionActions) {
                 },
                 modifier = Modifier.testTag(SessionTags.CLIENT_PROFILE),
             )
+            if (state.canCancel) {
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.sessions_cancel_action)) },
+                    onClick = {
+                        open = false
+                        actions.onCancel()
+                    },
+                    enabled = !state.isOffline,
+                    colors = MenuDefaults.itemColors(textColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag(SessionTags.CANCEL),
+                )
+            }
         }
     }
 }
