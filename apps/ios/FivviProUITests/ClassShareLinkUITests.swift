@@ -2,7 +2,7 @@ import XCTest
 
 /// TD-03 *Boekingslink delen* (F037 AC8, AC9, iOS; Android twin: #978), in nl and en, against the stub server: John
 /// (Owner) and Sarah (Trainer, synthetic) share *Kracht* tomorrow at 18:00. A tap sends `POST …/booking-links` for
-/// the date (the same link every time) and shows "Boekingslink gekopieerd"; the clipboard itself is read in the unit
+/// the date (the same link every time) and shows "Boekingslink gekopieerd" in a toast; the clipboard itself is read in the unit
 /// tests, as the runner is another app and iOS asks before it may read the clipboard of the app.
 @MainActor
 final class ClassShareLinkUITests: PrivateSessionUITestCase {
@@ -28,10 +28,10 @@ final class ClassShareLinkUITests: PrivateSessionUITestCase {
         let share = app.buttons["classDate.shareLink"]
         XCTAssertTrue(share.waitUntilExists(timeout: timeout), requestLog)
         XCTAssertEqual(share.label, catalog["classes.app.shareLink"], "Boekingslink delen / Share booking link")
-        XCTAssertFalse(app.staticTexts["classDate.shareCopied"].exists, "nothing is copied before the tap")
+        XCTAssertFalse(app.staticTexts["toast.text"].exists, "nothing is copied before the tap")
         XCTAssertTrue(server.bookingLinkRequests.isEmpty)
 
-        let copied = app.staticTexts["classDate.shareCopied"]
+        let copied = app.staticTexts["toast.text"]
         XCTAssertTrue(share.tap(until: copied, timeout: timeout), requestLog)
         XCTAssertEqual(copied.label, catalog["classes.app.shareLinkCopied"], "Boekingslink gekopieerd")
         let first = try XCTUnwrap(server.bookingLinkRequests.first)
@@ -60,7 +60,7 @@ final class ClassShareLinkUITests: PrivateSessionUITestCase {
         XCTAssertTrue(edit.exists)
         XCTAssertLessThan(item.frame.minY, edit.frame.minY, "the first item, above Les wijzigen")
 
-        XCTAssertTrue(item.tap(until: app.staticTexts["classDate.shareCopied"], timeout: timeout), requestLog)
+        XCTAssertTrue(item.tap(until: app.staticTexts["toast.text"], timeout: timeout), requestLog)
         XCTAssertEqual(server.bookingLinkRequests.first?["sessionId"], date)
     }
 
@@ -71,7 +71,7 @@ final class ClassShareLinkUITests: PrivateSessionUITestCase {
         XCTAssertTrue(share.waitUntilExists(timeout: timeout), requestLog)
         XCTAssertFalse(app.buttons["classDate.menu"].exists, "no ⋯ menu beyond what F021 gives her")
 
-        let copied = app.staticTexts["classDate.shareCopied"]
+        let copied = app.staticTexts["toast.text"]
         XCTAssertTrue(share.tap(until: copied, timeout: timeout), requestLog)
         XCTAssertEqual(copied.label, catalog["classes.app.shareLinkCopied"])
         let sent = try XCTUnwrap(server.bookingLinkRequests.first)

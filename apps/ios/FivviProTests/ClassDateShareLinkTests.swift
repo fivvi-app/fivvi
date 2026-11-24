@@ -13,8 +13,10 @@ import XCTest
 final class ClassDateShareLinkTests: XCTestCase {
     private let language = InterfaceLanguage.resolve(.system())
 
-    /// A date far enough ahead to be still to come whenever the tests run.
-    private static let ahead = "2030-10-01"
+    /// The app's clock is fixed at Monday 16 November 2026, 08:20 (`SessionFixtures.now`): a date to come is the day
+    /// after, a past one is the week before.
+    private static let ahead = "2026-11-17"
+    private static let past = "2026-11-09"
 
     /// What the phone's clipboard holds, as the screen's `copy` writes it.
     private final class Clipboard {
@@ -32,12 +34,13 @@ final class ClassDateShareLinkTests: XCTestCase {
     private func screen(
         _ api: StubAPI, id: String, canManage: Bool = true, canShareLink: Bool = true, clipboard: Clipboard = .init(),
         isOnline: @escaping @MainActor () -> Bool = { true },
+        now: Date = SessionFixtures.now,
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) -> ClassDateViewModel {
         ClassDateViewModel(
             api: api, workspace: SessionFixtures.workspace, sessionID: id, catalog: Catalog(locale: language),
             canManage: canManage, canShareLink: canShareLink, isOnline: isOnline,
-            copy: { clipboard.strings.append($0) }, onForbidden: onForbidden
+            copy: { clipboard.strings.append($0) }, now: { now }, onForbidden: onForbidden
         )
     }
 
@@ -51,7 +54,7 @@ final class ClassDateShareLinkTests: XCTestCase {
         XCTAssertTrue(model.showsShareLink)
         XCTAssertTrue(model.canTapShareLink)
         XCTAssertEqual(model.shareLinkText, TestCatalog(language)["classes.app.shareLink"])
-        XCTAssertNil(model.shareLinkCopiedText, "nothing is copied before the tap")
+        XCTAssertNil(model.shareToast, "nothing is copied before the tap")
 
         await model.shareLink()
 
@@ -64,7 +67,8 @@ final class ClassDateShareLinkTests: XCTestCase {
         let link = try XCTUnwrap(api.bookingLinks.links.first)
         XCTAssertEqual(clipboard.strings, [link.url])
         XCTAssertTrue(link.url.hasPrefix("https://fivvi.app/l/"), link.url)
-        XCTAssertEqual(model.shareLinkCopiedText, TestCatalog(language)["classes.app.shareLinkCopied"])
+        XCTAssertEqual(model.shareToast?.text, TestCatalog(language)["classes.app.shareLinkCopied"])
+        XCTAssertEqual(model.shareToast?.kind, .success, "a toast, which VoiceOver announces by itself")
         XCTAssertNil(model.shareLinkFailureText)
     }
 
@@ -76,13 +80,29 @@ final class ClassDateShareLinkTests: XCTestCase {
         await model.load()
 
         await model.shareLink()
+        let firstToast = model.shareToast
         await model.shareLink()
 
+        XCTAssertNotEqual(model.shareToast?.id, firstToast?.id, "the second tap shows the message again")
         XCTAssertEqual(api.bookingLinks.requests.count, 2)
         XCTAssertEqual(api.bookingLinks.links.count, 1, "get-or-create: one link for the date")
         XCTAssertEqual(clipboard.strings.count, 2)
         XCTAssertEqual(Set(clipboard.strings).count, 1, "the same link both times")
-        XCTAssertEqual(model.shareLinkCopiedText, TestCatalog(language)["classes.app.shareLinkCopied"])
+        XCTAssertEqual(model.shareToast?.text, TestCatalog(language)["classes.app.shareLinkCopied"])
+    }
+
+    func test_F037_AC8_theToastGoesWhenTheScreenHasShownIt() async {
+        let api = SessionFixtures.api()
+        let date = kracht(api)
+        let model = screen(api, id: date.id)
+        await model.load()
+        await model.shareLink()
+        XCTAssertNotNil(model.shareToast)
+
+        model.dismissShareToast()
+
+        XCTAssertNil(model.shareToast)
+        XCTAssertTrue(model.canTapShareLink, "and the button is on again")
     }
 
     func test_F037_AC9_aTrainerGetsTheSameLinkAndHasNoMenu() async throws {
@@ -103,7 +123,7 @@ final class ClassDateShareLinkTests: XCTestCase {
         XCTAssertEqual(api.bookingLinks.links.count, 1)
         XCTAssertFalse(trainer.hasMenu, "no ⋯ menu beyond what F021 gives a Trainer: none")
         XCTAssertFalse(trainer.showsShareLinkInMenu)
-        XCTAssertEqual(trainer.shareLinkCopiedText, TestCatalog(language)["classes.app.shareLinkCopied"])
+        XCTAssertEqual(trainer.shareToast?.text, TestCatalog(language)["classes.app.shareLinkCopied"])
     }
 
     func test_F037_Design_theOwnersMenuHasBoekingslinkDelenAsItsFirstItem() async {
@@ -132,7 +152,7 @@ final class ClassDateShareLinkTests: XCTestCase {
 
     func test_F037_Unavailable_aPastClassDateHasNoBoekingslinkDelen() async {
         let api = SessionFixtures.api()
-        let date = kracht(api, day: "2026-10-13")
+        let date = kracht(api, day: Self.past)
         let owner = screen(api, id: date.id)
         await owner.load()
         XCTAssertFalse(owner.showsShareLink)
@@ -198,7 +218,7 @@ final class ClassDateShareLinkTests: XCTestCase {
         await model.shareLink()
 
         XCTAssertTrue(clipboard.strings.isEmpty)
-        XCTAssertNil(model.shareLinkCopiedText)
+        XCTAssertNil(model.shareToast)
         XCTAssertFalse(model.canTapShareLink)
         XCTAssertEqual(model.shareLinkOfflineText, TestCatalog(language)["classes.app.shareLinkOffline"])
         XCTAssertEqual(api.bookingLinks.requests.count, 1, "not retried by the app")
@@ -224,7 +244,7 @@ final class ClassDateShareLinkTests: XCTestCase {
         XCTAssertEqual(model.shareLinkFailureText, TestCatalog(language)["bookingLinks.errors.noPermission"])
         XCTAssertEqual(told, [.bookingLink_copy])
         XCTAssertTrue(clipboard.strings.isEmpty)
-        XCTAssertNil(model.shareLinkCopiedText)
+        XCTAssertNil(model.shareToast)
     }
 
     func test_F037_Design_anyOtherFailureSaysSomethingWentWrongAndAnEarlierCopiedMessageGoes() async {
@@ -233,12 +253,12 @@ final class ClassDateShareLinkTests: XCTestCase {
         let model = screen(api, id: date.id)
         await model.load()
         await model.shareLink()
-        XCTAssertNotNil(model.shareLinkCopiedText)
+        XCTAssertNotNil(model.shareToast)
         api.bookingLinks.fail(with: .status(500))
 
         await model.shareLink()
 
         XCTAssertEqual(model.shareLinkFailureText, TestCatalog(language)["bookingLinks.errors.generic"])
-        XCTAssertNil(model.shareLinkCopiedText, "the message of the first tap does not stay over a failed second one")
+        XCTAssertNil(model.shareToast, "the message of the first tap does not stay over a failed second one")
     }
 }

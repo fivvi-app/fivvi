@@ -31,10 +31,10 @@ final class ClassDateViewModel {
     /// The confirmation of *Les annuleren*, once the API said who would get the email; nil when it is not asked.
     private(set) var cancelAsk: CancelAsk?
     private(set) var cancelFailure: CancelFailure?
-    /// The last read or cancellation couldn't reach the API (the fallback when the phone's network path said online).
-    var requestFailedOffline = false
+    /// The last read or cancellation couldn't reach the API (the fallback when the phone's network path said online);
+    /// coming through clears the share's too.
+    private var requestFailedOffline = false { didSet { if !requestFailedOffline { share.clearOffline() } } }
     private(set) var isCancelling = false
-    var shareState = ShareState.idle
     private(set) var catalog: Catalog
     let workspace: CurrentWorkspace
     /// The person has `class.manage`: they get the ⋯ menu and the footnote.
@@ -44,17 +44,17 @@ final class ClassDateViewModel {
     /// How many dates the person just added (a new class opens here): 12 for a weekly class, else 1; nil for a date
     /// opened from the calendar.
     private let added: Int?
-    let sessionID: String
-    let api: any APIProtocol
+    private let sessionID: String
+    private let api: any APIProtocol
     /// Whether the phone is online, from the network path (`Connectivity`); a model made without one says online.
     private let isOnline: @MainActor () -> Bool
     /// Told once the date is cancelled, so the lists that show it (Vandaag, Agenda) read again.
     private let onCancelled: @MainActor () -> Void
-    /// Puts a text on the phone's clipboard.
-    let copy: @MainActor (String) -> Void
+    /// *Boekingslink delen*: the request, the toast and what went wrong (`ClassDateViewModel+ShareLink`).
+    let share: BookingLinkShare
     /// The time now, to tell a date to come from one that has started.
     let now: () -> Date
-    let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
+    private let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, catalog: Catalog, canManage: Bool,
@@ -73,7 +73,9 @@ final class ClassDateViewModel {
         self.catalog = catalog
         self.canManage = canManage
         self.canShareLink = canShareLink
-        self.copy = copy
+        self.share = BookingLinkShare(
+            api: api, workspaceID: workspace.id, sessionID: sessionID, copy: copy, onForbidden: onForbidden
+        )
         self.now = now
         self.added = added
         self.onForbidden = onForbidden
@@ -264,7 +266,7 @@ extension ClassDateViewModel {
     var canCancel: Bool { canManage && session?.status == .scheduled }
 
     /// *Les annuleren* is off: the network path says offline, or the last read or cancellation couldn't reach the API.
-    var isOffline: Bool { requestFailedOffline || !isOnline() }
+    var isOffline: Bool { requestFailedOffline || share.requestFailedOffline || !isOnline() }
 
     /// *Les annuleren* is on while the phone is online (nothing is queued).
     var canStartCancel: Bool { canCancel && !isOffline && !isCancelling }
