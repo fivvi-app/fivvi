@@ -18,11 +18,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,7 +44,10 @@ import app.fivvi.core.R
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.InsetGroupedList
 import app.fivvi.core.kit.PillButton
+import app.fivvi.core.kit.PillButtonStack
 import app.fivvi.core.kit.PillButtonStyle
+import app.fivvi.core.kit.ToastHost
+import app.fivvi.core.kit.ToastVisuals
 import app.fivvi.core.ui.testTagsAsIds
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
@@ -78,6 +85,10 @@ object ClassDateTags {
     const val CANCELLED = "classDate.cancelled"
     const val CANCEL_FAILED = "classDate.cancelFailed"
     const val CANCEL_OFFLINE = "classDate.cancelOffline"
+    const val SHARE_LINK = "classDate.shareLink"
+    const val SHARE_LINK_MENU = "classDate.shareLinkMenu"
+    const val SHARE_FAILED = "classDate.shareFailed"
+    const val SHARE_OFFLINE = "classDate.shareOffline"
     const val CANCEL_SUBMIT = "classDate.cancel.submit"
     const val CANCEL_BACK = "classDate.cancel.back"
     const val CANCEL_BODY = "classDate.cancel.body"
@@ -101,6 +112,8 @@ class ClassDateActions(
     val onConfirmCancel: () -> Unit = {},
     /** *Terug* of the confirmation. */
     val onDismissCancel: () -> Unit = {},
+    /** *Boekingslink delen* (F037), the button below the booked card and the first item of the Owner's ⋯ menu. */
+    val onShareLink: () -> Unit = {},
 )
 
 // Until *Meer*, the description is cut to this many lines.
@@ -110,9 +123,10 @@ private const val CUT_LINES = 3
  * TD-03 *Groepsles* (F021): the class's name with the date and time under it, the description cut to a few lines with
  * *Meer* / *Minder*, a group with the location and the trainer (*Trainer nodig* without one), *{booked}/{capacity}
  * geboekt* with *Nog geen boekingen.*, and for the Owner the footnote that editing, a fixed series and the trainers are
- * managed on the web. The Owner's ⋯ menu has *Les wijzigen*, which says the same, and below a divider the destructive
- * *Les annuleren* (F026): a native confirmation that says how many booked clients get an email; a Trainer has no menu. A
- * cancelled date shows "Geannuleerd op … door …" and no actions. The sections of later features (participants,
+ * managed on the web. The Owner's ⋯ menu starts with *Boekingslink delen* (F037, "Boekingslink gekopieerd" in a toast; also a
+ * button below the booked card, for the Owner and the Trainers, not on a cancelled or past date), has *Les wijzigen*, which
+ * says the same, and below a divider the destructive *Les annuleren* (F026): a native confirmation that says how many
+ * booked clients get an email; a Trainer has no menu. A cancelled date shows "Geannuleerd op … door …" and no actions. The sections of later features (participants,
  * attendance) are not shown yet. [workspaceName] is named when the person has no access.
  */
 @Composable
@@ -122,7 +136,25 @@ fun ClassDateScreen(
     actions: ClassDateActions,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxSize().safeDrawingPadding()) {
+    val toasts = remember { SnackbarHostState() }
+    val copiedText = stringResource(R.string.classes_app_share_link_copied)
+    // "Boekingslink gekopieerd" shows each time the link was copied, once: not again when the screen is turned.
+    var announced by rememberSaveable { mutableIntStateOf(state.copied) }
+    LaunchedEffect(state.copied) {
+        if (state.copied > announced) {
+            announced = state.copied
+            toasts.showSnackbar(ToastVisuals(copiedText))
+        }
+    }
+    Box(modifier.fillMaxSize()) {
+        ClassDateContent(state, workspaceName, actions)
+        ToastHost(toasts, Modifier.align(Alignment.BottomCenter).safeDrawingPadding().padding(Spacing.space4))
+    }
+}
+
+@Composable
+private fun ClassDateContent(state: ClassDateState, workspaceName: String, actions: ClassDateActions) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         Row(Modifier.fillMaxWidth().padding(end = Spacing.space2), verticalAlignment = Alignment.CenterVertically) {
             BackButton(ClassDateTags.BACK, actions.onBack)
             Box(Modifier.weight(1f))
@@ -276,6 +308,10 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
     if (state.isOffline && state.canCancel) {
         Notice(stringResource(R.string.classes_app_cancel_offline), ClassDateTags.CANCEL_OFFLINE, error = false)
     }
+    shareFailureText(state.shareFailure)?.let { Notice(it, ClassDateTags.SHARE_FAILED, error = true) }
+    if (state.isOffline && state.showsShareLink) {
+        Notice(stringResource(R.string.classes_app_share_link_offline), ClassDateTags.SHARE_OFFLINE, error = false)
+    }
     if (state.manageOnWeb) Message(stringResource(R.string.classes_app_manage_on_web), ClassDateTags.MANAGE_ON_WEB)
     state.description(english)?.let { Description(it, state.descriptionOpen, actions.onToggleDescription) }
     InsetGroupedList {
@@ -338,6 +374,17 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
             }
         }
     }
+    if (state.showsShareLink) {
+        PillButtonStack {
+            PillButton(
+                text = stringResource(R.string.classes_app_share_link),
+                onClick = actions.onShareLink,
+                modifier = Modifier.testTag(ClassDateTags.SHARE_LINK),
+                style = PillButtonStyle.Tonal,
+                enabled = state.canTapShareLink,
+            )
+        }
+    }
     if (state.canManage && !state.isCancelled) {
         Text(
             text = stringResource(R.string.classes_app_owner_note, forms.words),
@@ -372,6 +419,13 @@ private fun cancelFailureText(failure: CancelFailure?): String? = when (failure)
 
     CancelFailure.NotSaved -> stringResource(R.string.classes_cancel_not_saved)
 
+    null -> null
+}
+
+@Composable
+private fun shareFailureText(failure: ShareFailure?): String? = when (failure) {
+    ShareFailure.NoPermission -> stringResource(R.string.booking_links_errors_no_permission)
+    ShareFailure.NotShared -> stringResource(R.string.booking_links_errors_generic)
     null -> null
 }
 
@@ -414,7 +468,7 @@ private fun Description(description: ClassText, open: Boolean, onToggle: () -> U
     }
 }
 
-// The Owner's menu: *Les wijzigen*, which says the class is managed on the web, and below a divider the destructive *Les
+// The Owner's menu: *Boekingslink delen* (F037, off while offline) first, *Les wijzigen*, which says the class is managed on the web, and below a divider the destructive *Les
 // annuleren* (off while offline). F024 adds its items.
 @Composable
 private fun Menu(state: ClassDateState, actions: ClassDateActions) {
@@ -424,6 +478,17 @@ private fun Menu(state: ClassDateState, actions: ClassDateActions) {
             Icon(painterResource(R.drawable.ic_more), contentDescription = stringResource(R.string.sessions_page_more))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }, modifier = Modifier.testTagsAsIds()) {
+            if (state.showsShareLinkInMenu) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.classes_app_share_link)) },
+                    onClick = {
+                        open = false
+                        actions.onShareLink()
+                    },
+                    enabled = state.canTapShareLink,
+                    modifier = Modifier.testTag(ClassDateTags.SHARE_LINK_MENU),
+                )
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.classes_app_edit)) },
                 onClick = {

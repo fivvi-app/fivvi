@@ -1,5 +1,6 @@
 package app.fivvi.pro.classes
 
+import app.fivvi.api.apis.BookingLinksApi
 import app.fivvi.api.apis.GroupClassesApi
 import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.SessionsApi
@@ -13,4 +14,6 @@ class ClassApis(
     val locations: LocationsApi,
     val trainers: TrainersApi,
     val workspaces: WorkspacesApi,
+    /** *Boekingslink delen* of TD-03 (F037). */
+    val bookingLinks: BookingLinksApi,
 )

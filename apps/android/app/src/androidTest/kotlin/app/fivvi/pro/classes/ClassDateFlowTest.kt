@@ -23,6 +23,7 @@ import app.fivvi.pro.sessions.trainerOf
 import app.fivvi.pro.showAtLargestFontScale
 import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
+import java.time.Instant
 import java.util.UUID
 import org.junit.Rule
 import org.junit.Test
@@ -46,7 +47,15 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         classes.classes[mobility.id] = mobility
         val date = classDateOf(UUID.randomUUID(), mobility, sarah)
         sessions.sessions[date.id] = date
-        val apis = ClassApis(classes, sessions, FakeLocationsApi(), FakeTrainersApi(), FakeWorkspacesApi())
+        val apis =
+            ClassApis(
+                classes,
+                sessions,
+                FakeLocationsApi(),
+                FakeTrainersApi(),
+                FakeWorkspacesApi(),
+                FakeBookingLinksApi(),
+            )
         compose.showAtLargestFontScale(language, height = 1_800.dp) {
             // The account read that follows a refusal fails, so what a 403 took away stays away.
             val listed = viewModel(key = "capabilities") {
@@ -68,6 +77,7 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
                 onBack = {},
                 connectivity = FakeConnectivity(),
                 onCancelled = {},
+                now = { Instant.parse("2026-11-16T07:20:00Z") },
             )
         }
         compose.waitUntilTagExists(ClassDateTags.TITLE)
