@@ -271,9 +271,9 @@ jobs:
     # after the other. A job of its own like CI's `Android Maestro`, so it runs next to the Android tests instead of
     # behind them. No secret here; every release job waits for it.
     runs-on: ubuntu-24.04
-    # What the job spends: the setup before the emulator boots (5 min), the boot (10 at most), the step (40, below) and the
-    # steps after it (5): 5 + 10 + 40 + 5 = 60. CI's `Android Maestro` has 40, with the app already built.
-    timeout-minutes: 60
+    # What the job spends: the setup before the emulator boots (5 min), the boot (10 at most), the step (55, below) and the
+    # steps after it (5): 5 + 10 + 55 + 5 = 75. CI's `Android Maestro` has 60, with the app already built.
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -349,13 +349,13 @@ jobs:
           EMULATOR_BOOT_TIMEOUT: '480'
         run: scripts/android.sh emulator
 
-      # CI gives the flows of both languages 30 minutes with a prebuilt app (14 to 20 measured). Here the step also builds
-      # the debug app and starts the stack, as `pnpm test:maestro` does, so the build gets 10 more, as the tests step above
-      # gets for its build: 30 + 10 = 40. Measured in run 43717147404: nl-NL alone took about 11 minutes from the start of
+      # CI gives the flows of both languages 45 minutes with a prebuilt app (24 to 31 measured in November 2026, #1578).
+      # Here the step also builds the debug app and starts the stack, as `pnpm test:maestro` does, so the build gets 10
+      # more, as the tests step above gets for its build: 45 + 10 = 55. Measured in run 43717147404: nl-NL alone took about 11 minutes from the start of
       # the step (1 min 40 s for the stack and the build with a warm Gradle cache, then 9 min 18 s of flows), so both
       # languages take about 21 minutes, more with a cold Gradle cache. A step that hangs ends the job.
       - name: Maestro flows (nl-NL and en)
-        timeout-minutes: 40
+        timeout-minutes: 55
         run: scripts/release.sh tests android-maestro
 
       # The emulator must not be running when the cache of it is saved.
