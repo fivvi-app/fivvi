@@ -82,6 +82,8 @@ export default async function WorkspaceCalendarPage({
         canSeeClients: can('clients.view'),
         canManageCalendar: can('calendar.manage'),
         canAssign: can('session.assign'),
+        canCancelAny: can('session.private.cancel.any'),
+        canCancelOwn: can('session.private.cancel.own'),
         teamMemberId: workspace.teamMemberId,
       }}
     />

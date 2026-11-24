@@ -32,6 +32,9 @@ export interface CalendarAccess {
   canManageCalendar: boolean;
   /** `session.assign` (the Owner): *Trainer toewijzen* / *Trainer vervangen* / *Trainer wijzigen* (F023). */
   canAssign: boolean;
+  /** `session.private.cancel.any` (the Owner), or `.own` for the sessions where they are the trainer: *Annuleren* (F026). */
+  canCancelAny: boolean;
+  canCancelOwn: boolean;
   /** The signed-in person's own team-member ID: *Jij* and *own session*, never decided by name. */
   teamMemberId: string;
 }
@@ -103,6 +106,8 @@ function QuickViewBody({
   const free = Math.max(item.capacity - (item.booked ?? 0), 0);
   const actions = quickViewActions(item, access);
   const assign = useTranslations('sessions.trainerDialog');
+  const cancel = useTranslations('sessions.cancel');
+  const cancelClass = useTranslations('classes.cancel');
   return (
     <>
       <DialogHeader>
@@ -167,6 +172,16 @@ function QuickViewBody({
                   ? assign('titleSubstitute', { ...trainerWord })
                   : assign('titleChange', { ...trainerWord })}
             </Link>
+          </Button>
+        ) : null}
+        {actions.cancel ? (
+          <Button asChild variant="outline">
+            <Link href={`${href}?cancel=1` as Route}>{cancel('action')}</Link>
+          </Button>
+        ) : null}
+        {actions.cancelClass ? (
+          <Button asChild variant="outline">
+            <Link href={`${href}?cancel=1` as Route}>{cancelClass('action')}</Link>
           </Button>
         ) : null}
         {actions.clientProfile && client ? (

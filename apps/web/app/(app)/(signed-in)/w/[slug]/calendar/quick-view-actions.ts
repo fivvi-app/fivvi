@@ -13,6 +13,10 @@ export interface QuickViewActions {
   clientProfile: boolean;
   /** The Owner's *Trainer toewijzen* / *Trainer vervangen* (a class date) or *Trainer wijzigen* (a private session), F023. */
   assign: AssignKind | null;
+  /** *Annuleren* (PS-06, F026): a private session that is not cancelled, for an Owner or the session's own trainer. */
+  cancel: boolean;
+  /** *Les annuleren* (CO-03, F026): a class date that is not cancelled, for a person who manages classes (the Owner). */
+  cancelClass: boolean;
 }
 
 /**
@@ -37,5 +41,7 @@ export function quickViewActions(
       access.canSeeClients &&
       (own || access.canMoveAny),
     assign: access.canAssign ? assignKind(item) : null,
+    cancel: isPrivate && !cancelled && (access.canCancelAny || (access.canCancelOwn && own)),
+    cancelClass: !isPrivate && !cancelled && access.canChangeClasses,
   };
 }

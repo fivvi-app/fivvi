@@ -393,3 +393,142 @@ test.describe('F026 CO-03 Les annuleren? on CO-01 and the stopped series', () =>
     await expect(page.getByRole('button', { name: t('action'), exact: true })).toHaveCount(0);
   });
 });
+
+/** Today in Dutch time, `YYYY-MM-DD`: the day *Mijn dag* shows. */
+const today = () =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam' }).format(new Date());
+
+test.describe('F026 cancelling from the calendar and the cancelled items on every calendar', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  /** The blocks of the workspace calendar: each opens the quick view. */
+  const blocks = (page: Page) => page.getByRole('main').locator('button[aria-haspopup="dialog"]');
+
+  test('AC3: the cancelled session stays on Mijn dag, Mijn agenda and John’s Gym’s calendar, struck through with Geannuleerd', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    test.slow();
+    const w = await team(page, context);
+    const anna = await seedClient(page.request, w.base, 'Anna de Vries', 'nl-NL');
+    const session = await seedPrivate(page.request, w.base, {
+      clientId: anna.id,
+      trainerId: w.trainer('Sarah'),
+      localDate: today(),
+      localStart: '09:00',
+    });
+    const answer = await page.request.post(`${w.base}/sessions/${session.id}/cancel`, {
+      data: { initiator: 'client', notify: false, version: session.version },
+    });
+    expect(answer.status()).toBe(200);
+
+    // The workspace calendar (John).
+    await page.goto(`/w/${w.slug}/calendar?date=${today()}&view=week`);
+    const cancelled = blocks(page).filter({ hasText: copy.myCalendar.cancelled });
+    await expect(cancelled).toHaveCount(1);
+    await expect(cancelled.getByText(`${copy.myCalendar.typePrivate} · Anna de Vries`)).toHaveCSS(
+      'text-decoration-line',
+      'line-through',
+    );
+
+    // Mijn dag and Mijn agenda (Sarah, the session's trainer).
+    await signInWithSession(context, w.sarah);
+    await page.goto('/me/day');
+    const row = page.getByRole('link', { name: new RegExp(copy.myDay.cancelled) });
+    await expect(row).toHaveCount(1);
+    await expect(row).toHaveAttribute('href', `/w/${w.slug}/sessions/${session.id}`);
+    await expect(row.getByText('Anna de Vries')).toHaveCSS('text-decoration-line', 'line-through');
+    await page.goto('/me/calendar');
+    const block = page.locator(`a[href$="/sessions/${session.id}"]`);
+    await expect(block).toContainText(copy.myCalendar.cancelled);
+    await expect(block.getByText(`${copy.myCalendar.typePrivate} · Anna de Vries`)).toHaveCSS(
+      'text-decoration-line',
+      'line-through',
+    );
+  });
+
+  test('AC5: the quick view offers Annuleren and Les annuleren to John, Annuleren on their own session to Sarah and neither to Tom on a colleague’s', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const w = await team(page, context);
+    const cancel = cancelText(appLocale, copy);
+    const classes = classText(appLocale, copy);
+    const anna = await seedClient(page.request, w.base, 'Anna de Vries', 'nl-NL');
+    const mark = await seedClient(page.request, w.base, 'Mark Jansen', 'en');
+    const sarahs = await seedPrivate(page.request, w.base, {
+      clientId: anna.id,
+      trainerId: w.trainer('Sarah'),
+      localDate: tuesday(),
+      localStart: '07:00',
+    });
+    await seedPrivate(page.request, w.base, {
+      clientId: mark.id,
+      trainerId: w.trainer('Tom'),
+      localDate: tuesday(),
+      localStart: '08:30',
+    });
+    const series = await seedKracht(page.request, w.base, w.trainer('Sarah'));
+    const calendar = `/w/${w.slug}/calendar?date=${tuesday()}&view=week`;
+    const quickView = page.getByRole('dialog');
+
+    // John: both, and Annuleren opens PS-06 on the session page.
+    await page.goto(calendar);
+    await blocks(page).filter({ hasText: 'Mark Jansen' }).click();
+    await expect(
+      quickView.getByRole('link', { name: cancel('action'), exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await blocks(page).filter({ hasText: 'Anna de Vries' }).click();
+    await quickView.getByRole('link', { name: cancel('action'), exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/sessions/${sarahs.id}\\?cancel=1$`));
+    await expect(page.getByRole('dialog', { name: cancel('title') })).toBeVisible();
+    await expectNoAxeViolations(page, `PS-06 from the quick view in ${appLocale}`);
+
+    // Les annuleren opens CO-03 on CO-01.
+    await page.goto(calendar);
+    await blocks(page).filter({ hasText: 'Kracht' }).first().click();
+    await quickView.getByRole('link', { name: classes('action'), exact: true }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/classes/${series.classId}/${series.dates[0]}\\?cancel=1$`),
+    );
+    await expect(page.getByRole('dialog', { name: classes('title') })).toBeVisible();
+
+    // Sarah: Annuleren on her own session, nothing on Tom's, no Les annuleren.
+    await signInWithSession(context, w.sarah);
+    await page.goto(calendar);
+    await blocks(page).filter({ hasText: 'Anna de Vries' }).click();
+    await expect(
+      quickView.getByRole('link', { name: cancel('action'), exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await blocks(page).filter({ hasText: 'Mark Jansen' }).click();
+    await expect(quickView.getByRole('link', { name: cancel('action'), exact: true })).toHaveCount(
+      0,
+    );
+    await page.keyboard.press('Escape');
+    await blocks(page).filter({ hasText: 'Kracht' }).first().click();
+    await expect(quickView.getByRole('link', { name: classes('action'), exact: true })).toHaveCount(
+      0,
+    );
+
+    // Tom: Annuleren on his own session only.
+    await signInWithSession(context, w.tom);
+    await page.goto(calendar);
+    await blocks(page).filter({ hasText: 'Anna de Vries' }).click();
+    await expect(quickView.getByRole('link', { name: cancel('action'), exact: true })).toHaveCount(
+      0,
+    );
+    await page.keyboard.press('Escape');
+    await blocks(page).filter({ hasText: 'Mark Jansen' }).click();
+    await expect(
+      quickView.getByRole('link', { name: cancel('action'), exact: true }),
+    ).toBeVisible();
+  });
+});
