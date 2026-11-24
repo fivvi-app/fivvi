@@ -90,6 +90,8 @@
   },
   "classes": {
     "app": {
+      "cancelBody": "{participants, plural, one {De geboekte klant krijgt een e-mail. Je kunt er een bericht bij zetten op het web.} other {De # geboekte klanten krijgen een e-mail. Je kunt er een bericht bij zetten op het web.}}",
+      "cancelOffline": "Je bent offline. Annuleren kan als je weer verbinding hebt.",
       "capacityLess": "Capaciteit verlagen",
       "capacityMore": "Capaciteit verhogen",
       "descriptionInDutch": "In het Nederlands",
@@ -912,6 +914,7 @@
       "nudgeCancelAnyway": "Toch annuleren",
       "nudgeQuestion": "Al een ander moment voorgesteld?",
       "nudgeReschedule": "Verplaatsen",
+      "offline": "Je bent offline. Annuleren kan als je weer verbinding hebt.",
       "started": "Deze sessie is al begonnen. De klant krijgt geen e-mail.",
       "submit": "Sessie annuleren",
       "subtitle": "{client} · {date}, {start}–{end}",

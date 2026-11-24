@@ -13,6 +13,8 @@ struct FivviProApp: App {
     private let api: Client
     private let store: KeychainSessionStore
     private let language: AppLanguage
+    /// Whether the phone is online (the network path, or a fixed answer in a UI test): *Annuleren* is off without it.
+    @State private var connectivity: Connectivity
 
     init() {
         ErrorReporting.start()
@@ -38,6 +40,9 @@ struct FivviProApp: App {
         language = AppLanguage(api: api, store: store)
         self.store = store
         _session = State(initialValue: session)
+        let connectivity = Connectivity.forLaunch()
+        connectivity.start()
+        _connectivity = State(initialValue: connectivity)
     }
 
     var body: some Scene {
@@ -57,10 +62,10 @@ struct FivviProApp: App {
             if KitGallery.isRequested() {
                 KitGalleryView(catalog: language.catalog)
             } else {
-                RootView(session: session, api: api, store: store, language: language)
+                RootView(session: session, api: api, store: store, language: language, connectivity: connectivity)
             }
         #else
-            RootView(session: session, api: api, store: store, language: language)
+            RootView(session: session, api: api, store: store, language: language, connectivity: connectivity)
         #endif
     }
 }

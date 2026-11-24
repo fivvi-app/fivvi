@@ -2,6 +2,7 @@ import SwiftUI
 import FivviAPI
 import FivviSession
 import FivviLanguage
+import FivviUI
 import FivviSignIn
 import FivviObservability
 
@@ -12,6 +13,7 @@ struct RootView: View {
     let api: any APIProtocol
     let store: any SessionStore
     let language: AppLanguage
+    let connectivity: Connectivity
     /// The API's base URL; trainer web is on the same host.
     var apiBaseURL = AppConfiguration.apiBaseURL()
 
@@ -25,7 +27,7 @@ struct RootView: View {
             )
         case .signedIn:
             HomeView(
-                api: api, store: store, language: language,
+                api: api, store: store, language: language, connectivity: connectivity,
                 welcomeURL: AppConfiguration.welcomeURL(apiBaseURL: apiBaseURL), onAccount: ErrorReporting.setUser,
                 onSignedOut: { session.signedOut(afterRejection: $0) }
             )

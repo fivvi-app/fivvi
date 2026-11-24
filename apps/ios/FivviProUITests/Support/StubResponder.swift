@@ -28,6 +28,7 @@ final class Responder: @unchecked Sendable {
         self.signIn = signIn
         clientRoutes = StubClientRoutes(empty: signIn.hasNoClients)
         sessionRoutes = StubSessionRoutes(signIn: signIn, clients: clientRoutes)
+        personalRoutes.isCancelled = { [sessionRoutes] in sessionRoutes.isCancelled($0) }
         storedLocale = signIn.preferredLocale
         storedName = signIn.name
     }

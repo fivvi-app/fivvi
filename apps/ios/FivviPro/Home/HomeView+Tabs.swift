@@ -25,6 +25,13 @@ struct StudioKey: Hashable {
 }
 
 extension HomeView {
+    /// A session or class date was cancelled on TD-02 or TD-03: Vandaag and the days of Agenda read again, so they show it
+    /// (F026 AC3).
+    func personalChanged() async {
+        await today.load()
+        await agenda.load()
+    }
+
     var studioKey: StudioKey {
         StudioKey(workspaceID: account.workspace?.id, canManage: account.capabilities.allows(.calendar_manage))
     }
@@ -54,7 +61,10 @@ extension HomeView {
             }
             .toolbar { newMenu(from: .today, enabled: !today.isOffline) }
             .navigationDestination(for: PersonalRoute.self) { route in
-                PersonalDestination(route: route, api: api, language: language, account: account)
+                PersonalDestination(
+                    route: route, api: api, language: language, account: account, connectivity: connectivity,
+                    onCancelled: { Task { await personalChanged() } }
+                )
             }
         }
     }
@@ -73,7 +83,10 @@ extension HomeView {
                 // **+** in the bar as in the prototype (Agenda's "Nieuw"), off without a connection as on Vandaag.
                 .toolbar { newMenu(from: .calendar, enabled: !agenda.isOffline) }
                 .navigationDestination(for: PersonalRoute.self) { route in
-                    PersonalDestination(route: route, api: api, language: language, account: account)
+                    PersonalDestination(
+                    route: route, api: api, language: language, account: account, connectivity: connectivity,
+                    onCancelled: { Task { await personalChanged() } }
+                )
                 }
         }
     }

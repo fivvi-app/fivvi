@@ -7,8 +7,10 @@ import FivviUI
 
 /// TD-02 *Privésessie* (F020): the title *Privésessie met Anna* with the date and time under it, a group with the
 /// location and its *Route* button (which opens the maps app with the address) and the workspace with the trainer, and
-/// the client. The ⋯ menu has *Verplaatsen* (PS-05, for whoever may plan sessions, not for a cancelled session) and
-/// *Klantprofiel*. The sections of later features (workout, last time, notes, attendance) are not shown yet.
+/// the client. The ⋯ menu has *Verplaatsen* (PS-05, for whoever may plan sessions, not for a cancelled session),
+/// *Klantprofiel* and, below a divider, the destructive *Annuleren* (PS-06, F026: the Owner for any session, a Trainer for
+/// their own; off while offline). A cancelled session shows "Geannuleerd op … door …" and offers *Klantprofiel* only. The
+/// sections of later features (workout, last time, notes, attendance) are not shown yet.
 struct SessionView: View {
     let model: SessionViewModel
     let language: AppLanguage
@@ -18,7 +20,20 @@ struct SessionView: View {
     /// its actions follow the current workspace's permissions, so it isn't offered across workspaces (F013).
     let onOpenClient: ((String) -> Void)?
     @Environment(\.openURL) private var openURL
-    @State private var rescheduling: RescheduleViewModel?
+    @State private var sheet: Sheet?
+
+    /// PS-05 or PS-06: one sheet at a time, so the question of PS-06 can hand over to PS-05 without a second sheet.
+    private enum Sheet: Identifiable {
+        case reschedule(RescheduleViewModel)
+        case cancel(CancelSessionViewModel)
+
+        var id: UUID {
+            switch self {
+            case let .reschedule(form): form.id
+            case let .cancel(form): form.id
+            }
+        }
+    }
 
     private var catalog: Catalog { model.catalog }
 
@@ -44,19 +59,38 @@ struct SessionView: View {
         .task { await model.load() }
         .onReturnToForeground { await model.refresh() }
         .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
-        .sheet(item: $rescheduling) { form in
-            NavigationStack {
-                RescheduleView(
-                    model: form, language: language,
-                    onMoved: { moved in
-                        model.didMove(moved, text: form.movedText(moved))
-                        rescheduling = nil
-                    },
-                    onCancel: { rescheduling = nil }
-                )
+        .sheet(item: $sheet, onDismiss: { Task { await model.refresh() } }, content: { sheet in
+            switch sheet {
+            case let .reschedule(form):
+                NavigationStack {
+                    RescheduleView(
+                        model: form, language: language,
+                        onMoved: { moved in
+                            model.didMove(moved, text: form.movedText(moved))
+                            self.sheet = nil
+                        },
+                        onCancel: { self.sheet = nil }
+                    )
+                }
+                .presentationDetents([.large])
+            case let .cancel(form):
+                NavigationStack {
+                    CancelSessionView(
+                        model: form, language: language,
+                        onCancelled: { cancelled in
+                            model.didCancel(cancelled)
+                            self.sheet = nil
+                        },
+                        onReschedule: { self.sheet = model.rescheduleForm().map(Sheet.reschedule) },
+                        onBack: {
+                            if form.isOffline { model.cancelWasOffline() }
+                            self.sheet = nil
+                        }
+                    )
+                }
+                .presentationDetents([.large])
             }
-            .presentationDetents([.large])
-        }
+        })
         .environment(\.locale, catalog.formattingLocale)
     }
 
@@ -84,8 +118,14 @@ struct SessionView: View {
 
     private var loaded: some View {
         LargeTitleScreen(title: model.title, subtitle: model.whenText, titleIdentifier: "session.title") {
+            if let done = model.cancelledDoneText {
+                StatusMessage(text: done, kind: .success, id: "session.cancelDone")
+            }
             if model.isCancelled {
                 StatusMessage(text: model.cancelledText, kind: .info, id: "session.cancelled")
+            }
+            if let offline = model.cancelOfflineText {
+                StatusMessage(text: offline, kind: .info, id: "session.cancelOffline")
             }
             if let moved = model.movedText {
                 StatusMessage(text: moved, kind: .success, id: "session.moved")
@@ -168,15 +208,23 @@ struct SessionView: View {
     }
 
     @ViewBuilder private var menu: some View {
-        if model.client != nil, canMove || onOpenClient != nil {
+        if model.client != nil, canMove || model.canCancel || onOpenClient != nil {
             Menu {
                 if canMove, !model.isCancelled {
-                    Button(catalog[.sessionPageReschedule]) { rescheduling = model.rescheduleForm() }
+                    Button(catalog[.sessionPageReschedule]) { sheet = model.rescheduleForm().map(Sheet.reschedule) }
                         .accessibilityIdentifier("session.reschedule")
                 }
                 if let client = model.client, let onOpenClient {
                     Button(catalog[.sessionPageClientProfile]) { onOpenClient(client.clientId) }
                         .accessibilityIdentifier("session.clientProfile")
+                }
+                if model.canCancel {
+                    Divider()
+                    Button(catalog[.sessionCancelAction], role: .destructive) {
+                        sheet = model.cancelForm(canReschedule: canMove).map(Sheet.cancel)
+                    }
+                    .disabled(model.isOffline)
+                    .accessibilityIdentifier("session.cancel")
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")

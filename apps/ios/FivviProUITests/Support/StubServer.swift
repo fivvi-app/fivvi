@@ -111,6 +111,23 @@ final class StubServer: Sendable {
     /// The reschedule bodies the app sent so far, with the session's ID as `sessionId` (F020).
     var movedSessions: [[String: String]] { responder.sessionRoutes.moves }
 
+    /// The cancel bodies the app sent so far (`POST …/cancel`), each value as text, with the session's ID as `sessionId`
+    /// (F026).
+    var cancelledSessions: [[String: String]] { responder.sessionRoutes.cancels }
+
+    /// The class-date cancel bodies the app sent so far (`POST …/cancel-class`), like `cancelledSessions` (F026).
+    var cancelledClassDates: [[String: String]] { responder.sessionRoutes.classCancels }
+
+    /// Puts `count` people (at most 3) on the seeded class date, so its cancellation has people to email (F026).
+    func bookOnSeededClassDate(_ count: Int) {
+        responder.sessionRoutes.bookOnSeededClassDate(count)
+    }
+
+    /// The seeded private session is a colleague's: its trainer is not the signed-in person (F026 AC5).
+    func bookSeededSessionWithAnotherTrainer() {
+        responder.sessionRoutes.giveSeededSessionToAnotherTrainer()
+    }
+
     /// The next plan or move is refused as a start the clocks skip (`time_does_not_exist`, F020 AC5).
     func refuseNextSessionStart() {
         responder.sessionRoutes.refuseNextStart()

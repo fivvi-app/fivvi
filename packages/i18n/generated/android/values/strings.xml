@@ -64,6 +64,13 @@
     <string name="booking_links_status_active">Actief</string>
     <string name="booking_links_title">Boekingslinks</string>
     <string name="booking_links_trainer_note">%1$s zien de links, maar kunnen ze niet wijzigen.</string>
+    <!-- CO-03 in the apps (the native confirmation of Les annuleren): says how many booked clients get the cancellation email (EM-05). The message for the participants is written on the web only. {participants} is a count of at least 1; the case of no participants uses classes.cancel.countNone. -->
+    <plurals name="classes_app_cancel_body">
+        <item quantity="one">De geboekte klant krijgt een e-mail. Je kunt er een bericht bij zetten op het web.</item>
+        <item quantity="other">De %1$d geboekte klanten krijgen een e-mail. Je kunt er een bericht bij zetten op het web.</item>
+    </plurals>
+    <!-- CO-03 in the apps: shown on the class date page while the phone is offline, where Les annuleren is disabled; nothing is queued. -->
+    <string name="classes_app_cancel_offline">Je bent offline. Annuleren kan als je weer verbinding hebt.</string>
     <string name="classes_app_capacity_less">Capaciteit verlagen</string>
     <string name="classes_app_capacity_more">Capaciteit verhogen</string>
     <string name="classes_app_description_in_dutch">In het Nederlands</string>
@@ -799,6 +806,8 @@
     <string name="sessions_cancel_nudge_cancel_anyway">Toch annuleren</string>
     <string name="sessions_cancel_nudge_question">Al een ander moment voorgesteld?</string>
     <string name="sessions_cancel_nudge_reschedule">Verplaatsen</string>
+    <!-- PS-06 in the apps: shown on the session page while the phone is offline, where the cancel action is disabled; nothing is queued. Les annuleren has its own text (classes.app.cancelOffline). -->
+    <string name="sessions_cancel_offline">Je bent offline. Annuleren kan als je weer verbinding hebt.</string>
     <string name="sessions_cancel_started">Deze sessie is al begonnen. De klant krijgt geen e-mail.</string>
     <string name="sessions_cancel_submit">Sessie annuleren</string>
     <string name="sessions_cancel_subtitle">%1$s · %2$s, %4$s–%3$s</string>
