@@ -1,5 +1,8 @@
 package app.fivvi.pro.personal
 
+import android.content.res.Configuration
+import android.os.LocaleList
+import androidx.annotation.PluralsRes
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -12,6 +15,7 @@ import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.test.core.app.ApplicationProvider
 import app.fivvi.api.models.CancelClassDateRequest
 import app.fivvi.api.models.CancelPrivateSessionRequest
 import app.fivvi.api.models.Client
@@ -26,6 +30,7 @@ import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.net.FakeConnectivity
 import app.fivvi.pro.AppRule
+import app.fivvi.pro.FivviApplication
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
 import app.fivvi.pro.classes.ClassDateTags
 import app.fivvi.pro.classes.FakeGroupClassesApi
@@ -38,12 +43,15 @@ import app.fivvi.pro.localizedString
 import app.fivvi.pro.sessions.CancelSessionTags
 import app.fivvi.pro.sessions.FakeSessionsApi
 import app.fivvi.pro.sessions.RescheduleTags
+import app.fivvi.pro.sessions.SessionFormat
 import app.fivvi.pro.sessions.SessionTags
 import app.fivvi.pro.sessions.sessionOf
 import app.fivvi.pro.sessions.trainerOf
 import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
 import java.time.LocalDateTime
+import java.time.ZoneId
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -79,6 +87,14 @@ class CancelFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
     private val krachtId = PersonalFixtures.sessionIdOf("kracht")
 
     private fun string(id: Int, vararg args: Any) = localizedString(language, id, *args)
+
+    private fun plural(@PluralsRes id: Int, quantity: Int, vararg args: Any): String {
+        val app = ApplicationProvider.getApplicationContext<FivviApplication>()
+        val configuration = Configuration(app.resources.configuration).apply {
+            setLocales(LocaleList(language.locale))
+        }
+        return app.createConfigurationContext(configuration).resources.getQuantityString(id, quantity, *args)
+    }
 
     private fun answerAccount(
         role: MeWorkspace.Role = MeWorkspace.Role.OWNER,
@@ -207,8 +223,11 @@ class CancelFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         assertTrue(!exists(CancelSessionTags.SUBMIT))
         compose.onNodeWithTag(CancelSessionTags.RESCHEDULE).performClick()
 
-        // Verplaatsen opens PS-05 for the same session and nothing is cancelled.
+        // Verplaatsen opens PS-05 for the same session (Anna's) and nothing is cancelled.
         compose.waitUntilTagExists(RescheduleTags.SUBMIT)
+        compose.onNodeWithTag(
+            RescheduleTags.SUBTITLE,
+        ).assertTextEquals(string(R.string.sessions_reschedule_subtitle, "Anna de Vries"))
         assertTrue(sessions.cancelled.isEmpty())
     }
 
@@ -247,8 +266,10 @@ class CancelFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         compose.waitUntilTagExists(SessionTags.CANCELLED)
         compose.onNodeWithTag(SessionTags.CANCEL_DONE).assertTextEquals(string(R.string.sessions_cancel_done))
         val text = textOf(SessionTags.CANCELLED)
-        val byClient = string(R.string.sessions_page_cancelled_by_client)
-        assertTrue(text, text.contains("Sarah") && text.contains("10:12") && !text.contains(byClient))
+        // The date is worded as the screen does (SessionFormParts: Dutch, else British English).
+        val locale = if (language.tag.startsWith("nl")) language.locale else Locale.UK
+        val day = SessionFormat(locale, ZoneId.of("Europe/Amsterdam")).day(sessions.cancelledAt)
+        assertEquals(string(R.string.sessions_page_cancelled_banner, day, "Sarah", "10:12"), text)
         assertEquals(
             CancelPrivateSessionRequest(
                 CancelPrivateSessionRequest.Initiator.WORKSPACE,
@@ -375,6 +396,9 @@ class CancelFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
 
         // The confirmation says how many booked clients get an email, and nothing is cancelled before it is confirmed.
         compose.waitUntilTagExists(ClassDateTags.CANCEL_SUBMIT)
+        compose.onNodeWithTag(
+            ClassDateTags.CANCEL_BODY,
+        ).assertTextEquals(plural(R.plurals.classes_app_cancel_body, 3, 3))
         assertTrue(classes.cancelled.isEmpty())
         compose.onNodeWithTag(ClassDateTags.CANCEL_BACK).performClick()
         waitUntil("the confirmation is gone") { !exists(ClassDateTags.CANCEL_SUBMIT) }
@@ -394,6 +418,43 @@ class CancelFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         assertEquals(CancelClassDateRequest.Surface.ANDROID, request.surface)
         assertEquals(Session.Status.CANCELLED, sessions.sessions.getValue(krachtId).status)
         waitUntil("the menu is gone") { !exists(ClassDateTags.MENU) }
+    }
+
+    private fun openClassCancelConfirmation() {
+        openRow(krachtId)
+        compose.waitUntilTagExists(ClassDateTags.MENU)
+        compose.onNodeWithTag(ClassDateTags.MENU).performClick()
+        compose.waitUntilTagExists(ClassDateTags.CANCEL)
+        compose.onNodeWithTag(ClassDateTags.CANCEL).performClick()
+        compose.waitUntilTagExists(ClassDateTags.CANCEL_BODY)
+    }
+
+    @Test
+    fun test_F026_AC8_theConfirmationOfADateWithNoBookingsSaysNobodyGetsAnEmail() {
+        answerAccount()
+        launch()
+        sessions.sessions[krachtId] = classDateOf(
+            krachtId,
+            classes.classes.values.single(),
+            sarah,
+            start = LocalDateTime.of(2026, 9, 22, 15, 0),
+            booked = 0,
+        )
+
+        openClassCancelConfirmation()
+
+        compose.onNodeWithTag(ClassDateTags.CANCEL_BODY).assertTextEquals(string(R.string.classes_cancel_count_none))
+    }
+
+    @Test
+    fun test_F026_AC9_theConfirmationOfADateThatHasStartedSaysNobodyGetsAnEmail() {
+        answerAccount()
+        classes.previewStarted = true
+        launch()
+
+        openClassCancelConfirmation()
+
+        compose.onNodeWithTag(ClassDateTags.CANCEL_BODY).assertTextEquals(string(R.string.classes_cancel_started))
     }
 
     @Test

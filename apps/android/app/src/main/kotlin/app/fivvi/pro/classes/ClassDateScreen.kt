@@ -80,6 +80,7 @@ object ClassDateTags {
     const val CANCEL_OFFLINE = "classDate.cancelOffline"
     const val CANCEL_SUBMIT = "classDate.cancel.submit"
     const val CANCEL_BACK = "classDate.cancel.back"
+    const val CANCEL_BODY = "classDate.cancel.body"
     const val LOADING = "classDate.loading"
     const val ERROR = "classDate.error"
     const val RETRY = "classDate.retry"
@@ -111,9 +112,8 @@ private const val CUT_LINES = 3
  * geboekt* with *Nog geen boekingen.*, and for the Owner the footnote that editing, a fixed series and the trainers are
  * managed on the web. The Owner's ⋯ menu has *Les wijzigen*, which says the same, and below a divider the destructive
  * *Les annuleren* (F026): a native confirmation that says how many booked clients get an email; a Trainer has no menu. A
- * cancelled date shows "Geannuleerd op … door …" and no actions. The sections of later features (participants, attendance)
- * are not shown yet. [workspaceName] is named when the person has no
- * access.
+ * cancelled date shows "Geannuleerd op … door …" and no actions. The sections of later features (participants,
+ * attendance) are not shown yet. [workspaceName] is named when the person has no access.
  */
 @Composable
 fun ClassDateScreen(
@@ -200,6 +200,7 @@ private fun CancelDialog(ask: CancelAsk, actions: ClassDateActions) {
                     ask.participants == 0 -> stringResource(R.string.classes_cancel_count_none)
                     else -> pluralStringResource(R.plurals.classes_app_cancel_body, ask.participants, ask.participants)
                 },
+                modifier = Modifier.testTag(ClassDateTags.CANCEL_BODY),
             )
         },
     )

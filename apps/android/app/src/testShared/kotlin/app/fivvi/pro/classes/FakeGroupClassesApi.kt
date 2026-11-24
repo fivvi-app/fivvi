@@ -214,6 +214,9 @@ class FakeGroupClassesApi(private val sessions: FakeSessionsApi) : GroupClassesA
     /** While set, the preview of a cancellation answers with this status. */
     var previewStatus: Int? = null
 
+    /** While set, the cancellation of a date answers with this status. */
+    var cancelStatus: Int? = null
+
     /** While set, the date has started (CO-03): the preview says so. */
     var previewStarted = false
 
@@ -229,6 +232,7 @@ class FakeGroupClassesApi(private val sessions: FakeSessionsApi) : GroupClassesA
     ): Response<CancelledClassDate> {
         cancelled += Triple(workspaceId, sessionId, cancelClassDateRequest)
         failure?.let { throw it }
+        cancelStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
         val old = sessions.sessions[sessionId] ?: return Response.error(404, "{}".toResponseBody(JSON))
         if (old.status == Session.Status.CANCELLED) return sessions.conflict(old, code = "session_cancelled")
         if (old.version != cancelClassDateRequest.version) return sessions.conflict(old, changedBy = sessions.changedBy)

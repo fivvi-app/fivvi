@@ -35,6 +35,7 @@ class ClassDateViewModelTest {
     private val sarah = trainerOf("Sarah")
     private val john = trainerOf("John")
     private val notAllowed = mutableListOf<Int>()
+    private val cancelNotAllowed = mutableListOf<Int>()
     private val mobility = groupClassOf(
         "Mobility",
         nameEn = "Mobility flow",
@@ -289,6 +290,7 @@ class ClassDateViewModelTest {
             isOnline = isOnline,
             onCancelled = onCancelled,
             onNotAllowed = { notAllowed += it.code() },
+            onCancelNotAllowed = { cancelNotAllowed += it.code() },
         )
 
     @Test
@@ -400,8 +402,10 @@ class ClassDateViewModelTest {
         assertFalse(viewModel.state.value.isCancelled)
     }
 
+    // The cancel calls are guarded by class.manage: their 403 goes to their own callback, so the capability that
+    // drops is class.manage (ClassDateFlow), not the one of the read.
     @Test
-    fun test_F026_AC5_aRefusedCancellationTellsTheHelperAndSaysThePersonMayNot() {
+    fun test_F026_AC5_aRefusedCancelPreviewTellsTheCancelCallbackAndSaysThePersonMayNot() {
         val id = date(booked = 3)
         val viewModel = cancellable(id)
         classes.previewStatus = 403
@@ -409,6 +413,22 @@ class ClassDateViewModelTest {
         viewModel.askToCancel()
 
         assertEquals(CancelFailure.NoPermission, viewModel.state.value.cancelFailure)
-        assertEquals(listOf(403), notAllowed)
+        assertEquals(listOf(403), cancelNotAllowed)
+        assertTrue(notAllowed.isEmpty())
+    }
+
+    @Test
+    fun test_F026_AC5_aRefusedCancellationTellsTheCancelCallbackAndSaysThePersonMayNot() {
+        val id = date(booked = 3)
+        val viewModel = cancellable(id)
+        viewModel.askToCancel()
+        classes.cancelStatus = 403
+
+        viewModel.confirmCancel()
+
+        assertEquals(CancelFailure.NoPermission, viewModel.state.value.cancelFailure)
+        assertFalse(viewModel.state.value.isCancelling)
+        assertEquals(listOf(403), cancelNotAllowed)
+        assertTrue(notAllowed.isEmpty())
     }
 }

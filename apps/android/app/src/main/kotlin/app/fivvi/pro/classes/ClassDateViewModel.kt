@@ -122,7 +122,7 @@ data class ClassDateState(
         return pick(english, named.nameNl, named.nameEn)?.text ?: named.nameNl
     }
 
-    /** The series line of a date in a weekly series, from the series the API sends with the date; `null` for a date on its own. */
+    /** The series line of a date in a weekly series, from the series the API sends; `null` for a date on its own. */
     fun seriesLine(english: Boolean): SeriesLine? {
         val series = session?.series ?: return null
         return SeriesLine(title(english), series.localStartTime, series.weekday.dayOfWeek())
@@ -163,6 +163,8 @@ class ClassDateViewModel(
     /** Told once the date is cancelled, so the lists that show it (Vandaag, Agenda) read again. */
     private val onCancelled: () -> Unit = {},
     private val onNotAllowed: (Response<*>) -> Unit = {},
+    /** Told a 403 of the cancel calls: they are guarded by `class.manage`, where [onNotAllowed] is about reading. */
+    private val onCancelNotAllowed: (Response<*>) -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow(ClassDateState(teamMemberId, canManage, added))
     val state: StateFlow<ClassDateState> = _state.asStateFlow()
@@ -225,7 +227,7 @@ class ClassDateViewModel(
             }
 
             response.code() == HTTP_FORBIDDEN -> {
-                onNotAllowed(response)
+                onCancelNotAllowed(response)
                 _state.update { it.copy(cancelFailure = CancelFailure.NoPermission) }
             }
 
@@ -264,7 +266,7 @@ class ClassDateViewModel(
             response.code() == HTTP_CONFLICT -> refused(response)
 
             response.code() == HTTP_FORBIDDEN -> {
-                onNotAllowed(response)
+                onCancelNotAllowed(response)
                 _state.update { it.copy(isCancelling = false, cancelFailure = CancelFailure.NoPermission) }
             }
 

@@ -90,8 +90,9 @@ class SessionActions(
  * TD-02 *Privésessie* (F020): the title *Privésessie met Anna* with the date and time under it, a group with the location
  * and its *Route* button (which opens the maps app with the address) and the workspace with the trainer, and the client.
  * The ⋯ menu has *Verplaatsen* (PS-05, for whoever may plan sessions, not for a cancelled session), *Klantprofiel* and,
- * below a divider, the destructive *Annuleren* (PS-06, F026: the Owner for any session, a Trainer for their own; off while
- * offline). A cancelled session shows "Geannuleerd op … door …" and offers *Klantprofiel* only. The sections of later features (workout, last time, notes, attendance) are not shown yet.
+ * below a divider, the destructive *Annuleren* (PS-06, F026: the Owner for any session, a Trainer for their own; off
+ * while offline). A cancelled session shows "Geannuleerd op … door …" and offers *Klantprofiel* only. The sections of
+ * later features (workout, last time, notes, attendance) are not shown yet.
  */
 @Composable
 fun SessionScreen(state: SessionState, workspaceName: String, actions: SessionActions, modifier: Modifier = Modifier) {

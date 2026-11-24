@@ -47,6 +47,9 @@ fun ClassDateFlow(
             isOnline = { connectivity.online.value },
             onCancelled = onCancelled,
             onNotAllowed = { capabilities.onResponse(it, workspaceId, MeWorkspace.Capabilities.CLASS_PERIOD_READ) },
+            onCancelNotAllowed = {
+                capabilities.onResponse(it, workspaceId, MeWorkspace.Capabilities.CLASS_PERIOD_MANAGE)
+            },
         )
     }
     val state by model.state.collectAsStateWithLifecycle()
