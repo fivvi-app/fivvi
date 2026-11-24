@@ -36,6 +36,15 @@ final class StubPersonalRoutes: @unchecked Sendable {
         ["id": Responder.workspaceID(index), "slug": "workspace-\(index)", "name": name]
     }
 
+    /// What the API says each workspace offers (#1534): John's Gym runs classes, so Sarah's answers name the kind; a
+    /// person on one workspace without classes never does.
+    private static func offers(_ day: Day) -> [String: Any] {
+        let gym: [String: Any] = workspace(0, "John's Gym").merging(["offers": ["private", "group"]]) { $1 }
+        let own: [String: Any] = workspace(1, "Sarah Personal Training").merging(["offers": ["private"]]) { $1 }
+        let alone: [String: Any] = workspace(0, "John's Gym").merging(["offers": ["private"]]) { $1 }
+        return ["workspaces": day == .sarah ? [gym, own] : [alone], "showsKindLabel": day == .sarah]
+    }
+
     private static func place(_ name: String) -> [String: Any] {
         [
             "id": "6d1c2d3e-0000-4000-8000-0000000000b1", "name": name, "type": "external_gym", "isDefault": false,
@@ -67,7 +76,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
             return (200, [
                 "date": date, "timeZone": StubSessionRoutes.zone, "workspaceCount": 1, "items": [Any](),
                 "summary": ["count": 0, "done": 0], "hasSessions": true, "nextSessionDate": "2026-10-01"
-            ])
+            ].merging(Self.offers(which)) { $1 })
         }
         let johns = Self.workspace(0, "John's Gym")
         let sarah = Self.workspace(1, "Sarah Personal Training")
@@ -88,7 +97,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
             "placesAhead": (which == .solo ? ["John's Gym"] : ["TrainMore Zuid", "John's Gym"]).map { ["name": $0] },
             "tomorrow": ["date": "2026-09-23", "count": 3, "firstStartsAt": Self.instant("07:00", "2026-09-23")],
             "hasSessions": true
-        ]
+        ].merging(Self.offers(which)) { $1 }
         // A cancelled session is no next one.
         if !nextIsCancelled { answer["next"] = ["sessionId": Self.anna, "state": "upcoming", "startsInMinutes": 25] }
         return (200, answer)
@@ -155,7 +164,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
         return (200, [
             "from": first, "to": last, "timeZone": StubSessionRoutes.zone, "workspaceCount": which == .solo ? 1 : 2,
             "items": shown.map { markCancelled($0.json) }
-        ])
+        ].merging(Self.offers(which)) { $1 })
     }
 
     // MARK: The workspace's day (F014)

@@ -54,14 +54,29 @@ enum PersonalFixtures {
         "kracht-late", johns, from: "18:00", to: "19:00", className: "Kracht", booked: 0, capacity: 8, cancelled: true
     )
 
-    /// Sarah's day: four items in two workspaces, Anna next, a free gap and two places ahead.
+    /// What the API says each workspace offers (#1534): John's Gym runs classes, Sarah Personal Training does not.
+    static func offered(workspaceCount: Int, showsKindLabel: Bool) -> [Components.Schemas.PersonalWorkspaceOffers] {
+        let gym = Components.Schemas.PersonalWorkspaceOffers(
+            id: johns.id, slug: johns.slug, name: johns.name, offers: showsKindLabel ? [._private, .group] : [._private]
+        )
+        let own = Components.Schemas.PersonalWorkspaceOffers(
+            id: sarahPT.id, slug: sarahPT.slug, name: sarahPT.name, offers: [._private]
+        )
+        return Array([gym, own].prefix(workspaceCount))
+    }
+
+    /// Sarah's day: four items in two workspaces, Anna next, a free gap and two places ahead. `showsKindLabel` is what
+    /// the API answers: true while a workspace of hers runs classes, whatever the day holds.
     static func sarah(
         items: [PersonalItem] = [anna, mark, kracht, krachtCancelled], workspaceCount: Int = 2,
+        showsKindLabel: Bool = true,
         done: Int = 0, gap: (String, String)? = ("12:00", "13:30"), places: [String] = ["TrainMore Zuid", "John's Gym"]
     ) -> PersonalDay {
         let first = items.first, last = items.last
         return PersonalDay(
-            date: day, timeZone: "Europe/Amsterdam", workspaceCount: workspaceCount, items: items,
+            date: day, timeZone: "Europe/Amsterdam", workspaceCount: workspaceCount,
+            workspaces: offered(workspaceCount: workspaceCount, showsKindLabel: showsKindLabel),
+            showsKindLabel: showsKindLabel, items: items,
             summary: .init(
                 count: items.count, done: done, firstStartsAt: first?.startsAt, lastEndsAt: last?.endsAt
             ),
@@ -78,7 +93,9 @@ enum PersonalFixtures {
         nextSession: String? = nil, hasSessions: Bool = true, tomorrow: Bool = false
     ) -> PersonalDay {
         PersonalDay(
-            date: day, timeZone: "Europe/Amsterdam", workspaceCount: 1, items: [], summary: .init(count: 0, done: 0),
+            date: day, timeZone: "Europe/Amsterdam", workspaceCount: 1,
+            workspaces: offered(workspaceCount: 1, showsKindLabel: false), showsKindLabel: false, items: [],
+            summary: .init(count: 0, done: 0),
             tomorrow: tomorrow ? .init(date: "2026-09-23", count: 3, firstStartsAt: at("07:00", "2026-09-23")) : nil,
             // As the API answers: with sessions tomorrow, tomorrow is also the date of the next one.
             nextSessionDate: nextSession ?? (tomorrow ? "2026-09-23" : nil), hasSessions: hasSessions

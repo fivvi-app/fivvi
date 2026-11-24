@@ -9,7 +9,7 @@ typealias PersonalSessions = Components.Schemas.MySessions
 
 /// A line of Vandaag (TD-01), and later of Agenda (TD-04): one item of the personal scope, worded in the app's language
 /// and in Dutch time. Nothing here decides anything: what the API sent is written down, and the words that only fit when
-/// the person has more than one kind or team are left out otherwise (F013 AC2, the design of `DECISIONS.md` §3).
+/// the person has more than one kind (the API says so) or team are left out otherwise (F013 AC2, the design of `DECISIONS.md` §3).
 struct PersonalRow: Identifiable, Equatable {
     let id: String
     let workspaceID: String
@@ -20,7 +20,7 @@ struct PersonalRow: Identifiable, Equatable {
     let timeText: String
     let startText: String
     let endText: String
-    /// *Privésessie* / *Groepsles*: only when the person's items are of more than one kind.
+    /// *Privésessie* / *Groepsles*: only when the API says the person's workspaces offer more than one kind.
     let typeLabel: String?
     /// The workspace's name, with its colour dot: only when the person is on more than one team.
     let workspaceLabel: String?
@@ -44,7 +44,8 @@ struct PersonalRows {
     let catalog: Catalog
     let now: Date
     let workspaceCount: Int
-    /// The items are of more than one kind, so each row names its kind.
+    /// The API says the person's workspaces offer more than one kind (`showsKindLabel`), so each row names its kind.
+    /// Never worked out from the items of the day.
     let namesKinds: Bool
 
     /// The personal day is in Dutch time (F013 AC14); the workspace's day (*Hele studio*) in the workspace's own zone.
@@ -52,12 +53,6 @@ struct PersonalRows {
     let timeZone: TimeZone
 
     private var format: SessionFormat { SessionFormat(locale: catalog.formattingLocale, timeZone: timeZone) }
-
-    init(items: [PersonalItem], workspaceCount: Int, catalog: Catalog, now: Date) {
-        self.init(
-            namesKinds: Set(items.map(\._type)).count > 1, workspaceCount: workspaceCount, catalog: catalog, now: now
-        )
-    }
 
     init(
         namesKinds: Bool, workspaceCount: Int, catalog: Catalog, now: Date, timeZone: TimeZone = PersonalRows.timeZone

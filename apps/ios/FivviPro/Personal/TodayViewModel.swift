@@ -124,7 +124,10 @@ final class TodayViewModel {
 
     private var items: [PersonalItem] { (day?.items ?? []).filter { $0._type != .openGym } }
     private var rowBuilder: PersonalRows {
-        PersonalRows(items: items, workspaceCount: day?.workspaceCount ?? 1, catalog: catalog, now: now)
+        PersonalRows(
+            namesKinds: day?.showsKindLabel ?? false, workspaceCount: day?.workspaceCount ?? 1,
+            catalog: catalog, now: now
+        )
     }
 
     var eyebrow: String { DateEyebrow.text(for: now, locale: catalog.formattingLocale) }

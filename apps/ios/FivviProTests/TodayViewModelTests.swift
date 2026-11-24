@@ -90,7 +90,9 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     func test_F013_design_privateOnlyShowsNoKindLabelAndNoGroupFigure() async {
-        let solo = PersonalFixtures.sarah(items: [PersonalFixtures.anna, PersonalFixtures.mark], workspaceCount: 1)
+        let solo = PersonalFixtures.sarah(
+            items: [PersonalFixtures.anna, PersonalFixtures.mark], workspaceCount: 1, showsKindLabel: false
+        )
         let today = model(served(solo))
         await today.load()
 
@@ -100,6 +102,31 @@ final class TodayViewModelTests: XCTestCase {
         let spoken = today.next?.row.spokenLabel.lowercased()
         let word = catalog["myDay.typePrivate"].lowercased()
         XCTAssertEqual(spoken?.contains(word), true, "the type is always in the name")
+    }
+
+    func test_F013_1534_aDayOfOnlyPrivateSessionsStillNamesTheKindWhenTheApiSaysSo() async {
+        let privateDay = PersonalFixtures.sarah(items: [PersonalFixtures.anna, PersonalFixtures.mark])
+        let today = model(served(privateDay))
+        await today.load()
+
+        XCTAssertEqual(today.next?.row.typeLabel, catalog["myDay.typePrivate"])
+        XCTAssertEqual(today.rows[0].typeLabel, catalog["myDay.typePrivate"])
+        XCTAssertEqual(
+            today.nextSubtitle,
+            "09:00–10:00 · \(catalog["myDay.typePrivate"]) · TrainMore Zuid · Sarah Personal Training"
+        )
+    }
+
+    func test_F013_1534_theAppNeverWorksTheKindOutFromTheItems() async {
+        // Private and class items on the day, and the API says no: no row names its kind.
+        let today = model(served(PersonalFixtures.sarah(showsKindLabel: false)))
+        await today.load()
+
+        XCTAssertNil(today.next?.row.typeLabel)
+        XCTAssertTrue(today.rows.allSatisfy { $0.typeLabel == nil })
+        XCTAssertEqual(today.rows[1].isGroup, true)
+        let spoken = today.next?.row.spokenLabel.lowercased()
+        XCTAssertEqual(spoken?.contains(catalog["myDay.typePrivate"].lowercased()), true)
     }
 
     func test_F013_design_classesShowTheKindLabelAndThePill() async {
