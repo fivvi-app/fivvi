@@ -965,7 +965,47 @@
       "subtitle": "{client} · Privésessie",
       "title": "Sessie verplaatsen"
     },
-    "title": "Sessie"
+    "title": "Sessie",
+    "trainerDialog": {
+      "bookingsStay": "De boekingen blijven gewoon staan.",
+      "cancel": "Annuleren",
+      "conflictClass": "geeft dan al {name} ({time})",
+      "conflictHint": "{trainer} · {hint}",
+      "conflictOpenGym": "heeft dan al Open Gym ({time})",
+      "conflictPrivate": "heeft dan al een privésessie ({time})",
+      "currently": "Nu: {name}",
+      "doneClass": "{trainer} geeft {class} op {date}.",
+      "donePrivate": "{trainer} is nu de {word} van deze sessie.",
+      "errors": {
+        "cancelled": "Deze sessie is geannuleerd en kan niet meer worden aangepast.",
+        "changedBy": "Deze sessie is net gewijzigd door {name}.",
+        "changedByUnknown": "Deze sessie is net gewijzigd.",
+        "loadFailed": "De gegevens konden niet worden geladen.",
+        "noPermission": "Je hebt geen rechten meer voor deze sessie.",
+        "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw."
+      },
+      "followingLine": "{trainer} wordt vanaf {date} de vaste {word} van {class}.",
+      "inviteTrainer": "Nodig {aWord} uit",
+      "laterConflicts": "{trainer} heeft dan al iets op {count, plural, one {# volgende les} other {# volgende lessen}}.",
+      "noOthers": "Er zijn geen andere {words} in {workspace}.",
+      "notifyClass": "{count, plural, one {# deelnemer} other {# deelnemers}} informeren per e-mail",
+      "notifyClient": "{client} informeren per e-mail",
+      "notifyClientNote": "{email} · {language}",
+      "scopeFollowing": "Deze en alle volgende lessen",
+      "scopeLabel": "Voor",
+      "scopeThis": "Alleen deze les",
+      "selectPlaceholder": "Kies {aWord}",
+      "submitAssign": "Toewijzen",
+      "submitChange": "Opslaan",
+      "submitSubstitute": "Vervangen",
+      "subtitleClass": "{class} · {date}, {start}–{end}",
+      "subtitlePrivate": "{client} · Privésessie",
+      "titleAssign": "Wijs {aWord} toe",
+      "titleChange": "Wijzig de {word}",
+      "titleSubstitute": "Vervang de {word}",
+      "whoAssign": "Wie geeft deze les?",
+      "whoSubstitute": "Wie neemt het over?"
+    }
   },
   "settingsGeneral": {
     "errors": {
@@ -1763,6 +1803,23 @@
       "generic": "Er ging iets mis. Probeer het opnieuw.",
       "lastOwner": "{workspace} moet minstens één eigenaar houden.",
       "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw."
+    },
+    "handover": {
+      "classesCount": "{count, plural, one {# groepsles} other {# groepslessen}}",
+      "classesLabel": "Lessen overdragen aan",
+      "done": "{count, plural, one {# sessie of les is} other {# sessies en lessen zijn}} overgedragen.",
+      "doneCancelled": "{count, plural, one {# privésessie is} other {# privésessies zijn}} geannuleerd.",
+      "laterOne": "Daarna: 1 sessie krijgt ‘{Word} nodig’. Je wijst die later toe bij Aandacht nodig.",
+      "laterOther": "Daarna: {count} sessies krijgen ‘{Word} nodig’. Je wijst ze later toe bij Aandacht nodig.",
+      "nextTwoWeeks": "De komende 2 weken: {parts}.",
+      "nobody": "Niemand",
+      "nobodyNote": "Met niemand: lessen krijgen ‘{Word} nodig’, privésessies worden geannuleerd en die klanten krijgen een e-mail.",
+      "notify": "Klanten informeren per e-mail",
+      "partsJoin": "{first} en {second}",
+      "privateCount": "{count, plural, one {# privésessie} other {# privésessies}}",
+      "privateLabel": "Privésessies overdragen aan",
+      "seriesNote": "Een wekelijkse les waarvan {name} de vaste {word} is, heeft daarna geen vaste {word}.",
+      "submit": "Overdragen en verwijderen"
     },
     "invitations": {
       "gone": "Deze uitnodiging staat er niet meer.",

@@ -297,7 +297,8 @@ export function OwnerDashboard({
                       <span className="min-w-0 text-sm">{attentionText(item)}</span>
                       <Button asChild variant="outline">
                         <Link
-                          href={href(item)}
+                          // The page opens the trainer dialog (CO-02 / Trainer wijzigen) at once (F023).
+                          href={`${href(item)}?assign=1` as Route}
                           aria-label={t('assignLabel', { item: attentionText(item) })}
                         >
                           {t('assign')}

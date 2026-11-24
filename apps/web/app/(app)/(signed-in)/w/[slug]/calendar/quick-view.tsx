@@ -30,6 +30,8 @@ export interface CalendarAccess {
   canSeeClients: boolean;
   /** `calendar.manage` (the Owner): the empty-slot menu (WC-06) and moving by dragging (WC-07). */
   canManageCalendar: boolean;
+  /** `session.assign` (the Owner): *Trainer toewijzen* / *Trainer vervangen* / *Trainer wijzigen* (F023). */
+  canAssign: boolean;
   /** The signed-in person's own team-member ID: *Jij* and *own session*, never decided by name. */
   teamMemberId: string;
 }
@@ -100,6 +102,7 @@ function QuickViewBody({
   const weekday = item.series ? WEEKDAYS.indexOf(item.series.weekday) : -1;
   const free = Math.max(item.capacity - (item.booked ?? 0), 0);
   const actions = quickViewActions(item, access);
+  const assign = useTranslations('sessions.trainerDialog');
   return (
     <>
       <DialogHeader>
@@ -153,6 +156,17 @@ function QuickViewBody({
         {actions.change ? (
           <Button asChild variant="outline">
             <Link href={`${href}?edit=1` as Route}>{t('change')}</Link>
+          </Button>
+        ) : null}
+        {actions.assign ? (
+          <Button asChild variant="outline">
+            <Link href={`${href}?assign=1` as Route}>
+              {actions.assign === 'assign'
+                ? assign('titleAssign', { ...trainerWord })
+                : actions.assign === 'substitute'
+                  ? assign('titleSubstitute', { ...trainerWord })
+                  : assign('titleChange', { ...trainerWord })}
+            </Link>
           </Button>
         ) : null}
         {actions.clientProfile && client ? (

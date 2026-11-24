@@ -29,6 +29,8 @@ import { TimeZoneHint } from '../../../me/(personal)/time-zone-hint';
 import { useClassDialogs } from '../classes/classes-provider';
 import { useOpenNewSession } from '../sessions/new-private-session';
 import { useSessionFormat } from '../sessions/use-session-format';
+import { assignTargetOf } from './calendar-assign';
+import { CalendarAssign } from './calendar-assign-dialog';
 import {
   browserStorage,
   DEFAULT_FILTERS,
@@ -85,6 +87,7 @@ export function WorkspaceCalendarView({
   trainers,
   slug,
   workspaceId,
+  workspaceName,
   accountId,
   access,
   trainerWord,
@@ -99,6 +102,8 @@ export function WorkspaceCalendarView({
   trainers: readonly { id: string; name: string }[];
   slug: string;
   workspaceId: string;
+  /** The workspace's name: the trainer dialog says it when there is nobody else to choose. */
+  workspaceName: string;
   accountId: string;
   access: CalendarAccess;
   /** The workspace's word for the people who teach (F068), in the reader's language. */
@@ -106,6 +111,7 @@ export function WorkspaceCalendarView({
 }) {
   const t = useTranslations('workspaceCalendar');
   const shared = useTranslations('myCalendar');
+  const assignFailed = useTranslations('sessions.trainerDialog')('errors.loadFailed');
   const format = useFormatter();
   const router = useRouter();
   // PS-01 of the frame's + Nieuw; none for a person who may not plan private sessions.
@@ -130,6 +136,8 @@ export function WorkspaceCalendarView({
     item: Shown;
     proposal: Extract<ReturnType<typeof proposeMove>, { ok: true }>;
   } | null>(null);
+  // WC-03: the block dropped on another trainer's column, and the trainer of that column (F023).
+  const [assign, setAssign] = useState<{ item: Shown; trainerId: string } | null>(null);
   const [notice, setNotice] = useState<{ text: string; warning: boolean } | null>(null);
   const [now, setNow] = useState<Date>();
   const key = filtersKey(accountId, workspaceId);
@@ -218,8 +226,20 @@ export function WorkspaceCalendarView({
     });
   }
 
-  function dropBlock({ blockKey, columnKey, startMinute }: WeekGridMove) {
+  function dropBlock({ blockKey, fromColumnKey, columnKey, startMinute }: WeekGridMove) {
     const item = all.find((entry) => entry.id === blockKey);
+    // Another trainer's column of the day view: the trainer dialog with that trainer chosen (F023).
+    const trainerId =
+      item &&
+      assignTargetOf({
+        view,
+        item,
+        fromColumnKey,
+        toColumnKey: columnKey,
+        trainers,
+        canAssign: access.canAssign,
+      });
+    if (item && trainerId) return setAssign({ item, trainerId });
     const start = axis.wallTime(columnDate(columnKey), startMinute);
     if (!item || !start) return;
     const proposal = proposeMove(
@@ -628,11 +648,22 @@ export function WorkspaceCalendarView({
                   placeLabel: (columnKey: string, minute: number) =>
                     axis.wallTime(columnDate(columnKey), minute),
                   // A private session goes to another day of the week; a class date keeps its
-                  // day (CO-04 has no date), and no block goes to another trainer's column
-                  // (F023/F024 add that).
-                  acceptsDrop: (blockKey: string) =>
-                    view === 'week' &&
-                    all.find((entry) => entry.id === blockKey)?.type === 'private',
+                  // day (CO-04 has no date). In the day view a block goes to another trainer's
+                  // column, which asks to assign that trainer (F023).
+                  acceptsDrop: (blockKey: string, fromColumnKey: string, columnKey: string) => {
+                    const item = all.find((entry) => entry.id === blockKey);
+                    if (!item) return false;
+                    return view === 'week'
+                      ? item.type === 'private'
+                      : assignTargetOf({
+                          view,
+                          item,
+                          fromColumnKey,
+                          toColumnKey: columnKey,
+                          trainers,
+                          canAssign: access.canAssign,
+                        }) !== undefined;
+                  },
                 }
               : {})}
           />
@@ -770,6 +801,27 @@ export function WorkspaceCalendarView({
           ownSession={move.item.trainer?.id === access.teamMemberId}
           outcome={outcome}
           onClose={() => setMove(null)}
+        />
+      ) : null}
+      {assign ? (
+        <CalendarAssign
+          workspaceId={workspaceId}
+          slug={slug}
+          sessionId={assign.item.id}
+          trainerId={assign.trainerId}
+          trainerWord={trainerWord}
+          workspaceName={workspaceName}
+          teamMemberId={access.teamMemberId}
+          onClose={() => setAssign(null)}
+          onAssigned={({ message }) => {
+            setAssign(null);
+            setNotice({ text: message, warning: false });
+            router.refresh();
+          }}
+          failed={() => {
+            setAssign(null);
+            setNotice({ text: assignFailed, warning: true });
+          }}
         />
       ) : null}
       {notice ? <Toast tone={notice.warning ? 'warning' : 'default'}>{notice.text}</Toast> : null}

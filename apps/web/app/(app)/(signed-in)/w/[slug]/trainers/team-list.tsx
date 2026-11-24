@@ -2,7 +2,7 @@
 
 import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import type { Schemas } from '@fivvi/contract';
-import type { Locale } from '@fivvi/i18n';
+import type { Locale, TrainerWordForms } from '@fivvi/i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,9 +27,14 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { initials } from '../workspace-initials';
 import { changeTeamMemberRole } from './change-role-client';
+import { HandoverDialog } from './handover-dialog';
 import { resendInvitation, type TrainerInvitation, withdrawInvitation } from './invitations-client';
 import { InviteTrainerDialogContent } from './invite-trainer-dialog';
-import { removeTeamMember } from './remove-team-member-client';
+import {
+  type FutureSessions,
+  loadFutureSessions,
+  removeTeamMember,
+} from './remove-team-member-client';
 
 type TeamMember = Schemas['TeamMember'];
 type Role = TeamMember['role'];
@@ -74,6 +79,7 @@ export function TeamList({
   invitations = [],
   defaultLocale = 'nl-NL',
   timeZone = 'Europe/Amsterdam',
+  trainerWord,
 }: {
   workspaceId: string;
   workspaceName: string;
@@ -92,6 +98,8 @@ export function TeamList({
   defaultLocale?: Locale;
   /** The workspace's time zone, which the dates of the invitations are shown in. */
   timeZone?: string;
+  /** The workspace's word for the people who teach (F068), in the reader's language. */
+  trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('team');
   const roles = useTranslations('roles');
@@ -99,6 +107,10 @@ export function TeamList({
   const router = useRouter();
   const [asking, setAsking] = useState<Question | null>(null);
   const [withdrawing, setWithdrawing] = useState<TrainerInvitation | null>(null);
+  // A person with sessions coming is removed with a handover (F023): the counts the dialog shows.
+  const [handing, setHanding] = useState<{ member: TeamMember; future: FutureSessions } | null>(
+    null,
+  );
   const [inviting, setInviting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [failure, setFailure] = useState<'noConnection' | 'generic' | 'lastOwner' | 'gone' | null>(
@@ -117,7 +129,7 @@ export function TeamList({
 
   async function run(
     action: () => Promise<
-      { ok: true } | { ok: false; reason: NonNullable<typeof failure> | 'home' }
+      { ok: true } | { ok: false; reason: NonNullable<typeof failure> | 'home' | 'handover' }
     >,
     done: string,
   ) {
@@ -134,6 +146,8 @@ export function TeamList({
     }
     // Not allowed (any more): the signed-in home knows where this person belongs.
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
+    // The dialog for a handover is open: nothing failed.
+    if (result.reason === 'handover') return;
     setFailure(result.reason);
     // Someone else changed the team first: show what the API holds now.
     if (result.reason === 'lastOwner' || result.reason === 'gone') router.refresh();
@@ -162,9 +176,38 @@ export function TeamList({
 
   const remove = (member: TeamMember) =>
     run(
-      () => removeTeamMember(workspaceId, member.id),
+      async () => {
+        const result = await removeTeamMember(workspaceId, member.id);
+        // Sessions came up since the page was drawn (409): the handover dialog takes over, with the counts.
+        if (!result.ok && result.reason === 'hasFutureSessions') {
+          setHanding({ member, future: result.future });
+          return { ok: false, reason: 'handover' } as const;
+        }
+        return result;
+      },
       t('removed', { name: displayName(member) }),
     );
+
+  /** *Uit het team verwijderen*: a person with sessions coming gets the handover dialog, anyone else F003's. */
+  async function startRemoving(member: TeamMember) {
+    setPending(true);
+    setFailure(null);
+    setNotice(null);
+    const result = await loadFutureSessions(workspaceId, member.id);
+    setPending(false);
+    if (result.ok && result.future.hasFutureSessions) {
+      return setHanding({ member, future: result.future });
+    }
+    // Nothing coming, or the counts could not be read (the removal itself answers 409 when it matters).
+    setAsking({ kind: 'remove', member });
+  }
+
+  /** The person was removed with a handover: say so, and ask the server for the new list. */
+  function handedOver(message: string) {
+    setHanding(null);
+    setNotice(message);
+    router.refresh();
+  }
 
   const changeRole = (member: TeamMember, role: Role) =>
     run(
@@ -265,7 +308,7 @@ export function TeamList({
                         variant="ghost"
                         size="sm"
                         disabled={!ready || pending}
-                        onClick={() => setAsking({ kind: 'remove', member })}
+                        onClick={() => void startRemoving(member)}
                       >
                         {t('remove')}
                       </Button>
@@ -379,6 +422,20 @@ export function TeamList({
           </AlertDialogContent>
         ) : null}
       </AlertDialog>
+      {handing ? (
+        <HandoverDialog
+          workspaceId={workspaceId}
+          member={{ id: handing.member.id, name: displayName(handing.member) }}
+          initialFuture={handing.future}
+          trainers={members
+            .filter(({ id }) => trainers.has(id) && id !== handing.member.id)
+            .map((trainer) => ({ id: trainer.id, name: displayName(trainer) }))}
+          trainerWord={trainerWord}
+          workspaceName={workspaceName}
+          onClose={() => setHanding(null)}
+          done={handedOver}
+        />
+      ) : null}
       {canInvite ? (
         <Dialog open={inviting} onOpenChange={setInviting}>
           {inviting ? (

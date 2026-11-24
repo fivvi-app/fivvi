@@ -73,6 +73,7 @@ export default async function WorkspaceCalendarPage({
       trainerWord={trainerWordForms(workspace.trainerWord, catalogLocale(await getLocale()))}
       slug={workspace.slug}
       workspaceId={workspace.id}
+      workspaceName={workspace.name}
       accountId={me.id}
       access={{
         canMoveAny: can('session.private.manage.any'),
@@ -80,6 +81,7 @@ export default async function WorkspaceCalendarPage({
         canChangeClasses: can('class.manage'),
         canSeeClients: can('clients.view'),
         canManageCalendar: can('calendar.manage'),
+        canAssign: can('session.assign'),
         teamMemberId: workspace.teamMemberId,
       }}
     />

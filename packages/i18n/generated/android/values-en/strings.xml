@@ -726,6 +726,48 @@
     <string name="sessions_reschedule_subtitle">%1$s · Private session</string>
     <string name="sessions_reschedule_title">Reschedule session</string>
     <string name="sessions_title">Session</string>
+    <string name="sessions_trainer_dialog_bookings_stay">Bookings stay exactly as they are.</string>
+    <string name="sessions_trainer_dialog_cancel">Cancel</string>
+    <string name="sessions_trainer_dialog_conflict_class">already teaching %1$s then (%2$s)</string>
+    <string name="sessions_trainer_dialog_conflict_hint">%2$s · %1$s</string>
+    <string name="sessions_trainer_dialog_conflict_open_gym">already has Open Gym then (%1$s)</string>
+    <string name="sessions_trainer_dialog_conflict_private">already has a private session then (%1$s)</string>
+    <string name="sessions_trainer_dialog_currently">Currently: %1$s</string>
+    <string name="sessions_trainer_dialog_done_class">%3$s teaches %1$s on %2$s.</string>
+    <string name="sessions_trainer_dialog_done_private">%1$s is now the %2$s of this session.</string>
+    <string name="sessions_trainer_dialog_errors_cancelled">This session is cancelled and can no longer be changed.</string>
+    <string name="sessions_trainer_dialog_errors_changed_by">This session was just changed by %1$s.</string>
+    <string name="sessions_trainer_dialog_errors_changed_by_unknown">This session was just changed.</string>
+    <string name="sessions_trainer_dialog_errors_load_failed">The details couldn\'t be loaded.</string>
+    <string name="sessions_trainer_dialog_errors_no_permission">You no longer have permission for this session.</string>
+    <string name="sessions_trainer_dialog_errors_not_saved">Not saved. Check your connection and try again.</string>
+    <string name="sessions_trainer_dialog_following_line">%3$s becomes the regular %4$s of %1$s from %2$s.</string>
+    <string name="sessions_trainer_dialog_invite_trainer">Invite %1$s</string>
+    <plurals name="sessions_trainer_dialog_later_conflicts">
+        <item quantity="one">%2$s already has something on %1$d later class.</item>
+        <item quantity="other">%2$s already has something on %1$d later classes.</item>
+    </plurals>
+    <string name="sessions_trainer_dialog_no_others">There are no other %1$s in %2$s.</string>
+    <plurals name="sessions_trainer_dialog_notify_class">
+        <item quantity="one">Notify %1$d participant by email</item>
+        <item quantity="other">Notify %1$d participants by email</item>
+    </plurals>
+    <string name="sessions_trainer_dialog_notify_client">Notify %1$s by email</string>
+    <string name="sessions_trainer_dialog_notify_client_note">%1$s · %2$s</string>
+    <string name="sessions_trainer_dialog_scope_following">This and all following classes</string>
+    <string name="sessions_trainer_dialog_scope_label">For</string>
+    <string name="sessions_trainer_dialog_scope_this">Only this class</string>
+    <string name="sessions_trainer_dialog_select_placeholder">Choose %1$s</string>
+    <string name="sessions_trainer_dialog_submit_assign">Assign</string>
+    <string name="sessions_trainer_dialog_submit_change">Save</string>
+    <string name="sessions_trainer_dialog_submit_substitute">Substitute</string>
+    <string name="sessions_trainer_dialog_subtitle_class">%1$s · %2$s, %4$s–%3$s</string>
+    <string name="sessions_trainer_dialog_subtitle_private">%1$s · Private session</string>
+    <string name="sessions_trainer_dialog_title_assign">Assign %1$s</string>
+    <string name="sessions_trainer_dialog_title_change">Change the %1$s</string>
+    <string name="sessions_trainer_dialog_title_substitute">Substitute the %1$s</string>
+    <string name="sessions_trainer_dialog_who_assign">Who teaches this class?</string>
+    <string name="sessions_trainer_dialog_who_substitute">Who\'s taking over?</string>
     <string name="settings_general_errors_generic">Something went wrong. Try again.</string>
     <string name="settings_general_errors_name_required">Enter the name of your gym or business.</string>
     <string name="settings_general_errors_name_too_long">This name is too long. Use a shorter one.</string>
@@ -809,6 +851,33 @@
     <string name="team_errors_generic">Something went wrong. Try again.</string>
     <string name="team_errors_last_owner">%1$s needs at least one owner.</string>
     <string name="team_errors_no_connection">No connection. Check your internet and try again.</string>
+    <plurals name="team_handover_classes_count">
+        <item quantity="one">%1$d group class</item>
+        <item quantity="other">%1$d group classes</item>
+    </plurals>
+    <string name="team_handover_classes_label">Hand classes over to</string>
+    <plurals name="team_handover_done">
+        <item quantity="one">%1$d session or class has been handed over.</item>
+        <item quantity="other">%1$d sessions and classes have been handed over.</item>
+    </plurals>
+    <plurals name="team_handover_done_cancelled">
+        <item quantity="one">%1$d private session was cancelled.</item>
+        <item quantity="other">%1$d private sessions were cancelled.</item>
+    </plurals>
+    <string name="team_handover_later_one">After that: 1 session gets ‘%1$s needed’. You assign it later under Needs attention.</string>
+    <string name="team_handover_later_other">After that: %2$s sessions get ‘%1$s needed’. You assign them later under Needs attention.</string>
+    <string name="team_handover_next_two_weeks">The next 2 weeks: %1$s.</string>
+    <string name="team_handover_nobody">Nobody</string>
+    <string name="team_handover_nobody_note">With nobody: classes get ‘%1$s needed’, private sessions are cancelled and those clients get an email.</string>
+    <string name="team_handover_notify">Notify clients by email</string>
+    <string name="team_handover_parts_join">%1$s and %2$s</string>
+    <plurals name="team_handover_private_count">
+        <item quantity="one">%1$d private session</item>
+        <item quantity="other">%1$d private sessions</item>
+    </plurals>
+    <string name="team_handover_private_label">Hand private sessions over to</string>
+    <string name="team_handover_series_note">A weekly class that %1$s is the regular %2$s of has no regular %2$s after that.</string>
+    <string name="team_handover_submit">Hand over and remove</string>
     <string name="team_invitations_gone">This invitation is no longer there.</string>
     <string name="team_invitations_send_again">Send again</string>
     <string name="team_invitations_sent_again">Invitation sent again</string>

@@ -4,6 +4,7 @@ import { Card, CardContent } from '@fivvi/ui/components/card';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { AssignTrainer } from './assign-trainer';
 import { RescheduleSession } from './reschedule-session';
 import type { Session } from './sessions-client';
 import { useSessionFormat } from './use-session-format';
@@ -24,6 +25,7 @@ export function SessionView({
   canMove,
   teamMemberId,
   startMoving = false,
+  assign,
   trainerWord,
 }: {
   workspaceId: string;
@@ -41,6 +43,11 @@ export function SessionView({
   teamMemberId: string;
   /** PS-05 opens at once (the calendar's *Verplaatsen*). */
   startMoving?: boolean;
+  /**
+   * The person may change the trainer (`session.assign`, the Owner, F023): *Trainer wijzigen*.
+   * `startOpen` opens it at once (`?assign=1`: the calendar's quick view and *Aandacht nodig*).
+   */
+  assign?: { workspaceName: string; startOpen: boolean };
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('sessions.page');
@@ -96,6 +103,22 @@ export function SessionView({
               defaultLocale={defaultLocale}
               ownSession={ownSession}
               startOpen={startMoving}
+            />
+          ) : null}
+          {assign ? (
+            <AssignTrainer
+              workspaceId={workspaceId}
+              slug={slug}
+              session={session}
+              client={{
+                name: client.name,
+                email: client.email,
+                emailLocale: client.emailLocale ?? defaultLocale,
+              }}
+              trainerWord={trainerWord}
+              workspaceName={assign.workspaceName}
+              teamMemberId={teamMemberId}
+              startOpen={assign.startOpen}
             />
           ) : null}
           <Button asChild variant="outline">

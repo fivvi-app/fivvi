@@ -965,7 +965,47 @@
       "subtitle": "{client} · Private session",
       "title": "Reschedule session"
     },
-    "title": "Session"
+    "title": "Session",
+    "trainerDialog": {
+      "bookingsStay": "Bookings stay exactly as they are.",
+      "cancel": "Cancel",
+      "conflictClass": "already teaching {name} then ({time})",
+      "conflictHint": "{trainer} · {hint}",
+      "conflictOpenGym": "already has Open Gym then ({time})",
+      "conflictPrivate": "already has a private session then ({time})",
+      "currently": "Currently: {name}",
+      "doneClass": "{trainer} teaches {class} on {date}.",
+      "donePrivate": "{trainer} is now the {word} of this session.",
+      "errors": {
+        "cancelled": "This session is cancelled and can no longer be changed.",
+        "changedBy": "This session was just changed by {name}.",
+        "changedByUnknown": "This session was just changed.",
+        "loadFailed": "The details couldn't be loaded.",
+        "noPermission": "You no longer have permission for this session.",
+        "notSaved": "Not saved. Check your connection and try again."
+      },
+      "followingLine": "{trainer} becomes the regular {word} of {class} from {date}.",
+      "inviteTrainer": "Invite {aWord}",
+      "laterConflicts": "{trainer} already has something on {count, plural, one {# later class} other {# later classes}}.",
+      "noOthers": "There are no other {words} in {workspace}.",
+      "notifyClass": "Notify {count, plural, one {# participant} other {# participants}} by email",
+      "notifyClient": "Notify {client} by email",
+      "notifyClientNote": "{email} · {language}",
+      "scopeFollowing": "This and all following classes",
+      "scopeLabel": "For",
+      "scopeThis": "Only this class",
+      "selectPlaceholder": "Choose {aWord}",
+      "submitAssign": "Assign",
+      "submitChange": "Save",
+      "submitSubstitute": "Substitute",
+      "subtitleClass": "{class} · {date}, {start}–{end}",
+      "subtitlePrivate": "{client} · Private session",
+      "titleAssign": "Assign {aWord}",
+      "titleChange": "Change the {word}",
+      "titleSubstitute": "Substitute the {word}",
+      "whoAssign": "Who teaches this class?",
+      "whoSubstitute": "Who's taking over?"
+    }
   },
   "settingsGeneral": {
     "errors": {
@@ -1763,6 +1803,23 @@
       "generic": "Something went wrong. Try again.",
       "lastOwner": "{workspace} needs at least one owner.",
       "noConnection": "No connection. Check your internet and try again."
+    },
+    "handover": {
+      "classesCount": "{count, plural, one {# group class} other {# group classes}}",
+      "classesLabel": "Hand classes over to",
+      "done": "{count, plural, one {# session or class has} other {# sessions and classes have}} been handed over.",
+      "doneCancelled": "{count, plural, one {# private session was} other {# private sessions were}} cancelled.",
+      "laterOne": "After that: 1 session gets ‘{Word} needed’. You assign it later under Needs attention.",
+      "laterOther": "After that: {count} sessions get ‘{Word} needed’. You assign them later under Needs attention.",
+      "nextTwoWeeks": "The next 2 weeks: {parts}.",
+      "nobody": "Nobody",
+      "nobodyNote": "With nobody: classes get ‘{Word} needed’, private sessions are cancelled and those clients get an email.",
+      "notify": "Notify clients by email",
+      "partsJoin": "{first} and {second}",
+      "privateCount": "{count, plural, one {# private session} other {# private sessions}}",
+      "privateLabel": "Hand private sessions over to",
+      "seriesNote": "A weekly class that {name} is the regular {word} of has no regular {word} after that.",
+      "submit": "Hand over and remove"
     },
     "invitations": {
       "gone": "This invitation is no longer there.",

@@ -1,6 +1,8 @@
+import { trainerWordForms } from '@fivvi/i18n';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { catalogLocale } from '../../../../../../i18n/config';
 import { apiClient } from '../../../../../../server/api';
 import { currentMe } from '../../../../../../server/signed-in';
 import { workspaceOf } from '../../../../../../server/workspace-of';
@@ -22,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * `GET /v1/workspaces/{workspaceId}/trainer-invitations`; a Trainer's page asks for none.
  */
 export default async function TrainersPage({ params }: PageProps<'/w/[slug]/trainers'>) {
-  const { id, name, capabilities } = await workspaceOf((await params).slug);
+  const { id, name, capabilities, trainerWord } = await workspaceOf((await params).slug);
   if (!capabilities.includes('team.view')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
   const authorization = cookie ? { cookie } : {};
@@ -51,6 +53,7 @@ export default async function TrainersPage({ params }: PageProps<'/w/[slug]/trai
       canManage={capabilities.includes('team.manage')}
       trainerIds={trainers.map(({ id: teamMemberId }) => teamMemberId)}
       currentEmail={email}
+      trainerWord={trainerWordForms(trainerWord, catalogLocale(await getLocale()))}
       canInvite={canInvite}
       invitations={invitations?.data ?? []}
       {...(workspace?.data
