@@ -298,7 +298,9 @@ test.describe('F026 CO-03 Les annuleren? on CO-01 and the stopped series', () =>
       expect(email?.text).toContain('Sarah is ziek, sorry!');
     }
     // CO-01 now shows the banner and the cancelled participants.
-    await expect(page.getByText(copy.classes.date.cancelledSection)).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: copy.classes.date.cancelledSection, exact: true }),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: t('action'), exact: true })).toHaveCount(0);
   });
 
@@ -323,7 +325,8 @@ test.describe('F026 CO-03 Les annuleren? on CO-01 and the stopped series', () =>
 
     expect((await stored(page, w, first)).status).toBe('scheduled');
     expect((await stored(page, w, second)).status).toBe('cancelled');
-    expect((await stored(page, w, third)).status).toBe('cancelled');
+    // The dates after it had no participants and no changes of their own: they are removed, not cancelled.
+    expect((await page.request.get(`${w.base}/sessions/${third}`)).status()).toBe(404);
     await page.goto(`/w/${w.slug}/classes/${classId}`);
     await expect(
       page.getByText(
@@ -372,7 +375,9 @@ test.describe('F026 CO-03 Les annuleren? on CO-01 and the stopped series', () =>
     await expect(dialog.getByLabel(t('messageLabel'))).toHaveCount(0);
     await dialog.getByRole('button', { name: t('submit') }).click();
 
-    await expect(page.getByText(copy.classes.date.cancelledSection)).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: copy.classes.date.cancelledSection, exact: true }),
+    ).toBeVisible();
     expect((await stored(page, w, first)).status).toBe('cancelled');
     expect(await emailsTo(anna.email)).toHaveLength(0);
   });
@@ -493,7 +498,10 @@ test.describe('F026 cancelling from the calendar and the cancelled items on ever
 
     // Les annuleren opens CO-03 on CO-01.
     await page.goto(calendar);
-    await blocks(page).filter({ hasText: 'Kracht' }).first().click();
+    await blocks(page)
+      .filter({ hasText: /Kracht|Strength/ })
+      .first()
+      .click();
     await quickView.getByRole('link', { name: classes('action'), exact: true }).click();
     await expect(page).toHaveURL(
       new RegExp(`/classes/${series.classId}/${series.dates[0]}\\?cancel=1$`),
@@ -513,7 +521,10 @@ test.describe('F026 cancelling from the calendar and the cancelled items on ever
       0,
     );
     await page.keyboard.press('Escape');
-    await blocks(page).filter({ hasText: 'Kracht' }).first().click();
+    await blocks(page)
+      .filter({ hasText: /Kracht|Strength/ })
+      .first()
+      .click();
     await expect(quickView.getByRole('link', { name: classes('action'), exact: true })).toHaveCount(
       0,
     );
