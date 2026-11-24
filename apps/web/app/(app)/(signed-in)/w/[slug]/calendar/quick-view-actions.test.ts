@@ -10,6 +10,7 @@ const owner: CalendarAccess = {
   canChangeClasses: true,
   canSeeClients: true,
   canManageCalendar: true,
+  canAssign: true,
   teamMemberId: 'm-john',
 };
 const trainer: CalendarAccess = {
@@ -18,6 +19,7 @@ const trainer: CalendarAccess = {
   canChangeClasses: false,
   canSeeClients: true,
   canManageCalendar: false,
+  canAssign: false,
   teamMemberId: 'm-sarah',
 };
 const session = (trainerId: string | undefined, overrides = {}) => ({
@@ -35,6 +37,7 @@ describe('F014 AC12: the quick view of a block', () => {
       move: true,
       change: false,
       clientProfile: true,
+      assign: 'change',
     });
   });
 
@@ -44,11 +47,12 @@ describe('F014 AC12: the quick view of a block', () => {
       move: true,
       change: false,
       clientProfile: true,
+      assign: null,
     });
   });
 
   it('gives a Trainer Openen only on a colleague’s session, and on one without a trainer', () => {
-    const only = { open: true, move: false, change: false, clientProfile: false };
+    const only = { open: true, move: false, change: false, clientProfile: false, assign: null };
     expect(quickViewActions(session('m-tom'), trainer)).toEqual(only);
     expect(quickViewActions(session(undefined), trainer)).toEqual(only);
   });
@@ -57,8 +61,45 @@ describe('F014 AC12: the quick view of a block', () => {
     expect(quickViewActions(session('m-sarah', { status: 'cancelled' }), owner).move).toBe(false);
     const group = (access: CalendarAccess, status: 'scheduled' | 'cancelled' = 'scheduled') =>
       quickViewActions(session('m-sarah', { type: 'group', status, clients: undefined }), access);
-    expect(group(owner)).toEqual({ open: true, move: false, change: true, clientProfile: false });
+    expect(group(owner)).toEqual({
+      open: true,
+      move: false,
+      change: true,
+      clientProfile: false,
+      assign: null,
+    });
     expect(group(owner, 'cancelled').change).toBe(false);
     expect(group(trainer).change).toBe(false);
+  });
+});
+
+describe('F023 the quick view offers the trainer dialog', () => {
+  const series = {
+    id: 'r1',
+    weekday: 'TU' as const,
+    localStartTime: '18:00',
+    occurrenceDate: '2026-10-06',
+    changedFields: [],
+  };
+  const group = (trainerId: string | undefined, overrides = {}) =>
+    session(trainerId, { type: 'group', clients: undefined, ...overrides });
+
+  it('AC1: a class date without a trainer has Trainer toewijzen', () => {
+    expect(quickViewActions(group(undefined), owner).assign).toBe('assign');
+  });
+
+  it('AC2: a class date of a series that has a trainer has Trainer vervangen; a one-off one has neither', () => {
+    expect(quickViewActions(group('m-sarah', { series }), owner).assign).toBe('substitute');
+    expect(quickViewActions(group('m-sarah'), owner).assign).toBeNull();
+  });
+
+  it('AC8: a private session has Trainer wijzigen, with or without a trainer', () => {
+    expect(quickViewActions(session('m-sarah'), owner).assign).toBe('change');
+    expect(quickViewActions(session(undefined), owner).assign).toBe('change');
+  });
+
+  it('AC12: a Trainer has none, and nobody has one on a cancelled block', () => {
+    expect(quickViewActions(group(undefined), trainer).assign).toBeNull();
+    expect(quickViewActions(session('m-sarah', { status: 'cancelled' }), owner).assign).toBeNull();
   });
 });

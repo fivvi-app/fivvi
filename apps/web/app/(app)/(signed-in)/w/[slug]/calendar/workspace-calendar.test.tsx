@@ -97,6 +97,7 @@ const access = {
   canChangeClasses: true,
   canSeeClients: true,
   canManageCalendar: true,
+  canAssign: true,
   teamMemberId: 'm-paula',
 };
 
@@ -127,6 +128,7 @@ describe.each(locales)('F014 Agenda in %s', (locale) => {
         trainers={trainers}
         slug="pilot-gym"
         workspaceId="w1"
+        workspaceName="Pilot Gym"
         accountId="a1"
         access={access}
         trainerWord={words}
@@ -185,6 +187,7 @@ describe.each(locales)('F014 Agenda in %s', (locale) => {
           trainers={trainers}
           slug="pilot-gym"
           workspaceId="w1"
+          workspaceName="Pilot Gym"
           accountId="a1"
           access={access}
           trainerWord={words}
@@ -274,6 +277,7 @@ describe.each(locales)('F014 Agenda in %s', (locale) => {
           trainers={trainers}
           slug="pilot-gym"
           workspaceId="w1"
+          workspaceName="Pilot Gym"
           accountId="a1"
           access={person}
           trainerWord={words}

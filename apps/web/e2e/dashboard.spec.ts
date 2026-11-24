@@ -266,7 +266,10 @@ test.describe('F014 the Owner’s Dashboard on the web', () => {
     await expect(inMain(page).getByText(row, { exact: true })).toBeVisible();
     const assign = page.getByRole('link', { name: t.assignLabel.replace('{item}', row) });
     await expect(assign).toHaveText(t.assign);
-    await expect(assign).toHaveAttribute('href', new RegExp(`/sessions/${week.sessions.boxing}$`));
+    await expect(assign).toHaveAttribute(
+      'href',
+      new RegExp(`/sessions/${week.sessions.boxing}\\?assign=1$`),
+    );
 
     // Nog vandaag: the four columns and what has not ended yet, in time order.
     const table = page.getByRole('table', { name: t.stillToday });
@@ -514,10 +517,10 @@ test.describe('F014 the Owner’s Dashboard on the web', () => {
     await expect(assign).toHaveCount(2);
     await expect(
       page.getByRole('link', { name: t.assignLabel.replace('{item}', privateRow) }),
-    ).toHaveAttribute('href', new RegExp(`/sessions/${privateId}$`));
+    ).toHaveAttribute('href', new RegExp(`/sessions/${privateId}\\?assign=1$`));
     await expect(
       page.getByRole('link', { name: t.assignLabel.replace('{item}', classRow) }),
-    ).toHaveAttribute('href', new RegExp(`/sessions/${boxing.firstDate.id}$`));
+    ).toHaveAttribute('href', new RegExp(`/sessions/${boxing.firstDate.id}\\?assign=1$`));
     await expectNoAxeViolations(page, `Aandacht nodig with two rows in ${appLocale}`);
 
     // The data path: the rows are what the day route answers.
@@ -528,10 +531,10 @@ test.describe('F014 the Owner’s Dashboard on the web', () => {
       [privateId, boxing.firstDate.id].sort(),
     );
 
-    // Toewijzen opens the item: the class date's page (CO-01).
+    // Toewijzen opens the class date's page (CO-01) with the trainer dialog (CO-02, F023).
     await page.getByRole('link', { name: t.assignLabel.replace('{item}', classRow) }).click();
     await expect(page).toHaveURL(
-      new RegExp(`/classes/${boxing.groupClass.id}/${boxing.firstDate.id}$`),
+      new RegExp(`/classes/${boxing.groupClass.id}/${boxing.firstDate.id}\\?assign=1$`),
     );
 
     // Once a trainer is assigned the row is gone.

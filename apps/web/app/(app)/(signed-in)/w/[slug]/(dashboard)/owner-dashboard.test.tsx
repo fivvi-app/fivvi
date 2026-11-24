@@ -183,7 +183,8 @@ describe.each(locales)('F014 the Owner’s Dashboard in %s', (locale) => {
     expect(text(html)).toContain(copy.attentionTitle);
     expect(text(html)).toContain(row);
     expect(html).toContain(`aria-label="${copy.assignLabel.replace('{item}', row)}"`);
-    expect(html).toMatch(/href="\/w\/pilot-gym\/sessions\/s-boxing"[^>]*>/);
+    // F023 AC1: Toewijzen opens the trainer dialog (CO-02) on the date, not only the page.
+    expect(html).toMatch(/href="\/w\/pilot-gym\/sessions\/s-boxing\?assign=1"[^>]*>/);
     expect(text(html)).not.toContain(copy.attentionNone);
   });
 
@@ -195,7 +196,7 @@ describe.each(locales)('F014 the Owner’s Dashboard in %s', (locale) => {
       .replace('{date}', shortDay('2026-09-25'))
       .replace('{time}', '09:00');
     expect(text(html)).toContain(row);
-    expect(html).toContain('href="/w/pilot-gym/sessions/s-orphan"');
+    expect(html).toContain('href="/w/pilot-gym/sessions/s-orphan?assign=1"');
     // Both are there, in the API's time order.
     expect(text(html).indexOf('Boxing')).toBeLessThan(text(html).indexOf('Anna de Vries'));
   });

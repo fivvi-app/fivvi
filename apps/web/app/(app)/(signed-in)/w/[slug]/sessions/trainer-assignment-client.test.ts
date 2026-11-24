@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { assignTrainer, loadTrainerCandidates } from './trainer-assignment-client';
+import {
+  assignTrainer,
+  loadAssignSubject,
+  loadTrainerCandidates,
+} from './trainer-assignment-client';
 
 const reply = (status: number, body: unknown = {}) =>
   vi.fn<typeof fetch>(() => Promise.resolve(Response.json(body, { status })));
@@ -189,5 +193,62 @@ describe('F023 trainer assignment client: assigning', () => {
       ok: false,
       reason: 'noConnection',
     });
+  });
+});
+
+describe('F023 trainer assignment client: the session of a dialog opened from the calendar', () => {
+  const mark = { id: 'c1', name: 'Mark Jansen', email: 'mark@example.com', emailLocale: 'en' };
+  const privateSession = {
+    ...session,
+    id: 's2',
+    type: 'private',
+    participants: [{ clientId: 'c1', name: 'Mark Jansen', attendanceStatus: 'booked' }],
+  };
+  /** Answers each route of this site with what it holds. */
+  const routes = (answers: Record<string, { status: number; body: unknown }>) =>
+    vi.fn<typeof fetch>((input) => {
+      const found = answers[String(input)];
+      return Promise.resolve(Response.json(found?.body ?? {}, { status: found?.status ?? 404 }));
+    });
+
+  it('WC-03: a class date is its session alone', async () => {
+    const fetchFn = routes({ '/api/v1/workspaces/w1/sessions/s1': { status: 200, body: session } });
+
+    expect(await loadAssignSubject('w1', 's1', fetchFn)).toEqual({ ok: true, session });
+  });
+
+  it('WC-03: a private session comes with its client, in the client’s email language else the workspace’s', async () => {
+    const fetchFn = routes({
+      '/api/v1/workspaces/w1/sessions/s2': { status: 200, body: privateSession },
+      '/api/v1/workspaces/w1/clients/c1': { status: 200, body: mark },
+      '/api/v1/workspaces/w1': { status: 200, body: { defaultLocale: 'nl-NL' } },
+    });
+
+    expect(await loadAssignSubject('w1', 's2', fetchFn)).toEqual({
+      ok: true,
+      session: privateSession,
+      client: { name: 'Mark Jansen', email: 'mark@example.com', emailLocale: 'en' },
+    });
+    const anna = routes({
+      '/api/v1/workspaces/w1/sessions/s2': { status: 200, body: privateSession },
+      '/api/v1/workspaces/w1/clients/c1': { status: 200, body: { ...mark, emailLocale: null } },
+      '/api/v1/workspaces/w1': { status: 200, body: { defaultLocale: 'nl-NL' } },
+    });
+    expect(await loadAssignSubject('w1', 's2', anna)).toMatchObject({
+      client: { emailLocale: 'nl-NL' },
+    });
+  });
+
+  it('a session that is gone, a 401 and a failure to load', async () => {
+    expect(await loadAssignSubject('w1', 's1', routes({}))).toEqual({ ok: false, reason: 'home' });
+    expect(
+      await loadAssignSubject(
+        'w1',
+        's1',
+        routes({ '/api/v1/workspaces/w1/sessions/s1': { status: 500, body: {} } }),
+      ),
+    ).toEqual({ ok: false, reason: 'failed' });
+    const offline = vi.fn<typeof fetch>(() => Promise.reject(new TypeError('offline')));
+    expect(await loadAssignSubject('w1', 's1', offline)).toEqual({ ok: false, reason: 'failed' });
   });
 });

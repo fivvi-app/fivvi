@@ -1,5 +1,7 @@
 import type { Schemas } from '@fivvi/contract';
+import type { Locale } from '@fivvi/i18n';
 import { type Session, type TrainerConflictRefusal, trainerConflict } from './sessions-client';
+import type { TrainerFormClient } from './trainer-form';
 
 export type TrainerCandidates = Schemas['TrainerCandidates'];
 export type TrainerCandidate = Schemas['TrainerCandidate'];
@@ -115,4 +117,44 @@ export async function assignTrainer(
   if (response.status === 401) return { ok: false, reason: 'home' };
   if (response.status === 403) return { ok: false, reason: 'forbidden' };
   return { ok: false, reason: 'generic' };
+}
+
+export type AssignSubjectResult =
+  | { ok: true; session: Session; client?: TrainerFormClient }
+  | { ok: false; reason: 'home' | 'failed' };
+
+/**
+ * Reads what the trainer dialog needs when it opens from the calendar, which has the block but not
+ * the session: the session (`GET …/sessions/{sessionId}`) and, for a private session, its client
+ * (`GET …/clients/{clientId}`) with the language of the email, else the workspace's default
+ * (`GET …/workspaces/{workspaceId}`). The pages that already hold the session do not call this.
+ */
+export async function loadAssignSubject(
+  workspaceId: string,
+  sessionId: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<AssignSubjectResult> {
+  const base = `/api/v1/workspaces/${workspaceId}`;
+  try {
+    const answer = await fetchFn(`${base}/sessions/${sessionId}`);
+    if ([401, 403, 404].includes(answer.status)) return { ok: false, reason: 'home' };
+    if (answer.status !== 200) return { ok: false, reason: 'failed' };
+    const session = (await answer.json()) as Session;
+    const clientId = session.type === 'private' ? session.participants[0]?.clientId : undefined;
+    if (!clientId) return { ok: true, session };
+    const [client, workspace] = await Promise.all([
+      fetchFn(`${base}/clients/${clientId}`),
+      fetchFn(base),
+    ]);
+    if (client.status !== 200 || workspace.status !== 200) return { ok: false, reason: 'failed' };
+    const { name, email, emailLocale } = (await client.json()) as Schemas['Client'];
+    const { defaultLocale } = (await workspace.json()) as { defaultLocale: Locale };
+    return {
+      ok: true,
+      session,
+      client: { name, email, emailLocale: emailLocale ?? defaultLocale },
+    };
+  } catch {
+    return { ok: false, reason: 'failed' };
+  }
 }
