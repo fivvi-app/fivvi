@@ -133,7 +133,9 @@ test.describe('F013 Mijn dag on the web', () => {
         `^${spokenTime('09:00', '10:00')}, Anna de Vries, ${copy.myDay.typePrivate}(, [^,]+)?, ${PERSONAL}$`,
       ),
     );
-    await expect(row('Anna de Vries')).toContainText(copy.myDay.typePrivate);
+    // Neither workspace has a class, so the API does not ask for the kind to be shown (#1534): the
+    // spoken phrase above still names it.
+    await expect(row('Anna de Vries')).not.toContainText(copy.myDay.typePrivate);
     await expect(row('Anna de Vries')).toContainText(PERSONAL);
     await expect(row('Anna de Vries')).toHaveAttribute(
       'href',
@@ -276,7 +278,8 @@ test.describe('F013 Mijn dag on the web', () => {
     await expect(row).toContainText('Mark Jansen');
     // The location is called like the workspace here, so only a line of its own would be the workspace's name.
     await expect(row.getByText(GYM, { exact: true })).toHaveCount(0);
-    await expect(row).toContainText(`${copy.myDay.typePrivate} · ${GYM}`);
+    // A gym without a class offers private sessions only: no kind in words (#1534).
+    await expect(row).not.toContainText(copy.myDay.typePrivate);
   });
 
   test('AC5: an empty day says so, with the date of the next session and, for a new trainer, no sessions yet', async ({

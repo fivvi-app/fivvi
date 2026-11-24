@@ -68,6 +68,11 @@ const day: Day = {
   date: '2026-09-22',
   timeZone: 'Europe/Amsterdam',
   workspaceCount: 2,
+  workspaces: [
+    { ...gym, offers: ['private', 'group'] },
+    { ...own, offers: ['private'] },
+  ],
+  showsKindLabel: true,
   items: [anna, mark, kracht, krachtCancelled],
   summary: {
     count: 4,
@@ -152,6 +157,61 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
     expect(html.indexOf('Anna de Vries')).toBeLessThan(html.indexOf('Mark Jansen'));
     expect(html).toContain(copy.typePrivate);
     expect(html).toContain(copy.typeGroup);
+  });
+
+  it('#1534: the kind is said by the API: a day with only private sessions of a workspace that also runs classes still names it', () => {
+    const html = seen(
+      view({
+        workspaceCount: 1,
+        workspaces: [{ ...gym, offers: ['private', 'group'] }],
+        showsKindLabel: true,
+        items: [mark],
+        next: undefined,
+        summary: { count: 1, done: 0, firstStartsAt: mark.startsAt, lastEndsAt: mark.endsAt },
+      }),
+    );
+
+    expect(html).toContain(
+      escapeHtml(
+        copy.typeWithDetail
+          .replace('{type}', copy.typePrivate)
+          .replace('{detail}', "John's Gym Centrum"),
+      ),
+    );
+  });
+
+  it('#1534: a person whose workspaces offer only private sessions never sees the kind on a row, as the API says', () => {
+    const html = seen(
+      view({
+        workspaceCount: 1,
+        workspaces: [{ ...own, offers: ['private'] }],
+        showsKindLabel: false,
+        items: [anna],
+        next: undefined,
+        summary: { count: 1, done: 0, firstStartsAt: anna.startsAt, lastEndsAt: anna.endsAt },
+      }),
+    );
+
+    expect(html).toContain('Studio Zuid');
+    expect(html).not.toContain(copy.typePrivate);
+    expect(html).not.toContain(copy.typeGroup);
+  });
+
+  it('#1534: the phrase a screen reader gets names the kind either way', () => {
+    const html = view({ showsKindLabel: false });
+
+    expect(html).toMatch(new RegExp(`aria-label="[^"]*${copy.typePrivate}[^"]*"`));
+    expect(html).toMatch(new RegExp(`aria-label="[^"]*${copy.typeGroup}[^"]*"`));
+  });
+
+  it('#1534: the web never works the kind out from the items: both kinds on the day, the API says no, no label', () => {
+    const html = seen(view({ showsKindLabel: false }));
+
+    expect(html).not.toContain(copy.typePrivate);
+    expect(html).not.toContain(copy.typeGroup);
+    // The class still shows its bookings, the private session its place.
+    expect(html).toContain(copy.booked.replace('{booked}', '0').replace('{capacity}', '8'));
+    expect(html).toContain('Studio Zuid');
   });
 
   it('AC1: a private session shows its location, a class its bookings, and a time range in Dutch time', () => {
