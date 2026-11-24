@@ -1,12 +1,17 @@
-import { and, eq, sql } from 'drizzle-orm';
-import { sessions } from '../schema/index.ts';
+import { and, asc, eq, gt, inArray, notExists, sql } from 'drizzle-orm';
+import { bookingLinks, sessionParticipants, sessions } from '../schema/index.ts';
 import { executorOf, type WorkspaceScope } from '../tenant-scope.ts';
 import {
   listAttendanceParticipants,
   type ParticipantStatusSource,
   recordParticipantStatusChange,
 } from './attendance.ts';
-import { type CancellationInitiator, findSession, type SessionView } from './sessions.ts';
+import {
+  type AttendanceStatus,
+  type CancellationInitiator,
+  findSession,
+  type SessionView,
+} from './sessions.ts';
 
 // Cancelling a session (F026, spec #462): the one write that stores a cancellation. The rules (who
 // may, a cancelled session, a stale version, which places change, who is emailed) are in
@@ -91,4 +96,143 @@ export async function cancelSession(
     });
   }
   return findSession(scope, changed.id);
+}
+
+/**
+ * A date of a series after the one being cancelled, with what decides whether the cancellation
+ * cancels it or removes it (F026, "the rest of a series"): its places, what was changed on it alone
+ * and whether another record points at it.
+ */
+export interface LaterSeriesDateView {
+  readonly id: string;
+  /** `YYYY-MM-DD`. */
+  readonly occurrenceDate: string;
+  readonly status: 'scheduled' | 'cancelled';
+  readonly version: number;
+  readonly startsAt: Date;
+  /** What was changed on this date alone: `time`, `trainer`, `capacity`, `location`. */
+  readonly detachedFields: string[];
+  /** Every place, whatever its status, in the order they were made. */
+  readonly participants: { readonly clientId: string; readonly status: AttendanceStatus }[];
+  /** A booking link points at this date. */
+  readonly referenced: boolean;
+}
+
+/**
+ * The dates of a series of the scope's workspace after `occurrenceDate`, by date. With `lock` each
+ * is locked until the transaction ends, so nothing changes them between the read and the
+ * cancellation that writes them. A date of another workspace is never listed (the scope and RLS).
+ */
+export async function listLaterSeriesDates(
+  scope: WorkspaceScope,
+  seriesId: string,
+  occurrenceDate: string,
+  options: { lock?: boolean } = {},
+): Promise<LaterSeriesDateView[]> {
+  const db = executorOf(scope);
+  const query = db
+    .select({
+      id: sessions.id,
+      occurrenceDate: sessions.occurrenceDate,
+      status: sessions.status,
+      version: sessions.version,
+      startsAt: sessions.startsAt,
+      detachedFields: sessions.detachedFields,
+    })
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.organizationId, scope.workspaceId),
+        eq(sessions.seriesId, seriesId),
+        gt(sessions.occurrenceDate, occurrenceDate),
+      ),
+    )
+    .orderBy(asc(sessions.occurrenceDate));
+  const rows = await (options.lock ? query.for('update') : query);
+  if (rows.length === 0) return [];
+  const ids = rows.map((row) => row.id);
+  const places = await db
+    .select({
+      sessionId: sessionParticipants.sessionId,
+      clientId: sessionParticipants.clientId,
+      status: sessionParticipants.attendanceStatus,
+    })
+    .from(sessionParticipants)
+    .where(
+      and(
+        eq(sessionParticipants.organizationId, scope.workspaceId),
+        inArray(sessionParticipants.sessionId, ids),
+      ),
+    )
+    .orderBy(asc(sessionParticipants.createdAt), asc(sessionParticipants.id));
+  const links = await db
+    .select({ sessionId: bookingLinks.sessionId })
+    .from(bookingLinks)
+    .where(
+      and(eq(bookingLinks.organizationId, scope.workspaceId), inArray(bookingLinks.sessionId, ids)),
+    );
+  const linked = new Set(links.map((link) => link.sessionId));
+  return rows.flatMap(({ occurrenceDate: day, ...row }) =>
+    day === null
+      ? []
+      : [
+          {
+            ...row,
+            occurrenceDate: day,
+            participants: places
+              .filter((place) => place.sessionId === row.id)
+              .map(({ clientId, status }) => ({ clientId, status })),
+            referenced: linked.has(row.id),
+          },
+        ],
+  );
+}
+
+/**
+ * Removes dates of a series of the scope's workspace that have nothing of their own (F026: the
+ * later dates of a series that stops, which were only the rule's projection): scheduled, no place,
+ * no change of their own. Returns how many were removed; the caller compares it with what it asked
+ * for, and a date that has gained a place since it was read is never removed (its places would go
+ * with it) but left, so the count falls short.
+ */
+export async function removeSeriesDates(
+  scope: WorkspaceScope,
+  sessionIds: readonly string[],
+): Promise<number> {
+  if (sessionIds.length === 0) return 0;
+  const removed = await executorOf(scope)
+    .delete(sessions)
+    .where(
+      and(
+        eq(sessions.organizationId, scope.workspaceId),
+        inArray(sessions.id, [...sessionIds]),
+        eq(sessions.status, 'scheduled'),
+        sql`${sessions.seriesId} IS NOT NULL`,
+        sql`cardinality(${sessions.detachedFields}) = 0`,
+        notExists(
+          executorOf(scope)
+            .select({ one: sql`1` })
+            .from(sessionParticipants)
+            .where(
+              and(
+                eq(sessionParticipants.organizationId, sessions.organizationId),
+                eq(sessionParticipants.sessionId, sessions.id),
+              ),
+            ),
+        ),
+        notExists(
+          executorOf(scope)
+            .select({ one: sql`1` })
+            .from(bookingLinks)
+            .where(
+              and(
+                eq(bookingLinks.organizationId, sessions.organizationId),
+                eq(bookingLinks.sessionId, sessions.id),
+              ),
+            ),
+        ),
+      ),
+    )
+    .returning({ id: sessions.id });
+  return removed.length;
 }

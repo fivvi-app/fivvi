@@ -14,6 +14,11 @@ export {
   type RetiredEntry,
   templates,
 } from './catalog.ts';
+export type { ClassCancelledMail } from './class-cancelled-mail.ts';
+export {
+  type ClassCancelledSenderOptions,
+  createClassCancelledSender,
+} from './class-cancelled-sender.ts';
 export {
   type EmailConfig,
   type LettermintConfig,
@@ -67,6 +72,8 @@ export {
   type SentEvent,
 } from './send.ts';
 export {
+  type CancellationEmailProps,
+  cancellationEmail,
   type DemoRequestEmailProps,
   demoRequestEmail,
   type EmailChangeCodeEmailProps,
@@ -75,10 +82,8 @@ export {
   emailChangeTakenNoticeEmail,
   type HelloEmailProps,
   helloEmail,
-  type PrivateSessionCancelledEmailProps,
   type PrivateSessionEmailProps,
   type PrivateSessionMovedEmailProps,
-  privateSessionCancelledEmail,
   privateSessionEmail,
   privateSessionMovedEmail,
   type SignInEmailProps,

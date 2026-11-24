@@ -473,6 +473,15 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     }),
   },
 
+  // Cancelling a class date (F026, #558): the cancel names the seeded date at the version it has,
+  // for this date alone. Each call gets a date of its own: a cancelled date stays so.
+  cancelClassDate: {
+    seed: aGroupDate,
+    reseedForEachCall: true,
+    params: { sessionId: 'session' },
+    body: { scope: 'this', version: 1 },
+  },
+
   // Cancelling a private session (F026): the cancel names the seeded session at the version it has,
   // for the client (nobody is emailed). Each call gets a session of its own: a cancelled session stays so.
   cancelPrivateSession: {
@@ -680,6 +689,9 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     params: { sessionId: 'session' },
     body: () => ({ clientRequestId: crypto.randomUUID() }),
   },
+
+  // What cancelling a class date would do (F026, #558): the read names the seeded date.
+  previewClassCancellation: { seed: aGroupDate, params: { sessionId: 'session' } },
 
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
   probeCreateClient: {},

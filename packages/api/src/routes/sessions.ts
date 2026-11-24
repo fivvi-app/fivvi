@@ -688,7 +688,7 @@ function mailAbout(
   /** The other client of a duo: the mail names them by first name and has its own event (F066). */
   other?: { id: string; name: string },
 ): PrivateSessionMail {
-  return {
+  const common = {
     to: { email: client.email, name: client.name },
     locale: confirmationLanguage({
       clientEmailLocale: client.emailLocale,
@@ -698,13 +698,18 @@ function mailAbout(
     timeZone: workspace.timeZone,
     startsAt: session.startsAt,
     endsAt: session.endsAt,
-    ...(previous ? { previous } : {}),
     location: { name: session.location.name, address: session.location.address },
     trainerName: session.trainer?.name.trim() ? session.trainer.name : null,
     trainerWord: workspace.trainerWord,
-    ...(other ? { togetherWith: clientFirstName(other.name) } : {}),
     event: privateSessionEmailEvent(session.id, session.version, other ? client.id : undefined),
   };
+  return previous
+    ? { ...common, kind: 'moved', previous }
+    : {
+        ...common,
+        kind: 'planned',
+        ...(other ? { togetherWith: clientFirstName(other.name) } : {}),
+      };
 }
 
 export function registerSessions(app: OpenAPIHono) {

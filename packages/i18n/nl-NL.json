@@ -353,6 +353,13 @@
     }
   },
   "email": {
+    "cancellation": {
+      "intro": "Helaas gaat {class} op {date} om {time} niet door. Je boeking is geannuleerd.",
+      "messageFrom": "Bericht van {workspace}:",
+      "preview": "{class} op {date} om {time} gaat niet door.",
+      "subject": "{class} op {date} gaat niet door",
+      "where": "Waar: {location}"
+    },
     "demoRequest": {
       "business": {
         "gym": "Een sportschool met een team",
@@ -429,7 +436,7 @@
       "intro": "Je privésessie bij {workspace} is geannuleerd.",
       "preview": "Je privésessie bij {workspace} gaat niet door.",
       "subject": "Je sessie op {date} om {time} is geannuleerd",
-      "when": "Gepland was: {date}, {start} tot {end}"
+      "when": "Het stond gepland op: {date}, {start} tot {end}"
     },
     "privateSessionMoved": {
       "dateTime": "{date} om {time}",

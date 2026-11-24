@@ -135,6 +135,7 @@ export async function cancelPrivateSessionInRequest(
     if (!client) continue;
     clientsNotified += 1;
     const mail: PrivateSessionMail = {
+      kind: 'cancelled',
       to: { email: client.email, name: client.name },
       locale: confirmationLanguage({
         clientEmailLocale: client.emailLocale,
@@ -144,7 +145,6 @@ export async function cancelPrivateSessionInRequest(
       timeZone: workspace.timeZone,
       startsAt: cancelled.startsAt,
       endsAt: cancelled.endsAt,
-      cancelled: true,
       location: { name: cancelled.location.name, address: cancelled.location.address },
       trainerName: cancelled.trainer?.name.trim() ? cancelled.trainer.name : null,
       trainerWord: workspace.trainerWord,

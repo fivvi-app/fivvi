@@ -353,6 +353,13 @@
     }
   },
   "email": {
+    "cancellation": {
+      "intro": "Unfortunately {class} on {date} at {time} is cancelled. Your booking has been cancelled.",
+      "messageFrom": "Message from {workspace}:",
+      "preview": "{class} on {date} at {time} is cancelled.",
+      "subject": "{class} on {date} is cancelled",
+      "where": "Where: {location}"
+    },
     "demoRequest": {
       "business": {
         "gym": "A gym with a team",

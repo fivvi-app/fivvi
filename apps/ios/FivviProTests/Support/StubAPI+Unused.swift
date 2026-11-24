@@ -150,6 +150,18 @@ extension StubAPI {
         fatalError("The app doesn't call listGroupClassSeries yet")
     }
 
+    func cancelClassDate(
+        _ input: Operations.CancelClassDate.Input
+    ) async throws -> Operations.CancelClassDate.Output {
+        fatalError("The app doesn't call cancelClassDate yet")
+    }
+
+    func previewClassCancellation(
+        _ input: Operations.PreviewClassCancellation.Input
+    ) async throws -> Operations.PreviewClassCancellation.Output {
+        fatalError("The app doesn't call previewClassCancellation yet")
+    }
+
     func getKeptClassDates(
         _ input: Operations.GetKeptClassDates.Input
     ) async throws -> Operations.GetKeptClassDates.Output {

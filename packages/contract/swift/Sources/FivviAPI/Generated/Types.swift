@@ -326,6 +326,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel/post(cancelPrivateSession)`.
     func cancelPrivateSession(_ input: Operations.CancelPrivateSession.Input) async throws -> Operations.CancelPrivateSession.Output
+    /// Cancel a class date or the rest of its series
+    ///
+    /// Cancels a class date (CO-03, the Owner only; a Trainer gets `403`): the date becomes `cancelled` and stays, each participant’s place becomes `cancelled` (one line of the status history each, with the Owner as actor and `workspace` as the initiator), and the time (UTC), the Owner and the message are stored. With `scope: following` the later dates of the series with participants or changes of their own are cancelled the same way, the later dates with neither are removed, and the series ends the day before this date. EM-05 goes to each participant whose place was cancelled on a date that has not started, after the cancellation is committed, in their email language, else the workspace’s default, with the message as typed, and never names another participant; a date that has started is recorded without an email. A cancelled date answers `409` with the code `session_cancelled` (a second cancel too, whatever the version; the state is told before the version); a `version` that is not the date’s answers `409` with `session_changed` and the date as it is now. A session that is not a class date of the workspace (a private session too) answers `404`. There is no undo.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel-class`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel-class/post(cancelClassDate)`.
+    func cancelClassDate(_ input: Operations.CancelClassDate.Input) async throws -> Operations.CancelClassDate.Output
+    /// What cancelling a class date would do
+    ///
+    /// Before the Owner confirms *Les annuleren* (CO-03), says for each scope how many people get the cancellation email and which dates are cancelled or removed, without storing or sending anything (the Owner only; a Trainer gets `403`). `started` says the date has started or passed: it is then recorded for the record, with no emails and no message. A cancelled date answers `409` with the code `session_cancelled`. A session that is not a class date of the workspace (a private session too) answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel-preview`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel-preview/get(previewClassCancellation)`.
+    func previewClassCancellation(_ input: Operations.PreviewClassCancellation.Input) async throws -> Operations.PreviewClassCancellation.Output
     /// The workspace calendar: the sessions of a range of days
     ///
     /// Every session of the workspace that starts from the start of `from` to the end of `to` (at most 42 days, on the workspace's wall clock), whoever its trainer is, in time order: private sessions and class dates with their type, status, start and end (UTC instants plus the time zone), trainer, location, the client’s display name, the class name in the viewer’s language, booked and capacity, the series line and what changed on the date. For the Agenda’s week, day per trainer and list. `trainerIds`, `types` and `includeCancelled` narrow it. Notes are never in it. Every team member may read.
@@ -1217,6 +1231,38 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// Cancel a class date or the rest of its series
+    ///
+    /// Cancels a class date (CO-03, the Owner only; a Trainer gets `403`): the date becomes `cancelled` and stays, each participant’s place becomes `cancelled` (one line of the status history each, with the Owner as actor and `workspace` as the initiator), and the time (UTC), the Owner and the message are stored. With `scope: following` the later dates of the series with participants or changes of their own are cancelled the same way, the later dates with neither are removed, and the series ends the day before this date. EM-05 goes to each participant whose place was cancelled on a date that has not started, after the cancellation is committed, in their email language, else the workspace’s default, with the message as typed, and never names another participant; a date that has started is recorded without an email. A cancelled date answers `409` with the code `session_cancelled` (a second cancel too, whatever the version; the state is told before the version); a `version` that is not the date’s answers `409` with `session_changed` and the date as it is now. A session that is not a class date of the workspace (a private session too) answers `404`. There is no undo.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel-class`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel-class/post(cancelClassDate)`.
+    public func cancelClassDate(
+        path: Operations.CancelClassDate.Input.Path,
+        headers: Operations.CancelClassDate.Input.Headers = .init(),
+        body: Operations.CancelClassDate.Input.Body
+    ) async throws -> Operations.CancelClassDate.Output {
+        try await cancelClassDate(Operations.CancelClassDate.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// What cancelling a class date would do
+    ///
+    /// Before the Owner confirms *Les annuleren* (CO-03), says for each scope how many people get the cancellation email and which dates are cancelled or removed, without storing or sending anything (the Owner only; a Trainer gets `403`). `started` says the date has started or passed: it is then recorded for the record, with no emails and no message. A cancelled date answers `409` with the code `session_cancelled`. A session that is not a class date of the workspace (a private session too) answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel-preview`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/cancel-preview/get(previewClassCancellation)`.
+    public func previewClassCancellation(
+        path: Operations.PreviewClassCancellation.Input.Path,
+        headers: Operations.PreviewClassCancellation.Input.Headers = .init()
+    ) async throws -> Operations.PreviewClassCancellation.Output {
+        try await previewClassCancellation(Operations.PreviewClassCancellation.Input(
+            path: path,
+            headers: headers
         ))
     }
     /// The workspace calendar: the sessions of a range of days

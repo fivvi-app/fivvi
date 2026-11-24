@@ -17,6 +17,7 @@ import {
   type StoredContext,
 } from '@fivvi/database/testing';
 import {
+  createClassCancelledSender,
   createMemoryTransport,
   createPrivateSessionSender,
   createSendEmail,
@@ -141,6 +142,14 @@ export async function createWorld(options: WorldOptions = {}): Promise<World> {
     }),
     // The session routes email EM-11 (F020): into memory, never out.
     sendPrivateSession: createPrivateSessionSender({
+      sendEmail: createSendEmail({
+        transport: createMemoryTransport(),
+        sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+        replyTo: { email: 'support@example.com' },
+      }),
+    }),
+    // The class cancel route emails EM-05 (F026): into memory, never out.
+    sendClassCancelled: createClassCancelledSender({
       sendEmail: createSendEmail({
         transport: createMemoryTransport(),
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },

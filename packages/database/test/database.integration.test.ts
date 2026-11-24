@@ -986,6 +986,77 @@ describe('E004 database', () => {
       });
     });
 
+    it('AC16 (F026, #558): gives the synthetic week one class date the workspace cancelled, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        await seed(tx, { now: WEDNESDAY });
+
+        const cancelled = await rows<{
+          status: string;
+          version: number;
+          cancelledAt: string | null;
+          initiator: string | null;
+          cancelledBy: string | null;
+          startsAt: string;
+          message: string | null;
+          className: string;
+          places: number;
+        }>(
+          tx,
+          sql`select s.status, s.version,
+                     to_char(s.cancelled_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI') as "cancelledAt",
+                     s.cancellation_initiator as initiator,
+                     u.name as "cancelledBy",
+                     to_char(s.starts_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI') as "startsAt",
+                     s.cancellation_message as message,
+                     gc.name_nl as "className",
+                     (select count(*)::int from session_participants sp where sp.session_id = s.id) as places
+              from sessions s
+              join organizations o on o.id = s.organization_id and o.slug = 'johns-gym'
+              join group_classes gc on gc.id = s.group_class_id
+              left join team_members tm on tm.id = s.cancelled_by_team_member_id
+              left join auth_users u on u.id = tm.account_id
+              where s.type = 'group' and s.status = 'cancelled'
+                and s.starts_at >= timestamptz '2026-11-01 00:00+00'`,
+        );
+
+        expect(cancelled).toHaveLength(1);
+        expect(cancelled[0]).toMatchObject({
+          className: 'Kracht',
+          status: 'cancelled',
+          version: 2,
+          initiator: 'workspace',
+          // Thursday 5 November 18:00 in Amsterdam is 17:00 UTC; cancelled three days before.
+          startsAt: '2026-11-05T17:00',
+          cancelledAt: '2026-11-02T17:00',
+          cancelledBy: 'Owner',
+          // M4 has no bookings: nobody to cancel, nobody told, so no message.
+          places: 0,
+          message: null,
+        });
+      });
+    });
+
+    it('AC16 (F026, #558): never dates the cancellation of the class date after the seed itself, on a Monday morning', async () => {
+      await withRollback(db, async (tx) => {
+        // Monday 2 November 2026, 09:00 in Amsterdam: three days before Thursday 18:00 is 18:00 the
+        // same day, which has not happened yet.
+        const mondayMorning = new Date('2026-11-02T08:00:00Z');
+        await seed(tx, { now: mondayMorning });
+
+        const [cancelled] = await rows<{ cancelledAt: string }>(
+          tx,
+          sql`select to_char(s.cancelled_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI') as "cancelledAt"
+              from sessions s
+              join organizations o on o.id = s.organization_id and o.slug = 'johns-gym'
+              where s.type = 'group' and s.status = 'cancelled'
+                and s.starts_at >= timestamptz '2026-11-01 00:00+00'`,
+        );
+
+        expect(cancelled?.cancelledAt).toBe('2026-11-02T08:00');
+      });
+    });
+
     it('AC16 (F026): seeds no cancellation in production', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx, { production: true, now: WEDNESDAY });
