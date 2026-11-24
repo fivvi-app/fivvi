@@ -611,7 +611,12 @@ test.describe('F037 booking links on the web', () => {
 
     await cancelSession(sessionId);
     await page.reload();
-    await expect(page.getByRole('button', { name: copy.classes.date.edit })).toBeVisible();
+    // CO-01 of a cancelled date has no *Wijzigen* (F026) and no *Bookings* row; the page heading
+    // and the *When* row tell that it has loaded.
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.getByText(copy.classes.date.whenLabel, { exact: true })).toBeVisible();
+    await expect(page.getByText(copy.classes.date.bookedLabel, { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: copy.classes.date.edit })).toHaveCount(0);
     await expect(page.getByRole('button', { name: copy.bookingLinks.copyBooking })).toHaveCount(0);
 
     await passSession(pastId);
