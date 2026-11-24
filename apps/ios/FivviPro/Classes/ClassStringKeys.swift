@@ -49,6 +49,12 @@ extension StringKey {
     static let classDateCancelledBanner = StringKey("classes.date.cancelledBanner")
     static let classDateCancelledBannerUnknown = StringKey("classes.date.cancelledBannerUnknown")
 
+    static let classShareLink = StringKey("classes.app.shareLink")
+    static let classShareLinkCopied = StringKey("classes.app.shareLinkCopied")
+    static let classShareLinkOffline = StringKey("classes.app.shareLinkOffline")
+    static let bookingLinkErrorGeneric = StringKey("bookingLinks.errors.generic")
+    static let bookingLinkErrorNoPermission = StringKey("bookingLinks.errors.noPermission")
+
     static let classCancelAction = StringKey("classes.cancel.action")
     static let classCancelAlreadyCancelled = StringKey("classes.cancel.alreadyCancelled")
     static let classCancelBack = StringKey("classes.cancel.back")

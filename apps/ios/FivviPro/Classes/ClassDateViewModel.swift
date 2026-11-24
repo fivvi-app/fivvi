@@ -32,28 +32,37 @@ final class ClassDateViewModel {
     private(set) var cancelAsk: CancelAsk?
     private(set) var cancelFailure: CancelFailure?
     /// The last read or cancellation couldn't reach the API (the fallback when the phone's network path said online).
-    private var requestFailedOffline = false
+    var requestFailedOffline = false
     private(set) var isCancelling = false
+    var shareState = ShareState.idle
     private(set) var catalog: Catalog
     let workspace: CurrentWorkspace
     /// The person has `class.manage`: they get the ⋯ menu and the footnote.
     let canManage: Bool
+    /// The person has `booking_link.copy` (the Owner and the Trainers): they get *Boekingslink delen* (F037).
+    let canShareLink: Bool
     /// How many dates the person just added (a new class opens here): 12 for a weekly class, else 1; nil for a date
     /// opened from the calendar.
     private let added: Int?
-    private let sessionID: String
-    private let api: any APIProtocol
+    let sessionID: String
+    let api: any APIProtocol
     /// Whether the phone is online, from the network path (`Connectivity`); a model made without one says online.
     private let isOnline: @MainActor () -> Bool
     /// Told once the date is cancelled, so the lists that show it (Vandaag, Agenda) read again.
     private let onCancelled: @MainActor () -> Void
-    private let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
+    /// Puts a text on the phone's clipboard.
+    let copy: @MainActor (String) -> Void
+    /// The time now, to tell a date to come from one that has started.
+    let now: @MainActor () -> Date
+    let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, catalog: Catalog, canManage: Bool,
-        added: Int? = nil,
+        canShareLink: Bool = false, added: Int? = nil,
         isOnline: @escaping @MainActor () -> Bool = { true },
         onCancelled: @escaping @MainActor () -> Void = {},
+        copy: @escaping @MainActor (String) -> Void = { _ in },
+        now: @escaping @MainActor () -> Date = { Date() },
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
         self.isOnline = isOnline
@@ -63,6 +72,9 @@ final class ClassDateViewModel {
         self.sessionID = sessionID
         self.catalog = catalog
         self.canManage = canManage
+        self.canShareLink = canShareLink
+        self.copy = copy
+        self.now = now
         self.added = added
         self.onForbidden = onForbidden
     }
