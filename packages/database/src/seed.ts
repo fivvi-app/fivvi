@@ -258,7 +258,7 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     plannedBy: johnInGym.id,
     now: options.now ?? new Date(),
   });
-  // F026 AC16: one class date of that week cancelled by the workspace, with a place and its history.
+  // F026 AC16: one class date of that week cancelled by the workspace (no participants yet, so no places or history).
   const [gymZone] = await db
     .select({ timeZone: organizations.timeZone })
     .from(organizations)
@@ -267,6 +267,7 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     workspaceId: gym,
     ownerTeamMemberId: johnInGym.id,
     monday: mondayOf(options.now ?? new Date(), gymZone?.timeZone ?? 'Europe/Amsterdam'),
+    now: options.now ?? new Date(),
   });
   await seedPersonalCalendar(db, { gym, personalTraining });
   // The pilot-shaped week of the workspace calendar (F014), in a workspace of its own so that
@@ -895,7 +896,8 @@ async function seedPrivateSessions(
 
 /**
  * Cancels one class date of the seeded week as the Owner would (F026 AC16, ticket #558): "Kracht" on
- * the Thursday of the week `now` falls in, 18:00, cancelled by the workspace three days before. A
+ * the Thursday of the week `now` falls in, 18:00, cancelled by the workspace three days before (or
+ * at `now`, when that is earlier). A
  * class date of John's Gym has no participants in M4 (bookings come with M5), so there is no place
  * to cancel and no message was sent. It is done once: a date that is cancelled already, or is not
  * there, is left alone, and the next week gets its own.
@@ -906,7 +908,8 @@ async function seedCancelledClassDate(
     workspaceId,
     ownerTeamMemberId,
     monday,
-  }: { workspaceId: string; ownerTeamMemberId: string; monday: string },
+    now,
+  }: { workspaceId: string; ownerTeamMemberId: string; monday: string; now: Date },
 ): Promise<void> {
   const [date] = await db
     .select({ id: sessions.id, status: sessions.status, startsAt: sessions.startsAt })
@@ -926,7 +929,9 @@ async function seedCancelledClassDate(
     .set({
       status: 'cancelled',
       version: sql`${sessions.version} + 1`,
-      cancelledAt: new Date(date.startsAt.getTime() - 3 * 86_400_000),
+      // Three days before the date, but never after the seed itself: a seed run on the Monday
+      // morning of that week would otherwise record a cancellation in the future.
+      cancelledAt: new Date(Math.min(date.startsAt.getTime() - 3 * 86_400_000, now.getTime())),
       cancelledByTeamMemberId: ownerTeamMemberId,
       cancellationInitiator: 'workspace',
       updatedByTeamMemberId: ownerTeamMemberId,

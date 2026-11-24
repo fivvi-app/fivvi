@@ -38,10 +38,10 @@ import {
 } from '@fivvi/observability';
 import { manualClock, zonedTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
-import { privateSessionEmailEvent } from '../src/sessions/email-event.ts';
+import { classDateEmailEvent, privateSessionEmailEvent } from '../src/sessions/email-event.ts';
 
 // F026 (spec #462), ticket #557: cancel a private session through the API. Synthetic people: John
 // (Owner of John's Gym, also trains), Sarah and Tom (Trainers), the clients Anna de Vries (emails in
@@ -1508,6 +1508,129 @@ describe('F026 cancellations: a private session, a class date and the rest of a 
     expect(transport.sent).toHaveLength(1);
   });
 
+  /**
+   * Runs `request` while another transaction holds a lock (`hold` takes it and makes its change),
+   * and lets that transaction commit only once the request is waiting on it
+   * (a backend this very transaction blocks, so no other test's locks count). Returns the answer.
+   */
+  async function whileAnotherRequestHolds(
+    hold: (tx: Parameters<Parameters<typeof admin.db.transaction>[0]>[0]) => Promise<void>,
+    request: () => Response | Promise<Response>,
+  ) {
+    let answer: Promise<Response> | undefined;
+    let waited = false;
+    await admin.db.transaction(async (tx) => {
+      await hold(tx);
+      answer = Promise.resolve(request());
+      for (let tries = 0; tries < 200 && !waited; tries++) {
+        const { rows } = await tx.execute(
+          sql`select 1 from pg_stat_activity where pg_backend_pid() = any(pg_blocking_pids(pid))`,
+        );
+        waited = rows.length > 0;
+        if (!waited) await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+    });
+    // Without the wait, the request would have read the date after the change and never met the race.
+    expect(waited).toBe(true);
+    if (!answer) throw new Error('no request was made');
+    return answer;
+  }
+
+  it('AC7: the rest of a series from a date that another cancel removed while this one waited for the series answers 404, stores nothing and sends nothing', async () => {
+    const w = await world();
+    const { server, transport } = setup();
+    const k = await kracht(w);
+    const later = k.on('2026-11-17');
+    // The first request of a process connects and sets up while the other transaction waits: warm it up.
+    await previewCancel(server, w.gym.id, later.id, w.john);
+
+    // Another request ("the rest of the series" from 3 November) holds the series, removes 17
+    // November and ends the series; this one has read 17 November (scheduled, version 1) and waits.
+    const response = await whileAnotherRequestHolds(
+      async (tx) => {
+        await tx
+          .select({ id: classSeries.id })
+          .from(classSeries)
+          .where(eq(classSeries.id, k.series.id))
+          .for('update');
+        await tx.delete(sessions).where(eq(sessions.id, later.id));
+        await tx
+          .update(classSeries)
+          .set({ endsOn: '2026-11-02' })
+          .where(eq(classSeries.id, k.series.id));
+      },
+      () => cancelClass(server, w.gym.id, later.id, w.john, classBody({ scope: 'following' })),
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ code: 'not_found' });
+    expect(await admin.db.select().from(sessions).where(eq(sessions.id, later.id))).toEqual([]);
+    expect(transport.sent).toEqual([]);
+    const [series] = await admin.db
+      .select()
+      .from(classSeries)
+      .where(eq(classSeries.id, k.series.id));
+    expect(series).toMatchObject({ endsOn: '2026-11-02' });
+  });
+
+  it('AC11: the rest of a series from a date that another cancel cancelled while this one waited for the series answers 409 with the date as it is', async () => {
+    const w = await world();
+    const { server, transport } = setup();
+    const k = await kracht(w);
+    const later = k.on('2026-11-17');
+    await previewCancel(server, w.gym.id, later.id, w.john);
+
+    const response = await whileAnotherRequestHolds(
+      async (tx) => {
+        await tx
+          .select({ id: classSeries.id })
+          .from(classSeries)
+          .where(eq(classSeries.id, k.series.id))
+          .for('update');
+        await tx
+          .update(sessions)
+          .set({
+            status: 'cancelled',
+            version: 2,
+            cancelledAt: new Date(NOW),
+            cancellationInitiator: 'workspace',
+          })
+          .where(eq(sessions.id, later.id));
+      },
+      () => cancelClass(server, w.gym.id, later.id, w.john, classBody({ scope: 'following' })),
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      code: 'session_cancelled',
+      session: { id: later.id, status: 'cancelled', version: 2 },
+    });
+    expect(transport.sent).toEqual([]);
+  });
+
+  it('AC7: one date removed by another cancel of the rest of the series while this one waited for its row answers 404', async () => {
+    const w = await world();
+    const { server, transport } = setup();
+    const k = await kracht(w);
+    const later = k.on('2026-11-17');
+    await previewCancel(server, w.gym.id, later.id, w.john);
+
+    const response = await whileAnotherRequestHolds(
+      async (tx) => {
+        await tx
+          .select({ id: sessions.id })
+          .from(sessions)
+          .where(eq(sessions.id, later.id))
+          .for('update');
+        await tx.delete(sessions).where(eq(sessions.id, later.id));
+      },
+      () => cancelClass(server, w.gym.id, later.id, w.john, classBody()),
+    );
+
+    expect(response.status).toBe(404);
+    expect(transport.sent).toEqual([]);
+  });
+
   it('AC12: each participant gets one email, after the commit, with the key of EM-05 and the date’s event; the message is escaped and as typed', async () => {
     const w = await world();
     const k = await kracht(w);
@@ -1543,8 +1666,8 @@ describe('F026 cancellations: a private session, a class date and the rest of a 
     expect(sentWhile).toEqual(['cancelled', 'cancelled']);
     expect(spying.transport.sent).toHaveLength(2);
     expect(spying.transport.sent.map((email) => email.idempotencyKey)).toEqual([
-      emailIdempotencyKey('EM-05', privateSessionEmailEvent(date.id, 2, w.anna.id)),
-      emailIdempotencyKey('EM-05', privateSessionEmailEvent(date.id, 2, w.mark.id)),
+      emailIdempotencyKey('EM-05', classDateEmailEvent(date.id, 2, w.anna.id)),
+      emailIdempotencyKey('EM-05', classDateEmailEvent(date.id, 2, w.mark.id)),
     ]);
     for (const email of spying.transport.sent) {
       expect(email.html).not.toContain('<b>Tot dan</b>');

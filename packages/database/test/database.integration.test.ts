@@ -1037,6 +1037,26 @@ describe('E004 database', () => {
       });
     });
 
+    it('AC16 (F026, #558): never dates the cancellation of the class date after the seed itself, on a Monday morning', async () => {
+      await withRollback(db, async (tx) => {
+        // Monday 2 November 2026, 09:00 in Amsterdam: three days before Thursday 18:00 is 18:00 the
+        // same day, which has not happened yet.
+        const mondayMorning = new Date('2026-11-02T08:00:00Z');
+        await seed(tx, { now: mondayMorning });
+
+        const [cancelled] = await rows<{ cancelledAt: string }>(
+          tx,
+          sql`select to_char(s.cancelled_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI') as "cancelledAt"
+              from sessions s
+              join organizations o on o.id = s.organization_id and o.slug = 'johns-gym'
+              where s.type = 'group' and s.status = 'cancelled'
+                and s.starts_at >= timestamptz '2026-11-01 00:00+00'`,
+        );
+
+        expect(cancelled?.cancelledAt).toBe('2026-11-02T08:00');
+      });
+    });
+
     it('AC16 (F026): seeds no cancellation in production', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx, { production: true, now: WEDNESDAY });

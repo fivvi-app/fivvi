@@ -24,7 +24,7 @@ import type { ClassCancelledMail } from '@fivvi/email/class-cancelled-mail';
 import type { AfterCommit } from '../access.ts';
 import type { ApiDependencies } from '../dependencies.ts';
 import type { CancellingTeamMember } from './cancel-private-session.ts';
-import { privateSessionEmailEvent } from './email-event.ts';
+import { classDateEmailEvent } from './email-event.ts';
 
 // Cancelling a class date, alone or with the rest of its series, inside a request's transaction
 // (F026, spec #462, ticket #558): the one function the class cancel route calls. It decides with
@@ -87,7 +87,11 @@ export type CancelClassDateResult =
       /** The last day of the series after *de reeks stopt*; `null` for one date. */
       readonly seriesEndsOn: string | null;
     }
-  | { readonly outcome: 'refused'; readonly reason: 'not-allowed' | 'not-in-series' }
+  | {
+      readonly outcome: 'refused';
+      /** `not-found`: the date was removed (by another cancel of the rest of its series) after the caller read it. */
+      readonly reason: 'not-allowed' | 'not-in-series' | 'not-found';
+    }
   | {
       readonly outcome: 'refused';
       /** `session-cancelled`: it was cancelled already; `session-changed`: someone changed it after the version the caller read. */
@@ -118,11 +122,15 @@ const refusalOf: Record<
 export async function cancelClassDateInRequest(
   input: CancelClassDateInput,
 ): Promise<CancelClassDateResult> {
-  const { scope, session, workspace, actor, request, now } = input;
+  const { scope, workspace, actor, request, now } = input;
   const series =
-    session.series && request.scope === 'following'
-      ? await lockClassSeriesOfWorkspace(scope, session.series.id)
+    input.session.series && request.scope === 'following'
+      ? await lockClassSeriesOfWorkspace(scope, input.session.series.id)
       : undefined;
+  // The caller read the date before the lock: another cancel of the rest of the series may have
+  // cancelled or removed it while this one waited, so read it again, now that nobody can change it.
+  const session = series ? await findSession(scope, input.session.id) : input.session;
+  if (!session) return { outcome: 'refused', reason: 'not-found' };
   const later: LaterSeriesDate[] =
     session.series && series
       ? await listLaterSeriesDates(scope, series.id, session.series.occurrenceDate, { lock: true })
@@ -160,7 +168,8 @@ export async function cancelClassDateInRequest(
       }
       // Lost a race with another change between the read and the write: show what won.
       const latest = await findSession(scope, session.id);
-      if (!latest) throw new Error('The class date of a lost cancellation was not found.');
+      // Removed by a cancel of the rest of its series meanwhile.
+      if (!latest) return { outcome: 'refused', reason: 'not-found' };
       return {
         outcome: 'refused',
         reason: latest.status === 'cancelled' ? 'session-cancelled' : 'session-changed',
@@ -206,7 +215,7 @@ export async function cancelClassDateInRequest(
         endsAt: cancelled.endsAt,
         location: { name: cancelled.location.name, address: cancelled.location.address },
         message: date.message,
-        event: privateSessionEmailEvent(cancelled.id, cancelled.version, client.id),
+        event: classDateEmailEvent(cancelled.id, cancelled.version, client.id),
       };
       input.afterCommit(() => input.dependencies.sendClassCancelled(mail));
     }

@@ -29,3 +29,12 @@ export function trainerChangeEmailEvent(
   const listed = dates.map(({ sessionId, version }) => `${sessionId}:${version}`).join(',');
   return `trainer:${newTrainerTeamMemberId}:${clientId}:${listed}`;
 }
+
+/**
+ * The event behind the EM-05 email of one class date at one version to one participant (F026): the
+ * same key as a private session's (`privateSessionEmailEvent`), so the idempotency keys do not
+ * change; a class date always names the client, since every participant has their own email.
+ */
+export function classDateEmailEvent(sessionId: string, version: number, clientId: string): string {
+  return privateSessionEmailEvent(sessionId, version, clientId);
+}

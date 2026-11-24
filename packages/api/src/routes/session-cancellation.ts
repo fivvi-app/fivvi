@@ -538,6 +538,8 @@ export function registerSessionCancellation(app: OpenAPIHono) {
       switch (result.reason) {
         case 'not-allowed':
           return c.json(FORBIDDEN, 403);
+        case 'not-found':
+          return c.json(NOT_FOUND, 404);
         case 'not-in-series':
           return c.json(invalid('scope', 'not_in_series'), 400);
         case 'session-cancelled':
