@@ -17,6 +17,8 @@ import app.fivvi.core.SystemLanguageSettings
 import app.fivvi.core.auth.ApiServices
 import app.fivvi.core.auth.KeystoreSessionStore
 import app.fivvi.core.auth.Session
+import app.fivvi.core.net.AndroidConnectivity
+import app.fivvi.core.net.Connectivity
 import app.fivvi.core.observability.Observability
 import app.fivvi.pro.personal.FilePersonalStore
 import app.fivvi.pro.personal.PersonalStore
@@ -38,6 +40,9 @@ interface AppDependencies {
     val groupClassesApi: GroupClassesApi
     val session: Session
     val languageSettings: LanguageSettings
+
+    /** Whether the phone has a working connection: an action that needs the server is off while it hasn't (F026). */
+    val connectivity: Connectivity
 
     /** The language shown and kept (F010). */
     val languagePreference: LanguagePreference
@@ -88,6 +93,7 @@ class DefaultAppDependencies(context: Context) : AppDependencies {
     override val groupClassesApi: GroupClassesApi get() = services.groupClassesApi
     override fun signOutApi(token: String): SignInApi = services.signOutApi(token)
     override val languageSettings: LanguageSettings = SystemLanguageSettings(context)
+    override val connectivity: Connectivity by lazy { AndroidConnectivity(context) }
     override val languagePreference: LanguagePreference by lazy {
         LanguagePreference(SharedPreferencesLanguageStore(context), languageSettings)
     }

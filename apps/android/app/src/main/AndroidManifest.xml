@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Whether the phone is online, before a request: an action that needs the server is off while it is not (F026). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- The label is app.name from packages/i18n. Plain HTTP only in debug builds (src/debug). The icon is generated
          by scripts/app-icon.mjs (E017). The sign-in token is kept out of backup and device transfer (F001, AC11). -->

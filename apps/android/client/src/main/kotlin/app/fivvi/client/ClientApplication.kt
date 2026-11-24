@@ -13,6 +13,8 @@ import app.fivvi.core.SystemLanguageSettings
 import app.fivvi.core.auth.ApiServices
 import app.fivvi.core.auth.KeystoreSessionStore
 import app.fivvi.core.auth.Session
+import app.fivvi.core.net.AndroidConnectivity
+import app.fivvi.core.net.Connectivity
 import app.fivvi.core.observability.Observability
 
 /** What the screens depend on. Instrumented tests replace it before an activity starts. */

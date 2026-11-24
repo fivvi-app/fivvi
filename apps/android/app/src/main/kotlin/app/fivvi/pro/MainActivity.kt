@@ -312,6 +312,14 @@ class MainActivity : ComponentActivity() {
         // On foreground the stored language is read again: a change made elsewhere is adopted (F010 AC2).
         OnForeground(languages::refresh)
 
+        // A session or class date was cancelled on TD-02 or TD-03: Vandaag and the days of Agenda read again, so they show it
+        // (F026 AC3).
+        fun personalChanged() {
+            today.load()
+            agenda.load()
+            if (studio.state.value.isStudio) studio.load()
+        }
+
         fun openClassDate(id: UUID, added: Int?, replacing: Boolean = false) {
             classDateOpenings++
             stack = Routes.push(if (replacing) Routes.pop(stack) else stack, scoped(Routes.classDate(id, added)))
@@ -423,6 +431,8 @@ class MainActivity : ComponentActivity() {
                         sessionKey = key,
                         opening = classDateOpenings,
                         onBack = { stack = Routes.pop(stack) },
+                        connectivity = dependencies.connectivity,
+                        onCancelled = ::personalChanged,
                     )
 
                     Routes.sessionId(plain) != null -> SessionFlow(
@@ -437,6 +447,9 @@ class MainActivity : ComponentActivity() {
                         onBack = { stack = Routes.pop(stack) },
                         onOpenClient = { stack = Routes.push(stack, scoped(Routes.client(it))) },
                         onRoute = ::openOnTheWeb,
+                        connectivity = dependencies.connectivity,
+                        onCancelled = ::personalChanged,
+                        now = dependencies.clock::instant,
                     )
 
                     Routes.clientId(plain) != null -> ClientsFlow(

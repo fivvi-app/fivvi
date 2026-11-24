@@ -1,0 +1,114 @@
+# F026 native cancellation of a private session (spec #462, AC4 and the design of PS-06), against the local stack: Sarah (the
+# seeded trainer@example.com, a Trainer of John's Gym, which opens first) plans a session with Anna from + (PS-04), lands on
+# the session screen (TD-02), cancels it from the ⋯ menu (*Annuleren*, a Trainer's own session) as *Wij* with the client
+# told by email (PS-06), and TD-02 shows the cancelled line. The sign-in is the shared sub-flow. Elements are found by id:
+# the Android testTag and the iOS accessibilityIdentifier, the same on both apps (home.new*, newSession.*, clientPicker.*,
+# session.*, cancel.*). Texts differ by language, so the flow checks what both languages share (the client's name, the
+# trainer's name in the banner) and the ids. The date and the start are the form's own first values (the next full hour),
+# which the API accepts; no clock is read. The two platform tickets (iOS #562, Android #563) run this one flow.
+appId: ${APP_ID}
+name: AC4 Plan a private session and cancel it from its screen
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # Sarah: seeded, a Trainer of John's Gym (packages/database/src/seed.ts).
+  EMAIL: trainer@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: home\.openClients
+    timeout: 20000
+# Plan a session with Anna: + → Privésessie → the client → Save.
+- tapOn:
+    id: home\.new
+- tapOn:
+    id: home\.newPrivateSession
+- extendedWaitUntil:
+    visible:
+      id: newSession\.save
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: newSession\.trainerFixed
+    timeout: 20000
+- tapOn:
+    id: newSession\.client
+- extendedWaitUntil:
+    visible:
+      id: clientPicker\.search
+    timeout: 20000
+- tapOn:
+    id: clientPicker\.search
+- inputText: Anna
+- extendedWaitUntil:
+    visible: .*Anna de Vries.*
+    timeout: 20000
+- tapOn: .*Anna de Vries.*
+- extendedWaitUntil:
+    visible:
+      id: newSession\.clientName
+      text: Anna de Vries
+    timeout: 20000
+- tapOn:
+    id: newSession\.save
+# PS-07: an earlier run of a flow may sit in the same hour; keep the session with *Toch opslaan* (as private-session.yaml).
+- extendedWaitUntil:
+    visible:
+      id: (session\.title|newSession\.doubleBooking\.saveAnyway)
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: newSession\.doubleBooking\.saveAnyway
+    commands:
+      - tapOn:
+          id: newSession\.doubleBooking\.saveAnyway
+- extendedWaitUntil:
+    visible:
+      id: session\.title
+      text: .*Anna de Vries.*
+    timeout: 20000
+# AC4: ⋯ → Annuleren opens PS-06, with *De klant* chosen and the question about another time.
+- tapOn:
+    id: session\.menu
+- tapOn:
+    id: session\.cancel
+- extendedWaitUntil:
+    visible:
+      id: cancel\.title
+    timeout: 20000
+- assertVisible:
+    id: cancel\.nudge
+- assertVisible:
+    id: cancel\.reschedule
+# *Wij* goes straight to the confirm step, with the email box on; the destructive button cancels it.
+- tapOn:
+    id: cancel\.who\.workspace
+- extendedWaitUntil:
+    visible:
+      id: cancel\.notify
+    timeout: 20000
+- assertNotVisible:
+    id: cancel\.nudge
+- tapOn:
+    id: cancel\.submit
+# TD-02 shows the cancelled line "Geannuleerd op … door Sarah" / "Cancelled on … by Sarah" and no *Verplaatsen*.
+- extendedWaitUntil:
+    visible:
+      id: session\.cancelled
+      text: .*Sarah.*
+    timeout: 20000
+- tapOn:
+    id: session\.menu
+- extendedWaitUntil:
+    visible:
+      id: session\.clientProfile
+    timeout: 20000
+- assertNotVisible:
+    id: session\.reschedule
+- assertNotVisible:
+    id: session\.cancel

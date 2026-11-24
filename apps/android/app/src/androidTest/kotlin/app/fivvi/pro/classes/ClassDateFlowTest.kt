@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.models.MeWorkspace
@@ -12,6 +13,7 @@ import app.fivvi.core.AppLanguage
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.net.FakeConnectivity
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.FakeWorkspacesApi
@@ -20,6 +22,7 @@ import app.fivvi.pro.sessions.FakeSessionsApi
 import app.fivvi.pro.sessions.trainerOf
 import app.fivvi.pro.showAtLargestFontScale
 import app.fivvi.pro.waitUntilTagExists
+import java.io.IOException
 import java.util.UUID
 import org.junit.Rule
 import org.junit.Test
@@ -45,7 +48,10 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         sessions.sessions[date.id] = date
         val apis = ClassApis(classes, sessions, FakeLocationsApi(), FakeTrainersApi(), FakeWorkspacesApi())
         compose.showAtLargestFontScale(language, height = 1_800.dp) {
-            val listed = viewModel(key = "capabilities") { WorkspaceCapabilities(FakeMeApi()) }
+            // The account read that follows a refusal fails, so what a 403 took away stays away.
+            val listed = viewModel(key = "capabilities") {
+                WorkspaceCapabilities(FakeMeApi().apply { answers += { throw IOException("offline") } })
+            }
             listed.replace(
                 listOf(MeWorkspace(gym, "John's Gym", "slug", TrainerWord.TRAINER, role, sarah.id, capabilities)),
             )
@@ -60,6 +66,8 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
                 sessionKey = "token-1",
                 opening = 1,
                 onBack = {},
+                connectivity = FakeConnectivity(),
+                onCancelled = {},
             )
         }
         compose.waitUntilTagExists(ClassDateTags.TITLE)
@@ -84,6 +92,38 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
         compose.onNodeWithTag(ClassDateTags.MENU).assertIsDisplayed()
         compose.onNodeWithTag(ClassDateTags.OWNER_NOTE).assertIsDisplayed()
+    }
+
+    // F026 AC5: the cancel calls are guarded by class.manage, so a 403 on them takes *Les annuleren* away at once and
+    // leaves class.read: the class stays readable.
+    @Test
+    fun test_F026_AC5_aRefusedCancelPreviewHidesTheMenuAndKeepsReadingTheClass() {
+        classes.previewStatus = 403
+        show(MeWorkspace.Capabilities.values().toList(), MeWorkspace.Role.OWNER)
+
+        compose.onNodeWithTag(ClassDateTags.MENU).performClick()
+        compose.waitUntilTagExists(ClassDateTags.CANCEL)
+        compose.onNodeWithTag(ClassDateTags.CANCEL).performClick()
+
+        compose.waitUntilTagExists(ClassDateTags.CANCEL_FAILED)
+        compose.onNodeWithTag(ClassDateTags.MENU).assertDoesNotExist()
+        compose.onNodeWithTag(ClassDateTags.TITLE).assertTextEquals("Mobility")
+    }
+
+    @Test
+    fun test_F026_AC5_aRefusedCancellationHidesTheMenuAndKeepsReadingTheClass() {
+        show(MeWorkspace.Capabilities.values().toList(), MeWorkspace.Role.OWNER)
+
+        compose.onNodeWithTag(ClassDateTags.MENU).performClick()
+        compose.waitUntilTagExists(ClassDateTags.CANCEL)
+        compose.onNodeWithTag(ClassDateTags.CANCEL).performClick()
+        compose.waitUntilTagExists(ClassDateTags.CANCEL_SUBMIT)
+        classes.cancelStatus = 403
+        compose.onNodeWithTag(ClassDateTags.CANCEL_SUBMIT).performClick()
+
+        compose.waitUntilTagExists(ClassDateTags.CANCEL_FAILED)
+        compose.onNodeWithTag(ClassDateTags.MENU).assertDoesNotExist()
+        compose.onNodeWithTag(ClassDateTags.TITLE).assertTextEquals("Mobility")
     }
 
     companion object {

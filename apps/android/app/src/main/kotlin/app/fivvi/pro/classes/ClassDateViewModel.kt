@@ -2,6 +2,9 @@ package app.fivvi.pro.classes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.fivvi.api.infrastructure.Serializer
+import app.fivvi.api.models.CancelClassDateRefusal
+import app.fivvi.api.models.CancelClassDateRequest
 import app.fivvi.api.models.GroupClass
 import app.fivvi.api.models.Session
 import app.fivvi.api.models.SessionParticipant
@@ -9,6 +12,7 @@ import app.fivvi.api.models.SessionSeries
 import app.fivvi.pro.clients.WorkspaceDefaults
 import app.fivvi.pro.clients.defaultsOf
 import java.io.IOException
+import java.net.HttpURLConnection.HTTP_CONFLICT
 import java.net.HttpURLConnection.HTTP_FORBIDDEN
 import java.net.HttpURLConnection.HTTP_NOT_FOUND
 import java.time.DayOfWeek
@@ -20,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.decodeFromString
 import retrofit2.Response
 
 sealed interface ClassDateLoad {
@@ -38,6 +43,26 @@ data class ClassText(val text: String, val isDutchFallback: Boolean)
 
 /** *Onderdeel van: {name}, elke {weekday} {time}*: what the line of a date in a weekly series says (F022 AC6). */
 data class SeriesLine(val name: String, val time: String, val weekday: DayOfWeek)
+
+/** What the confirmation of *Les annuleren* tells (CO-03, F026). */
+data class CancelAsk(
+    /** How many people get the cancellation email. */
+    val participants: Int,
+    /** The date has started: it is recorded for the record and nobody gets an email. */
+    val started: Boolean,
+)
+
+/** What a cancellation that didn't happen says. */
+sealed interface CancelFailure {
+    /** Someone else changed the date first (`409`): [byName] is who, when the API knows. */
+    data class Changed(val byName: String?) : CancelFailure
+
+    data object Cancelled : CancelFailure
+
+    data object NoPermission : CancelFailure
+
+    data object NotSaved : CancelFailure
+}
 
 /** What TD-03 shows and holds. */
 data class ClassDateState(
@@ -58,6 +83,14 @@ data class ClassDateState(
     val descriptionOpen: Boolean = false,
     /** *Les wijzigen* was chosen: the screen says the class is managed on the web. */
     val manageOnWeb: Boolean = false,
+    /** The phone's connection, from the network (`Connectivity`); the state of a model made without one says online. */
+    val online: Boolean = true,
+    /** The last read or cancellation couldn't reach the API: the fallback when the network said online. */
+    val requestFailedOffline: Boolean = false,
+    /** The confirmation of *Les annuleren*, once the API said who would get the email; `null` when it is not asked. */
+    val cancelAsk: CancelAsk? = null,
+    val cancelFailure: CancelFailure? = null,
+    val isCancelling: Boolean = false,
 ) {
     /** The places taken: the clients who have not cancelled. */
     val booked: Int
@@ -69,8 +102,19 @@ data class ClassDateState(
     val showsNoBookings: Boolean get() = booked == 0
     val trainerIsMe: Boolean get() = session?.trainer?.id.let { it != null && it == myTeamMemberId }
 
-    /** The Owner's menu; a Trainer who is not substituting has none (F024 adds the substitute's). */
-    val hasMenu: Boolean get() = canManage
+    val isCancelled: Boolean get() = session?.status == Session.Status.CANCELLED
+
+    /** The Owner's menu, until the date is cancelled; a Trainer who is not substituting has none (F024 adds the substitute's). */
+    val hasMenu: Boolean get() = canManage && !isCancelled
+
+    /** The Owner may cancel a date that is still planned (`class.manage`). */
+    val canCancel: Boolean get() = canManage && session?.status == Session.Status.SCHEDULED
+
+    /** *Les annuleren* is off: the network says offline, or the last read or cancellation couldn't reach the API. */
+    val isOffline: Boolean get() = requestFailedOffline || !online
+
+    /** *Les annuleren* is on while the phone is online (nothing is queued). */
+    val canStartCancel: Boolean get() = canCancel && !isOffline && !isCancelling
 
     /** The class's name in the viewer's language: the English name for an English viewer and a class that has one. */
     fun title(english: Boolean): String {
@@ -78,7 +122,7 @@ data class ClassDateState(
         return pick(english, named.nameNl, named.nameEn)?.text ?: named.nameNl
     }
 
-    /** The series line of a date in a weekly series, from the series the API sends with the date; `null` for a date on its own. */
+    /** The series line of a date in a weekly series, from the series the API sends; `null` for a date on its own. */
     fun seriesLine(english: Boolean): SeriesLine? {
         val series = session?.series ?: return null
         return SeriesLine(title(english), series.localStartTime, series.weekday.dayOfWeek())
@@ -114,7 +158,13 @@ class ClassDateViewModel(
     teamMemberId: UUID,
     canManage: Boolean,
     added: Int? = null,
+    /** Whether the phone is online, from the network (`Connectivity`); a model made without one says online. */
+    private val isOnline: () -> Boolean = { true },
+    /** Told once the date is cancelled, so the lists that show it (Vandaag, Agenda) read again. */
+    private val onCancelled: () -> Unit = {},
     private val onNotAllowed: (Response<*>) -> Unit = {},
+    /** Told a 403 of the cancel calls: they are guarded by `class.manage`, where [onNotAllowed] is about reading. */
+    private val onCancelNotAllowed: (Response<*>) -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow(ClassDateState(teamMemberId, canManage, added))
     val state: StateFlow<ClassDateState> = _state.asStateFlow()
@@ -137,6 +187,119 @@ class ClassDateViewModel(
     /** *Les wijzigen*: the class is managed on the web, and the screen says so. */
     fun editTapped() = _state.update { it.copy(manageOnWeb = true) }
 
+    /**
+     * *Les annuleren* of the ⋯ menu: asks the API who would get the email, then the confirmation shows. When the API can't be
+     * reached nothing is asked and the screen says it is offline.
+     */
+    fun askToCancel() {
+        val shown = _state.value
+        if (!shown.copy(online = isOnline()).canStartCancel) return
+        _state.update { it.copy(cancelFailure = null) }
+        viewModelScope.launch { preview() }
+    }
+
+    /** *Terug*: nothing is cancelled. */
+    fun dismissCancel() = _state.update { it.copy(cancelAsk = null) }
+
+    /** *Les annuleren* of the confirmation: cancels this date only, with the `version` the person saw. */
+    fun confirmCancel() {
+        val session = _state.value.session ?: return
+        if (_state.value.isCancelling || session.status != Session.Status.SCHEDULED) return
+        _state.update { it.copy(cancelAsk = null, cancelFailure = null, isCancelling = true) }
+        viewModelScope.launch { cancel(session) }
+    }
+
+    private suspend fun preview() {
+        val response = try {
+            apis.classes.previewClassCancellation(workspaceId, sessionId)
+        } catch (_: IOException) {
+            return _state.update { it.copy(requestFailedOffline = true) }
+        } catch (_: SerializationException) {
+            return _state.update { it.copy(cancelFailure = CancelFailure.NotSaved) }
+        }
+        val found = response.body()?.takeIf { response.isSuccessful }
+        when {
+            found != null -> _state.update {
+                it.copy(
+                    requestFailedOffline = false,
+                    cancelAsk = CancelAsk(found.thisDate.participants, found.started),
+                )
+            }
+
+            response.code() == HTTP_FORBIDDEN -> {
+                onCancelNotAllowed(response)
+                _state.update { it.copy(cancelFailure = CancelFailure.NoPermission) }
+            }
+
+            // Cancelled already: the screen reads it as it is now.
+            response.code() == HTTP_CONFLICT -> {
+                _state.update { it.copy(cancelFailure = CancelFailure.Cancelled) }
+                read()
+            }
+
+            else -> _state.update { it.copy(cancelFailure = CancelFailure.NotSaved) }
+        }
+    }
+
+    private suspend fun cancel(session: Session) {
+        val request = CancelClassDateRequest(
+            scope = CancelClassDateRequest.Scope.THIS,
+            version = session.version,
+            surface = CancelClassDateRequest.Surface.ANDROID,
+        )
+        val response = try {
+            apis.classes.cancelClassDate(workspaceId, sessionId, request)
+        } catch (_: IOException) {
+            return _state.update { it.copy(isCancelling = false, requestFailedOffline = true) }
+        } catch (_: SerializationException) {
+            return _state.update { it.copy(isCancelling = false, cancelFailure = CancelFailure.NotSaved) }
+        }
+        val cancelled = response.body()?.takeIf { response.isSuccessful }
+        when {
+            cancelled != null -> {
+                _state.update {
+                    it.copy(isCancelling = false, session = cancelled.session, requestFailedOffline = false)
+                }
+                onCancelled()
+            }
+
+            response.code() == HTTP_CONFLICT -> refused(response)
+
+            response.code() == HTTP_FORBIDDEN -> {
+                onCancelNotAllowed(response)
+                _state.update { it.copy(isCancelling = false, cancelFailure = CancelFailure.NoPermission) }
+            }
+
+            else -> _state.update { it.copy(isCancelling = false, cancelFailure = CancelFailure.NotSaved) }
+        }
+    }
+
+    // The date was changed or cancelled first: the screen shows it as it is now.
+    private fun refused(response: Response<*>) {
+        val refusal = runCatching {
+            Serializer.kotlinxSerializationJson.decodeFromString<CancelClassDateRefusal>(
+                response.errorBody()?.string().orEmpty(),
+            )
+        }.getOrNull()
+        if (refusal == null) {
+            _state.update { it.copy(isCancelling = false, cancelFailure = CancelFailure.NotSaved) }
+            return
+        }
+        val alreadyCancelled = refusal.code == CancelClassDateRefusal.Code.SESSION_CANCELLED
+        _state.update {
+            it.copy(
+                isCancelling = false,
+                session = refusal.session,
+                cancelFailure = if (alreadyCancelled) {
+                    CancelFailure.Cancelled
+                } else {
+                    CancelFailure.Changed(refusal.changedBy?.name)
+                },
+            )
+        }
+        if (alreadyCancelled) onCancelled()
+    }
+
     private fun load() {
         reading?.cancel()
         reading = viewModelScope.launch { read() }
@@ -146,13 +309,16 @@ class ClassDateViewModel(
         val response = try {
             apis.sessions.getSession(workspaceId, sessionId)
         } catch (_: IOException) {
+            _state.update { it.copy(requestFailedOffline = true) }
             return failed()
         } catch (_: SerializationException) {
             return failed()
         }
         val fresh = response.body()?.takeIf { response.isSuccessful }
         when {
-            fresh != null -> _state.update { it.copy(load = ClassDateLoad.Loaded, session = fresh) }
+            fresh != null -> _state.update {
+                it.copy(load = ClassDateLoad.Loaded, session = fresh, requestFailedOffline = false)
+            }
 
             response.code() == HTTP_FORBIDDEN || response.code() == HTTP_NOT_FOUND -> {
                 if (response.code() == HTTP_FORBIDDEN) onNotAllowed(response)

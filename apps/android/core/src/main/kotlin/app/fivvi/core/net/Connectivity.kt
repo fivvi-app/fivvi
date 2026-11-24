@@ -1,4 +1,4 @@
-package app.fivvi.client
+package app.fivvi.core.net
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -8,7 +8,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Whether the phone has a working connection: the shell shows the offline banner while it hasn't (E017 AC9). */
+/**
+ * Whether the phone has a working connection, asked before a request: the client app's shell shows the offline banner while it
+ * hasn't (E017 AC9), and Fivvi Pro turns off the actions that need the server, as Annuleren (F026).
+ */
 interface Connectivity {
     val online: StateFlow<Boolean>
 }

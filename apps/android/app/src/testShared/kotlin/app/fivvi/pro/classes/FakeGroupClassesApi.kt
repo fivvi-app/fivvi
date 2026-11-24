@@ -3,6 +3,7 @@ package app.fivvi.pro.classes
 import app.fivvi.api.apis.GroupClassesApi
 import app.fivvi.api.models.CancelClassDateRequest
 import app.fivvi.api.models.CancelledClassDate
+import app.fivvi.api.models.ClassCancellationCounts
 import app.fivvi.api.models.ClassCancellationPreview
 import app.fivvi.api.models.ClassSeries
 import app.fivvi.api.models.CreateGroupClassRequest
@@ -14,6 +15,7 @@ import app.fivvi.api.models.Location
 import app.fivvi.api.models.ScheduleGroupClassDateRequest
 import app.fivvi.api.models.ScheduledClassDate
 import app.fivvi.api.models.Session
+import app.fivvi.api.models.SessionCancellation
 import app.fivvi.api.models.SessionGroupClass
 import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionSeries
@@ -203,17 +205,65 @@ class FakeGroupClassesApi(private val sessions: FakeSessionsApi) : GroupClassesA
         return classes[classId]?.let { Response.success(it) } ?: Response.error(404, "{}".toResponseBody(JSON))
     }
 
+    /** Every cancellation asked for: the workspace, the date and the request. */
+    val cancelled = mutableListOf<Triple<UUID, UUID, CancelClassDateRequest>>()
+
+    /** Every date a preview of the cancellation was read for. */
+    val previewed = mutableListOf<UUID>()
+
+    /** While set, the preview of a cancellation answers with this status. */
+    var previewStatus: Int? = null
+
+    /** While set, the cancellation of a date answers with this status. */
+    var cancelStatus: Int? = null
+
+    /** While set, the date has started (CO-03): the preview says so. */
+    var previewStarted = false
+
+    /**
+     * Cancels the date as the API does for `this` (F026): a date cancelled already answers `409 session_cancelled`, one changed
+     * since the request's `version` `409 session_changed`; otherwise it is stored as `cancelled` by [cancelledBy] at
+     * [FakeSessionsApi.cancelledAt], the version counted up, and the people who hold a place are told.
+     */
     override suspend fun cancelClassDate(
         workspaceId: UUID,
         sessionId: UUID,
         cancelClassDateRequest: CancelClassDateRequest,
-    ): Response<CancelledClassDate> = error("FakeGroupClassesApi.cancelClassDate is not expected in this test")
+    ): Response<CancelledClassDate> {
+        cancelled += Triple(workspaceId, sessionId, cancelClassDateRequest)
+        failure?.let { throw it }
+        cancelStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
+        val old = sessions.sessions[sessionId] ?: return Response.error(404, "{}".toResponseBody(JSON))
+        if (old.status == Session.Status.CANCELLED) return sessions.conflict(old, code = "session_cancelled")
+        if (old.version != cancelClassDateRequest.version) return sessions.conflict(old, changedBy = sessions.changedBy)
+        val record = SessionCancellation(
+            sessions.cancelledAt,
+            SessionCancellation.Initiator.WORKSPACE,
+            SessionTrainer(sessions.me.id, sessions.me.name),
+        )
+        val session = old.copy(status = Session.Status.CANCELLED, version = old.version + 1, cancellation = record)
+        sessions.sessions[sessionId] = session
+        sessions.onCancelled(session)
+        val told = if (old.startsAt.isAfter(sessions.cancelledAt)) booked(old) else 0
+        return Response.success(CancelledClassDate(session, 1, 0, told))
+    }
 
     override suspend fun previewClassCancellation(
         workspaceId: UUID,
         sessionId: UUID,
-    ): Response<ClassCancellationPreview> =
-        error("FakeGroupClassesApi.previewClassCancellation is not expected in this test")
+    ): Response<ClassCancellationPreview> {
+        previewed += sessionId
+        failure?.let { throw it }
+        previewStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
+        val date = sessions.sessions[sessionId] ?: return Response.error(404, "{}".toResponseBody(JSON))
+        if (date.status == Session.Status.CANCELLED) return sessions.conflict(date, code = "session_cancelled")
+        val people = if (previewStarted) 0 else booked(date)
+        val counts = ClassCancellationCounts(1, 0, if (people > 0) 1 else 0, people, people)
+        return Response.success(ClassCancellationPreview(sessionId, previewStarted, date.series != null, counts))
+    }
+
+    private fun booked(date: Session) =
+        date.participants.count { it.attendanceStatus != SessionParticipant.AttendanceStatus.CANCELLED }
 
     override suspend fun getKeptClassDates(workspaceId: UUID, sessionId: UUID): Response<KeptClassDates> =
         error("FakeGroupClassesApi.getKeptClassDates is not expected in this test")

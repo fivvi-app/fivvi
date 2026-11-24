@@ -19,6 +19,8 @@ import app.fivvi.core.LanguageStore
 import app.fivvi.core.auth.InMemorySessionStore
 import app.fivvi.core.auth.Session
 import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.net.Connectivity
+import app.fivvi.core.net.FakeConnectivity
 import app.fivvi.core.signin.FakeSignInApi
 import org.junit.rules.ExternalResource
 

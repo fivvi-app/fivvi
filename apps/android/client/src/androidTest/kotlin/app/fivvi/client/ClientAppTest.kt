@@ -29,6 +29,7 @@ import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.auth.InMemorySessionStore
 import app.fivvi.core.auth.Session
 import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.net.FakeConnectivity
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.core.signin.SignInTags
 import java.util.UUID

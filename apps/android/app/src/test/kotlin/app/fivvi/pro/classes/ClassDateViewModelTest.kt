@@ -35,6 +35,7 @@ class ClassDateViewModelTest {
     private val sarah = trainerOf("Sarah")
     private val john = trainerOf("John")
     private val notAllowed = mutableListOf<Int>()
+    private val cancelNotAllowed = mutableListOf<Int>()
     private val mobility = groupClassOf(
         "Mobility",
         nameEn = "Mobility flow",
@@ -277,5 +278,157 @@ class ClassDateViewModelTest {
         assertEquals(ClassDateLoad.Loaded, state.load)
         assertEquals("Mobility", state.title(english = false))
         assertNull(state.description(english = false))
+    }
+
+    private fun cancellable(id: UUID, isOnline: () -> Boolean = { true }, onCancelled: () -> Unit = {}) =
+        ClassDateViewModel(
+            ClassApis(classes, sessions, FakeLocationsApi(), FakeTrainersApi(), FakeWorkspacesApi()),
+            workspace,
+            id,
+            john.id,
+            canManage = true,
+            isOnline = isOnline,
+            onCancelled = onCancelled,
+            onNotAllowed = { notAllowed += it.code() },
+            onCancelNotAllowed = { cancelNotAllowed += it.code() },
+        )
+
+    @Test
+    fun test_F026_AC5_onlyTheOwnerMayCancelADateThatIsStillPlanned() {
+        val id = date()
+
+        assertTrue(viewModel(id).state.value.canCancel)
+        assertFalse(viewModel(id, canManage = false).state.value.canCancel)
+        val cancelled = viewModel(id).state.value.session?.copy(status = app.fivvi.api.models.Session.Status.CANCELLED)
+        assertFalse(viewModel(id).state.value.copy(session = cancelled).canCancel)
+        assertFalse(viewModel(id).state.value.copy(session = cancelled).hasMenu)
+    }
+
+    @Test
+    fun test_F026_AC6_theConfirmationSaysHowManyBookedClientsGetAnEmail() {
+        val viewModel = cancellable(date(booked = 3, cancelled = 1))
+
+        viewModel.askToCancel()
+
+        assertEquals(CancelAsk(participants = 3, started = false), viewModel.state.value.cancelAsk)
+        viewModel.dismissCancel()
+        assertNull(viewModel.state.value.cancelAsk)
+        assertTrue(classes.cancelled.isEmpty())
+    }
+
+    @Test
+    fun test_F026_AC8_withoutParticipantsNobodyGetsAnEmail() {
+        val viewModel = cancellable(date())
+
+        viewModel.askToCancel()
+
+        assertEquals(CancelAsk(participants = 0, started = false), viewModel.state.value.cancelAsk)
+    }
+
+    @Test
+    fun test_F026_AC9_aDateThatHasStartedIsRecordedWithoutEmails() {
+        classes.previewStarted = true
+        val viewModel = cancellable(date(booked = 3))
+
+        viewModel.askToCancel()
+
+        assertEquals(CancelAsk(participants = 0, started = true), viewModel.state.value.cancelAsk)
+    }
+
+    @Test
+    fun test_F026_design_confirmingCancelsThisDateOnlyWithTheVersionSeenAndTellsTheLists() {
+        val id = date(booked = 3)
+        var told = 0
+        val viewModel = cancellable(id, onCancelled = { told++ })
+        viewModel.askToCancel()
+
+        viewModel.confirmCancel()
+
+        val (inWorkspace, sent, request) = classes.cancelled.single()
+        assertEquals(workspace, inWorkspace)
+        assertEquals(id, sent)
+        assertEquals(
+            app.fivvi.api.models.CancelClassDateRequest(
+                scope = app.fivvi.api.models.CancelClassDateRequest.Scope.THIS,
+                version = 1,
+                surface = app.fivvi.api.models.CancelClassDateRequest.Surface.ANDROID,
+            ),
+            request,
+        )
+        val state = viewModel.state.value
+        assertNull(state.cancelAsk)
+        assertTrue(state.isCancelled)
+        assertEquals("Sarah", state.session?.cancellation?.cancelledBy?.name)
+        assertFalse(state.hasMenu)
+        assertEquals(1, told)
+    }
+
+    @Test
+    fun test_F026_AC4_offlineByTheNetworkNothingIsAskedAndTheItemIsOff() {
+        val viewModel = cancellable(date(booked = 3), isOnline = { false })
+
+        viewModel.askToCancel()
+
+        assertTrue(classes.previewed.isEmpty())
+        assertNull(viewModel.state.value.cancelAsk)
+        assertTrue(viewModel.state.value.copy(online = false).isOffline)
+        assertFalse(viewModel.state.value.copy(online = false).canStartCancel)
+    }
+
+    @Test
+    fun test_F026_AC4_aRequestThatCannotReachTheApiIsTheFallbackForOffline() {
+        val id = date(booked = 3)
+        val viewModel = cancellable(id)
+        classes.failure = IOException("offline")
+
+        viewModel.askToCancel()
+
+        assertTrue(viewModel.state.value.isOffline)
+        assertFalse(viewModel.state.value.canStartCancel)
+        assertNull(viewModel.state.value.cancelAsk)
+    }
+
+    @Test
+    fun test_F026_AC11_aDateChangedFirstSaysWhoAndShowsItAsItIsNow() {
+        val id = date(booked = 3)
+        val viewModel = cancellable(id)
+        viewModel.askToCancel()
+        sessions.sessions[id] = sessions.sessions.getValue(id).copy(version = 2)
+
+        viewModel.confirmCancel()
+
+        assertEquals(CancelFailure.Changed("Tom"), viewModel.state.value.cancelFailure)
+        assertEquals(2, viewModel.state.value.session?.version)
+        assertFalse(viewModel.state.value.isCancelled)
+    }
+
+    // The cancel calls are guarded by class.manage: their 403 goes to their own callback, so the capability that
+    // drops is class.manage (ClassDateFlow), not the one of the read.
+    @Test
+    fun test_F026_AC5_aRefusedCancelPreviewTellsTheCancelCallbackAndSaysThePersonMayNot() {
+        val id = date(booked = 3)
+        val viewModel = cancellable(id)
+        classes.previewStatus = 403
+
+        viewModel.askToCancel()
+
+        assertEquals(CancelFailure.NoPermission, viewModel.state.value.cancelFailure)
+        assertEquals(listOf(403), cancelNotAllowed)
+        assertTrue(notAllowed.isEmpty())
+    }
+
+    @Test
+    fun test_F026_AC5_aRefusedCancellationTellsTheCancelCallbackAndSaysThePersonMayNot() {
+        val id = date(booked = 3)
+        val viewModel = cancellable(id)
+        viewModel.askToCancel()
+        classes.cancelStatus = 403
+
+        viewModel.confirmCancel()
+
+        assertEquals(CancelFailure.NoPermission, viewModel.state.value.cancelFailure)
+        assertFalse(viewModel.state.value.isCancelling)
+        assertEquals(listOf(403), cancelNotAllowed)
+        assertTrue(notAllowed.isEmpty())
     }
 }
