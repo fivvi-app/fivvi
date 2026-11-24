@@ -30,6 +30,8 @@ final class StubSessionRoutes: @unchecked Sendable {
     private var moved: [[String: String]] = []
     var cancelled: [[String: String]] = []
     var classCancelled: [[String: String]] = []
+    var bookingLinkBodies: [[String: String]] = []
+    var bookingLinks: [String: [String: Any]] = [:]
 
     init(signIn: StubServer.SignIn, clients: StubClientRoutes) {
         self.signIn = signIn
@@ -118,7 +120,7 @@ final class StubSessionRoutes: @unchecked Sendable {
 
     static func isSessionRoute(_ path: String) -> Bool {
         path.hasPrefix("/api/v1/workspaces/")
-            && ["/locations", "/trainers", "/team-members", "/sessions", "/group-classes"]
+            && ["/locations", "/trainers", "/team-members", "/sessions", "/group-classes", "/booking-links"]
             .contains { path.contains($0) } || path.hasSuffix("/upcoming-sessions")
     }
 

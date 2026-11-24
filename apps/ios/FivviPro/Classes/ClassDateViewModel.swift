@@ -53,7 +53,7 @@ final class ClassDateViewModel {
     /// Puts a text on the phone's clipboard.
     let copy: @MainActor (String) -> Void
     /// The time now, to tell a date to come from one that has started.
-    let now: @MainActor () -> Date
+    let now: () -> Date
     let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
 
     init(
@@ -62,7 +62,7 @@ final class ClassDateViewModel {
         isOnline: @escaping @MainActor () -> Bool = { true },
         onCancelled: @escaping @MainActor () -> Void = {},
         copy: @escaping @MainActor (String) -> Void = { _ in },
-        now: @escaping @MainActor () -> Date = { Date() },
+        now: @escaping () -> Date = Date.init,
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
         self.isOnline = isOnline
