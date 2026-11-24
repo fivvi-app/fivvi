@@ -105,7 +105,7 @@
     <string name="classes_cancel_scope_following">Deze en alle volgende lessen (de reeks stopt)</string>
     <string name="classes_cancel_scope_label">Wat annuleer je?</string>
     <string name="classes_cancel_scope_this">Alleen deze les</string>
-    <string name="classes_cancel_started">Deze les is al begonnen. Het wordt vastgelegd en niemand krijgt een e-mail.</string>
+    <string name="classes_cancel_started">Deze les is al begonnen. De annulering wordt vastgelegd en niemand krijgt een e-mail.</string>
     <string name="classes_cancel_submit">Les annuleren</string>
     <string name="classes_cancel_subtitle">%1$s · %2$s, %4$s–%3$s</string>
     <string name="classes_cancel_title">Les annuleren?</string>
@@ -785,6 +785,7 @@
     <string name="roles_trainer">Trainer</string>
     <!-- Role label of a Trainer of a workspace, shown as a plain label, in the workspace's word (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor. The role itself stays Trainer. -->
     <string name="roles_trainer_label">%1$s</string>
+    <!-- PS-06: the button on the session page (and the quick view) that opens the cancel dialog; it cancels the session, it does not dismiss anything. "Annuleren" / "Cancel" here is the cancel-the-session verb (GLOSSARY: Cancel / Annuleren), not the Cancel button of a dialog that closes it (common.cancel). -->
     <string name="sessions_cancel_action">Annuleren</string>
     <string name="sessions_cancel_already_cancelled">Deze sessie is geannuleerd.</string>
     <string name="sessions_cancel_back">Terug</string>
@@ -886,7 +887,6 @@
     <string name="sessions_page_cancelled_banner">Geannuleerd op %1$s om %3$s door %2$s</string>
     <string name="sessions_page_cancelled_banner_unknown">Geannuleerd op %1$s om %2$s</string>
     <string name="sessions_page_cancelled_by_client">op verzoek van de klant</string>
-    <string name="sessions_page_cancelled_by_workspace">op verzoek van ons</string>
     <string name="sessions_page_client_label">Klant</string>
     <string name="sessions_page_client_profile">Klantprofiel</string>
     <string name="sessions_page_heading">Privésessie met %1$s</string>

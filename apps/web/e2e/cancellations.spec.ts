@@ -189,6 +189,36 @@ test.describe('F026 PS-06 Sessie annuleren? on the session page', () => {
     expect(await waitForEmails(anna.email)).toHaveLength(1);
   });
 
+  test('AC2: John cancels Tom’s session with Wij and unchecks the email box: nothing is sent to the client', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const { w, anna, toms } = await world(page, context);
+    const t = cancelText(appLocale, copy);
+    await page.goto(`/w/${w.slug}/sessions/${toms.id}`);
+
+    await page.getByRole('button', { name: t('action'), exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: t('title') });
+    await dialog.getByRole('radio', { name: t('whoUs') }).check();
+    const box = dialog.getByRole('checkbox', { name: t('notify', { client: anna.name }) });
+    await expect(box).toBeChecked();
+    await box.uncheck();
+    const request = page.waitForRequest((sent) =>
+      sent.url().endsWith(`/sessions/${toms.id}/cancel`),
+    );
+    await dialog.getByRole('button', { name: t('submit') }).click();
+
+    expect((await request).postDataJSON()).toMatchObject({ initiator: 'workspace', notify: false });
+    await expect(page.getByRole('status').filter({ hasText: t('done') })).toBeVisible();
+    const after = await stored(page, w, toms.id);
+    expect(after.status).toBe('cancelled');
+    expect(after.cancellation?.initiator).toBe('workspace');
+    expect(await emailsTo(anna.email)).toHaveLength(0);
+  });
+
   test('AC3: the cancelled session page says who cancelled it and when, at the client’s request, and offers only Klantprofiel', async ({
     page,
     context,
@@ -498,10 +528,7 @@ test.describe('F026 cancelling from the calendar and the cancelled items on ever
 
     // Les annuleren opens CO-03 on CO-01.
     await page.goto(calendar);
-    await blocks(page)
-      .filter({ hasText: /Kracht|Strength/ })
-      .first()
-      .click();
+    await blocks(page).filter({ hasText: copy.myCalendar.typeGroup }).first().click();
     await quickView.getByRole('link', { name: classes('action'), exact: true }).click();
     await expect(page).toHaveURL(
       new RegExp(`/classes/${series.classId}/${series.dates[0]}\\?cancel=1$`),
@@ -521,10 +548,7 @@ test.describe('F026 cancelling from the calendar and the cancelled items on ever
       0,
     );
     await page.keyboard.press('Escape');
-    await blocks(page)
-      .filter({ hasText: /Kracht|Strength/ })
-      .first()
-      .click();
+    await blocks(page).filter({ hasText: copy.myCalendar.typeGroup }).first().click();
     await expect(quickView.getByRole('link', { name: classes('action'), exact: true })).toHaveCount(
       0,
     );

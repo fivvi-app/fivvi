@@ -121,7 +121,7 @@
       "scopeFollowing": "This and all following classes (the series ends)",
       "scopeLabel": "What are you cancelling?",
       "scopeThis": "Only this class",
-      "started": "This class has already started. It's recorded and nobody gets an email.",
+      "started": "This class has already started. The cancellation is recorded and nobody gets an email.",
       "submit": "Cancel class",
       "subtitle": "{class} · {date}, {start}–{end}",
       "title": "Cancel class?"
@@ -996,7 +996,6 @@
       "cancelledBanner": "Cancelled on {date} at {time} by {name}",
       "cancelledBannerUnknown": "Cancelled on {date} at {time}",
       "cancelledByClient": "at the client's request",
-      "cancelledByWorkspace": "at our request",
       "clientLabel": "Client",
       "clientProfile": "Client profile",
       "heading": "Private session with {client}",

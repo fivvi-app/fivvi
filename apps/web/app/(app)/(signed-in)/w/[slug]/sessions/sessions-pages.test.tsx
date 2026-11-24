@@ -201,10 +201,18 @@ describe.each(locales)('F020 the session page and + Nieuw in %s', (locale) => {
       }
     });
 
-    it('AC3: a cancellation by the workspace says so; one whose canceller was removed has no name', () => {
+    it('AC3: a cancellation by the workspace has no suffix; one whose canceller was removed has no name', () => {
       const byUs = owned({ status: 'cancelled', cancellation: cancellation('workspace') });
-      expect(byUs).toContain(escapeHtml(copy.sessions.page.cancelledByWorkspace));
+      expect(byUs).toContain(
+        escapeHtml(
+          copy.sessions.page.cancelledBanner
+            .replace('{date}', day)
+            .replace('{time}', '12:15')
+            .replace('{name}', 'Sarah'),
+        ),
+      );
       expect(byUs).not.toContain(escapeHtml(copy.sessions.page.cancelledByClient));
+      expect(byUs).not.toContain(' · ');
       const noName = owned({
         status: 'cancelled',
         cancellation: { cancelledAt: '2026-09-22T10:15:00.000Z', initiator: 'client' },

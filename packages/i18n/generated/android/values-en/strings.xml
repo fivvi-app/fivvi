@@ -100,7 +100,7 @@
     <string name="classes_cancel_scope_following">This and all following classes (the series ends)</string>
     <string name="classes_cancel_scope_label">What are you cancelling?</string>
     <string name="classes_cancel_scope_this">Only this class</string>
-    <string name="classes_cancel_started">This class has already started. It\'s recorded and nobody gets an email.</string>
+    <string name="classes_cancel_started">This class has already started. The cancellation is recorded and nobody gets an email.</string>
     <string name="classes_cancel_submit">Cancel class</string>
     <string name="classes_cancel_subtitle">%1$s · %2$s, %4$s–%3$s</string>
     <string name="classes_cancel_title">Cancel class?</string>
@@ -760,7 +760,6 @@
     <string name="sessions_page_cancelled_banner">Cancelled on %1$s at %3$s by %2$s</string>
     <string name="sessions_page_cancelled_banner_unknown">Cancelled on %1$s at %2$s</string>
     <string name="sessions_page_cancelled_by_client">at the client\'s request</string>
-    <string name="sessions_page_cancelled_by_workspace">at our request</string>
     <string name="sessions_page_client_label">Client</string>
     <string name="sessions_page_client_profile">Client profile</string>
     <string name="sessions_page_heading">Private session with %1$s</string>

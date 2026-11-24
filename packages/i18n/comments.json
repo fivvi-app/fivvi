@@ -184,6 +184,7 @@
   "roles.owner": "Role label of an Owner (Eigenaar) of a workspace, shown as a plain label.",
   "roles.trainer": "OLD role label of a Trainer, shown as a plain label with the literal word trainer. Kept until the web, iOS and Android use roles.trainerLabel (F068, ticket #751 removes it).",
   "roles.trainerLabel": "Role label of a Trainer of a workspace, shown as a plain label, in the workspace's word (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor. The role itself stays Trainer.",
+  "sessions.cancel.action": "PS-06: the button on the session page (and the quick view) that opens the cancel dialog; it cancels the session, it does not dismiss anything. \"Annuleren\" / \"Cancel\" here is the cancel-the-session verb (GLOSSARY: Cancel / Annuleren), not the Cancel button of a dialog that closes it (common.cancel).",
   "sessions.cancel.notifyNote": "PS-06: under the notify box; {email} is the client's address, {language} the language of the email (\"in het Nederlands\" / \"in het Engels\", sessions.form.languageNl/languageEn).",
   "sessions.cancel.whoUs": "PS-06: the workspace is cancelling (the initiator \"workspace\"); \"Wij\" in Dutch.",
   "sessions.form.clientPlaceholder": "The client row of the new private session form of the native apps, before a client is chosen. Tapping it opens the client list.",

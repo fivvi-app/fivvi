@@ -1667,13 +1667,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This class has already started. It's recorded and nobody gets an email."
+            "value" : "This class has already started. The cancellation is recorded and nobody gets an email."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deze les is al begonnen. Het wordt vastgelegd en niemand krijgt een e-mail."
+            "value" : "Deze les is al begonnen. De annulering wordt vastgelegd en niemand krijgt een e-mail."
           }
         }
       }
@@ -11414,6 +11414,7 @@
       }
     },
     "sessions.cancel.action" : {
+      "comment" : "PS-06: the button on the session page (and the quick view) that opens the cancel dialog; it cancels the session, it does not dismiss anything. \"Annuleren\" / \"Cancel\" here is the cancel-the-session verb (GLOSSARY: Cancel / Annuleren), not the Cancel button of a dialog that closes it (common.cancel).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -12886,23 +12887,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "op verzoek van de klant"
-          }
-        }
-      }
-    },
-    "sessions.page.cancelledByWorkspace" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "at our request"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "op verzoek van ons"
           }
         }
       }

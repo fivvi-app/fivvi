@@ -82,10 +82,10 @@ export function SessionView({
                         date: day(session.cancellation.cancelledAt),
                         time: time(session.cancellation.cancelledAt),
                       }),
-                  session.cancellation.initiator === 'client'
-                    ? t('cancelledByClient')
-                    : t('cancelledByWorkspace'),
-                ].join(' · ')
+                  session.cancellation.initiator === 'client' ? t('cancelledByClient') : undefined,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
               : t('cancelled')}
           </p>
         ) : null}
