@@ -28,6 +28,12 @@ final class ClassDateViewModel {
     private(set) var groupClass: Components.Schemas.GroupClass?
     private(set) var descriptionOpen = false
     private(set) var manageOnWebText: String?
+    /// The confirmation of *Les annuleren*, once the API said who would get the email; nil when it is not asked.
+    private(set) var cancelAsk: CancelAsk?
+    private(set) var cancelFailure: CancelFailure?
+    /// The last read or cancellation couldn't reach the API: *Les annuleren* is off and says why.
+    private(set) var isOffline = false
+    private(set) var isCancelling = false
     private(set) var catalog: Catalog
     let workspace: CurrentWorkspace
     /// The person has `class.manage`: they get the ⋯ menu and the footnote.
@@ -56,6 +62,22 @@ final class ClassDateViewModel {
     private var timeZone: TimeZone { session.flatMap { TimeZone(identifier: $0.timeZone) } ?? workspace.timeZone }
     private var format: SessionFormat { SessionFormat(locale: catalog.formattingLocale, timeZone: timeZone) }
     private var words: TrainerWordForms { TrainerWordForms(workspace.trainerWord, catalog: catalog) }
+
+    /// What the confirmation of *Les annuleren* tells.
+    struct CancelAsk: Equatable {
+        /// How many people get the cancellation email.
+        let participants: Int
+        /// The date has started: it is recorded for the record and nobody gets an email.
+        let started: Bool
+    }
+
+    /// What a cancellation that didn't happen says.
+    enum CancelFailure: Equatable {
+        case changed(byName: String?)
+        case cancelled
+        case noPermission
+        case notSaved
+    }
 
     // MARK: Texts
 
@@ -147,19 +169,130 @@ final class ClassDateViewModel {
 
     // MARK: The ⋯ menu
 
-    /// The Owner's menu; a Trainer who is not substituting has none (F024 adds the substitute's).
-    var hasMenu: Bool { canManage }
+    /// The Owner's menu, until the date is cancelled; a Trainer who is not substituting has none (F024 adds the substitute's).
+    var hasMenu: Bool { canManage && !isCancelled }
     var editText: String { catalog[.classDateEdit] }
 
     /// *Les wijzigen*: the class is managed on the web, and the screen says so.
     func editTapped() { manageOnWebText = catalog[.classDateManageOnWeb] }
 
     /// "Les wijzigen, een vaste reeks en trainers beheer je op het web." for the Owner.
-    var ownerNoteText: String? { canManage ? catalog.string(.classDateOwnerNote, words.words) : nil }
+    var ownerNoteText: String? { canManage && !isCancelled ? catalog.string(.classDateOwnerNote, words.words) : nil }
 
     func use(_ catalog: Catalog) {
         self.catalog = catalog
         if manageOnWebText != nil { manageOnWebText = catalog[.classDateManageOnWeb] }
+    }
+
+    // MARK: Les annuleren (F026)
+
+    var isCancelled: Bool { session?.status == .cancelled }
+
+    /// The Owner may cancel a date that is still planned (`class.manage`).
+    var canCancel: Bool { canManage && session?.status == .scheduled }
+
+    /// *Les annuleren* is on while the phone is online (nothing is queued).
+    var canStartCancel: Bool { canCancel && !isOffline && !isCancelling }
+    var cancelText: String { catalog[.classCancelAction] }
+    var cancelTitleText: String { catalog[.classCancelTitle] }
+    var cancelSubmitText: String { catalog[.classCancelSubmit] }
+    var cancelBackText: String { catalog[.classCancelBack] }
+
+    /// "De 3 geboekte klanten krijgen een e-mail. Je kunt er een bericht bij zetten op het web.", or that nobody gets an
+    /// email without participants, or for a date that has started.
+    var cancelMessageText: String {
+        guard let cancelAsk else { return "" }
+        if cancelAsk.started { return catalog[.classCancelStarted] }
+        if cancelAsk.participants == 0 { return catalog[.classCancelCountNone] }
+        return catalog.string(.classCancelBody, cancelAsk.participants)
+    }
+
+    /// *Je bent offline. Annuleren kan als je weer verbinding hebt.*, where *Les annuleren* is off for lack of a connection.
+    var cancelOfflineText: String? { isOffline && canCancel ? catalog[.sessionCancelOffline] : nil }
+
+    var cancelFailureText: String? {
+        switch cancelFailure {
+        case let .changed(name):
+            name.map { catalog.string(.classCancelChangedBy, $0) } ?? catalog[.classCancelChangedByUnknown]
+        case .cancelled: catalog[.classCancelAlreadyCancelled]
+        case .noPermission: catalog[.classCancelNoPermission]
+        case .notSaved: catalog[.classCancelNotSaved]
+        case nil: nil
+        }
+    }
+
+    /// "Geannuleerd op di 20 okt om 10:12 door John", on a cancelled date; nil otherwise.
+    var cancelledText: String? {
+        guard isCancelled else { return nil }
+        guard let cancellation = session?.cancellation else { return catalog[.classCancelAlreadyCancelled] }
+        let day = format.day(cancellation.cancelledAt)
+        let time = format.time(cancellation.cancelledAt)
+        // Placeholders in the order of their names: date, name, time.
+        return cancellation.cancelledBy.map { catalog.string(.classDateCancelledBanner, day, $0.value1.name, time) }
+            ?? catalog.string(.classDateCancelledBannerUnknown, day, time)
+    }
+
+    /// *Les annuleren* of the ⋯ menu: asks the API who would get the email, then the confirmation shows. When the API
+    /// can't be reached nothing is asked and the screen says it is offline.
+    func askToCancel() async {
+        guard canStartCancel else { return }
+        cancelFailure = nil
+        do {
+            switch try await api.previewClassCancellation(
+                .init(path: .init(workspaceId: workspace.id, sessionId: sessionID))
+            ) {
+            case let .ok(found):
+                let preview = try found.body.json
+                isOffline = false
+                cancelAsk = CancelAsk(participants: preview.thisDate.participants, started: preview.started)
+            case .forbidden:
+                await onForbidden(.class_manage)
+                cancelFailure = .noPermission
+            case .conflict:
+                // Cancelled already: the screen reads it as it is now.
+                cancelFailure = .cancelled
+                await read()
+            default:
+                cancelFailure = .notSaved
+            }
+        } catch {
+            if ClientRequestError(thrown: error) == .offline { isOffline = true } else { cancelFailure = .notSaved }
+        }
+    }
+
+    /// *Terug*: nothing is cancelled.
+    func dismissCancel() { cancelAsk = nil }
+
+    /// *Les annuleren* of the confirmation: cancels this date only, with the `version` the person saw.
+    func confirmCancel() async {
+        guard let session, !isCancelling, session.status == .scheduled else { return }
+        cancelAsk = nil
+        cancelFailure = nil
+        isCancelling = true
+        defer { isCancelling = false }
+        let body = Components.Schemas.CancelClassDateRequest(scope: .this, version: session.version, surface: .ios)
+        do {
+            let input = Operations.CancelClassDate.Input(
+                path: .init(workspaceId: workspace.id, sessionId: session.id), body: .json(body)
+            )
+            switch try await api.cancelClassDate(input) {
+            case let .ok(cancelled):
+                self.session = try cancelled.body.json.session.value1
+                isOffline = false
+            case let .conflict(conflict):
+                let refusal = try conflict.body.json
+                self.session = refusal.session.value1
+                cancelFailure = refusal.code == .sessionCancelled
+                    ? .cancelled : .changed(byName: refusal.changedBy?.name)
+            case .forbidden:
+                await onForbidden(.class_manage)
+                cancelFailure = .noPermission
+            default:
+                cancelFailure = .notSaved
+            }
+        } catch {
+            if ClientRequestError(thrown: error) == .offline { isOffline = true } else { cancelFailure = .notSaved }
+        }
     }
 
     // MARK: Reading
@@ -180,6 +313,7 @@ final class ClassDateViewModel {
             case let .ok(found):
                 session = try found.body.json
                 state = .loaded
+                isOffline = false
             case .forbidden:
                 await onForbidden(.class_read)
                 state = .noPermission
@@ -190,7 +324,9 @@ final class ClassDateViewModel {
                 return
             }
         } catch {
-            if ClientRequestError(thrown: error) != .cancelled { failed() }
+            let cause = ClientRequestError(thrown: error)
+            if cause == .offline { isOffline = true }
+            if cause != .cancelled { failed() }
             return
         }
         await readClass()

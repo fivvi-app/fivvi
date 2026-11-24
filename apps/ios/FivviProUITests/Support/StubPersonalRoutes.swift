@@ -20,6 +20,8 @@ final class StubPersonalRoutes: @unchecked Sendable {
 
     private let lock = NSLock()
     private var served = Day.sarah
+    /// Whether the session with this ID has been cancelled meanwhile (from TD-02), so the lists show it struck through.
+    var isCancelled: @Sendable (String) -> Bool = { _ in false }
 
     var day: Day {
         get { lock.withLock { served } }
@@ -75,18 +77,29 @@ final class StubPersonalRoutes: @unchecked Sendable {
             Self.item(Self.kracht, johns, "15:00", "16:00", className: "Kracht"),
             Self.item(Self.krachtCancelled, johns, "18:00", "19:00", className: "Kracht", cancelled: true)
         ]
-        let shown = which == .solo ? Array(items.prefix(2)) : items
-        return (200, [
+        let shown = (which == .solo ? Array(items.prefix(2)) : items).map(markCancelled)
+        let nextIsCancelled = isCancelled(Self.anna)
+        var answer: [String: Any] = [
             "date": date, "timeZone": StubSessionRoutes.zone, "workspaceCount": which == .solo ? 1 : 2,
             "items": shown,
             "summary": ["count": shown.count, "done": 0, "firstStartsAt": Self.instant("09:00"),
                         "lastEndsAt": Self.instant(which == .solo ? "12:00" : "19:00")],
-            "next": ["sessionId": Self.anna, "state": "upcoming", "startsInMinutes": 25],
             "freeGap": ["startsAt": Self.instant("12:00"), "endsAt": Self.instant("13:30")],
             "placesAhead": (which == .solo ? ["John's Gym"] : ["TrainMore Zuid", "John's Gym"]).map { ["name": $0] },
             "tomorrow": ["date": "2026-09-23", "count": 3, "firstStartsAt": Self.instant("07:00", "2026-09-23")],
             "hasSessions": true
-        ])
+        ]
+        // A cancelled session is no next one.
+        if !nextIsCancelled { answer["next"] = ["sessionId": Self.anna, "state": "upcoming", "startsInMinutes": 25] }
+        return (200, answer)
+    }
+
+    /// The item as the API lists it once the session was cancelled from its screen.
+    private func markCancelled(_ item: [String: Any]) -> [String: Any] {
+        guard let id = item["sessionId"] as? String, isCancelled(id) else { return item }
+        var cancelled = item
+        cancelled["status"] = "cancelled"
+        return cancelled
     }
 
     // MARK: The range of days of Agenda (F013, TD-04)
@@ -141,7 +154,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
             .filter { which == .sarah || $0.json["type"] as? String == "private" }
         return (200, [
             "from": first, "to": last, "timeZone": StubSessionRoutes.zone, "workspaceCount": which == .solo ? 1 : 2,
-            "items": shown.map(\.json)
+            "items": shown.map { markCancelled($0.json) }
         ])
     }
 

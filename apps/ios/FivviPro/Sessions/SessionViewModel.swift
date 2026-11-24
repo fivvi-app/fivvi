@@ -4,7 +4,9 @@ import FivviAPI
 import FivviStrings
 
 /// TD-02 *Privésessie* (F020 AC10, design): the session's title, date and time, where it is with *Route*, the workspace
-/// with the trainer (*Jij* for the person looking), and its client. *Verplaatsen* and *Klantprofiel* are in the ⋯ menu.
+/// with the trainer (*Jij* for the person looking), and its client. *Verplaatsen*, *Annuleren* (PS-06, F026) and
+/// *Klantprofiel* are in the ⋯ menu. A cancelled session shows "Geannuleerd op {date} om {time} door {name}" (with
+/// "· op verzoek van de klant" when *De klant* cancelled) and only *Klantprofiel*.
 /// Read from `GET …/sessions/{id}` through the generated client; what is shown stays when a later read fails. The
 /// sections of later features (workout, last time, notes, attendance) are not shown yet.
 @MainActor
@@ -26,16 +28,26 @@ final class SessionViewModel {
     private(set) var clientRecord: Components.Schemas.Client?
     /// A move has just happened: the screen says where the session went.
     private(set) var movedText: String?
+    /// The person has just cancelled it: the screen says so, as the web's "Sessie geannuleerd." does.
+    private(set) var justCancelled = false
+    /// The last read or cancellation couldn't reach the API: *Annuleren* is off and says why.
+    private(set) var isOffline = false
     private(set) var catalog: Catalog
     let workspace: CurrentWorkspace
     private let sessionID: String
+    /// The person has `session.private.cancel.any` (the Owner) or `.own` (a Trainer, for a session of their own).
+    private let canCancelAny: Bool
+    private let canCancelOwn: Bool
     private let api: any APIProtocol
     private let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, catalog: Catalog,
+        canCancelAny: Bool = false, canCancelOwn: Bool = false,
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
+        self.canCancelAny = canCancelAny
+        self.canCancelOwn = canCancelOwn
         self.api = api
         self.workspace = workspace
         self.sessionID = sessionID
@@ -51,7 +63,22 @@ final class SessionViewModel {
     var client: Components.Schemas.SessionParticipant? { session?.participants.first }
     var isCancelled: Bool { session?.status == .cancelled }
     var title: String { catalog.string(.sessionPageHeading, client?.name ?? "") }
-    var cancelledText: String { catalog[.sessionPageCancelled] }
+
+    /// "Geannuleerd op do 24 sep om 10:12 door Sarah · op verzoek van de klant"; the plain line when the API sent no
+    /// record of the cancellation.
+    var cancelledText: String {
+        guard let cancellation = session?.cancellation else { return catalog[.sessionPageCancelled] }
+        let day = format.day(cancellation.cancelledAt)
+        let time = format.time(cancellation.cancelledAt)
+        // Placeholders in the order of their names: date, name, time.
+        let banner = cancellation.cancelledBy.map {
+            catalog.string(.sessionPageCancelledBanner, day, $0.value1.name, time)
+        } ?? catalog.string(.sessionPageCancelledBannerUnknown, day, time)
+        return cancellation.initiator == .client ? "\(banner) · \(catalog[.sessionPageCancelledByClient])" : banner
+    }
+
+    /// "Sessie geannuleerd.", on the screen after the person cancelled it.
+    var cancelledDoneText: String? { justCancelled ? catalog[.sessionCancelDone] : nil }
     var clientLabel: String { catalog[.sessionPageClientLabel] }
     var locationName: String { session?.location.name ?? "" }
 
@@ -92,6 +119,38 @@ final class SessionViewModel {
         movedText = text
     }
 
+    /// *Annuleren* (PS-06) is offered: the session is still planned and the person may cancel it, the Owner any session and
+    /// a Trainer their own.
+    var canCancel: Bool {
+        guard let session, session.status == .scheduled else { return false }
+        return canCancelAny || canCancelOwn && session.trainer?.id == workspace.teamMemberId
+    }
+
+    /// *Je bent offline. Annuleren kan als je weer verbinding hebt.*, where *Annuleren* is off for lack of a connection.
+    var cancelOfflineText: String? { isOffline && canCancel ? catalog[.sessionCancelOffline] : nil }
+
+    /// The model of PS-06 for this session, or nil while there is none or when it can't be cancelled. `canReschedule`:
+    /// the person may plan sessions, so the question about another time offers *Verplaatsen*.
+    func cancelForm(canReschedule: Bool = true, now: Date = Date()) -> CancelSessionViewModel? {
+        guard canCancel, let session, let client else { return nil }
+        return CancelSessionViewModel(
+            api: api, workspace: workspace, session: session, clientName: client.name, clientEmail: clientRecord?.email,
+            clientLocale: clientRecord?.chosenLocale, canReschedule: canReschedule,
+            catalog: catalog, now: now, onForbidden: onForbidden
+        )
+    }
+
+    /// The session is cancelled: it shows the record at once and says so.
+    func didCancel(_ cancelled: Session) {
+        session = cancelled
+        movedText = nil
+        justCancelled = true
+        isOffline = false
+    }
+
+    /// A cancellation couldn't reach the API.
+    func cancelWasOffline() { isOffline = true }
+
     func use(_ catalog: Catalog) { self.catalog = catalog }
 
     // MARK: Reading
@@ -114,6 +173,7 @@ final class SessionViewModel {
                 if let current = session, current.version != fresh.version { movedText = nil }
                 session = fresh
                 state = .loaded
+                isOffline = false
             case .forbidden:
                 await onForbidden(.clients_view)
                 state = .noPermission
@@ -124,7 +184,9 @@ final class SessionViewModel {
                 return
             }
         } catch {
-            if ClientRequestError(thrown: error) != .cancelled { failed() }
+            let cause = ClientRequestError(thrown: error)
+            if cause == .offline { isOffline = true }
+            if cause != .cancelled { failed() }
             return
         }
         await readViewer()

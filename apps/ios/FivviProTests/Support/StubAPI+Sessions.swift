@@ -37,4 +37,24 @@ extension StubAPI {
     ) async throws -> Operations.ListClientUpcomingSessions.Output {
         try sessions.upcoming(input.path.clientId)
     }
+
+    func cancelPrivateSession(
+        _ input: Operations.CancelPrivateSession.Input
+    ) async throws -> Operations.CancelPrivateSession.Output {
+        guard case let .json(body) = input.body else { fatalError("a JSON body") }
+        return try sessions.cancel(input.path.sessionId, body)
+    }
+
+    func cancelClassDate(
+        _ input: Operations.CancelClassDate.Input
+    ) async throws -> Operations.CancelClassDate.Output {
+        guard case let .json(body) = input.body else { fatalError("a JSON body") }
+        return try sessions.cancelClass(input.path.sessionId, body)
+    }
+
+    func previewClassCancellation(
+        _ input: Operations.PreviewClassCancellation.Input
+    ) async throws -> Operations.PreviewClassCancellation.Output {
+        try sessions.preview(input.path.sessionId)
+    }
 }

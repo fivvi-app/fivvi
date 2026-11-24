@@ -992,6 +992,68 @@
         }
       }
     },
+    "classes.app.cancelBody" : {
+      "comment" : "CO-03 in the apps (the native confirmation of Les annuleren): says how many booked clients get the cancellation email (EM-05). The message for the participants is written on the web only. {participants} is a count of at least 1; the case of no participants uses classes.cancel.countNone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$#@participants@"
+          },
+          "substitutions" : {
+            "participants" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "The %arg booked client gets an email. You can add a message to it on the web."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "The %arg booked clients get an email. You can add a message to it on the web."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$#@participants@"
+          },
+          "substitutions" : {
+            "participants" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "De %arg geboekte klant krijgt een e-mail. Je kunt er een bericht bij zetten op het web."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "De %arg geboekte klanten krijgen een e-mail. Je kunt er een bericht bij zetten op het web."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "classes.app.capacityLess" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11615,6 +11677,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verplaatsen"
+          }
+        }
+      }
+    },
+    "sessions.cancel.offline" : {
+      "comment" : "PS-06 and CO-03 in the apps: shown while the phone is offline, where the cancel action is disabled; nothing is queued.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline. You can cancel once you're back online."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent offline. Annuleren kan als je weer verbinding hebt."
           }
         }
       }

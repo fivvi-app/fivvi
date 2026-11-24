@@ -8,8 +8,10 @@ import FivviUI
 /// TD-03 *Groepsles* (F021): the class's name with the date and time under it, the description cut to a few lines with
 /// *Meer* / *Minder*, a group with the location and the trainer (*Trainer nodig* without one), *{booked}/{capacity}
 /// geboekt* with *Nog geen boekingen.*, and for the Owner the footnote that editing, a fixed series and the trainers are
-/// managed on the web. The Owner's ⋯ menu has *Les wijzigen*, which says the same; a Trainer has no menu. The sections of
-/// later features (participants, attendance, cancelling) are not shown yet.
+/// managed on the web. The Owner's ⋯ menu has *Les wijzigen*, which says the same, and below a divider the destructive
+/// *Les annuleren* (F026): a native confirmation that says how many booked clients get an email; a Trainer has no menu.
+/// A cancelled date shows "Geannuleerd op … door …" and no actions. The sections of later features (participants,
+/// attendance) are not shown yet.
 struct ClassDateView: View {
     let model: ClassDateViewModel
     let language: AppLanguage
@@ -38,6 +40,17 @@ struct ClassDateView: View {
         .task { await model.load() }
         .onReturnToForeground { await model.refresh() }
         .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
+        .alert(
+            model.cancelTitleText,
+            isPresented: Binding(get: { model.cancelAsk != nil }, set: { if !$0 { model.dismissCancel() } })
+        ) {
+            Button(model.cancelSubmitText, role: .destructive) { Task { await model.confirmCancel() } }
+                .accessibilityIdentifier("classDate.cancel.submit")
+            Button(model.cancelBackText, role: .cancel) { model.dismissCancel() }
+                .accessibilityIdentifier("classDate.cancel.back")
+        } message: {
+            Text(model.cancelMessageText)
+        }
         .environment(\.locale, catalog.formattingLocale)
     }
 
@@ -70,6 +83,15 @@ struct ClassDateView: View {
         ) {
             if let added = model.addedText {
                 StatusMessage(text: added, kind: .success, id: "classDate.added")
+            }
+            if let cancelled = model.cancelledText {
+                StatusMessage(text: cancelled, kind: .info, id: "classDate.cancelled")
+            }
+            if let failure = model.cancelFailureText {
+                StatusMessage(text: failure, kind: .error, id: "classDate.cancelFailed")
+            }
+            if let offline = model.cancelOfflineText {
+                StatusMessage(text: offline, kind: .info, id: "classDate.cancelOffline")
             }
             if let onWeb = model.manageOnWebText {
                 StatusMessage(text: onWeb, kind: .info, id: "classDate.manageOnWeb")
@@ -187,6 +209,10 @@ struct ClassDateView: View {
         Menu {
             Button(model.editText) { model.editTapped() }
                 .accessibilityIdentifier("classDate.edit")
+            Divider()
+            Button(model.cancelText, role: .destructive) { Task { await model.askToCancel() } }
+                .disabled(!model.canStartCancel)
+                .accessibilityIdentifier("classDate.cancel")
         } label: {
             Image(systemName: "ellipsis.circle")
                 .frame(minWidth: 44, minHeight: 44)

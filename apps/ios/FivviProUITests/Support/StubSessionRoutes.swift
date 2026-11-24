@@ -28,6 +28,8 @@ final class StubSessionRoutes: @unchecked Sendable {
     var refusesStart = false
     private var planned: [[String: String]] = []
     private var moved: [[String: String]] = []
+    var cancelled: [[String: String]] = []
+    var classCancelled: [[String: String]] = []
 
     init(signIn: StubServer.SignIn, clients: StubClientRoutes) {
         self.signIn = signIn
@@ -133,7 +135,7 @@ final class StubSessionRoutes: @unchecked Sendable {
             case ("GET", "sessions", 6): find(parts[5]).map { (200, $0) } ?? (404, ["code": "not_found"])
             case ("POST", "sessions", 7) where parts[6] == "reschedule": reschedule(parts[5], body)
             case ("GET", "clients", 7) where parts[6] == "upcoming-sessions": upcoming(parts[5])
-            default: respondToClassRoute(method: method, parts: parts, body: body)
+            default: respondToCancelRoute(method: method, parts: parts, body: body)
             }
         }
     }

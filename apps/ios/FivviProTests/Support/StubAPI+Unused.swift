@@ -126,12 +126,6 @@ extension StubAPI {
         fatalError("The app doesn't call updateGroupClassSeries yet")
     }
 
-    func cancelPrivateSession(
-        _ input: Operations.CancelPrivateSession.Input
-    ) async throws -> Operations.CancelPrivateSession.Output {
-        fatalError("The app doesn't call cancelPrivateSession yet")
-    }
-
     func assignTrainer(
         _ input: Operations.AssignTrainer.Input
     ) async throws -> Operations.AssignTrainer.Output {
@@ -148,18 +142,6 @@ extension StubAPI {
         _ input: Operations.ListGroupClassSeries.Input
     ) async throws -> Operations.ListGroupClassSeries.Output {
         fatalError("The app doesn't call listGroupClassSeries yet")
-    }
-
-    func cancelClassDate(
-        _ input: Operations.CancelClassDate.Input
-    ) async throws -> Operations.CancelClassDate.Output {
-        fatalError("The app doesn't call cancelClassDate yet")
-    }
-
-    func previewClassCancellation(
-        _ input: Operations.PreviewClassCancellation.Input
-    ) async throws -> Operations.PreviewClassCancellation.Output {
-        fatalError("The app doesn't call previewClassCancellation yet")
     }
 
     func getKeptClassDates(

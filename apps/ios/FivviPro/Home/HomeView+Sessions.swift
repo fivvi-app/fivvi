@@ -110,6 +110,8 @@ struct SessionScreen: View {
     ) {
         _model = State(initialValue: SessionViewModel(
             api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog,
+            canCancelAny: capabilities.allows(.session_private_cancel_any, in: workspace.id),
+            canCancelOwn: capabilities.allows(.session_private_cancel_own, in: workspace.id),
             onForbidden: { await capabilities.forbidden($0, in: workspace.id) }
         ))
         workspaceID = workspace.id

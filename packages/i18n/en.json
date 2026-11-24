@@ -90,6 +90,7 @@
   },
   "classes": {
     "app": {
+      "cancelBody": "{participants, plural, one {The # booked client gets an email. You can add a message to it on the web.} other {The # booked clients get an email. You can add a message to it on the web.}}",
       "capacityLess": "Decrease capacity",
       "capacityMore": "Increase capacity",
       "descriptionInDutch": "In Dutch",
@@ -912,6 +913,7 @@
       "nudgeCancelAnyway": "Cancel anyway",
       "nudgeQuestion": "Have you suggested another time?",
       "nudgeReschedule": "Reschedule",
+      "offline": "You're offline. You can cancel once you're back online.",
       "started": "This session has already started. The client won't get an email.",
       "submit": "Cancel session",
       "subtitle": "{client} · {date}, {start}–{end}",

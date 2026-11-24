@@ -59,6 +59,10 @@
     <string name="booking_links_status_active">Active</string>
     <string name="booking_links_title">Booking links</string>
     <string name="booking_links_trainer_note">%1$s see the links, but can\'t change them.</string>
+    <plurals name="classes_app_cancel_body">
+        <item quantity="one">The %1$d booked client gets an email. You can add a message to it on the web.</item>
+        <item quantity="other">The %1$d booked clients get an email. You can add a message to it on the web.</item>
+    </plurals>
     <string name="classes_app_capacity_less">Decrease capacity</string>
     <string name="classes_app_capacity_more">Increase capacity</string>
     <string name="classes_app_description_in_dutch">In Dutch</string>
@@ -686,6 +690,7 @@
     <string name="sessions_cancel_nudge_cancel_anyway">Cancel anyway</string>
     <string name="sessions_cancel_nudge_question">Have you suggested another time?</string>
     <string name="sessions_cancel_nudge_reschedule">Reschedule</string>
+    <string name="sessions_cancel_offline">You\'re offline. You can cancel once you\'re back online.</string>
     <string name="sessions_cancel_started">This session has already started. The client won\'t get an email.</string>
     <string name="sessions_cancel_submit">Cancel session</string>
     <string name="sessions_cancel_subtitle">%1$s · %2$s, %4$s–%3$s</string>

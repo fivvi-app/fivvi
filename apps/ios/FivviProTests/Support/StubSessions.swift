@@ -9,7 +9,7 @@ final class StubSessions: @unchecked Sendable {
     typealias Session = Components.Schemas.Session
 
     enum Route: Sendable {
-        case location, trainers, team, plan, get, reschedule, upcoming
+        case location, trainers, team, plan, get, reschedule, upcoming, cancel, cancelClass, preview
     }
 
     typealias Failure = StubSessionFailure
@@ -24,11 +24,11 @@ final class StubSessions: @unchecked Sendable {
     static let myMemberID = "5b1c2d3e-0000-4000-8000-0000000000a1"
     static let otherMemberID = "5b1c2d3e-0000-4000-8000-0000000000a2"
 
-    private let lock = NSLock()
-    private var failures: [Route: Failure] = [:]
-    private var stored: [Session] = []
+    let lock = NSLock()
+    var failures: [Route: Failure] = [:]
+    var stored: [Session] = []
     private var nextNumber = 1
-    private var trainerList: [Components.Schemas.Trainer] = [
+    var trainerList: [Components.Schemas.Trainer] = [
         .init(id: StubSessions.myMemberID, name: "Owner"), .init(id: StubSessions.otherMemberID, name: "Sarah Visser")
     ]
     private var memberList: [Components.Schemas.TeamMember] = [
@@ -44,6 +44,9 @@ final class StubSessions: @unchecked Sendable {
     )
     private var plansSent: [Components.Schemas.PlanPrivateSessionRequest] = []
     private var movesSent: [Move] = []
+    var cancelsSent: [Cancel] = []
+    var classCancelsSent: [ClassCancel] = []
+    var previewsSent: [String] = []
     private var getsSent: [String] = []
     private var timeZoneName = "Europe/Amsterdam"
 
@@ -216,7 +219,8 @@ final class StubSessions: @unchecked Sendable {
     /// Puts a class date in the workspace, as `POST …/group-classes` does with a first date; returns it.
     func addGroupDate(
         of groupClass: Components.Schemas.GroupClass, start: Date, minutes: Int, capacity: Int,
-        trainer: Components.Schemas.SessionTrainer?, series: Components.Schemas.SessionSeries? = nil
+        trainer: Components.Schemas.SessionTrainer?, series: Components.Schemas.SessionSeries? = nil,
+        participants: [Components.Schemas.SessionParticipant] = []
     ) -> Session {
         lock.withLock {
             defer { nextNumber += 1 }
@@ -225,7 +229,7 @@ final class StubSessions: @unchecked Sendable {
                 startsAt: start, endsAt: start.addingTimeInterval(TimeInterval(minutes * 60)), timeZone: timeZoneName,
                 capacity: capacity, version: 1, location: place, trainer: trainer,
                 groupClass: .init(id: groupClass.id, nameNl: groupClass.nameNl, nameEn: groupClass.nameEn),
-                series: series, participants: []
+                series: series, participants: participants
             )
             stored.append(made)
             return made
