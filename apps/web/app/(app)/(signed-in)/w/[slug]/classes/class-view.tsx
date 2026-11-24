@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import type { ClassSeries, GroupClass } from './classes-client';
 import { useClassDialogs } from './classes-provider';
 import { EditSeries } from './edit-series';
-import { referenceDay, seriesEnd } from './series';
+import { referenceDay, seriesEnd, stoppedFrom } from './series';
 
 /**
  * The page of a class (`/w/{slug}/classes/{id}`, F021, the Owner): the name in the viewer's
@@ -135,6 +135,20 @@ export function ClassView({
                         }),
                       })}
                     </p>
+                    {stoppedFrom(item, series) ? (
+                      <p className="font-medium">
+                        {t('series.stopped', {
+                          date: format.dateTime(
+                            new Date(`${stoppedFrom(item, series)}T12:00:00Z`),
+                            {
+                              timeZone: 'UTC',
+                              day: 'numeric',
+                              month: 'long',
+                            },
+                          ),
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                   {canManage ? (
                     <EditSeries

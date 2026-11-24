@@ -1,16 +1,20 @@
-import { formattingLocales, type Messages, type Locale } from '@fivvi/i18n';
+import { formattingLocales, type Locale, type Messages } from '@fivvi/i18n';
 import type { Page } from '@playwright/test';
 import { createTranslator } from 'next-intl';
-import { clientIpHeaders, signInWithSession } from './accounts';
+import { bookParticipant, clientIpHeaders, passSession, signInWithSession } from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 import { emailsTo, waitForEmails } from './lettermint';
 import {
   seedClient,
+  seedKracht,
   seedPrivate,
+  shift,
   storedSession,
   team,
   thursday,
+  tuesday,
   type World,
+  wording,
 } from './trainer-assignment-world';
 
 // F026 (spec #462): PS-06 *Sessie annuleren?* on the session page (ticket #559), CO-03 *Les
@@ -31,9 +35,13 @@ interface CancelledSession {
   };
 }
 
-/** The translator of a namespace of the catalog, with the formatting of the project's locale. */
-const translator = (locale: Locale, messages: Messages, namespace: string) =>
-  createTranslator({ locale: formattingLocales[locale], messages, namespace });
+/** The translators of the catalog namespaces these specs read, with the formatting of the project's locale. */
+const cancelText = (locale: Locale, messages: Messages) =>
+  createTranslator({ locale: formattingLocales[locale], messages, namespace: 'sessions.cancel' });
+const classText = (locale: Locale, messages: Messages) =>
+  createTranslator({ locale: formattingLocales[locale], messages, namespace: 'classes.cancel' });
+const pageText = (locale: Locale, messages: Messages) =>
+  createTranslator({ locale: formattingLocales[locale], messages, namespace: 'sessions.page' });
 
 /** `do 24 sep`: a day as the session screens write it, in the workspace's zone. */
 const shortDay = (locale: Locale, instant: string) =>
@@ -87,7 +95,7 @@ test.describe('F026 PS-06 Sessie annuleren? on the session page', () => {
   }) => {
     test.slow();
     const { w, anna, sarahs } = await world(page, context);
-    const t = translator(appLocale, copy, 'sessions.cancel');
+    const t = cancelText(appLocale, copy);
     await signInWithSession(context, w.sarah);
     await page.goto(`/w/${w.slug}/sessions/${sarahs.id}`);
 
@@ -96,7 +104,9 @@ test.describe('F026 PS-06 Sessie annuleren? on the session page', () => {
     await expect(dialog.getByRole('radio', { name: t('whoClient') })).toBeChecked();
     await expect(dialog.getByText(t('nudgeQuestion'))).toBeVisible();
     await dialog.getByRole('button', { name: t('nudgeCancelAnyway') }).click();
-    await expect(dialog.getByRole('checkbox', { name: t('notify', { client: anna.name }) })).not.toBeChecked();
+    await expect(
+      dialog.getByRole('checkbox', { name: t('notify', { client: anna.name }) }),
+    ).not.toBeChecked();
     await expectNoAxeViolations(page, `PS-06 in ${appLocale}`);
     await dialog.getByRole('button', { name: t('submit') }).click();
 
@@ -120,7 +130,7 @@ test.describe('F026 PS-06 Sessie annuleren? on the session page', () => {
   }) => {
     test.slow();
     const { w, sarahs } = await world(page, context);
-    const t = translator(appLocale, copy, 'sessions.cancel');
+    const t = cancelText(appLocale, copy);
     await signInWithSession(context, w.sarah);
     await page.goto(`/w/${w.slug}/sessions/${sarahs.id}`);
 
@@ -130,9 +140,7 @@ test.describe('F026 PS-06 Sessie annuleren? on the session page', () => {
     await expect(dialog.getByRole('button', { name: t('submit') })).toHaveCount(0);
     await dialog.getByRole('button', { name: t('nudgeReschedule') }).click();
 
-    await expect(
-      page.getByRole('dialog', { name: copy.sessions.reschedule.title }),
-    ).toBeVisible();
+    await expect(page.getByRole('dialog', { name: copy.sessions.reschedule.title })).toBeVisible();
     expect((await stored(page, w, sarahs.id)).status).toBe('scheduled');
     await page
       .getByRole('dialog', { name: copy.sessions.reschedule.title })
@@ -158,7 +166,7 @@ test.describe('F026 PS-06 Sessie annuleren? on the session page', () => {
   }) => {
     test.slow();
     const { w, anna, toms } = await world(page, context);
-    const t = translator(appLocale, copy, 'sessions.cancel');
+    const t = cancelText(appLocale, copy);
     await page.goto(`/w/${w.slug}/sessions/${toms.id}`);
 
     await page.getByRole('button', { name: t('action'), exact: true }).click();
@@ -166,7 +174,11 @@ test.describe('F026 PS-06 Sessie annuleren? on the session page', () => {
     await dialog.getByRole('radio', { name: t('whoUs') }).check();
     const box = dialog.getByRole('checkbox', { name: t('notify', { client: anna.name }) });
     await expect(box).toBeChecked();
-    await expect(dialog.getByText(t('notifyNote', { email: anna.email, language: copy.sessions.form.languageNl }))).toBeVisible();
+    await expect(
+      dialog.getByText(
+        t('notifyNote', { email: anna.email, language: copy.sessions.form.languageNl }),
+      ),
+    ).toBeVisible();
     await expectNoAxeViolations(page, `PS-06 Wij in ${appLocale}`);
     await dialog.getByRole('button', { name: t('submit') }).click();
 
@@ -185,7 +197,7 @@ test.describe('F026 PS-06 Sessie annuleren? on the session page', () => {
   }) => {
     test.slow();
     const { w, anna, sarahs } = await world(page, context);
-    const sessions = translator(appLocale, copy, 'sessions.page');
+    const sessions = pageText(appLocale, copy);
     const answer = await page.request.post(`${w.base}/sessions/${sarahs.id}/cancel`, {
       data: { initiator: 'client', notify: false, version: sarahs.version },
     });
@@ -216,13 +228,167 @@ test.describe('F026 PS-06 Sessie annuleren? on the session page', () => {
   }) => {
     test.slow();
     const { w, sarahs, toms } = await world(page, context);
-    const t = translator(appLocale, copy, 'sessions.cancel');
+    const t = cancelText(appLocale, copy);
     await signInWithSession(context, w.tom);
 
     await page.goto(`/w/${w.slug}/sessions/${toms.id}`);
     await expect(page.getByRole('button', { name: t('action'), exact: true })).toBeVisible();
 
     await page.goto(`/w/${w.slug}/sessions/${sarahs.id}`);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.getByRole('button', { name: t('action'), exact: true })).toHaveCount(0);
+  });
+});
+
+test.describe('F026 CO-03 Les annuleren? on CO-01 and the stopped series', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  /** John's Gym with Kracht on Tuesdays with Sarah; Anna (Dutch), Mark (English) and Lisa are booked on its first date. */
+  async function kracht(page: Page, context: Parameters<typeof team>[1]) {
+    const w = await team(page, context);
+    const anna = await seedClient(page.request, w.base, 'Anna de Vries', 'nl-NL');
+    const mark = await seedClient(page.request, w.base, 'Mark Jansen', 'en');
+    const lisa = await seedClient(page.request, w.base, 'Lisa Bakker', 'nl-NL');
+    const series = await seedKracht(page.request, w.base, w.trainer('Sarah'));
+    const [first = '', second = '', third = ''] = series.dates;
+    for (const client of [anna, mark, lisa]) await bookParticipant(first, client.id);
+    return { w, anna, mark, lisa, classId: series.classId, first, second, third };
+  }
+
+  test('AC6: John cancels only the first date with a message: the dialog counts three people, the date is cancelled and the other dates stay', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const { w, anna, mark, classId, first, second } = await kracht(page, context);
+    const t = classText(appLocale, copy);
+    const text = wording(appLocale, copy);
+    await page.goto(`/w/${w.slug}/classes/${classId}/${first}`);
+
+    await page.getByRole('button', { name: t('action'), exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: t('title') });
+    await expect(dialog.getByRole('radio', { name: t('scopeThis') })).toBeChecked();
+    await expect(dialog.getByText(t('countThis', { participants: 3 }))).toBeVisible();
+    await dialog.getByLabel(t('messageLabel')).fill('Sarah is ziek, sorry!');
+    await expect(dialog.getByText(t('messageHint'))).toBeVisible();
+    await expectNoAxeViolations(page, `CO-03 in ${appLocale}`);
+    await dialog.getByRole('button', { name: t('submit') }).click();
+
+    const date = (await storedSession(page.request, w.base, first)).startsAt;
+    await expect(
+      page.getByRole('status').filter({
+        hasText: t('done', { class: text.kracht, date: text.day(date) }),
+      }),
+    ).toBeVisible();
+    const after = await stored(page, w, first);
+    expect(after.status).toBe('cancelled');
+    expect(after.participants.map((participant) => participant.attendanceStatus)).toEqual([
+      'cancelled',
+      'cancelled',
+      'cancelled',
+    ]);
+    expect((await stored(page, w, second)).status).toBe('scheduled');
+    // Each participant's email says what John typed.
+    for (const client of [anna, mark]) {
+      const [email] = await waitForEmails(client.email);
+      expect(email?.text).toContain('Sarah is ziek, sorry!');
+    }
+    // CO-01 now shows the banner and the cancelled participants.
+    await expect(page.getByText(copy.classes.date.cancelledSection)).toBeVisible();
+    await expect(page.getByRole('button', { name: t('action'), exact: true })).toHaveCount(0);
+  });
+
+  test('AC7: John cancels the second date and all following: the series stops and Classes says Gestopt vanaf', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const { w, classId, first, second, third } = await kracht(page, context);
+    const t = classText(appLocale, copy);
+    const text = wording(appLocale, copy);
+    await page.goto(`/w/${w.slug}/classes/${classId}/${second}`);
+
+    await page.getByRole('button', { name: t('action'), exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: t('title') });
+    await dialog.getByRole('radio', { name: t('scopeFollowing') }).check();
+    await expect(dialog.getByText(t('countNone'))).toBeVisible();
+    await dialog.getByRole('button', { name: t('submit') }).click();
+    await expect(page.getByRole('status').filter({ hasText: text.kracht })).toBeVisible();
+
+    expect((await stored(page, w, first)).status).toBe('scheduled');
+    expect((await stored(page, w, second)).status).toBe('cancelled');
+    expect((await stored(page, w, third)).status).toBe('cancelled');
+    await page.goto(`/w/${w.slug}/classes/${classId}`);
+    await expect(
+      page.getByText(
+        copy.classes.series.stopped.replace('{date}', text.longDate(shift(tuesday(), 7))),
+      ),
+    ).toBeVisible();
+  });
+
+  test('AC8: a date without participants says nobody gets an email, and cancelling sends nothing', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const { w, classId, second } = await kracht(page, context);
+    const t = classText(appLocale, copy);
+    await page.goto(`/w/${w.slug}/classes/${classId}/${second}`);
+
+    await page.getByRole('button', { name: t('action'), exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: t('title') });
+    await expect(dialog.getByText(t('countNone'))).toBeVisible();
+    await dialog.getByRole('button', { name: t('submit') }).click();
+
+    await expect(
+      page.getByText(copy.classes.date.cancelledBanner.split('{')[0] ?? ''),
+    ).toBeVisible();
+    expect((await stored(page, w, second)).status).toBe('cancelled');
+  });
+
+  test('AC9: a date that has passed is recorded for the record: no message field, no emails', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const { w, anna, classId, first } = await kracht(page, context);
+    const t = classText(appLocale, copy);
+    await passSession(first);
+    await page.goto(`/w/${w.slug}/classes/${classId}/${first}`);
+
+    await page.getByRole('button', { name: t('action'), exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: t('title') });
+    await expect(dialog.getByText(t('started'))).toBeVisible();
+    await expect(dialog.getByLabel(t('messageLabel'))).toHaveCount(0);
+    await dialog.getByRole('button', { name: t('submit') }).click();
+
+    await expect(page.getByText(copy.classes.date.cancelledSection)).toBeVisible();
+    expect((await stored(page, w, first)).status).toBe('cancelled');
+    expect(await emailsTo(anna.email)).toHaveLength(0);
+  });
+
+  test('AC5: Tom has no Les annuleren on CO-01', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const { w, classId, first } = await kracht(page, context);
+    const t = classText(appLocale, copy);
+    await signInWithSession(context, w.tom);
+    await page.goto(`/w/${w.slug}/classes/${classId}/${first}`);
+
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expect(page.getByRole('button', { name: t('action'), exact: true })).toHaveCount(0);
   });

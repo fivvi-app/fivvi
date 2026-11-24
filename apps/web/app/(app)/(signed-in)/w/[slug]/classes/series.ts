@@ -63,3 +63,23 @@ export function shownTrainerId(trainerId: string, trainers: readonly { id: strin
   if (trainers === null || trainers.some(({ id }) => id === trainerId)) return trainerId;
   return '';
 }
+
+/**
+ * The first day a series no longer has dates, for *Gestopt vanaf {date}* on TW-03 (F026 AC7), or
+ * `null` for a series that is not stopped: one that runs until it is stopped, and one that ended
+ * because a later series of the class took over from a date on (F022: it ends the day before that
+ * one starts). `all` are the class's series as `GET …/series` lists them. Cancelling the rest of a
+ * series ends it the day before the chosen date; from its first date the end is that date's own
+ * day, because an end can't fall before the start, and so it is also the first day without dates.
+ */
+export function stoppedFrom(
+  series: Pick<Schemas['ClassSeries'], 'startsOn' | 'endsOn'>,
+  all: readonly Pick<Schemas['ClassSeries'], 'startsOn'>[],
+): string | null {
+  const { startsOn, endsOn } = series;
+  if (!endsOn || all.some((other) => other.startsOn > endsOn)) return null;
+  if (endsOn === startsOn) return endsOn;
+  const next = new Date(`${endsOn}T12:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  return next.toISOString().slice(0, 10);
+}

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { AssignTrainer } from '../sessions/assign-trainer';
 import { useSessionFormat } from '../sessions/use-session-format';
+import { CancelClass } from './cancel-class';
 import type { Session } from './classes-client';
 import { CopyBookingLink } from './copy-booking-link';
 import { EditClassDate } from './edit-class-date';
@@ -16,7 +17,9 @@ import { orderedFields, referenceDay } from './series';
  * name in the viewer's language (else Dutch), the date and the start–end, the location, the trainer
  * or *Trainer nodig*, *{booked}/{capacity} geboekt* with the free spots, and *Nog geen boekingen.*
  * until bookings exist (M5). The Owner has **Wijzigen** (CO-04, this one date); the assigned
- * Trainer sees the page without those. Both have **Boekingslink kopiëren** on a class date that is
+ * Trainer sees the page without those. The Owner also has **Les annuleren** (CO-03, F026); a
+ * cancelled date shows "Geannuleerd op {date} om {time} door {name}", its cancelled participants
+ * under *Geannuleerd* and no actions. Both have **Boekingslink kopiëren** on a class date that is
  * scheduled and has not started (F037).
  */
 export function ClassDateView({
@@ -27,6 +30,7 @@ export function ClassDateView({
   canCopyLink,
   ownDate,
   startEditing = false,
+  startCancelling = false,
   assign,
   trainerWord,
 }: {
@@ -41,6 +45,8 @@ export function ClassDateView({
   ownDate: boolean;
   /** CO-04 opens at once (`?edit=1`, the calendar's *Wijzigen*), for the Owner. */
   startEditing?: boolean;
+  /** CO-03 opens at once (`?cancel=1`, the calendar's *Les annuleren*), for the Owner. */
+  startCancelling?: boolean;
   /**
    * The person may assign trainers (`session.assign`, the Owner, F023): *Trainer toewijzen* /
    * *Trainer vervangen* (CO-02). `startOpen` opens it at once (`?assign=1`: the calendar's quick
@@ -52,8 +58,16 @@ export function ClassDateView({
   const t = useTranslations('classes');
   const locale = useLocale();
   const format = useFormatter();
-  const { longDay, time } = useSessionFormat(session.timeZone);
-  const booked = session.participants.length;
+  const { day, longDay, time } = useSessionFormat(session.timeZone);
+  const cancelled = session.status === 'cancelled';
+  // A cancelled participant is listed under *Geannuleerd*; the places are those still booked.
+  const active = session.participants.filter(
+    ({ attendanceStatus }) => attendanceStatus !== 'cancelled',
+  );
+  const cancelledParticipants = session.participants.filter(
+    ({ attendanceStatus }) => attendanceStatus === 'cancelled',
+  );
+  const booked = active.length;
   const name = session.groupClass
     ? pickContentLanguage(locale, session.groupClass.nameNl, session.groupClass.nameEn)
     : '';
@@ -86,7 +100,7 @@ export function ClassDateView({
                 startOpen={assign.startOpen}
               />
             ) : null}
-            {canManage ? (
+            {canManage && !cancelled ? (
               <EditClassDate
                 workspaceId={workspaceId}
                 session={session}
@@ -94,9 +108,30 @@ export function ClassDateView({
                 startOpen={startEditing}
               />
             ) : null}
+            {canManage ? (
+              <CancelClass
+                workspaceId={workspaceId}
+                session={session}
+                startOpen={startCancelling}
+              />
+            ) : null}
           </div>
         ) : null}
       </div>
+      {cancelled && session.cancellation ? (
+        <p className="text-sm font-semibold">
+          {session.cancellation.cancelledBy
+            ? t('date.cancelledBanner', {
+                date: day(session.cancellation.cancelledAt),
+                time: time(session.cancellation.cancelledAt),
+                name: session.cancellation.cancelledBy.name,
+              })
+            : t('date.cancelledBannerUnknown', {
+                date: day(session.cancellation.cancelledAt),
+                time: time(session.cancellation.cancelledAt),
+              })}
+        </p>
+      ) : null}
       {series ? (
         <div className="grid gap-1 text-sm">
           <p>
@@ -140,17 +175,37 @@ export function ClassDateView({
             <dd>
               {session.trainer ? session.trainer.name : t('trainerNeeded', { ...trainerWord })}
             </dd>
-            <dt className="text-muted-foreground">{t('date.bookedLabel')}</dt>
-            <dd>
-              {t('date.booked', {
-                booked,
-                capacity: session.capacity,
-                free: Math.max(0, session.capacity - booked),
-              })}
-            </dd>
+            {cancelled ? null : (
+              <>
+                <dt className="text-muted-foreground">{t('date.bookedLabel')}</dt>
+                <dd>
+                  {t('date.booked', {
+                    booked,
+                    capacity: session.capacity,
+                    free: Math.max(0, session.capacity - booked),
+                  })}
+                </dd>
+              </>
+            )}
           </dl>
-          {booked === 0 ? (
+          {booked === 0 && !cancelled ? (
             <p className="mt-3 text-sm text-muted-foreground">{t('date.noBookings')}</p>
+          ) : null}
+          {cancelledParticipants.length > 0 && session.cancellation ? (
+            <div className="mt-3 grid gap-1 text-sm">
+              <h2 className="font-semibold">{t('date.cancelledSection')}</h2>
+              <ul className="grid gap-0.5">
+                {cancelledParticipants.map((participant) => (
+                  <li key={participant.clientId}>
+                    {t('date.cancelledParticipant', {
+                      name: participant.name,
+                      date: day(session.cancellation?.cancelledAt ?? session.startsAt),
+                      time: time(session.cancellation?.cancelledAt ?? session.startsAt),
+                    })}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
         </CardContent>
       </Card>

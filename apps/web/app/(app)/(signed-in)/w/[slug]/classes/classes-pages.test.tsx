@@ -452,6 +452,124 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
     });
   });
 
+  describe('F026 CO-03 Les annuleren and the cancelled date', () => {
+    const view = (session: Session = date, canManage = true) =>
+      render(
+        locale,
+        <ClassDateView
+          workspaceId="w1"
+          slug="johns-gym"
+          session={session}
+          canManage={canManage}
+          canCopyLink={false}
+          ownDate={false}
+          trainerWord={word}
+        />,
+      );
+    const cancelAction = escapeHtml(copy.classes.cancel.action);
+    // John cancelled it on Monday 5 October at 09:15 (Amsterdam); Anna and Mark were booked.
+    const cancelled: Session = {
+      ...date,
+      status: 'cancelled',
+      cancellation: {
+        cancelledAt: '2026-10-05T07:15:00.000Z',
+        cancelledBy: { id: 'm1', name: 'John' },
+        initiator: 'workspace',
+        message: 'Sarah is ziek, sorry!',
+      },
+      participants: [
+        { clientId: 'c1', name: 'Anna de Vries', attendanceStatus: 'cancelled' },
+        { clientId: 'c2', name: 'Mark Jansen', attendanceStatus: 'cancelled' },
+      ],
+    };
+    const day = new Intl.DateTimeFormat(formatting, {
+      timeZone: 'Europe/Amsterdam',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    }).format(new Date('2026-10-05T07:15:00.000Z'));
+
+    it('AC5: the Owner has Les annuleren on a scheduled date; a Trainer does not', () => {
+      expect(view()).toContain(cancelAction);
+      expect(view(date, false)).not.toContain(cancelAction);
+    });
+
+    it('AC5: a cancelled date has no actions', () => {
+      const html = view(cancelled);
+
+      expect(html).not.toContain(cancelAction);
+      expect(html).not.toContain(`>${escapeHtml(copy.classes.date.edit)}<`);
+    });
+
+    it('AC6: the cancelled date shows the banner and the cancelled participants, not the bookings', () => {
+      const html = view(cancelled);
+
+      expect(html).toContain(
+        escapeHtml(
+          copy.classes.date.cancelledBanner
+            .replace('{date}', day)
+            .replace('{time}', '09:15')
+            .replace('{name}', 'John'),
+        ),
+      );
+      expect(html).toContain(escapeHtml(copy.classes.date.cancelledSection));
+      for (const name of ['Anna de Vries', 'Mark Jansen']) {
+        expect(html).toContain(
+          escapeHtml(
+            copy.classes.date.cancelledParticipant
+              .replace('{name}', name)
+              .replace('{date}', day)
+              .replace('{time}', '09:15'),
+          ),
+        );
+      }
+      expect(html).not.toContain(escapeHtml(copy.classes.date.noBookings));
+      expect(html).not.toContain(escapeHtml(copy.classes.date.bookedLabel));
+    });
+
+    it('AC7: TW-03 says Gestopt vanaf 3 november for a series cancelled from that date', () => {
+      const stopped = render(
+        locale,
+        <ClassesProvider workspaceId="w1" slug="johns-gym" teamMemberId="m1" trainerWord={word}>
+          <ClassView
+            workspaceId="w1"
+            teamMemberId="m1"
+            slug="johns-gym"
+            groupClass={kracht}
+            canManage
+            series={[
+              {
+                id: 'r1',
+                groupClassId: 'c1',
+                rrule: 'FREQ=WEEKLY;BYDAY=TU',
+                weekday: 'TU',
+                localStartTime: '18:00',
+                durationMinutes: 60,
+                timeZone: 'Europe/Amsterdam',
+                trainer: { id: 't1', name: 'Sarah' },
+                capacity: 8,
+                startsOn: '2026-10-06',
+                endsOn: '2026-11-02',
+                materializedUntil: '2026-11-02',
+                version: 2,
+              },
+            ]}
+            trainerWord={word}
+          />
+        </ClassesProvider>,
+      );
+
+      expect(stopped).toContain(
+        escapeHtml(
+          copy.classes.series.stopped.replace(
+            '{date}',
+            locale === 'en' ? '3 November' : '3 november',
+          ),
+        ),
+      );
+    });
+  });
+
   describe('CO-01 Boekingslink kopiëren (F037)', () => {
     const view = (session: Session, canManage: boolean, canCopyLink: boolean) =>
       render(
