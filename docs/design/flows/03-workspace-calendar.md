@@ -221,14 +221,14 @@ flowchart TD
 ```text
 Privésessie                                    Groepsles (les op datum)
 ┌──────────────────────────────────────────┐   ┌──────────────────────────────────────────┐
-│ Anna de Vries                          ✕ │   │ Strength                               ✕ │
+│ Anna de Vries                          ✕ │   │ Strength ⇪                             ✕ │
 │ di 22 sep · 09:00–10:00                  │   │ di 22 sep · 10:00–11:00                  │
 │ Trainer: John                            │   │ Trainer: Sarah                           │
 │ John's Gym (automatisch)                 │   │ John's Gym                               │
 │ Schema: Upper A                          │   │ 7/8 geboekt · 1 plek vrij                │
 │ Aanwezigheid: Geboekt                    │   │ Elke dinsdag 10:00                       │
 │──────────────────────────────────────────│   │──────────────────────────────────────────│
-│ [ Openen ]  [ Verplaatsen ]  ⋯           │   │ [ Openen ] [🔗] [ Trainer vervangen ] ⋯  │
+│ [ Openen ]  [ Verplaatsen ]  ⋯           │   │ [ Openen ]  [ Trainer vervangen ]  ⋯     │
 │             ⋯ Annuleren                  │   │             ⋯ Les annuleren              │
 │               Klantprofiel               │   │                                          │
 └──────────────────────────────────────────┘   └──────────────────────────────────────────┘
