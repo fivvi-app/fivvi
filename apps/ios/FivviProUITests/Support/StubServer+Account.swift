@@ -11,6 +11,8 @@ extension StubServer {
         var workspaceName: String? = "John's Gym"
         /// The role in that workspace (`owner` or `trainer`).
         var role = "owner"
+        /// The word that workspace uses for its trainers (F068): `trainer`, `instructeur`, `docent` or `coach`.
+        var trainerWord = "trainer"
         /// What the first workspace's role may do instead of the permission matrix's answer, or nil for the matrix: the
         /// API has no role that sees the clients without managing them, so a test says so to prove the actions hide.
         var capabilities: [String]?
@@ -34,5 +36,7 @@ extension StubServer {
     struct Workspace: Sendable, Equatable {
         let name: String
         let role: String
+        /// The word the workspace uses for its trainers (F068).
+        var trainerWord = "trainer"
     }
 }

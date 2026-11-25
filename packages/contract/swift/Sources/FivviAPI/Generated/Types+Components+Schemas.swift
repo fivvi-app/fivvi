@@ -2497,6 +2497,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/InvitationPreview/workspaceName`.
             public var workspaceName: Swift.String
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord
             /// The name of the Owner who invited, `null` while they have given none. Never their address.
             ///
             /// - Remark: Generated from `#/components/schemas/InvitationPreview/inviterName`.
@@ -2517,18 +2519,21 @@ extension Components {
             ///
             /// - Parameters:
             ///   - workspaceName: The name of the workspace that invites.
+            ///   - trainerWord:
             ///   - inviterName: The name of the Owner who invited, `null` while they have given none. Never their address.
             ///   - email: The address the invitation is for, lower-cased: the sign-in screen opens with it filled in (TW-10). Only a valid, open invitation tells it, to whoever presents its token; it is never part of a link.
             ///   - maskedEmail: The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
             ///   - forYou: Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in.
             public init(
                 workspaceName: Swift.String,
+                trainerWord: Components.Schemas.TrainerWord,
                 inviterName: Swift.String? = nil,
                 email: Swift.String,
                 maskedEmail: Swift.String,
                 forYou: Swift.Bool
             ) {
                 self.workspaceName = workspaceName
+                self.trainerWord = trainerWord
                 self.inviterName = inviterName
                 self.email = email
                 self.maskedEmail = maskedEmail
@@ -2536,6 +2541,7 @@ extension Components {
             }
             public enum CodingKeys: String, CodingKey {
                 case workspaceName
+                case trainerWord
                 case inviterName
                 case email
                 case maskedEmail

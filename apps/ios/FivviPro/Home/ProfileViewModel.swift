@@ -24,7 +24,7 @@ final class ProfileViewModel {
         let name: String
         /// The URL name: the test ids of the row end in it (the same on Android).
         let slug: String
-        /// The role's label in the interface language ("Eigenaar", "Trainer"). A label only: nothing is decided on it.
+        /// The role's label in the interface language ("Eigenaar", "Instructeur"). A label only: nothing is decided on it.
         let role: String
         /// What the API says: always true for a Trainer, the Owner's own switch for an Owner.
         let trainsHere: Bool
@@ -154,7 +154,7 @@ final class ProfileViewModel {
         guard let memberships else { return }
         state = .loaded(memberships.map { workspace in
             .init(
-                id: workspace.workspaceId, name: workspace.name, slug: workspace.slug, role: label(of: workspace.role),
+                id: workspace.workspaceId, name: workspace.name, slug: workspace.slug, role: label(of: workspace),
                 trainsHere: switchOverrides[workspace.workspaceId]?.trainsHere ?? workspace.trainsHere,
                 canSwitchTrainsHere: workspace.capabilities.contains(.team_manage),
                 change: changes[workspace.workspaceId] ?? .idle
@@ -162,10 +162,12 @@ final class ProfileViewModel {
         })
     }
 
-    private func label(of role: Components.Schemas.MyWorkspace.RolePayload) -> String {
-        switch role {
+    /// The role's label. A Trainer's is the word of that workspace (F068), in the interface language, so a person on two
+    /// workspaces reads each one's own; the role itself stays Trainer.
+    private func label(of workspace: Components.Schemas.MyWorkspace) -> String {
+        switch workspace.role {
         case .owner: catalog[.rolesOwner]
-        case .trainer: catalog[.rolesTrainer]
+        case .trainer: catalog.trainerRoleLabel(workspace.trainerWord)
         }
     }
 

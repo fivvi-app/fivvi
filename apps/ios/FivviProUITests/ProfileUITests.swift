@@ -29,10 +29,33 @@ final class ProfileUITests: SignInUITestCase {
         XCTAssertEqual(title.label, catalog["myProfile.workspacesTitle"])
         XCTAssertEqual(screen.app.staticTexts["profile.title"].label, catalog["profile.title"])
         XCTAssertEqual(screen.app.staticTexts["profile.workspaceName.workspace-0"].label, "John's Gym")
-        XCTAssertEqual(screen.app.staticTexts["profile.workspaceRole.workspace-0"].label, catalog["roles.trainer"])
+        XCTAssertEqual(
+            screen.app.staticTexts["profile.workspaceRole.workspace-0"].label, catalog["trainerWord.trainer.wordCap"]
+        )
         XCTAssertEqual(screen.app.staticTexts["profile.workspaceName.workspace-1"].label, "Sarah Personal Training")
         XCTAssertEqual(screen.app.staticTexts["profile.workspaceRole.workspace-1"].label, catalog["roles.owner"])
         XCTAssertEqual(server.requests(to: "/api/v1/me/workspaces").map(\.authorization), ["Bearer stub-session-token"])
+    }
+
+    /// F068 AC1: John's Gym uses *instructeur*, so Sarah's role there reads *Instructeur* (*Instructor* in English); the
+    /// Owner's label does not change.
+    func test_F068_AC1_theTrainerRoleSaysTheWorkspacesWord() throws {
+        let catalog = TestCatalog.configured
+        let server = try StubServer(
+            signIn: StubServer.SignIn(
+                email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer", trainerWord: "instructeur",
+                otherWorkspaces: [.init(name: "Sarah Personal Training", role: "owner", trainerWord: "coach")]
+            )
+        )
+        let screen = SignInScreen.launch(against: server, session: .signedIn)
+        let open = screen.app.buttons["home.openProfile"]
+        XCTAssertTrue(open.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(open.tap(until: screen.app.staticTexts["profile.workspacesTitle"], timeout: timeout))
+
+        let role = screen.app.staticTexts["profile.workspaceRole.workspace-0"]
+        XCTAssertEqual(role.label, catalog["trainerWord.instructeur.wordCap"])
+        XCTAssertEqual(role.label, TestCatalog.configuredLanguage == "nl" ? "Instructeur" : "Instructor")
+        XCTAssertEqual(screen.app.staticTexts["profile.workspaceRole.workspace-1"].label, catalog["roles.owner"])
     }
 
     /// TM-04 (E020 AC15): each workspace has a 36 pt rounded mark in its colour from the tokens (`workspaceColor`, picked

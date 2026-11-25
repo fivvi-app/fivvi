@@ -89,7 +89,11 @@ export function HandoverDialog({
               {t('removeDialog.title', { name: member.name })}
             </DialogTitle>
             <DialogDescription id="handover-description">
-              {t('removeDialog.body', { name: member.name, workspace: workspaceName })}
+              {t('removeDialog.body', {
+                name: member.name,
+                workspace: workspaceName,
+                ...trainerWord,
+              })}
             </DialogDescription>
           </DialogHeader>
           <HandoverForm

@@ -48,7 +48,8 @@ final class ProfileViewModelTests: XCTestCase {
         XCTAssertEqual(model.state, .loaded([
             .init(
                 id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", slug: "johns-gym",
-                role: catalog["roles.trainer"], trainsHere: true, canSwitchTrainsHere: false, change: .idle
+                role: catalog["trainerWord.trainer.wordCap"], trainsHere: true, canSwitchTrainsHere: false,
+                change: .idle
             ),
             .init(
                 id: "7c1d2e3f-0000-4000-8000-000000000002", name: "Sarah Personal Training",
@@ -60,6 +61,64 @@ final class ProfileViewModelTests: XCTestCase {
         XCTAssertEqual(calls, 1)
     }
 
+    /// F068 AC1: John's Gym uses *instructeur*, so Sarah's role there reads *Instructeur*, and *Instructor* to a reader
+    /// in English; the Owner label is the Owner's.
+    func test_F068_AC1_theTrainerRoleSaysTheWorkspacesWord() async {
+        let api = StubAPI()
+        await api.answerMyWorkspaces(with: .workspaces([
+            .init(
+                workspaceID: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", slug: "johns-gym",
+                role: .trainer, trainerWord: .instructeur
+            ),
+            .init(
+                workspaceID: "7c1d2e3f-0000-4000-8000-000000000002", name: "Sarah Personal Training",
+                slug: "sarah-personal-training", role: .owner, trainerWord: .coach
+            )
+        ]))
+        await answerMe(api)
+        let model = model(api)
+
+        await model.load()
+
+        let catalog = TestCatalog(language)
+        guard case let .loaded(entries) = model.state else { return XCTFail("\(model.state)") }
+        XCTAssertEqual(entries.map(\.role), [catalog["trainerWord.instructeur.wordCap"], catalog["roles.owner"]])
+        XCTAssertEqual(entries.first?.role, language == .nlNL ? "Instructeur" : "Instructor")
+    }
+
+    /// F068 AC4: Sarah is a trainer in John's Gym (*instructeur*) and in Yoga Loft (*docent*); each row has its own word,
+    /// and the role is Trainer in both (the API's value, which the app never shows or changes). The interface language
+    /// changing relabels each in the new language.
+    func test_F068_AC4_eachWorkspaceShowsItsOwnWord() async {
+        let api = StubAPI()
+        await api.answerMyWorkspaces(with: .workspaces([
+            .init(
+                workspaceID: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", slug: "johns-gym",
+                role: .trainer, trainerWord: .instructeur
+            ),
+            .init(
+                workspaceID: "7c1d2e3f-0000-4000-8000-000000000003", name: "Yoga Loft", slug: "yoga-loft",
+                role: .trainer, trainerWord: .docent
+            )
+        ]))
+        await answerMe(api)
+        let model = model(api)
+
+        await model.load()
+
+        let catalog = TestCatalog(language)
+        guard case let .loaded(entries) = model.state else { return XCTFail("\(model.state)") }
+        XCTAssertEqual(entries.map(\.role), [
+            catalog["trainerWord.instructeur.wordCap"], catalog["trainerWord.docent.wordCap"]
+        ])
+        let other: Components.Schemas.Locale = language == .nlNL ? .en : .nlNL
+        model.use(Catalog(locale: other))
+        guard case let .loaded(relabelled) = model.state else { return XCTFail("\(model.state)") }
+        XCTAssertEqual(relabelled.map(\.role), [
+            TestCatalog(other)["trainerWord.instructeur.wordCap"], TestCatalog(other)["trainerWord.docent.wordCap"]
+        ])
+    }
+
     func test_F003_AC9_theTitlesComeFromTheCatalog() {
         let catalog = Catalog(locale: language)
         let expected = TestCatalog(language)
@@ -68,7 +127,6 @@ final class ProfileViewModelTests: XCTestCase {
         XCTAssertEqual(catalog[.myProfileWorkspacesTitle], expected["myProfile.workspacesTitle"])
         XCTAssertEqual(catalog[.profileError], expected["profile.error"])
         XCTAssertEqual(catalog[.rolesOwner], expected["roles.owner"])
-        XCTAssertEqual(catalog[.rolesTrainer], expected["roles.trainer"])
     }
 
     func test_F003_AC9_aFailureShowsTheErrorAndLoadingAgainRecovers() async {

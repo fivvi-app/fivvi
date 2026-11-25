@@ -1,6 +1,7 @@
 'use client';
 
 import { loginPath } from '@fivvi/auth/return-path';
+import type { TrainerWordForms } from '@fivvi/i18n';
 import { Button } from '@fivvi/ui/components/button';
 import { CardContent, CardHeader, CardTitle } from '@fivvi/ui/components/card';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
@@ -18,6 +19,8 @@ export type InvitationView =
       /** The Owner's name; `null` while they have given none. */
       inviterName: string | null;
       maskedEmail: string;
+      /** The word the inviting workspace uses for its trainers, in the reader's language (F068). */
+      trainerWord: TrainerWordForms;
     }
   | { kind: 'wrongAccount'; maskedEmail: string }
   | { kind: 'noLongerValid' }
@@ -25,7 +28,7 @@ export type InvitationView =
 
 /**
  * The invitation page (`/invitations/{token}`, F011): for a person signed in with the address the
- * invitation is for, *{inviter} nodigt je uit om trainer te worden bij {workspace}.* with
+ * invitation is for, *{inviter} nodigt je uit om {aWord} te worden bij {workspace}.* (the workspace's word, F068) with
  * *Accepteren* and *Afwijzen*; for any other account the masked address and *Uitloggen en verder*;
  * for an invitation that is expired, withdrawn, used or unknown, one neutral text. The server
  * decides the first view; the API has the last word on every answer, so a 403 or 404 changes the
@@ -87,8 +90,12 @@ export function InvitationCard({ token, initial }: { token: string; initial: Inv
           <>
             <p>
               {view.inviterName
-                ? t('intro', { inviter: view.inviterName, workspace: view.workspaceName })
-                : t('introAnonymous', { workspace: view.workspaceName })}
+                ? t('intro', {
+                    inviter: view.inviterName,
+                    workspace: view.workspaceName,
+                    ...view.trainerWord,
+                  })
+                : t('introAnonymous', { workspace: view.workspaceName, ...view.trainerWord })}
             </p>
             {error ? <ErrorLine>{t(`errors.${error}`)}</ErrorLine> : null}
             <div className="grid gap-2">

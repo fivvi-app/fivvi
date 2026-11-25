@@ -111,6 +111,7 @@ test.describe('F012 the scope switcher on the web', () => {
   });
 
   test("AC2: switching opens the role home with that workspace's data only; AC11: navigation follows each workspace's capabilities", async ({
+    wording,
     page,
     context,
     messages: copy,
@@ -137,7 +138,7 @@ test.describe('F012 the scope switcher on the web', () => {
     await page.goto(`/w/${gymSlug}`);
     const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
     await expect(nav.getByRole('link', { name: copy.workspaceNav.clients })).toBeVisible();
-    await expect(nav.getByRole('link', { name: copy.workspaceNav.trainers })).toHaveCount(0);
+    await expect(nav.getByRole('link', { name: wording.nav })).toHaveCount(0);
     await expect(nav.getByRole('link', { name: copy.workspaceNav.settings })).toHaveCount(0);
     await nav.getByRole('link', { name: copy.workspaceNav.clients }).click();
     await expect(page.getByText('Anna de Vries')).toBeVisible();
@@ -159,12 +160,12 @@ test.describe('F012 the scope switcher on the web', () => {
     ).toBeVisible();
     await expect(page).toHaveTitle(PERSONAL);
     await expect(switcher(page, `${PERSONAL} · ${copy.roles.owner}`)).toBeVisible();
-    await expect(nav.getByRole('link', { name: copy.workspaceNav.trainers })).toBeVisible();
+    await expect(nav.getByRole('link', { name: wording.nav })).toBeVisible();
     await expect(nav.getByRole('link', { name: copy.workspaceNav.settings })).toBeVisible();
     await nav.getByRole('link', { name: copy.workspaceNav.clients }).click();
     await expect(page.getByText('Mark Jansen')).toBeVisible();
     await expect(page.getByText('Anna de Vries')).toHaveCount(0);
-    await nav.getByRole('link', { name: copy.workspaceNav.trainers }).click();
+    await nav.getByRole('link', { name: wording.nav }).click();
     // Wait for the Trainers page of this workspace (Sarah's own row) before checking that
     // John's Gym's Tom is not on it.
     await expect(page).toHaveURL(`/w/${personalSlug}/trainers`);

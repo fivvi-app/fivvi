@@ -1,6 +1,7 @@
 'use client';
 
 import type { Schemas } from '@fivvi/contract';
+import type { TrainerWordForms } from '@fivvi/i18n';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,8 +19,15 @@ import { useEffect, useState } from 'react';
 import { rememberWorkspace, reportSwitch } from './workspace-client';
 import { initials } from './workspace-initials';
 
-/** A workspace of the person, as the switcher lists it. */
-type Switchable = Pick<Schemas['MyWorkspace'], 'slug' | 'role'> & { id: string; name: string };
+/**
+ * A workspace of the person, as the switcher lists it, with the word that workspace uses for its
+ * trainers (F068): a person on two workspaces reads each one's own word as their role in it.
+ */
+export type Switchable = Pick<Schemas['MyWorkspace'], 'slug' | 'role'> & {
+  id: string;
+  name: string;
+  trainerWord: TrainerWordForms;
+};
 
 /**
  * The scope switcher in the sidebar header (`information-architecture.md §4.1`, F012): the
@@ -35,12 +43,15 @@ export function WorkspaceSwitcher({
   name,
   slug,
   teamRole,
+  trainerWord,
   workspaces,
   canCreateWorkspace,
 }: {
   name: string;
   slug: string;
   teamRole: Schemas['MyWorkspace']['role'];
+  /** The word this workspace uses for its trainers, in the reader's language (F068). */
+  trainerWord: TrainerWordForms;
   /** Every workspace the person is on the team of, by name (`GET /v1/me`). */
   workspaces: readonly Switchable[];
   /** On the sign-up allowlist: the menu ends with *Nieuwe werkruimte*. */
@@ -57,7 +68,10 @@ export function WorkspaceSwitcher({
   // Opening a workspace, however the person got there, makes it the one this browser opens next.
   useEffect(() => rememberWorkspace(slug), [slug]);
 
-  const label = t('workspaceWithRole', { name, role: roles(teamRole) });
+  // The role is Trainer in code; the label is the workspace's word (F068). The Owner stays Owner.
+  const roleLabel = (role: Switchable['role'], word: TrainerWordForms) =>
+    role === 'trainer' ? roles('trainerLabel', { ...word }) : roles(role);
+  const label = t('workspaceWithRole', { name, role: roleLabel(teamRole, trainerWord) });
   if (workspaces.length < 2 && !canCreateWorkspace) {
     return (
       <div className="flex items-center gap-2.5 p-2">
@@ -106,12 +120,14 @@ export function WorkspaceSwitcher({
               value={workspace.slug}
               aria-label={t('workspaceWithRole', {
                 name: workspace.name,
-                role: roles(workspace.role),
+                role: roleLabel(workspace.role, workspace.trainerWord),
               })}
             >
               <span className="grid">
                 <span>{workspace.name}</span>
-                <span className="text-xs text-muted-foreground">{roles(workspace.role)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {roleLabel(workspace.role, workspace.trainerWord)}
+                </span>
               </span>
             </DropdownMenuRadioItem>
           ))}

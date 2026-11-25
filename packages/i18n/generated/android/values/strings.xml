@@ -534,8 +534,10 @@
     <string name="invitation_declined">Je hebt de uitnodiging afgewezen.</string>
     <string name="invitation_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
     <string name="invitation_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
-    <string name="invitation_intro">%1$s nodigt je uit om trainer te worden bij %2$s.</string>
-    <string name="invitation_intro_anonymous">Je bent uitgenodigd om trainer te worden bij %1$s.</string>
+    <!-- First line of the invitation page, an invitation to become a Trainer. {inviter} is the name of the person who invited; {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor; {workspace} the workspace name. -->
+    <string name="invitation_intro">%2$s nodigt je uit om %1$s te worden bij %3$s.</string>
+    <!-- First line of the invitation page when the inviter is not named. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor; {workspace} the workspace name. -->
+    <string name="invitation_intro_anonymous">Je bent uitgenodigd om %1$s te worden bij %2$s.</string>
     <string name="invitation_no_longer_valid">Deze uitnodiging is niet meer geldig. Vraag om een nieuwe uitnodiging.</string>
     <string name="invitation_sign_out_and_continue">Uitloggen en verder</string>
     <string name="invitation_title">Uitnodiging</string>
@@ -1086,6 +1088,11 @@
     <string name="settings_location_types_organization_location">Eigen locatie</string>
     <string name="settings_location_types_other">Anders</string>
     <string name="settings_location_types_outdoor">Buiten</string>
+    <string name="settings_wording_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="settings_wording_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="settings_wording_help">Hoe noem je de mensen die lesgeven? Klanten en je team zien dit woord overal in %1$s: in het rooster, de app, e-mails en op de poster. Pilatesstudio\'s kiezen vaak instructeur, yogastudio\'s docent.</string>
+    <string name="settings_wording_saved">Opgeslagen.</string>
+    <string name="settings_wording_title">Woordkeuze</string>
     <!-- Button on the second step that goes back to the email field. -->
     <string name="sign_in_change_email">E-mailadres wijzigen</string>
     <!-- Under the heading of the second step. {email} is the address that was entered. Deliberately does not say whether an account exists (no account enumeration). -->
@@ -1141,8 +1148,8 @@
     <string name="sign_out_label">Uitloggen</string>
     <!-- Header of the last column of the team list, which holds the row action. Only read aloud by screen readers. -->
     <string name="team_actions_column">Acties</string>
-    <!-- Badge on a team member of the Trainers page (TW-06) who trains in the workspace, next to their role label. The word for the role Trainer. -->
-    <string name="team_badge_trainer">Trainer</string>
+    <!-- Badge on a team member of the Trainers page (TW-06) who trains in the workspace, next to their role label. The whole text is the singular word of the workspace (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor. -->
+    <string name="team_badge_trainer">%1$s</string>
     <!-- Column header of the email address in the team list. -->
     <string name="team_email_column">E-mailadres</string>
     <!-- Shown on the Trainers page when removing a person failed for another reason. Nothing changed. -->
@@ -1206,7 +1213,8 @@
     <string name="team_invite_send_again">Opnieuw sturen</string>
     <string name="team_invite_sent">Uitnodiging verstuurd naar %1$s.</string>
     <string name="team_invite_submit">Versturen</string>
-    <string name="team_invite_title">Trainer uitnodigen</string>
+    <!-- Title of the invite dialog of the Trainers page (TW-06), an invitation to become a Trainer of the workspace. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor. Dutch 'Nodig {aWord} uit' breaks GLOSSARY §5.1's object-first order ('{AWord} uitnodigen') because parity forces it: '{AWord} uitnodigen' would need 'Invite {AWord}' in English, which would put a capitalised word after the verb in English. -->
+    <string name="team_invite_title">Nodig %1$s uit</string>
     <string name="team_make_owner_dialog_body">Een eigenaar kan alles in %1$s, ook het team, de instellingen en het geld.</string>
     <string name="team_make_owner_dialog_cancel">Annuleren</string>
     <string name="team_make_owner_dialog_confirm">Eigenaar maken</string>
@@ -1215,8 +1223,8 @@
     <string name="team_name_column">Naam</string>
     <!-- Row action of a Trainer in the team list. Opens the remove dialog; the team access ends only after the Owner confirms there. -->
     <string name="team_remove">Uit het team verwijderen</string>
-    <!-- Body of the remove dialog. {name} is the person's name, repeated instead of a pronoun; {workspace} the workspace name. Says that only the team access goes and what they have as a client stays. -->
-    <string name="team_remove_dialog_body">%1$s kan niet meer als trainer bij %2$s. Wat %1$s als klant heeft, zoals boekingen, blijft.</string>
+    <!-- Body of the remove dialog. {name} is the person's name, repeated instead of a pronoun; {word} the workspace's word for a Trainer (F068), singular, lowercase, e.g. instructeur / instructor; {workspace} the workspace name. Says that only the team access goes and what they have as a client stays. -->
+    <string name="team_remove_dialog_body">%1$s verliest de rol van %2$s bij %3$s. Wat %1$s als klant heeft, zoals boekingen, blijft.</string>
     <!-- Dismiss button of the remove dialog. Closes it without removing anyone. -->
     <string name="team_remove_dialog_cancel">Annuleren</string>
     <!-- Destructive button of the remove dialog. Removes the person from the team. -->
@@ -1226,16 +1234,19 @@
     <!-- Confirmation shown after a person was removed from the team. {name} is the person's name (or email address when they have no name). -->
     <string name="team_removed">%1$s is uit het team verwijderd.</string>
     <string name="team_role_changed_owner">%1$s is nu eigenaar.</string>
-    <string name="team_role_changed_trainer">%1$s is nu trainer.</string>
+    <!-- Confirmation shown after an Owner became a Trainer of the workspace (stepped down). {name} is the person's name; {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor. -->
+    <string name="team_role_changed_trainer">%2$s is nu %1$s.</string>
     <!-- Column header of the role label (Owner or Trainer) in the team list. -->
     <string name="team_role_column">Rol</string>
     <string name="team_role_menu">Rol van %1$s</string>
     <string name="team_step_down_dialog_body">Je bent dan geen eigenaar meer van %1$s.</string>
     <string name="team_step_down_dialog_cancel">Annuleren</string>
-    <string name="team_step_down_dialog_confirm">Trainer maken</string>
-    <string name="team_step_down_dialog_title">Jezelf trainer maken?</string>
-    <!-- Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title. -->
-    <string name="team_title">Trainers</string>
+    <!-- Button of the step-down dialog. Makes the Owner a Trainer of the workspace. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor. Dutch puts the object first: 'Mezelf {aWord} maken', like the title. -->
+    <string name="team_step_down_dialog_confirm">Mezelf %1$s maken</string>
+    <!-- Title of the step-down dialog, a question the Owner answers about themselves. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor. -->
+    <string name="team_step_down_dialog_title">Jezelf %1$s maken?</string>
+    <!-- Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title. The whole text is the plural word of the workspace (F068): {Words} is the plural with a capital start, e.g. Instructeurs / Instructors. -->
+    <string name="team_title">%1$s</string>
     <!-- The workspace's word 'coach' (F068), the singular with its article, lowercase, for use inside a sentence (placeholder {aWord}); English chooses a or an. One of six forms of the word; the apps pass them as placeholders (trainerWordForms). -->
     <string name="trainer_word_coach_a_word">een coach</string>
     <!-- The workspace's word 'coach' (F068), the singular with its article and a capital start, for the start of a message (placeholder {AWord}); English chooses A or An. One of six forms of the word; the apps pass them as placeholders (trainerWordForms). -->
@@ -1440,8 +1451,8 @@
     <string name="workspace_nav_settings_language">Taal</string>
     <!-- Navigation link to Settings → Location (TW-08). Shown to the Owner only. -->
     <string name="workspace_nav_settings_location">Locatie</string>
-    <!-- Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only. -->
-    <string name="workspace_nav_trainers">Trainers</string>
+    <!-- Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only. The whole text is the plural word of the workspace (F068): {Words} is the plural with a capital start, e.g. Instructeurs / Instructors. -->
+    <string name="workspace_nav_trainers">%1$s</string>
     <!-- Header of the sidebar: the workspace name, then the role of the signed-in person in it, e.g. "John's Gym · Owner". {name} is the workspace name, {role} the role label. -->
     <string name="workspace_nav_workspace_with_role">%1$s · %2$s</string>
     <!-- Last row of the scope switcher, only for accounts that may set up a workspace (the sign-up allowlist): opens the form to create another workspace. The + belongs to the label. -->

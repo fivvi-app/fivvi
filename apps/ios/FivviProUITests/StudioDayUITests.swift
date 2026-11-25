@@ -9,10 +9,11 @@ final class StudioDayUITests: SignInUITestCase {
     private var server: StubServer?
 
     private func launch(
-        role: String = "owner", hasTeam: Bool = true, name: String = "John Visser"
+        role: String = "owner", hasTeam: Bool = true, name: String = "John Visser", trainerWord: String = "trainer"
     ) throws -> (XCUIApplication, StubServer) {
         let server = try StubServer(signIn: StubServer.SignIn(
-            email: "john@example.com", workspaceName: "John's Gym", role: role, name: name, hasTeam: hasTeam
+            email: "john@example.com", workspaceName: "John's Gym", role: role, trainerWord: trainerWord, name: name,
+            hasTeam: hasTeam
         ))
         self.server = server
         let app = AppLaunch.launch(against: server, session: .signedIn, startTab: nil, now: "2026-09-22T08:35:00+02:00")
@@ -26,6 +27,24 @@ final class StudioDayUITests: SignInUITestCase {
     }
 
     private var words: String { catalog["trainerWord.trainer.words"] }
+
+    /// F068 AC1: John's Gym uses *instructeur*, so the studio's day talks about its *instructeurs* (*instructors*).
+    func test_F068_AC1_theStudioDaySaysTheWorkspacesWord() throws {
+        let (app, _) = try launch(trainerWord: "instructeur")
+        let control = app.segmentedControls["today.scope"]
+        XCTAssertTrue(control.waitUntilExists(timeout: timeout), log)
+        control.buttons[catalog["myDay.app.scopeStudio"]].tap()
+
+        let line = app.staticTexts["today.scope.line"]
+        XCTAssertTrue(line.waitUntilExists(timeout: timeout), log)
+        let plural = catalog["trainerWord.instructeur.words"]
+        XCTAssertEqual(line.label, String(format: catalog["myDay.app.studioLine"], plural, "John's Gym"))
+        XCTAssertEqual(plural, TestCatalog.configuredLanguage == "nl" ? "instructeurs" : "instructors")
+        XCTAssertEqual(
+            app.staticTexts["today.studio.head"].label,
+            String(format: catalog["myDay.app.studioTrainersMany"], "3", plural)
+        )
+    }
 
     func test_F014_AC11_ownerTogglesWorkspaceDay() throws {
         let (app, server) = try launch()
