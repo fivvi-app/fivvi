@@ -13,7 +13,7 @@ import {
 import { CRON_ROLE } from '../cron-role.ts';
 import { businessTable } from './business-table.ts';
 import { timestamps } from './columns.ts';
-import { groupClasses } from './group-classes.ts';
+import { classLevel, groupClasses } from './group-classes.ts';
 import { trainerProfiles } from './tenancy.ts';
 
 /**
@@ -34,6 +34,8 @@ import { trainerProfiles } from './tenancy.ts';
  * - `trainer_profile_id` is the usual trainer of the series' dates, empty for *Trainer nodig*;
  *   removing the trainer's profile clears it (`ON DELETE SET NULL (trainer_profile_id)`, written
  *   in the migration by hand, as for `sessions`).
+ * - `level` (F067) is the level its dates start with, copied from the class when the series is
+ *   made; `NULL` is *Geen*.
  * - `version` is raised by every change of the series.
  */
 export const classSeries = businessTable(
@@ -46,6 +48,7 @@ export const classSeries = businessTable(
     timeZone: text('time_zone').notNull(),
     trainerProfileId: uuid('trainer_profile_id'),
     capacity: integer('capacity').notNull(),
+    level: classLevel('level'),
     startsOn: date('starts_on', { mode: 'string' }).notNull(),
     endsOn: date('ends_on', { mode: 'string' }),
     materializedUntil: date('materialized_until', { mode: 'string' }).notNull(),

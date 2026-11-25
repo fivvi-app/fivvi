@@ -32,6 +32,7 @@ import {
   validationErrorResponse,
 } from '../errors.ts';
 import { LocationAddressSchema, LocationSchema } from './locations.ts';
+import { ClassLevelSchema } from './sessions.ts';
 
 // The personal read model of a trainer (F013, spec #457): every session the signed-in account is the
 // current trainer of, across all its workspaces, for *Mijn dag* / *Vandaag* and *Mijn agenda* /
@@ -188,6 +189,7 @@ export const PersonalSessionSchema = z
           'supported one of `Accept-Language`, else English (ADR-017). Left out for a private ' +
           'session and Open Gym.',
       }),
+    level: ClassLevelSchema.optional(),
     location: LocationSchema.optional(),
     clientName: z
       .string()
@@ -432,6 +434,7 @@ interface PersonalItem extends PersonalSessionTimes {
   readonly clientName: string | null;
   readonly clients: PersonalSessionRow['clients'];
   readonly className: string | null;
+  readonly level: PersonalSessionRow['level'];
 }
 
 function toItem(
@@ -457,6 +460,7 @@ function toItem(
       row.classNameNl === null
         ? null
         : pickContentLanguage(viewerLocale, row.classNameNl, row.classNameEn),
+    level: row.level,
   };
 }
 
@@ -477,7 +481,11 @@ function shown(item: PersonalItem) {
           location,
           ...(clientName === null ? {} : { clientName, clients: [...clients] }),
         }
-      : { booked: item.booked, ...(className === null ? {} : { className }) }),
+      : {
+          booked: item.booked,
+          ...(className === null ? {} : { className }),
+          ...(item.level === null ? {} : { level: item.level }),
+        }),
   };
 }
 

@@ -47,8 +47,8 @@ export function minutesBetween(localStart: string, localEnd: string): number | n
   return length === 0 ? null : length;
 }
 
-/** What differs on a date, in the order CO-01 names it: time, trainer, capacity, location. */
-const FIELD_ORDER: readonly ChangedField[] = ['time', 'trainer', 'capacity', 'location'];
+/** What differs on a date, in the order CO-01 names it: time, trainer, capacity, location, level (F067). */
+const FIELD_ORDER: readonly ChangedField[] = ['time', 'trainer', 'capacity', 'location', 'level'];
 
 export function orderedFields(fields: readonly ChangedField[]): ChangedField[] {
   return FIELD_ORDER.filter((field) => fields.includes(field));

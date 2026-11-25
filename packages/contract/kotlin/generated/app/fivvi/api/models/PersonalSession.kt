@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.PersonalSessionClient
 import app.fivvi.api.models.PersonalWorkspace
@@ -44,6 +45,7 @@ import kotlinx.serialization.Contextual
  * @param capacity 1 for a private session.
  * @param booked The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
  * @param className The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym.
+ * @param level 
  * @param location 
  * @param clientName The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart.
  * @param clients The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds.
@@ -90,6 +92,9 @@ data class PersonalSession (
     /* The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym. */
     @SerialName(value = "className")
     val className: kotlin.String? = null,
+
+    @Contextual @SerialName(value = "level")
+    val level: ClassLevel? = null,
 
     @SerialName(value = "location")
     val location: Location? = null,

@@ -389,6 +389,7 @@ export {
   mayCancelPrivateSession,
   previewClassCancellation,
 } from './scheduling/cancel.ts';
+export { CLASS_LEVELS, type ClassLevel } from './scheduling/class-level.ts';
 export {
   type ExpandedSeries,
   type ExpandSeriesRefusal,

@@ -31,7 +31,7 @@ import {
 } from '../errors.ts';
 import { LocationSchema } from './locations.ts';
 import { PersonalSessionClientSchema } from './personal.ts';
-import { SessionSeriesSchema, SessionTrainerSchema } from './sessions.ts';
+import { ClassLevelSchema, SessionSeriesSchema, SessionTrainerSchema } from './sessions.ts';
 
 // The workspace calendar's read model (F014, spec #458): every session of one workspace, whoever
 // its trainer is, for the Agenda (week, day per trainer, list) and, for the day, the Owner's
@@ -201,6 +201,7 @@ export const WorkspaceCalendarSessionSchema = z
           'first supported one of `Accept-Language`, else English (ADR-017). Left out for a ' +
           'private session.',
       }),
+    level: ClassLevelSchema.optional(),
     clientName: z
       .string()
       .optional()
@@ -423,6 +424,7 @@ function shown({ row }: CalendarItem, timeZone: string, viewerLocale: string) {
           ...(row.classNameNl === null
             ? {}
             : { className: pickContentLanguage(viewerLocale, row.classNameNl, row.classNameEn) }),
+          ...(row.level === null ? {} : { level: row.level }),
         }),
     ...(row.series && rule
       ? {

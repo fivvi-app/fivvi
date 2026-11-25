@@ -80,6 +80,7 @@ const FORBIDDEN: Record<string, string> = {
   'the session status enum': "import { sessionStatus } from '@fivvi/database';",
   'the attendance status enum': "import { attendanceStatus } from '@fivvi/database';",
   'the cancellation initiator enum': "import { cancellationInitiator } from '@fivvi/database';",
+  'the class level enum': "import { classLevel } from '@fivvi/database';",
   'the session participant status changes table':
     "import { sessionParticipantStatusChanges } from '@fivvi/database';",
   'the participant status source enum':

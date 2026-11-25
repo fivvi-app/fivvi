@@ -12,6 +12,9 @@ import {
 import { executorOf, type WorkspaceScope } from '../tenant-scope.ts';
 import { findLocation, type LocationView } from './locations.ts';
 
+/** The level of a class date (F067): a fixed list, `null` is *Geen*. */
+export type SessionLevel = (typeof sessions.level.enumValues)[number];
+
 // The sessions of a workspace (F020, spec #425), through a workspace scope: the one scheduling
 // engine that private sessions, group classes (F021) and Open Gym (F034) share. The rules (who may
 // plan for whom, time zones and DST, durations, the default location) are in `packages/domain`
@@ -84,6 +87,8 @@ export interface SessionView {
   readonly startsAt: Date;
   readonly endsAt: Date;
   readonly capacity: number;
+  /** The level of a class date (F067); `null` is *Geen*, and what a private session has. */
+  readonly level: SessionLevel | null;
   /** Raised by every change; a change says the version it read. Starts at 1. */
   readonly version: number;
   readonly location: LocationView;
@@ -146,6 +151,7 @@ export async function findSession(
       startsAt: sessions.startsAt,
       endsAt: sessions.endsAt,
       capacity: sessions.capacity,
+      level: sessions.level,
       version: sessions.version,
       locationId: sessions.locationId,
       trainerProfileId: sessions.trainerProfileId,

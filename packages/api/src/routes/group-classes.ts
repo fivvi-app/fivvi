@@ -28,6 +28,8 @@ import {
   type ApplyFollowingDecision,
   applyThisAndFollowing,
   applyToUpcomingDates,
+  CLASS_LEVELS,
+  type ClassLevel,
   countKeptDates,
   DETACHABLE_FIELDS,
   type DetachedField,
@@ -45,13 +47,14 @@ import {
   type SeriesDate,
   scheduleClassOnDate,
 } from '@fivvi/domain';
-import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
-import type { Context } from 'hono';
+import { type Hook, OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
+import type { Context, Env } from 'hono';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
-  answerValidationFailure,
   internalServerErrorResponse,
   NOT_FOUND,
+  toValidationError,
+  ValidationErrorSchema,
   validationErrorResponse,
 } from '../errors.ts';
 import {
@@ -62,7 +65,7 @@ import {
   type TrainerSlot,
   trainerConflictResponse,
 } from '../sessions/trainer-conflicts.ts';
-import { SessionSchema, SessionTrainerSchema, shown } from './sessions.ts';
+import { ClassLevelSchema, SessionSchema, SessionTrainerSchema, shown } from './sessions.ts';
 
 // The group classes of a workspace (F021, spec #427), first slice: the Owner defines a class (a
 // name in Dutch and optionally English, a description, the usual trainer, capacity and duration),
@@ -138,6 +141,7 @@ const GroupClassSchema = z
     defaultTrainer: SessionTrainerSchema.optional().openapi({
       description: 'The usual trainer. Left out for *Trainer nodig* (none).',
     }),
+    level: ClassLevelSchema.optional(),
   })
   .openapi('GroupClass', {
     description:
@@ -166,6 +170,45 @@ const durationField = z
   .min(LIMITS.duration.min)
   .max(LIMITS.duration.max)
   .multipleOf(LIMITS.duration.step);
+/**
+ * The level in a request (F067): one of the four values, or `null` for *Geen*. Written inline, not
+ * as the named `ClassLevel`: a named schema made nullable loses its `null` in the document.
+ * A value outside the list answers `422` on `level` (`answerClassValidationFailure`).
+ */
+const levelField = (what: string) =>
+  z
+    .enum(CLASS_LEVELS)
+    .nullable()
+    .optional()
+    .openapi({
+      description:
+        `${what}: \`all_levels\` (*Alle niveaus*), \`beginner\`, \`intermediate\` (*Gemiddeld*) or ` +
+        '`advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads ' +
+        'it. A value outside the list answers `422` on `level`.',
+    });
+
+/** The `422` of a level outside the list, on every route that takes one (F067 AC4). */
+const invalidLevelResponse = {
+  description:
+    'The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is ' +
+    'stored.',
+  content: { 'application/json': { schema: ValidationErrorSchema } },
+};
+
+/**
+ * The `defaultHook` of this router: a request that does not match the contract answers `400`,
+ * except one whose only problem is a `level` outside the list, which answers `422` (F067 AC4: the
+ * body is well formed, the value is not one the rules know).
+ */
+function answerClassValidationFailure<E extends Env>(
+  result: Parameters<Hook<unknown, E, string, unknown>>[0],
+  c: Context<E>,
+) {
+  if (result.success) return undefined;
+  const levelOnly = result.error.issues.every((issue) => issue.path.join('.') === 'level');
+  return c.json(toValidationError(result.error), levelOnly ? 422 : 400);
+}
+
 const localDateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const localTimeField = z.string().regex(/^\d{2}:\d{2}$/);
 
@@ -229,6 +272,7 @@ const CreateGroupClassBodySchema = z
         `${LIMITS.duration.min} to ${LIMITS.duration.max} minutes in steps of ` +
         `${LIMITS.duration.step}; any other value answers \`400\` on \`durationMinutes\`.`,
     }),
+    level: levelField('The class’s level (F067); left out is *Geen*'),
     allowConflicts: allowConflictsField,
     firstDate: FirstDateSchema.optional().openapi({
       description:
@@ -284,6 +328,7 @@ const UpdateGroupClassBodySchema = z
         `The new duration, ${LIMITS.duration.min} to ${LIMITS.duration.max} minutes in steps ` +
         `of ${LIMITS.duration.step}.`,
     }),
+    level: levelField('The new level of the class (F067); `null` clears it, left out keeps it'),
   })
   // A body with nothing to change is refused on the Dutch name, as for a location.
   .refine((body) => Object.values(body).some((value) => value !== undefined), {
@@ -344,6 +389,10 @@ const ScheduleGroupClassDateBodySchema = z
         `The capacity of this date, ${LIMITS.capacity.min} to ${LIMITS.capacity.max}. Leave it ` +
         'out for the class’s.',
     }),
+    level: levelField(
+      'The level of this date (F067); left out takes the class’s, `null` plans it as *Geen*. ' +
+        'With `repeat: weekly` the series and its dates take it',
+    ),
     repeat: repeatField,
     allowConflicts: allowConflictsField,
     surface: z
@@ -388,6 +437,11 @@ const UpdateGroupClassDateBodySchema = z
         `The new capacity of this date, ${LIMITS.capacity.min} to ${LIMITS.capacity.max}. ` +
         'Leave it out to keep it.',
     }),
+    level: levelField(
+      'The new level of this date (F067) (*Les wijzigen*); `null` is *Geen*, left out keeps it. ' +
+        'With `scope: following` the series and the following dates take it, except dates ' +
+        'whose level was changed on their own',
+    ),
     scope: z
       .enum(['this', 'following'])
       .optional()
@@ -420,12 +474,15 @@ const UpdateGroupClassDateBodySchema = z
   // A save that changes nothing is refused on the start.
   .refine(
     (body) =>
-      body.localStart !== undefined || body.localEnd !== undefined || body.capacity !== undefined,
+      body.localStart !== undefined ||
+      body.localEnd !== undefined ||
+      body.capacity !== undefined ||
+      body.level !== undefined,
     { path: ['localStart'], error: 'Give at least one field to change.' },
   )
   .openapi('UpdateGroupClassDateRequest', {
     description:
-      'Changes one date of a class (CO-04): the start, the end and the capacity, each only ' +
+      'Changes one date of a class (CO-04): the start, the end, the capacity and the level, each only ' +
       'when given. The date stays on its day. The class itself never changes.',
   });
 
@@ -461,6 +518,10 @@ const UpdateClassSeriesBodySchema = z
         `The new capacity of every date, ${LIMITS.capacity.min} to ${LIMITS.capacity.max}. ` +
         'Leave it out to keep it.',
     }),
+    level: levelField(
+      'The new level of every date (F067); `null` is *Geen*, left out keeps it. Dates whose ' +
+        'level was changed on their own keep it (`keptDates`)',
+    ),
     trainerId: z
       .uuid()
       .nullable()
@@ -488,13 +549,14 @@ const UpdateClassSeriesBodySchema = z
       body.localStartTime !== undefined ||
       body.durationMinutes !== undefined ||
       body.capacity !== undefined ||
+      body.level !== undefined ||
       body.trainerId !== undefined,
     { path: ['localStartTime'], error: 'Give at least one field to change.' },
   )
   .openapi('UpdateClassSeriesRequest', {
     description:
-      'Changes a whole weekly series (CO-04): the start, length, capacity and trainer of its ' +
-      'dates, each only when given.',
+      'Changes a whole weekly series (CO-04): the start, length, capacity, level and trainer of ' +
+      'its dates, each only when given.',
   });
 
 const ScheduledClassDateSchema = SessionSchema.extend({
@@ -545,6 +607,7 @@ const ClassSeriesSchema = z
       description: 'The usual trainer of its dates. Left out for *Trainer nodig*.',
     }),
     capacity: z.number().int().openapi({ description: 'The capacity its dates start with.' }),
+    level: ClassLevelSchema.optional(),
     startsOn: z
       .string()
       .openapi({ description: 'The first day it may have a date: `YYYY-MM-DD`.' }),
@@ -707,6 +770,7 @@ const createGroupClassRoute = defineRoute(
         content: { 'application/json': { schema: CreatedGroupClassSchema } },
       },
       400: validationErrorResponse,
+      422: invalidLevelResponse,
       409: trainerConflictResponse,
       500: internalServerErrorResponse,
     },
@@ -763,6 +827,7 @@ const updateGroupClassRoute = defineRoute(
         content: { 'application/json': { schema: GroupClassSchema } },
       },
       400: validationErrorResponse,
+      422: invalidLevelResponse,
       500: internalServerErrorResponse,
     },
   },
@@ -803,6 +868,7 @@ const scheduleGroupClassDateRoute = defineRoute(
         content: { 'application/json': { schema: ScheduledClassDateSchema } },
       },
       400: validationErrorResponse,
+      422: invalidLevelResponse,
       409: trainerConflictResponse,
       500: internalServerErrorResponse,
     },
@@ -880,6 +946,7 @@ const updateGroupClassSeriesRoute = defineRoute(
         content: { 'application/json': { schema: UpdatedClassSeriesSchema } },
       },
       400: validationErrorResponse,
+      422: invalidLevelResponse,
       409: {
         description:
           'The series changed since the version in the request (`series_changed`), or the ' +
@@ -954,6 +1021,7 @@ const updateGroupClassDateRoute = defineRoute(
         content: { 'application/json': { schema: UpdatedClassDateSchema } },
       },
       400: validationErrorResponse,
+      422: invalidLevelResponse,
       409: {
         description:
           'The date changed since the version in the request (`class_date_changed`), it was ' +
@@ -991,6 +1059,7 @@ function shownSeries(series: ClassSeriesView) {
     timeZone: series.timeZone,
     ...(series.trainer ? { trainer: series.trainer } : {}),
     capacity: series.capacity,
+    ...(series.level === null ? {} : { level: series.level }),
     startsOn: series.startsOn,
     ...(series.endsOn === null ? {} : { endsOn: series.endsOn }),
     materializedUntil: series.materializedUntil,
@@ -1038,6 +1107,7 @@ async function storeWeeklySeries(
     readonly trainer: { readonly trainerProfileId: string } | null;
     readonly locationId: string;
     readonly capacity: number;
+    readonly level: ClassLevel | null;
   },
   createdByTeamMemberId: string,
 ) {
@@ -1050,6 +1120,7 @@ async function storeWeeklySeries(
     timeZone: plan.facts.timeZone,
     trainerProfileId,
     capacity: decision.capacity,
+    level: decision.level,
     startsOn: plan.facts.startsOn,
     endsOn: null,
     materializedUntil: plan.materializedUntil,
@@ -1065,6 +1136,7 @@ async function storeWeeklySeries(
       endsAt: occurrence.endsAt,
       trainerProfileId,
       capacity: decision.capacity,
+      level: decision.level,
       createdByTeamMemberId,
     })),
   );
@@ -1179,6 +1251,7 @@ export async function writeSeriesChange(
       timeZone: applied.later.timeZone,
       trainerProfileId: applied.later.trainerProfileId,
       capacity: applied.later.capacity,
+      level: applied.later.level,
       startsOn: applied.later.startsOn,
       endsOn: applied.later.endsOn,
       materializedUntil: through,
@@ -1201,6 +1274,7 @@ export async function writeSeriesChange(
         durationMinutes: applied.later.durationMinutes,
         trainerProfileId: applied.later.trainerProfileId,
         capacity: applied.later.capacity,
+        level: applied.later.level,
         materializedUntil: through,
       },
       seriesVersion,
@@ -1215,6 +1289,7 @@ export async function writeSeriesChange(
       endsAt: update.endsAt,
       trainerProfileId: update.trainerProfileId,
       capacity: update.capacity,
+      level: update.level,
       detachedFields: update.detachedFields,
       ...('sessionId' in guard && update.sessionId === guard.sessionId
         ? { version: guard.sessionVersion }
@@ -1236,6 +1311,7 @@ export async function writeSeriesChange(
       endsAt: occurrence.endsAt,
       trainerProfileId: applied.later.trainerProfileId,
       capacity: applied.later.capacity,
+      level: applied.later.level,
       createdByTeamMemberId: actor?.id ?? null,
     })),
   );
@@ -1254,6 +1330,7 @@ export const seriesDatesOf = (rows: readonly SeriesDateRow[]): SeriesDate[] =>
     endsAt: date.endsAt,
     trainerProfileId: date.trainerProfileId,
     capacity: date.capacity,
+    level: date.level,
   }));
 
 export const inFieldOrder = (fields: readonly string[]): DetachedField[] =>
@@ -1267,8 +1344,12 @@ const referenceOf = (trainer: { readonly id: string; readonly trainerProfileId: 
 
 /** What the answer shows of a class: no `defaultTrainer` key without a usual trainer. */
 function shownClass(groupClass: GroupClassView) {
-  const { defaultTrainer, defaultTrainerProfileId: _profile, ...rest } = groupClass;
-  return { ...rest, ...(defaultTrainer ? { defaultTrainer } : {}) };
+  const { defaultTrainer, defaultTrainerProfileId: _profile, level, ...rest } = groupClass;
+  return {
+    ...rest,
+    ...(defaultTrainer ? { defaultTrainer } : {}),
+    ...(level === null ? {} : { level }),
+  };
 }
 
 /** A blank text of a form is no text. */
@@ -1295,7 +1376,7 @@ async function namedTrainer(scope: WorkspaceScope, trainerId: string | null | un
 }
 
 export function registerGroupClasses(app: OpenAPIHono) {
-  const router = new OpenAPIHono<WorkspaceEnv>({ defaultHook: answerValidationFailure });
+  const router = new OpenAPIHono<WorkspaceEnv>({ defaultHook: answerClassValidationFailure });
 
   router.openapi(listGroupClassesRoute, async (c) => {
     const classes = await listGroupClasses(c.get('scope'));
@@ -1327,6 +1408,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
             capacity: body.capacity,
             durationMinutes: body.durationMinutes,
             defaultTrainer: trainer ? referenceOf(trainer) : null,
+            level: body.level ?? null,
           },
           localDate: body.firstDate.localDate,
           localStart: body.firstDate.localStart,
@@ -1363,6 +1445,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
       defaultTrainerProfileId: trainerProfileId,
       capacity: body.capacity,
       durationMinutes: body.durationMinutes,
+      level: body.level ?? null,
     });
     let datesAdded: number | undefined;
     let firstDateSession: SessionView | undefined;
@@ -1379,6 +1462,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
           startsAt: plan.startsAt,
           endsAt: plan.endsAt,
           capacity: plan.capacity,
+          level: plan.level,
           createdByTeamMemberId: actor.id,
         });
       }
@@ -1431,6 +1515,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
         : { defaultTrainerProfileId: trainer?.trainerProfileId ?? null }),
       ...(body.capacity === undefined ? {} : { capacity: body.capacity }),
       ...(body.durationMinutes === undefined ? {} : { durationMinutes: body.durationMinutes }),
+      ...(body.level === undefined ? {} : { level: body.level }),
     });
     if (!updated) return c.json(NOT_FOUND, 404);
     return c.json(shownClass(updated), 200);
@@ -1458,7 +1543,9 @@ export function registerGroupClasses(app: OpenAPIHono) {
                 trainerProfileId: groupClass.defaultTrainerProfileId,
               }
             : null,
+        level: groupClass.level,
       },
+      ...(body.level === undefined ? {} : { requestedLevel: body.level }),
       ...(requested === undefined
         ? {}
         : {
@@ -1508,6 +1595,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
         startsAt: decision.startsAt,
         endsAt: decision.endsAt,
         capacity: decision.capacity,
+        level: decision.level,
         createdByTeamMemberId: actor.id,
       }));
     const surface = surfaceOf(c.req.header('authorization'), body.surface);
@@ -1568,6 +1656,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
         ...(body.localStartTime === undefined ? {} : { localStartTime: body.localStartTime }),
         ...(body.durationMinutes === undefined ? {} : { durationMinutes: body.durationMinutes }),
         ...(body.capacity === undefined ? {} : { capacity: body.capacity }),
+        ...(body.level === undefined ? {} : { level: body.level }),
         ...(trainer === undefined ? {} : { trainerProfileId: trainer?.trainerProfileId ?? null }),
       },
       seriesDatesOf(dates),
@@ -1669,11 +1758,17 @@ export function registerGroupClasses(app: OpenAPIHono) {
     if (current.version !== body.version) return c.json(changed(current), 409);
 
     const decision = decideGroupDateEdit({
-      current: { startsAt: current.startsAt, endsAt: current.endsAt, capacity: current.capacity },
+      current: {
+        startsAt: current.startsAt,
+        endsAt: current.endsAt,
+        capacity: current.capacity,
+        level: current.level,
+      },
       requested: {
         ...(body.localStart === undefined ? {} : { localStart: body.localStart }),
         ...(body.localEnd === undefined ? {} : { localEnd: body.localEnd }),
         ...(body.capacity === undefined ? {} : { capacity: body.capacity }),
+        ...(body.level === undefined ? {} : { level: body.level }),
       },
       timeZone: workspace.timeZone,
     });
@@ -1683,11 +1778,12 @@ export function registerGroupClasses(app: OpenAPIHono) {
       decision.startsAt.getTime() !== current.startsAt.getTime() ||
       decision.endsAt.getTime() !== current.endsAt.getTime();
     const capacityChanged = decision.capacity !== current.capacity;
+    const levelChanged = decision.level !== current.level;
     const series = current.series;
 
     // "This and following": the series changes from this date on, the dates that were changed on
     // their own stay as they are. An edit that changes nothing has nothing to hand on.
-    if (editScope === 'following' && series && (timeChanged || capacityChanged)) {
+    if (editScope === 'following' && series && (timeChanged || capacityChanged || levelChanged)) {
       const stored = await findClassSeries(scope, series.id);
       if (!stored) return c.json(NOT_FOUND, 404);
       const durationMinutes = (decision.endsAt.getTime() - decision.startsAt.getTime()) / 60_000;
@@ -1699,6 +1795,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
             }
           : {}),
         ...(capacityChanged ? { capacity: decision.capacity } : {}),
+        ...(levelChanged ? { level: decision.level } : {}),
       };
       const dates = await listSeriesDates(scope, stored.id);
       const today = localDateOf(clock.now(), workspace.timeZone);
@@ -1782,6 +1879,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
           ...series.detachedFields,
           ...(timeChanged ? ['time'] : []),
           ...(capacityChanged ? ['capacity'] : []),
+          ...(levelChanged ? ['level'] : []),
         ])
       : undefined;
     const result = await updateClassDate(scope, sessionId, {
@@ -1789,6 +1887,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
       startsAt: decision.startsAt,
       endsAt: decision.endsAt,
       capacity: decision.capacity,
+      level: decision.level,
       ...(detachedFields ? { detachedFields } : {}),
     });
     if (result.outcome === 'not-found') return c.json(NOT_FOUND, 404);

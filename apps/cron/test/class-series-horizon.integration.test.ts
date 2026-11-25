@@ -169,6 +169,24 @@ describe('F022 AC3: the daily task keeps a series 12 weeks ahead', () => {
     expect(added?.trainerProfileId).toBe(profile?.id);
   });
 
+  it('F067 AC1: the date the task adds carries the level of the series, and a series without one adds a date without', async () => {
+    const gym = await createWorkspace(admin.db, { label: 'johns-gym' });
+    const advanced = await seriesWithTwelveWeeks(gym.id, { level: 'advanced' });
+    const geen = await seriesWithTwelveWeeks(gym.id);
+
+    await cron().run();
+
+    const levelOf = async (seriesId: string) =>
+      (
+        await admin.db
+          .select({ level: sessions.level })
+          .from(sessions)
+          .where(and(eq(sessions.seriesId, seriesId), eq(sessions.occurrenceDate, '2026-12-29')))
+      )[0]?.level;
+    expect(await levelOf(advanced.id)).toBe('advanced');
+    expect(await levelOf(geen.id)).toBeNull();
+  });
+
   it('AC3: running it twice adds nothing', async () => {
     const gym = await createWorkspace(admin.db, { label: 'johns-gym' });
     const series = await seriesWithTwelveWeeks(gym.id);

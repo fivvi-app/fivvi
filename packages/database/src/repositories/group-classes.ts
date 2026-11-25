@@ -1,4 +1,5 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
+import type { ClassLevel } from '../schema/index.ts';
 import {
   authUsers,
   groupClasses,
@@ -30,6 +31,8 @@ export interface GroupClassView {
   readonly defaultTrainerProfileId: string | null;
   /** The usual trainer: the team-member ID (what the API calls a trainer) and the account's name; `null` for *Trainer nodig*. */
   readonly defaultTrainer: { readonly id: string; readonly name: string } | null;
+  /** The class's level (F067), copied onto each date and series made from it; `null` is *Geen*. */
+  readonly level: ClassLevel | null;
 }
 
 /** What a new class is made of: texts already trimmed (an empty one is `null`) and within the limits. */
@@ -42,6 +45,7 @@ export interface NewGroupClass {
   readonly defaultTrainerProfileId: string | null;
   readonly capacity: number;
   readonly durationMinutes: number;
+  readonly level: ClassLevel | null;
 }
 
 /** The fields of a class to change: a field left out stays, `null` clears an optional one. */
@@ -55,6 +59,7 @@ const classColumns = {
   descriptionEn: groupClasses.descriptionEn,
   capacity: groupClasses.capacity,
   durationMinutes: groupClasses.durationMinutes,
+  level: groupClasses.level,
   defaultTrainerProfileId: groupClasses.defaultTrainerProfileId,
   trainerTeamMemberId: teamMembers.id,
   trainerName: authUsers.name,
@@ -68,6 +73,7 @@ interface ClassRow {
   readonly descriptionEn: string | null;
   readonly capacity: number;
   readonly durationMinutes: number;
+  readonly level: ClassLevel | null;
   readonly defaultTrainerProfileId: string | null;
   readonly trainerTeamMemberId: string | null;
   readonly trainerName: string | null;
@@ -170,6 +176,8 @@ export interface NewClassDate {
   readonly startsAt: Date;
   readonly endsAt: Date;
   readonly capacity: number;
+  /** The level of the date (F067): the class's, or the one chosen for this date; `null` is *Geen*. */
+  readonly level: ClassLevel | null;
   /** The team-member record of the person who plans it; `null` for none. */
   readonly createdByTeamMemberId: string | null;
 }
@@ -194,6 +202,7 @@ export async function createClassDate(
       startsAt: input.startsAt,
       endsAt: input.endsAt,
       capacity: input.capacity,
+      level: input.level,
       createdByTeamMemberId: input.createdByTeamMemberId,
     })
     .returning({ id: sessions.id });
@@ -210,6 +219,7 @@ export interface ClassDateChanges {
   readonly startsAt: Date;
   readonly endsAt: Date;
   readonly capacity: number;
+  readonly level: ClassLevel | null;
   /** What the date differs in from its series now (F022); left out leaves the column as it is. */
   readonly detachedFields?: readonly string[];
 }
@@ -237,6 +247,7 @@ export async function updateClassDate(
       startsAt: changes.startsAt,
       endsAt: changes.endsAt,
       capacity: changes.capacity,
+      level: changes.level,
       ...(changes.detachedFields ? { detachedFields: [...changes.detachedFields] } : {}),
       version: sql`${sessions.version} + 1`,
     })

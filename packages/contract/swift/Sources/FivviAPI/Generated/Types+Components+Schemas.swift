@@ -964,6 +964,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/PersonalSession/className`.
             public var className: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/level`.
+            public var level: Components.Schemas.ClassLevel?
             /// - Remark: Generated from `#/components/schemas/PersonalSession/location`.
             public var location: Components.Schemas.Location?
             /// The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart.
@@ -987,6 +989,7 @@ extension Components {
             ///   - capacity: 1 for a private session.
             ///   - booked: The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
             ///   - className: The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym.
+            ///   - level:
             ///   - location:
             ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart.
             ///   - clients: The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds.
@@ -1001,6 +1004,7 @@ extension Components {
                 capacity: Swift.Int,
                 booked: Swift.Int? = nil,
                 className: Swift.String? = nil,
+                level: Components.Schemas.ClassLevel? = nil,
                 location: Components.Schemas.Location? = nil,
                 clientName: Swift.String? = nil,
                 clients: [Components.Schemas.PersonalSessionClient]? = nil
@@ -1015,6 +1019,7 @@ extension Components {
                 self.capacity = capacity
                 self.booked = booked
                 self.className = className
+                self.level = level
                 self.location = location
                 self.clientName = clientName
                 self.clients = clients
@@ -1030,6 +1035,7 @@ extension Components {
                 case capacity
                 case booked
                 case className
+                case level
                 case location
                 case clientName
                 case clients
@@ -1071,6 +1077,15 @@ extension Components {
                 case slug
                 case name
             }
+        }
+        /// The level of a class: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*). Information only: nothing in booking reads it, and the timetable has no filter on it. A class without one is *Geen*: the field is left out.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ClassLevel`.
+        @frozen public enum ClassLevel: String, Codable, Hashable, Sendable, CaseIterable {
+            case allLevels = "all_levels"
+            case beginner = "beginner"
+            case intermediate = "intermediate"
+            case advanced = "advanced"
         }
         /// A place where sessions of the workspace take place.
         ///
@@ -2838,6 +2853,8 @@ extension Components {
             public var cancellation: Components.Schemas.SessionCancellation?
             /// - Remark: Generated from `#/components/schemas/Session/groupClass`.
             public var groupClass: Components.Schemas.SessionGroupClass?
+            /// - Remark: Generated from `#/components/schemas/Session/level`.
+            public var level: Components.Schemas.ClassLevel?
             /// - Remark: Generated from `#/components/schemas/Session/series`.
             public var series: Components.Schemas.SessionSeries?
             /// The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5).
@@ -2859,6 +2876,7 @@ extension Components {
             ///   - trainer:
             ///   - cancellation:
             ///   - groupClass:
+            ///   - level:
             ///   - series:
             ///   - participants: The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5).
             public init(
@@ -2874,6 +2892,7 @@ extension Components {
                 trainer: Components.Schemas.SessionTrainer? = nil,
                 cancellation: Components.Schemas.SessionCancellation? = nil,
                 groupClass: Components.Schemas.SessionGroupClass? = nil,
+                level: Components.Schemas.ClassLevel? = nil,
                 series: Components.Schemas.SessionSeries? = nil,
                 participants: [Components.Schemas.SessionParticipant]
             ) {
@@ -2889,6 +2908,7 @@ extension Components {
                 self.trainer = trainer
                 self.cancellation = cancellation
                 self.groupClass = groupClass
+                self.level = level
                 self.series = series
                 self.participants = participants
             }
@@ -2905,6 +2925,7 @@ extension Components {
                 case trainer
                 case cancellation
                 case groupClass
+                case level
                 case series
                 case participants
             }
@@ -3092,6 +3113,7 @@ extension Components {
                 case trainer = "trainer"
                 case capacity = "capacity"
                 case location = "location"
+                case level = "level"
             }
             /// What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are.
             ///
@@ -4975,6 +4997,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/className`.
             public var className: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/level`.
+            public var level: Components.Schemas.ClassLevel?
             /// The client’s display name, for a private session; left out for the other kinds. It holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `; `clients` has them apart.
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/clientName`.
@@ -5029,6 +5053,7 @@ extension Components {
             ///   - location:
             ///   - trainer:
             ///   - className: The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session.
+            ///   - level:
             ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `; `clients` has them apart.
             ///   - clients: The clients of a private session in the order they were added: one, or two for a duo. A client who cancelled is left out, a cancelled session keeps its clients. Left out for the other kinds.
             ///   - series:
@@ -5045,6 +5070,7 @@ extension Components {
                 location: Components.Schemas.Location,
                 trainer: Components.Schemas.WorkspaceCalendarSession.TrainerPayload? = nil,
                 className: Swift.String? = nil,
+                level: Components.Schemas.ClassLevel? = nil,
                 clientName: Swift.String? = nil,
                 clients: [Components.Schemas.PersonalSessionClient]? = nil,
                 series: Components.Schemas.WorkspaceCalendarSession.SeriesPayload? = nil
@@ -5061,6 +5087,7 @@ extension Components {
                 self.location = location
                 self.trainer = trainer
                 self.className = className
+                self.level = level
                 self.clientName = clientName
                 self.clients = clients
                 self.series = series
@@ -5078,6 +5105,7 @@ extension Components {
                 case location
                 case trainer
                 case className
+                case level
                 case clientName
                 case clients
                 case series
@@ -5250,6 +5278,8 @@ extension Components {
             }
             /// - Remark: Generated from `#/components/schemas/GroupClass/defaultTrainer`.
             public var defaultTrainer: Components.Schemas.GroupClass.DefaultTrainerPayload?
+            /// - Remark: Generated from `#/components/schemas/GroupClass/level`.
+            public var level: Components.Schemas.ClassLevel?
             /// Creates a new `GroupClass`.
             ///
             /// - Parameters:
@@ -5261,6 +5291,7 @@ extension Components {
             ///   - capacity: How many people fit: 1 to 100.
             ///   - durationMinutes: How long a date of the class lasts: 15 to 240 minutes in steps of 5.
             ///   - defaultTrainer:
+            ///   - level:
             public init(
                 id: Swift.String,
                 nameNl: Swift.String,
@@ -5269,7 +5300,8 @@ extension Components {
                 descriptionEn: Swift.String? = nil,
                 capacity: Swift.Int,
                 durationMinutes: Swift.Int,
-                defaultTrainer: Components.Schemas.GroupClass.DefaultTrainerPayload? = nil
+                defaultTrainer: Components.Schemas.GroupClass.DefaultTrainerPayload? = nil,
+                level: Components.Schemas.ClassLevel? = nil
             ) {
                 self.id = id
                 self.nameNl = nameNl
@@ -5279,6 +5311,7 @@ extension Components {
                 self.capacity = capacity
                 self.durationMinutes = durationMinutes
                 self.defaultTrainer = defaultTrainer
+                self.level = level
             }
             public enum CodingKeys: String, CodingKey {
                 case id
@@ -5289,6 +5322,7 @@ extension Components {
                 case capacity
                 case durationMinutes
                 case defaultTrainer
+                case level
             }
         }
         /// The class that was created, with its first date when the request had one.
@@ -5385,6 +5419,20 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/durationMinutes`.
             public var durationMinutes: Swift.Int
+            /// The class’s level (F067); left out is *Geen*: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/level`.
+            @frozen public enum LevelPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case allLevels = "all_levels"
+                case beginner = "beginner"
+                case intermediate = "intermediate"
+                case advanced = "advanced"
+                case _empty_ = ""
+            }
+            /// The class’s level (F067); left out is *Geen*: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/level`.
+            public var level: Components.Schemas.CreateGroupClassRequest.LevelPayload?
             /// Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///
             /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/allowConflicts`.
@@ -5412,6 +5460,7 @@ extension Components {
             ///   - trainerId: The usual trainer’s team-member ID, from `GET …/trainers`. Leave it out, or send `null`, for *Trainer nodig*. A team member who does not train in the workspace answers `404`.
             ///   - capacity: 1 to 100 people.
             ///   - durationMinutes: 15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`.
+            ///   - level: The class’s level (F067); left out is *Geen*: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
             ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - firstDate:
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -5423,6 +5472,7 @@ extension Components {
                 trainerId: Swift.String? = nil,
                 capacity: Swift.Int,
                 durationMinutes: Swift.Int,
+                level: Components.Schemas.CreateGroupClassRequest.LevelPayload? = nil,
                 allowConflicts: Swift.Bool? = nil,
                 firstDate: Components.Schemas.FirstGroupClassDate? = nil,
                 surface: Components.Schemas.CreateGroupClassRequest.SurfacePayload? = nil
@@ -5434,6 +5484,7 @@ extension Components {
                 self.trainerId = trainerId
                 self.capacity = capacity
                 self.durationMinutes = durationMinutes
+                self.level = level
                 self.allowConflicts = allowConflicts
                 self.firstDate = firstDate
                 self.surface = surface
@@ -5446,6 +5497,7 @@ extension Components {
                 case trainerId
                 case capacity
                 case durationMinutes
+                case level
                 case allowConflicts
                 case firstDate
                 case surface
@@ -5527,6 +5579,20 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/durationMinutes`.
             public var durationMinutes: Swift.Int?
+            /// The new level of the class (F067); `null` clears it, left out keeps it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/level`.
+            @frozen public enum LevelPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case allLevels = "all_levels"
+                case beginner = "beginner"
+                case intermediate = "intermediate"
+                case advanced = "advanced"
+                case _empty_ = ""
+            }
+            /// The new level of the class (F067); `null` clears it, left out keeps it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/level`.
+            public var level: Components.Schemas.UpdateGroupClassRequest.LevelPayload?
             /// Creates a new `UpdateGroupClassRequest`.
             ///
             /// - Parameters:
@@ -5537,6 +5603,7 @@ extension Components {
             ///   - trainerId: The new usual trainer’s team-member ID; `null` makes the class *Trainer nodig*; left out keeps it.
             ///   - capacity: The new capacity, 1 to 100.
             ///   - durationMinutes: The new duration, 15 to 240 minutes in steps of 5.
+            ///   - level: The new level of the class (F067); `null` clears it, left out keeps it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
             public init(
                 nameNl: Swift.String? = nil,
                 nameEn: Swift.String? = nil,
@@ -5544,7 +5611,8 @@ extension Components {
                 descriptionEn: Swift.String? = nil,
                 trainerId: Swift.String? = nil,
                 capacity: Swift.Int? = nil,
-                durationMinutes: Swift.Int? = nil
+                durationMinutes: Swift.Int? = nil,
+                level: Components.Schemas.UpdateGroupClassRequest.LevelPayload? = nil
             ) {
                 self.nameNl = nameNl
                 self.nameEn = nameEn
@@ -5553,6 +5621,7 @@ extension Components {
                 self.trainerId = trainerId
                 self.capacity = capacity
                 self.durationMinutes = durationMinutes
+                self.level = level
             }
             public enum CodingKeys: String, CodingKey {
                 case nameNl
@@ -5562,6 +5631,7 @@ extension Components {
                 case trainerId
                 case capacity
                 case durationMinutes
+                case level
             }
         }
         /// The class date that was scheduled, with how many dates a weekly repeat made.
@@ -5630,6 +5700,20 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/capacity`.
             public var capacity: Swift.Int?
+            /// The level of this date (F067); left out takes the class’s, `null` plans it as *Geen*. With `repeat: weekly` the series and its dates take it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/level`.
+            @frozen public enum LevelPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case allLevels = "all_levels"
+                case beginner = "beginner"
+                case intermediate = "intermediate"
+                case advanced = "advanced"
+                case _empty_ = ""
+            }
+            /// The level of this date (F067); left out takes the class’s, `null` plans it as *Geen*. With `repeat: weekly` the series and its dates take it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/level`.
+            public var level: Components.Schemas.ScheduleGroupClassDateRequest.LevelPayload?
             /// *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
             ///
             /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/repeat`.
@@ -5663,6 +5747,7 @@ extension Components {
             ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
             ///   - trainerId: The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*.
             ///   - capacity: The capacity of this date, 1 to 100. Leave it out for the class’s.
+            ///   - level: The level of this date (F067); left out takes the class’s, `null` plans it as *Geen*. With `repeat: weekly` the series and its dates take it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
             ///   - _repeat: *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
             ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -5671,6 +5756,7 @@ extension Components {
                 localStart: Swift.String,
                 trainerId: Swift.String? = nil,
                 capacity: Swift.Int? = nil,
+                level: Components.Schemas.ScheduleGroupClassDateRequest.LevelPayload? = nil,
                 _repeat: Components.Schemas.ScheduleGroupClassDateRequest.RepeatPayload? = nil,
                 allowConflicts: Swift.Bool? = nil,
                 surface: Components.Schemas.ScheduleGroupClassDateRequest.SurfacePayload? = nil
@@ -5679,6 +5765,7 @@ extension Components {
                 self.localStart = localStart
                 self.trainerId = trainerId
                 self.capacity = capacity
+                self.level = level
                 self._repeat = _repeat
                 self.allowConflicts = allowConflicts
                 self.surface = surface
@@ -5688,6 +5775,7 @@ extension Components {
                 case localStart
                 case trainerId
                 case capacity
+                case level
                 case _repeat = "repeat"
                 case allowConflicts
                 case surface
@@ -5772,6 +5860,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/ClassSeries/capacity`.
             public var capacity: Swift.Int
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/level`.
+            public var level: Components.Schemas.ClassLevel?
             /// The first day it may have a date: `YYYY-MM-DD`.
             ///
             /// - Remark: Generated from `#/components/schemas/ClassSeries/startsOn`.
@@ -5800,6 +5890,7 @@ extension Components {
             ///   - timeZone: The IANA time zone the rule is read in.
             ///   - trainer:
             ///   - capacity: The capacity its dates start with.
+            ///   - level:
             ///   - startsOn: The first day it may have a date: `YYYY-MM-DD`.
             ///   - endsOn: The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on.
             ///   - materializedUntil: The last day the calendar was filled to: `YYYY-MM-DD`.
@@ -5814,6 +5905,7 @@ extension Components {
                 timeZone: Swift.String,
                 trainer: Components.Schemas.ClassSeries.TrainerPayload? = nil,
                 capacity: Swift.Int,
+                level: Components.Schemas.ClassLevel? = nil,
                 startsOn: Swift.String,
                 endsOn: Swift.String? = nil,
                 materializedUntil: Swift.String,
@@ -5828,6 +5920,7 @@ extension Components {
                 self.timeZone = timeZone
                 self.trainer = trainer
                 self.capacity = capacity
+                self.level = level
                 self.startsOn = startsOn
                 self.endsOn = endsOn
                 self.materializedUntil = materializedUntil
@@ -5843,6 +5936,7 @@ extension Components {
                 case timeZone
                 case trainer
                 case capacity
+                case level
                 case startsOn
                 case endsOn
                 case materializedUntil
@@ -5966,7 +6060,7 @@ extension Components {
                 case conflicts
             }
         }
-        /// Changes a whole weekly series (CO-04): the start, length, capacity and trainer of its dates, each only when given.
+        /// Changes a whole weekly series (CO-04): the start, length, capacity, level and trainer of its dates, each only when given.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest`.
         public struct UpdateClassSeriesRequest: Codable, Hashable, Sendable {
@@ -5986,6 +6080,20 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/capacity`.
             public var capacity: Swift.Int?
+            /// The new level of every date (F067); `null` is *Geen*, left out keeps it. Dates whose level was changed on their own keep it (`keptDates`): `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/level`.
+            @frozen public enum LevelPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case allLevels = "all_levels"
+                case beginner = "beginner"
+                case intermediate = "intermediate"
+                case advanced = "advanced"
+                case _empty_ = ""
+            }
+            /// The new level of every date (F067); `null` is *Geen*, left out keeps it. Dates whose level was changed on their own keep it (`keptDates`): `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/level`.
+            public var level: Components.Schemas.UpdateClassSeriesRequest.LevelPayload?
             /// The new trainer of every date, a team-member ID from `GET …/trainers`; `null` makes the dates *Trainer nodig*. Leave it out to keep the trainer. A team member who is no trainer of the workspace answers `404`.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateClassSeriesRequest/trainerId`.
@@ -6012,6 +6120,7 @@ extension Components {
             ///   - localStartTime: The new start of every date, `HH:mm` on the wall clock of the workspace’s time zone (it stays so across daylight saving time). Leave it out to keep it.
             ///   - durationMinutes: The new length of every date: 15 to 240 minutes in steps of 5, else `400` on `durationMinutes` (`invalid_duration`). Leave it out to keep it.
             ///   - capacity: The new capacity of every date, 1 to 100. Leave it out to keep it.
+            ///   - level: The new level of every date (F067); `null` is *Geen*, left out keeps it. Dates whose level was changed on their own keep it (`keptDates`): `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
             ///   - trainerId: The new trainer of every date, a team-member ID from `GET …/trainers`; `null` makes the dates *Trainer nodig*. Leave it out to keep the trainer. A team member who is no trainer of the workspace answers `404`.
             ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -6020,6 +6129,7 @@ extension Components {
                 localStartTime: Swift.String? = nil,
                 durationMinutes: Swift.Int? = nil,
                 capacity: Swift.Int? = nil,
+                level: Components.Schemas.UpdateClassSeriesRequest.LevelPayload? = nil,
                 trainerId: Swift.String? = nil,
                 allowConflicts: Swift.Bool? = nil,
                 surface: Components.Schemas.UpdateClassSeriesRequest.SurfacePayload? = nil
@@ -6028,6 +6138,7 @@ extension Components {
                 self.localStartTime = localStartTime
                 self.durationMinutes = durationMinutes
                 self.capacity = capacity
+                self.level = level
                 self.trainerId = trainerId
                 self.allowConflicts = allowConflicts
                 self.surface = surface
@@ -6037,6 +6148,7 @@ extension Components {
                 case localStartTime
                 case durationMinutes
                 case capacity
+                case level
                 case trainerId
                 case allowConflicts
                 case surface
@@ -6189,7 +6301,7 @@ extension Components {
                 case conflicts
             }
         }
-        /// Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes.
+        /// Changes one date of a class (CO-04): the start, the end, the capacity and the level, each only when given. The date stays on its day. The class itself never changes.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest`.
         public struct UpdateGroupClassDateRequest: Codable, Hashable, Sendable {
@@ -6209,6 +6321,20 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/capacity`.
             public var capacity: Swift.Int?
+            /// The new level of this date (F067) (*Les wijzigen*); `null` is *Geen*, left out keeps it. With `scope: following` the series and the following dates take it, except dates whose level was changed on their own: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/level`.
+            @frozen public enum LevelPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case allLevels = "all_levels"
+                case beginner = "beginner"
+                case intermediate = "intermediate"
+                case advanced = "advanced"
+                case _empty_ = ""
+            }
+            /// The new level of this date (F067) (*Les wijzigen*); `null` is *Geen*, left out keeps it. With `scope: following` the series and the following dates take it, except dates whose level was changed on their own: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/level`.
+            public var level: Components.Schemas.UpdateGroupClassDateRequest.LevelPayload?
             /// *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/scope`.
@@ -6242,6 +6368,7 @@ extension Components {
             ///   - localStart: The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
             ///   - localEnd: The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
             ///   - capacity: The new capacity of this date, 1 to 100. Leave it out to keep it.
+            ///   - level: The new level of this date (F067) (*Les wijzigen*); `null` is *Geen*, left out keeps it. With `scope: following` the series and the following dates take it, except dates whose level was changed on their own: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
             ///   - scope: *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
             ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -6250,6 +6377,7 @@ extension Components {
                 localStart: Swift.String? = nil,
                 localEnd: Swift.String? = nil,
                 capacity: Swift.Int? = nil,
+                level: Components.Schemas.UpdateGroupClassDateRequest.LevelPayload? = nil,
                 scope: Components.Schemas.UpdateGroupClassDateRequest.ScopePayload? = nil,
                 allowConflicts: Swift.Bool? = nil,
                 surface: Components.Schemas.UpdateGroupClassDateRequest.SurfacePayload? = nil
@@ -6258,6 +6386,7 @@ extension Components {
                 self.localStart = localStart
                 self.localEnd = localEnd
                 self.capacity = capacity
+                self.level = level
                 self.scope = scope
                 self.allowConflicts = allowConflicts
                 self.surface = surface
@@ -6267,6 +6396,7 @@ extension Components {
                 case localStart
                 case localEnd
                 case capacity
+                case level
                 case scope
                 case allowConflicts
                 case surface
