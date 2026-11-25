@@ -782,6 +782,18 @@
     },
     {
       "fg": "color.web.trainer.muted-foreground",
+      "bg": "color.web.trainer.background",
+      "kind": "non-text",
+      "use": "Trainer web: class level icon bars on the page (F067)"
+    },
+    {
+      "fg": "color.web.trainer.muted-foreground",
+      "bg": "color.web.trainer.card",
+      "kind": "non-text",
+      "use": "Trainer web: class level icon bars on a card (F067)"
+    },
+    {
+      "fg": "color.web.trainer.muted-foreground",
       "bg": "color.web.trainer.sidebar",
       "kind": "text",
       "use": "Trainer web: secondary text on sidebar"

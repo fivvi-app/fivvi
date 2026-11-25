@@ -18,6 +18,7 @@ import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { Field } from '@fivvi/ui/kit/field';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
+import { ClassLevelSelect } from './class-level';
 import {
   type ClassField,
   type ClassFieldError,
@@ -38,6 +39,7 @@ const START: ClassInput = {
   descriptionNl: '',
   descriptionEn: '',
   trainerId: '',
+  level: '',
   capacity: '',
   durationMinutes: FIRST_DURATION,
 };
@@ -46,7 +48,7 @@ const START: ClassInput = {
  * The fields of the class form (TW-03), in titled sections with a line between them
  * (`DECISIONS.md` §6): *Naam en omschrijving* (the name and the description in Dutch and in
  * English, one per line, each label naming its language) and *De les* (the usual trainer or
- * *Trainer nodig*, the capacity and the duration). Each refused field has its message under it.
+ * *Trainer nodig*, the level (*Niveau*, F067), the capacity and the duration). Each refused field has its message under it.
  */
 export function ClassFormSections({
   idPrefix,
@@ -126,24 +128,31 @@ export function ClassFormSections({
         />
       </FormSection>
       <FormSection title={t('classSection')}>
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${idPrefix}-trainer`}>{t('trainerLabel', { ...trainerWord })}</Label>
-          <NativeSelect
-            id={`${idPrefix}-trainer`}
-            name="trainerId"
-            value={value.trainerId}
-            className="w-full"
-            onChange={(event) => set({ trainerId: event.target.value })}
-          >
-            <NativeSelectOption value="">
-              {classes('trainerNeeded', { ...trainerWord })}
-            </NativeSelectOption>
-            {trainers.map((trainer) => (
-              <NativeSelectOption key={trainer.id} value={trainer.id}>
-                {trainer.name}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor={`${idPrefix}-trainer`}>{t('trainerLabel', { ...trainerWord })}</Label>
+            <NativeSelect
+              id={`${idPrefix}-trainer`}
+              name="trainerId"
+              value={value.trainerId}
+              className="w-full"
+              onChange={(event) => set({ trainerId: event.target.value })}
+            >
+              <NativeSelectOption value="">
+                {classes('trainerNeeded', { ...trainerWord })}
               </NativeSelectOption>
-            ))}
-          </NativeSelect>
+              {trainers.map((trainer) => (
+                <NativeSelectOption key={trainer.id} value={trainer.id}>
+                  {trainer.name}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
+          <ClassLevelSelect
+            id={`${idPrefix}-level`}
+            value={value.level}
+            onChange={(level) => set({ level })}
+          />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field

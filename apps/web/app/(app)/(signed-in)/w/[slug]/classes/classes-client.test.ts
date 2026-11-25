@@ -19,6 +19,7 @@ const filled = {
   descriptionNl: 'Een stevige les.',
   descriptionEn: '',
   trainerId: 't1',
+  level: '' as const,
   capacity: '8',
   durationMinutes: '60',
 };
@@ -128,6 +129,16 @@ describe('F021 TW-03 classes client', () => {
         capacity: 8,
         durationMinutes: 60,
       });
+    });
+
+    it('F067 AC1: sends the level chosen, and no level for Geen (the starting value)', async () => {
+      const chosen = reply(201, { groupClass: { ...stored, level: 'advanced' } });
+      await createClass('w1', { ...filled, level: 'advanced' }, chosen);
+      expect(JSON.parse(String(chosen.mock.calls[0]?.[1]?.body)).level).toBe('advanced');
+
+      const none = reply(201, { groupClass: stored });
+      await createClass('w1', filled, none);
+      expect(JSON.parse(String(none.mock.calls[0]?.[1]?.body))).not.toHaveProperty('level');
     });
 
     it('sends the trainer chosen', async () => {
@@ -331,6 +342,18 @@ describe('F021 TW-03 classes client', () => {
         localEnd: '19:30',
         capacity: 10,
       });
+    });
+
+    it('F067 AC3: sends the level of this date when it is given: a level, or null for Geen; left out when it is not', async () => {
+      const levelOf = async (level?: 'beginner' | '') => {
+        const fetchFn = reply(200, { ...session, version: 2 });
+        await editClassDate('w1', 's1', level === undefined ? input : { ...input, level }, fetchFn);
+        return JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body));
+      };
+
+      expect(await levelOf('beginner')).toMatchObject({ level: 'beginner' });
+      expect(await levelOf('')).toMatchObject({ level: null });
+      expect(await levelOf()).not.toHaveProperty('level');
     });
 
     it('AC4: an end that is not after the start is the end-before-start message, from the API', async () => {

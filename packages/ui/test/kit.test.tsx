@@ -11,6 +11,7 @@ import { ErrorLine } from '../src/kit/error-line';
 import { Field } from '../src/kit/field';
 import { ChevronRightIcon, PersonPlusIcon, SearchIcon } from '../src/kit/icons';
 import { InsetList, InsetListItem } from '../src/kit/inset-list';
+import { LevelIcon } from '../src/kit/level-icon';
 import { NextCard } from '../src/kit/next-card';
 import { PageShell } from '../src/kit/page-shell';
 import { PillButton, PillButtonStack } from '../src/kit/pill-button';
@@ -249,6 +250,72 @@ describe('E020 web kit', () => {
       expect(classesOf(html(<StatusPill>3/5</StatusPill>), 'status-pill')).toEqual(
         expect.arrayContaining(['bg-status-neutral-bg', 'tabular-nums']),
       );
+    });
+  });
+
+  describe('F067 AC13: level icon', () => {
+    const word = {
+      advanced: 'Gevorderd',
+      intermediate: 'Gemiddeld',
+      beginner: 'Beginner',
+    } as const;
+    const filled = (markup: string) =>
+      [...markup.matchAll(/<i [^>]*>/g)].map((bar) => !bar[0].includes('opacity-30'));
+
+    it('is three bars of rising height in the secondary text colour, with the word as its accessible name and tooltip', () => {
+      const markup = html(
+        <LevelIcon level="advanced" label="Niveau: Gevorderd" word="Gevorderd" />,
+      );
+
+      expect(markup).toContain('role="img"');
+      expect(markup).toContain('aria-label="Niveau: Gevorderd"');
+      expect(markup).toContain('title="Gevorderd"');
+      expect(classesOf(markup, 'data-slot="level-icon"')).toContain('text-muted-foreground');
+      const heights = [...markup.matchAll(/<i [^>]*class="([^"]*)"/g)].map(
+        (bar) => decodeAttribute(bar[1] ?? '').match(/h-\[(\d+)px\]/)?.[1],
+      );
+      expect(heights).toEqual(['5', '8', '11']);
+    });
+
+    it('fills one bar for Beginner, two for Gemiddeld and all three for Gevorderd; the filled bars are fully opaque, the rest faint', () => {
+      for (const [level, expected] of [
+        ['beginner', [true, false, false]],
+        ['intermediate', [true, true, false]],
+        ['advanced', [true, true, true]],
+      ] as const) {
+        const markup = html(
+          <LevelIcon level={level} label={`Niveau: ${word[level]}`} word={word[level]} />,
+        );
+        expect(filled(markup), level).toEqual(expected);
+      }
+    });
+
+    it('fills all three bars at the same weight for Alle niveaus', () => {
+      const markup = html(
+        <LevelIcon level="all_levels" label="Niveau: Alle niveaus" word="Alle niveaus" />,
+      );
+
+      expect(filled(markup)).toEqual([true, true, true]);
+      expect(markup).not.toContain('opacity-60');
+    });
+
+    it('the full form has the word beside the icon and the compact form has none', () => {
+      const full = html(<LevelIcon level="advanced" label="Niveau: Gevorderd" word="Gevorderd" />);
+      const compact = html(
+        <LevelIcon compact level="advanced" label="Niveau: Gevorderd" word="Gevorderd" />,
+      );
+
+      expect(full).toMatch(/>Gevorderd<\/span>/);
+      expect(compact).not.toMatch(/>Gevorderd</);
+      expect(compact).toContain('aria-label="Niveau: Gevorderd"');
+      expect(compact).toContain('title="Gevorderd"');
+    });
+
+    it('draws nothing for Geen, and nothing in the compact form for Alle niveaus', () => {
+      expect(html(<LevelIcon level={null} label="x" word="x" />)).toBe('');
+      expect(html(<LevelIcon level={undefined} label="x" word="x" />)).toBe('');
+      expect(html(<LevelIcon compact level="all_levels" label="x" word="x" />)).toBe('');
+      expect(html(<LevelIcon level="all_levels" label="x" word="x" />)).not.toBe('');
     });
   });
 
@@ -714,6 +781,7 @@ describe('E020 web kit stylesheet', () => {
           x
         </StatusPill>
       )),
+      <LevelIcon key="lv" level="beginner" label="x" word="x" />,
       <Field key="g" id="g" label="x" hint="x" />,
       <Field key="h" id="h" label="x" error="x" />,
       <Toast key="i">x</Toast>,
