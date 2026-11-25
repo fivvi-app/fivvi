@@ -93,7 +93,7 @@ final class WorkspaceCapabilitiesTests: XCTestCase {
         let catalog = TestCatalog(language)
         guard case let .loaded(entries) = profile.state else { return XCTFail("\(profile.state)") }
         XCTAssertEqual(entries.map(\.name), ["John's Gym", "Sarah Personal Training"])
-        XCTAssertEqual(entries.map(\.role), [catalog["roles.trainer"], catalog["roles.owner"]])
+        XCTAssertEqual(entries.map(\.role), [catalog["trainerWord.trainer.wordCap"], catalog["roles.owner"]])
         let capabilities = account.capabilities
         XCTAssertFalse(capabilities.allows(.workspace_manage, in: johnsGym), "Trainer in John's Gym")
         XCTAssertTrue(capabilities.allows(.clients_manage, in: johnsGym))

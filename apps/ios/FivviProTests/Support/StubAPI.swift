@@ -50,6 +50,8 @@ actor StubAPI: APIProtocol {
         var capabilities: [Components.Schemas.MyWorkspace.CapabilitiesPayloadPayload]?
         /// What the API says about training there unless a test gives it: a Trainer always trains, an Owner does not.
         var trainsHere: Bool?
+        /// The word the workspace uses for its trainers (F068); `trainer` unless a test says otherwise.
+        var trainerWord = Components.Schemas.TrainerWord.trainer
     }
 
     /// The person's own team-member ID in a workspace (synthetic): one per workspace.
@@ -105,6 +107,8 @@ actor StubAPI: APIProtocol {
     /// What `createBookingLink` answers (F037).
     let bookingLinks = StubBookingLinks()
     private var goneWorkspaces: Set<String> = []
+    /// The word of each workspace the test named (F068); `trainer` for any other.
+    private var trainerWords: [String: Components.Schemas.TrainerWord] = [:]
     private var workspaceStatus: Int?
     private var workspaceOffline = false
     /// The bodies of every `requestSignIn`, `exchangeSignInCode` and the number of `getMe` calls so far.
@@ -172,6 +176,12 @@ actor StubAPI: APIProtocol {
 
     func answerMyWorkspaces(with answer: MyWorkspacesAnswer) {
         myWorkspacesAnswer = answer
+        if case let .workspaces(memberships) = answer { remember(memberships) }
+    }
+
+    /// `getWorkspace` tells the word each workspace has, as the lists do (F068).
+    func remember(_ memberships: [Membership]) {
+        for membership in memberships { trainerWords[membership.workspaceID] = membership.trainerWord }
     }
 
     /// From now on `getWorkspace` answers `404` for the workspace, as the API does once the account has lost its team
@@ -192,6 +202,7 @@ actor StubAPI: APIProtocol {
 
     func answerMe(with answer: MeAnswer) {
         meAnswer = answer
+        if case let .account(_, _, _, _, _, team, _) = answer { remember(team) }
     }
 
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
@@ -320,7 +331,7 @@ extension StubAPI {
         return .ok(.init(body: .json(.init(
             id: input.path.workspaceId, name: "Workspace", slug: "workspace",
             defaultLocale: clients.workspaceDefaultLocale, timeZone: clients.workspaceTimeZone,
-            trainerWord: .trainer
+            trainerWord: trainerWords[input.path.workspaceId] ?? .trainer
         ))))
     }
 
@@ -332,7 +343,8 @@ extension StubAPI {
         case let .workspaces(memberships):
             return .ok(.init(body: .json(memberships.map {
                 .init(
-                    workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, trainerWord: .trainer, role: $0.role,
+                    workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, trainerWord: $0.trainerWord,
+                    role: $0.role,
                     teamMemberId: Self.memberID(of: $0.workspaceID),
                     capabilities: $0.capabilities ?? Self.capabilities(of: $0.role),
                     trainsHere: $0.trainsHere ?? ($0.role == .trainer)

@@ -12,7 +12,9 @@ extension Responder {
     var teamWorkspaceEntries: [(index: Int, workspace: StubServer.Workspace)] {
         let lostNumbers: Set<Int> = lock.withLock { self.lost }
         var all: [StubServer.Workspace] = []
-        if let name = signIn.workspaceName { all.append(StubServer.Workspace(name: name, role: signIn.role)) }
+        if let name = signIn.workspaceName {
+            all.append(StubServer.Workspace(name: name, role: signIn.role, trainerWord: signIn.trainerWord))
+        }
         all.append(contentsOf: signIn.otherWorkspaces)
         var entries: [(index: Int, workspace: StubServer.Workspace)] = []
         for (number, workspace) in all.enumerated() where !lostNumbers.contains(number) {
@@ -34,7 +36,7 @@ extension Responder {
         teamWorkspaceEntries.map {
             [
                 "workspaceId": Self.workspaceID($0.index), "name": $0.workspace.name, "slug": "workspace-\($0.index)",
-                "trainerWord": "trainer", "teamMemberId": Self.teamMemberID($0.index),
+                "trainerWord": $0.workspace.trainerWord, "teamMemberId": Self.teamMemberID($0.index),
                 "role": $0.workspace.role, "capabilities": capabilities(ofWorkspace: $0.index, role: $0.workspace.role),
                 // F005: a Trainer always trains; an Owner trains once the switch was put on
                 "trainsHere": trainsOverride(at: $0.index) ?? ($0.workspace.role != "owner")
@@ -124,7 +126,7 @@ extension Responder {
         }
         send(connection, status: 200, json: [
             "id": id, "name": entry.workspace.name, "slug": "workspace-\(entry.index)", "defaultLocale": "nl-NL",
-            "timeZone": "Europe/Amsterdam", "trainerWord": "trainer"
+            "timeZone": "Europe/Amsterdam", "trainerWord": entry.workspace.trainerWord
         ])
     }
 
