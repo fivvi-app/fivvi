@@ -41,7 +41,10 @@ import app.fivvi.core.kit.PillTone
 import app.fivvi.core.kit.SessionAvatar
 import app.fivvi.core.kit.SessionType
 import app.fivvi.core.kit.StatusPill
+import app.fivvi.core.kit.classLevelAccessibleName
 import app.fivvi.core.kit.initialsOf
+import app.fivvi.core.kit.levelRowInlineContent
+import app.fivvi.core.kit.levelRowText
 import app.fivvi.core.theme.numeric
 import app.fivvi.core.theme.tokens
 import app.fivvi.designtokens.Spacing
@@ -63,7 +66,8 @@ fun kindLabel(row: PersonalRow): String =
 
 /**
  * "09:00 tot 10:00, Anna de Vries, privésessie, John's Gym, Sarah Personal Training, Geannuleerd": the one name a row has for
- * TalkBack. It always names the type, whether or not the row writes it.
+ * TalkBack. It always names the type, whether or not the row writes it. A class with a level in the list names it right after
+ * the class name, "Reformer Power, Niveau: Gevorderd" (F067): the bars after the name are not read on their own.
  */
 @Composable
 internal fun spokenLabel(row: PersonalRow, trainer: String? = null): String {
@@ -71,6 +75,7 @@ internal fun spokenLabel(row: PersonalRow, trainer: String? = null): String {
     val parts = listOfNotNull(
         stringResource(R.string.my_day_spoken_time, row.endText, row.startText),
         row.title,
+        row.level?.let { classLevelAccessibleName(it) },
         kindLabel(row).lowercase(),
         row.location,
         trainer,
@@ -139,7 +144,7 @@ fun PersonalRowItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SessionAvatar(if (row.isGroup) SessionType.Group else SessionType.Private, initialsOf(row.title))
-            Details(row, trainer, Modifier.weight(1f))
+            Details(row, trainer, tagPrefix, Modifier.weight(1f))
             Times(row)
         }
         if (route != null) {
@@ -155,13 +160,9 @@ fun PersonalRowItem(
 }
 
 @Composable
-private fun Details(row: PersonalRow, trainer: String?, modifier: Modifier) {
+private fun Details(row: PersonalRow, trainer: String?, tagPrefix: String, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.space0_5)) {
-        Text(
-            row.title,
-            style = MaterialTheme.typography.headline,
-            textDecoration = if (row.isCancelled) TextDecoration.LineThrough else null,
-        )
+        RowTitle(row, tagPrefix)
         if (row.namesKind) Secondary(kindLabel(row))
         row.location?.let { Secondary(it) }
         trainer?.let { Secondary(it) }
@@ -180,6 +181,23 @@ private fun Details(row: PersonalRow, trainer: String?, modifier: Modifier) {
         }
         if (row.isCancelled) Secondary(stringResource(R.string.my_day_cancelled))
     }
+}
+
+/**
+ * The class name, with the compact level bars right after it (F067): the bars are part of the text, so a long name wraps and
+ * the bars stay beside its last word, and nothing is cut off. A private session, *Alle niveaus* and *Geen* have the name alone.
+ * The tags are `<tagPrefix>.title.<id>` and, for the bars, `<tagPrefix>.level.<id>`.
+ */
+@Composable
+private fun RowTitle(row: PersonalRow, tagPrefix: String) {
+    val level = row.level
+    Text(
+        text = levelRowText(row.title, level, level?.let { classLevelAccessibleName(it) }.orEmpty()),
+        modifier = Modifier.testTag("$tagPrefix.title.${row.id}"),
+        inlineContent = levelRowInlineContent(level, "$tagPrefix.level.${row.id}"),
+        style = MaterialTheme.typography.headline,
+        textDecoration = if (row.isCancelled) TextDecoration.LineThrough else null,
+    )
 }
 
 @Composable

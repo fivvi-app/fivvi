@@ -1,5 +1,6 @@
 package app.fivvi.pro.personal
 
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.SessionTrainer
 import app.fivvi.api.models.Trainer
 import app.fivvi.api.models.WorkspaceBusiestMoment
@@ -39,6 +40,7 @@ object StudioFixtures {
         className: String? = null,
         cancelled: Boolean = false,
         day: String = DAY,
+        level: ClassLevel? = null,
     ): WorkspaceCalendarSession {
         val isGroup = className != null
         return WorkspaceCalendarSession(
@@ -58,6 +60,7 @@ object StudioFixtures {
             booked = if (isGroup) 0 else null,
             trainer = trainer?.let { SessionTrainer(it.id, it.name) },
             className = className,
+            level = level,
             clientName = client,
         )
     }

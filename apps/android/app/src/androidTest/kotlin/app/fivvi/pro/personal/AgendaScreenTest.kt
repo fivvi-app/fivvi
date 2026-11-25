@@ -42,6 +42,7 @@ import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.PersonalSession
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
@@ -160,6 +161,54 @@ class AgendaScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
         merged(AgendaTags.MODE_WEEK).assertTextEquals(string(R.string.my_calendar_view_week))
         merged(AgendaTags.MODE_MONTH).assertTextEquals(string(R.string.my_calendar_app_view_month))
         merged(AgendaTags.TODAY).assertTextEquals(string(R.string.my_calendar_today)).assertIsDisplayed()
+    }
+
+    // F067 AC5, AC6, AC8: a row of Agenda (Week) shows the bars after the class name of a date with a level, names the level
+    // after the class name, shows nothing for *Alle niveaus* and *Geen*; a block of Dag shows no icon.
+    @Test
+    fun test_F067_AC5_aRowOfAgendaShowsTheBarsAndNamesTheLevelAfterTheClassName() {
+        val reformer = PersonalFixtures.session(
+            "reformer",
+            PersonalFixtures.johns,
+            "15:30",
+            "16:30",
+            className = "Reformer Power",
+            booked = 2,
+            capacity = 8,
+            level = ClassLevel.ADVANCED,
+        )
+        val alle = PersonalFixtures.session(
+            "alle",
+            PersonalFixtures.johns,
+            "17:00",
+            "18:00",
+            className = "Kracht",
+            booked = 0,
+            capacity = 8,
+            level = ClassLevel.ALL_LEVELS,
+        )
+        show(PersonalFixtures.septemberWeek + reformer + alle)
+        compose.waitUntilTagExists(AgendaTags.WEEK_LINE)
+
+        assertTrue(exists("${AgendaTags.ROWS}.level.${PersonalFixtures.sessionIdOf("reformer")}"))
+        val level = string(R.string.class_level_accessible_name, string(R.string.class_level_advanced))
+        assertTrue(
+            row("reformer").names().contains(string(R.string.my_day_spoken_join, "Reformer Power", level)),
+        )
+        assertFalse(exists("${AgendaTags.ROWS}.level.${PersonalFixtures.sessionIdOf("alle")}"))
+        assertFalse(row("alle").names().contains(string(R.string.class_level_accessible_name, "").trim()))
+        assertFalse(exists("${AgendaTags.ROWS}.level.${PersonalFixtures.sessionIdOf("kracht")}"))
+
+        tag(AgendaTags.MODE_DAY).performClick()
+        compose.waitUntilTagExists(AgendaTags.TIMELINE)
+        assertFalse(
+            "a block of Dag has no icon",
+            exists("${AgendaTags.ROWS}.level.${PersonalFixtures.sessionIdOf("reformer")}"),
+        )
+        assertTrue(
+            "a block of Dag still names the level for TalkBack",
+            block("reformer").names().contains(level),
+        )
     }
 
     @Test
