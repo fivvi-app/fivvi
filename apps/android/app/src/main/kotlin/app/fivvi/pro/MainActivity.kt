@@ -275,7 +275,9 @@ class MainActivity : ComponentActivity() {
         val mayManageCalendar =
             shown != null && allowed.mayShow(shown.id, MeWorkspace.Capabilities.CALENDAR_PERIOD_MANAGE)
         LaunchedEffect(shown?.id, mayManageCalendar) { studio.configure(shown?.id, mayManageCalendar) }
-        val studioWorkspace = shown?.let { StudioWorkspace(it.id, it.name, it.teamMemberId, it.trainerWord) }
+        // The word of the workspace shown is the one the refreshed list has (F068), not the one the home loaded with.
+        val shownNow = shown?.withListedWord(listed)
+        val studioWorkspace = shownNow?.let { StudioWorkspace(it.id, it.name, it.teamMemberId, it.trainerWord) }
         // Klanten (TM-02) of the workspace shown: only while the API lists `clients.view` there (F004 AC10).
         val mayViewClients = shown != null && allowed.mayShow(shown.id, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW)
         // The **+** shows *Privésessie* for whoever the API lists `session.private.manage.own` or `.any` for there (F020)
@@ -339,7 +341,7 @@ class MainActivity : ComponentActivity() {
         )
         // The workspace a screen above the tabs is in: the one shown, or the item's of a screen Vandaag opened.
         val target = if (scope == null) {
-            shown
+            shownNow
         } else {
             listed.orEmpty().firstOrNull {
                 it.id == scope

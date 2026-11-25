@@ -77,11 +77,12 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         account: app.fivvi.api.models.Trainer = john,
         team: List<app.fivvi.api.models.Trainer> = StudioFixtures.team,
         trainerWord: TrainerWord = TrainerWord.TRAINER,
+        reads: Int = 4,
     ) {
         val capabilities = MeWorkspace.Capabilities.values().toList().filter {
             role == MeWorkspace.Role.OWNER || it != MeWorkspace.Capabilities.CALENDAR_PERIOD_MANAGE
         }
-        repeat(4) {
+        repeat(reads) {
             me.answerAccount(
                 email = "${account.name.substringBefore(' ').lowercase()}@example.com",
                 name = account.name,
@@ -199,6 +200,41 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
             .assertTextEquals(string(R.string.my_day_app_studio_trainers_many, "3", plural))
         assertEquals(if (language == AppLanguage.DUTCH) "instructeurs" else "instructors", plural)
     }
+
+    // F068 AC11 (spec AC1): John has Hele studio open with *trainer*, the web sets *instructeur*, and coming back to the app
+    // reads the account again: the studio's lines say *instructeurs* (*instructors*) without a restart.
+    @Test
+    fun test_F068_AC11_theStudioDayFollowsAChangedWordWhenTheAppIsBack() {
+        launch(trainerWord = TrainerWord.TRAINER, reads = 2)
+        compose.waitUntilTagExists(StudioTags.SCOPE)
+        compose.onNodeWithTag(StudioTags.SCOPE_STUDIO).performClick()
+        compose.waitUntilTagExists(StudioTags.HEAD)
+        compose.onNodeWithTag(StudioTags.SCOPE_LINE)
+            .assertTextEquals(string(R.string.my_day_app_studio_line, words, JOHNS_GYM))
+
+        // The web sets the word; the next read of the account answers it.
+        repeat(2) {
+            me.answerAccount(
+                email = "john@example.com",
+                name = john.name,
+                workspaces = listOf(JOHNS_GYM),
+                teamMemberId = john.id,
+                trainerWords = mapOf(JOHNS_GYM to TrainerWord.INSTRUCTEUR),
+            )
+        }
+        app.backgroundAndForeground()
+
+        val plural = string(R.string.trainer_word_instructeur_words)
+        assertEquals(if (language == AppLanguage.DUTCH) "instructeurs" else "instructors", plural)
+        compose.waitUntil(UI_TIMEOUT_MILLIS) {
+            descriptionOrText(StudioTags.SCOPE_LINE) == string(R.string.my_day_app_studio_line, plural, JOHNS_GYM)
+        }
+        compose.onNodeWithTag(StudioTags.HEAD)
+            .assertTextEquals(string(R.string.my_day_app_studio_trainers_many, "3", plural))
+    }
+
+    private fun descriptionOrText(tag: String) = compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().firstOrNull()
+        ?.config?.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text }
 
     // F067 AC8: John sees the level on the rows of Hele studio, named after the class; *Alle niveaus* shows none; no control.
     @Test
