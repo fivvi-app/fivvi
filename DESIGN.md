@@ -57,12 +57,12 @@ Where the design matters, the owner decides by **talking it over in the clickabl
 
 ## The designs follow the app
 
-The prototype and `DECISIONS.md` always show the app as it is (owner, 25 November 2026). The next design round starts from them, so they never fall behind what was built.
+The designs always show the app as it is (owner, 25 November 2026). The next design round starts from them, so they never fall behind what was built. The designs are the prototype (`docs/design/prototype-v2`), the website design (`docs/design/website`) and `DECISIONS.md`.
 
-- **Same PR:** a PR that changes what a user sees, on any platform, also changes the prototype screen to match. This includes the changes that skip the design round above: a small change that follows a pattern, a fix that changes what is shown, an improvement found while building.
-- **Decisions:** a new decision gets its line in `DECISIONS.md`, and a flow in `docs/design/` that says otherwise is updated with it.
-- **Copy:** a copy fix also changes the prototype's text where it shows the same words.
-- **Review:** the reviewer checks that the prototype and the app match.
+- **The same PR:** after a PR that changes what a user sees, on any platform, the design matches what was built. Where it already matches, as for a screen built from the prototype, nothing changes. Where it doesn't, the same PR updates the screen. That holds for the changes that skip the design round above too: a small change that follows a pattern, a fix that changes what is shown, a copy fix that shows on a prototype screen.
+- **Only what the owner decided:** a visible change that nobody decided yet goes to the owner first (design first, above). It is never built and then copied into the design. A decision the owner made outside the prototype, on an issue or in chat, gets its line in `DECISIONS.md` in the same PR. An older flow doc that now disagrees is handled as in step 5 of **How**.
+- **Checked:** the builder runs step 2 of **How** on the screens it changed. The reviewer checks on every such PR, whatever the axes, that the design matches what was built ([`docs/agents/build.md`](docs/agents/build.md), **Review**).
+- **Republished:** after the merge, the main conversation republishes the "Fivvi Prototype" or "Fivvi Website" artifact from `main`, so what the owner clicks is up to date (`work` skill, phase `merged`).
 - **Out of scope:** work without a screen changes nothing here.
 
 ## Web (`apps/web`, `packages/ui`)
