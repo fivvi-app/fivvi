@@ -13,7 +13,9 @@ extension Responder {
         let lostNumbers: Set<Int> = lock.withLock { self.lost }
         var all: [StubServer.Workspace] = []
         if let name = signIn.workspaceName {
-            all.append(StubServer.Workspace(name: name, role: signIn.role, trainerWord: signIn.trainerWord))
+            all.append(StubServer.Workspace(
+                name: name, role: signIn.role, trainerWord: trainerWord ?? signIn.trainerWord
+            ))
         }
         all.append(contentsOf: signIn.otherWorkspaces)
         var entries: [(index: Int, workspace: StubServer.Workspace)] = []

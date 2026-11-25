@@ -15,6 +15,7 @@ final class Responder: @unchecked Sendable {
     var holdsSignIn = false
     var heldSignIn: [NWConnection] = []
     var storedName: String?
+    var storedTrainerWord: String?
     var trains: [Int: Bool] = [:]
     var holdsTrainerCalls = false
     var heldTrainerCalls: [@Sendable () -> Void] = []
@@ -42,6 +43,13 @@ final class Responder: @unchecked Sendable {
     var name: String? {
         get { lock.withLock { storedName } }
         set { lock.withLock { storedName = newValue } }
+    }
+
+    /// The word the first workspace uses for its trainers once a test changed it (F068, as Instellingen → Woordkeuze on the
+    /// web leaves it), or nil for the one the account started with.
+    var trainerWord: String? {
+        get { lock.withLock { storedTrainerWord } }
+        set { lock.withLock { storedTrainerWord = newValue } }
     }
 
     /// An error status every trainer-profile call is answered with (instead of the change), or nil for none.
