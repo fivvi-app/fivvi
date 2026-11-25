@@ -206,8 +206,8 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     // app stands in for the pull to refresh: both go through TodayViewModel.refresh -> HomeViewModel.refreshWorkspaces.
     @Test
     fun test_F068_AC11_theStudioDayFollowsAChangedWordWhenTheAppIsBack() {
-        // Two reads of `GET /v1/me` at start: the home's, and Vandaag's. The word changes on the third.
-        launch(trainerWord = TrainerWord.TRAINER, reads = 2)
+        // One read of `GET /v1/me` at start, the home's. On foreground the language and Vandaag both read the account.
+        launch(trainerWord = TrainerWord.TRAINER, reads = 1)
         compose.waitUntilTagExists(StudioTags.SCOPE)
         compose.onNodeWithTag(StudioTags.SCOPE_STUDIO).performClick()
         compose.waitUntilTagExists(StudioTags.HEAD)
