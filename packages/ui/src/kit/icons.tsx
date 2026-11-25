@@ -60,12 +60,11 @@ export function PersonPlusIcon(props: ComponentProps<'svg'>) {
   );
 }
 
-/** Two links of a chain: a link to copy or share. Decorative: the button has its label. */
-export function LinkIcon(props: ComponentProps<'svg'>) {
+/** An arrow leaving a tray: share. Decorative: the button has its label. */
+export function ShareIcon(props: ComponentProps<'svg'>) {
   return (
     <svg {...outline} aria-hidden="true" {...props}>
-      <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
-      <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+      <path d="M12 3.5v11M7.5 8L12 3.5 16.5 8M5 13v6.5h14V13" />
     </svg>
   );
 }

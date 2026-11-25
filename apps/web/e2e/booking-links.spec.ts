@@ -685,8 +685,9 @@ test.describe('F037 booking links on the web', () => {
     const name = copy.bookingLinks.copyBooking;
     const week = copy.workspaceCalendar;
 
-    // John opens the quick view of Tuesday's Kracht: an icon button beside Openen, named and with
-    // its tooltip by Boekingslink kopiëren.
+    // John opens the quick view of Tuesday's Kracht: a share icon button right after the class name
+    // in the header, named and with its tooltip by Boekingslink kopiëren, and not in the footer
+    // row of actions beside Openen.
     let dialog = await openQuickView(page, slug, tuesday(), KRACHT);
     const open = dialog.getByRole('link', { name: week.open });
     await expect(open).toBeVisible();
@@ -695,6 +696,32 @@ test.describe('F037 booking links on the web', () => {
     await expect(copyButton).toHaveText('');
     await expect(copyButton).toHaveAttribute('title', name);
     await expect(copyButton.locator('svg')).toHaveCount(1);
+    await expect(copyButton.locator('svg path')).toHaveAttribute(
+      'd',
+      'M12 3.5v11M7.5 8L12 3.5 16.5 8M5 13v6.5h14V13',
+    );
+    await expect(
+      dialog.getByTestId('quick-view-title-row').getByRole('button', { name }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByTestId('quick-view-actions').getByRole('button', { name }),
+    ).toHaveCount(0);
+    await expect(
+      dialog.getByTestId('quick-view-actions').getByRole('link', { name: week.open }),
+    ).toBeVisible();
+    // Focus starts on Openen, not on the share button, so Enter opens the date.
+    await expect(open).toBeFocused();
+    const title = dialog.getByRole('heading', { name: KRACHT });
+    const titleBox = await title.boundingBox();
+    const buttonBox = await copyButton.boundingBox();
+    if (!titleBox || !buttonBox) throw new Error('the title and the button have a box');
+    // On one row: the button starts where the title ends and is centred on it.
+    const gap = buttonBox.x - (titleBox.x + titleBox.width);
+    expect(gap).toBeGreaterThanOrEqual(-1);
+    expect(gap).toBeLessThan(16);
+    expect(
+      Math.abs(buttonBox.y + buttonBox.height / 2 - (titleBox.y + titleBox.height / 2)),
+    ).toBeLessThan(6);
     await expectNoAxeViolations(page, `WC-05 with Boekingslink kopiëren in ${appLocale}`);
 
     await copyButton.click();

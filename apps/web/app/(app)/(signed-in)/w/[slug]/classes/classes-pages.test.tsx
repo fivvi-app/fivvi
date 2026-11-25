@@ -686,7 +686,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
     const html = render(locale, <CopyBookingLink workspaceId="w1" sessionId="s1" variant="icon" />);
     const name = escapeHtml(copy.bookingLinks.copyBooking);
 
-    it('AC8: shows a link icon only, named and given its tooltip by Boekingslink kopiëren', () => {
+    it('AC8: shows a share icon only, named and given its tooltip by Boekingslink kopiëren', () => {
       expect(html).toMatch(new RegExp(`<button[^>]*aria-label="${name}"[^>]*>`));
       expect(html).toMatch(new RegExp(`<button[^>]*title="${name}"[^>]*>`));
       expect(html).toMatch(/<button[^>]*><svg[^>]*aria-hidden="true"/);
