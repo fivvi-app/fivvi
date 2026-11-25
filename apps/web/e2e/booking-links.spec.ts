@@ -701,9 +701,16 @@ test.describe('F037 booking links on the web', () => {
       'M12 3.5v11M7.5 8L12 3.5 16.5 8M5 13v6.5h14V13',
     );
     await expect(
-      dialog.locator('[data-slot="dialog-header"]').getByRole('button', { name }),
+      dialog.getByTestId('quick-view-title-row').getByRole('button', { name }),
     ).toBeVisible();
-    await expect(open.locator('xpath=..').getByRole('button', { name })).toHaveCount(0);
+    await expect(
+      dialog.getByTestId('quick-view-actions').getByRole('button', { name }),
+    ).toHaveCount(0);
+    await expect(
+      dialog.getByTestId('quick-view-actions').getByRole('link', { name: week.open }),
+    ).toBeVisible();
+    // Focus starts on Openen, not on the share button, so Enter opens the date.
+    await expect(open).toBeFocused();
     const title = dialog.getByRole('heading', { name: KRACHT });
     const titleBox = await title.boundingBox();
     const buttonBox = await copyButton.boundingBox();
