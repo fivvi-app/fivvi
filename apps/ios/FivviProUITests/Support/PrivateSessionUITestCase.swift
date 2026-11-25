@@ -69,16 +69,17 @@ class PrivateSessionUITestCase: SignInUITestCase {
     /// The seeded session, opened from Anna's profile: *Klanten* → Anna → *Komende sessies* → its row.
     func openSeededSession(_ app: XCUIApplication) {
         let open = app.buttons["home.openClients"]
-        XCTAssertTrue(open.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(open.waitUntilExists(timeout: timeout), "Home shows the Klanten button")
         let anna = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH 'clients.row.' AND label BEGINSWITH 'Anna'")
         ).firstMatch
-        XCTAssertTrue(open.tap(until: anna, timeout: timeout), requestLog)
-        anna.tap()
+        XCTAssertTrue(open.tap(until: anna, timeout: timeout), "the client list shows Anna: \(requestLog)")
+        // Each tap that opens a screen is repeated once when a slow simulator dropped it (#596, #1596: the tap on the
+        // session row was dropped, and the wait for the session screen ended the nightly run).
         let row = any("clientProfile.upcoming.\(StubSessionRoutes.seededSessionID)", in: app)
-        XCTAssertTrue(row.waitUntilExists(timeout: timeout), requestLog)
-        row.tap()
-        XCTAssertTrue(app.staticTexts["session.title"].waitUntilExists(timeout: timeout))
+        XCTAssertTrue(anna.tap(until: row, timeout: timeout), "Anna's profile lists the seeded session: \(requestLog)")
+        let title = app.staticTexts["session.title"]
+        XCTAssertTrue(row.tap(until: title, timeout: timeout), "the session row opens the session: \(requestLog)")
     }
 
     func nextFullHour() -> (date: String, time: String) {

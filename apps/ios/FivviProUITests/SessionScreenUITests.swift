@@ -12,21 +12,25 @@ final class SessionScreenUITests: PrivateSessionUITestCase {
         XCTAssertEqual(
             app.staticTexts["session.title"].label, String(format: catalog["sessions.page.heading"], "Anna de Vries")
         )
-        app.navigationBars.buttons.firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["clientProfile.upcomingTitle"].waitUntilExists(timeout: timeout))
-        XCTAssertEqual(app.staticTexts["clientProfile.upcomingTitle"].label, catalog["clients.profile.upcomingTitle"])
-        XCTAssertFalse(app.staticTexts["clientProfile.upcomingEmpty"].exists)
+        let upcomingTitle = app.staticTexts["clientProfile.upcomingTitle"]
+        XCTAssertTrue(
+            app.navigationBars.buttons.firstMatch.tap(until: upcomingTitle, timeout: timeout),
+            "the back button of the session screen shows Anna's profile with its coming sessions: \(requestLog)"
+        )
+        XCTAssertEqual(upcomingTitle.label, catalog["clients.profile.upcomingTitle"])
+        XCTAssertFalse(app.staticTexts["clientProfile.upcomingEmpty"].exists, "Anna has a coming session")
         let row = any("clientProfile.upcoming.\(StubSessionRoutes.seededSessionID)", in: app)
         XCTAssertTrue(row.label.contains("Sarah Visser"), "the row names the trainer: \(row.label)")
 
-        app.buttons["clientProfile.back"].tap()
         let mark = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH 'clients.row.' AND label BEGINSWITH 'Mark'")
         ).firstMatch
-        XCTAssertTrue(mark.waitUntilExists(timeout: timeout))
-        mark.tap()
+        XCTAssertTrue(
+            app.buttons["clientProfile.back"].tap(until: mark, timeout: timeout),
+            "the back button of the profile shows the client list with Mark"
+        )
         let empty = app.staticTexts["clientProfile.upcomingEmpty"]
-        XCTAssertTrue(empty.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(mark.tap(until: empty, timeout: timeout), "Mark has no coming session, so his profile says so")
         XCTAssertEqual(empty.label, catalog["clients.profile.upcomingEmpty"])
     }
 
