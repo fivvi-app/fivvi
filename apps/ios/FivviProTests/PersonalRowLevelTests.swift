@@ -37,7 +37,7 @@ final class PersonalRowLevelTests: XCTestCase {
     func test_F067_AC5_aGevorderdRowHasThreeBarsAndTheLevelInItsOneLabelAfterTheClassName() {
         let advanced = row(.advanced)
         XCTAssertEqual(advanced.level, .advanced)
-                let label = advanced.spokenLabel
+        let label = advanced.spokenLabel
         let name = label.range(of: "Reformer Power")
         let level = label.range(of: accessibleName("advanced"))
         XCTAssertNotNil(name)
