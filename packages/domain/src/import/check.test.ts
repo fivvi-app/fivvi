@@ -107,21 +107,21 @@ describe('E015 checking the clients sheet', () => {
       column: 'trainer_email',
     });
     expect(describeProblem(at('trainer-unknown'), 'nl-NL', 'trainer')).toBe(
-      "Rij 15: nobody@example.com is niet een trainer van John's Gym.",
+      "Rij 15: nobody@example.com hoort niet bij de trainers van John's Gym.",
     );
     expect(describeProblem(at('trainer-unknown'), 'en', 'trainer')).toBe(
-      "Row 15: nobody@example.com isn't a trainer of John's Gym.",
+      "Row 15: nobody@example.com isn't one of the trainers at John's Gym.",
     );
 
     // The problem names the role with the workspace's word (F068, AC6), in the Owner's language.
     expect(describeProblem(at('trainer-unknown'), 'nl-NL', 'instructeur')).toBe(
-      "Rij 15: nobody@example.com is niet een instructeur van John's Gym.",
+      "Rij 15: nobody@example.com hoort niet bij de instructeurs van John's Gym.",
     );
     expect(describeProblem(at('trainer-unknown'), 'en', 'instructeur')).toBe(
-      "Row 15: nobody@example.com isn't an instructor of John's Gym.",
+      "Row 15: nobody@example.com isn't one of the instructors at John's Gym.",
     );
     expect(describeProblem(at('trainer-unknown'), 'en', 'docent')).toBe(
-      "Row 15: nobody@example.com isn't a teacher of John's Gym.",
+      "Row 15: nobody@example.com isn't one of the teachers at John's Gym.",
     );
 
     expect(at('status-not-supported')).toMatchObject({

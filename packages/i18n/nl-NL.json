@@ -400,7 +400,7 @@
       "languageNotSupported": "Rij {row}: taal moet nl of en zijn.",
       "sheetMissing": "Het tabblad {sheet} ontbreekt.",
       "statusNotSupported": "Rij {row}: status moet active of inactive zijn.",
-      "trainerUnknown": "Rij {row}: {email} is niet {aWord} van {workspace}.",
+      "trainerUnknown": "Rij {row}: {email} hoort niet bij de {words} van {workspace}.",
       "valueMissing": "Rij {row}: {column} ontbreekt."
     }
   },

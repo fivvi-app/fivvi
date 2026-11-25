@@ -400,7 +400,7 @@
       "languageNotSupported": "Row {row}: language must be nl or en.",
       "sheetMissing": "The {sheet} sheet is missing.",
       "statusNotSupported": "Row {row}: status must be active or inactive.",
-      "trainerUnknown": "Row {row}: {email} isn't {aWord} of {workspace}.",
+      "trainerUnknown": "Row {row}: {email} isn't one of the {words} at {workspace}.",
       "valueMissing": "Row {row}: {column} is missing."
     }
   },
