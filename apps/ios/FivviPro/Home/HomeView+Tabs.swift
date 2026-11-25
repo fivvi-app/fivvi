@@ -18,10 +18,19 @@ enum ProTab: Hashable {
     }
 }
 
-/// What *Hele studio* depends on: the workspace on screen and whether its calendar may be managed.
+/// What *Hele studio* depends on: the workspace on screen, the word it uses for its trainers (F068: the account is read
+/// again and the word may have changed on the web; `configure` then only takes the new word, it keeps the day on screen)
+/// and whether its calendar may be managed.
 struct StudioKey: Hashable {
     let workspaceID: String?
+    let trainerWord: Components.Schemas.TrainerWord?
     let canManage: Bool
+
+    init(workspace: CurrentWorkspace?, canManage: Bool) {
+        workspaceID = workspace?.id
+        trainerWord = workspace?.trainerWord
+        self.canManage = canManage
+    }
 }
 
 extension HomeView {
@@ -33,7 +42,7 @@ extension HomeView {
     }
 
     var studioKey: StudioKey {
-        StudioKey(workspaceID: account.workspace?.id, canManage: account.capabilities.allows(.calendar_manage))
+        StudioKey(workspace: account.workspace, canManage: account.capabilities.allows(.calendar_manage))
     }
 
     /// TD-01 *Vandaag*, with its own stack: a row opens TD-02 or TD-03 of the item's workspace, and *‹ Vandaag* returns.
