@@ -828,6 +828,7 @@ export function WorkspaceCalendarView({
       <QuickView
         item={selected}
         slug={slug}
+        workspaceId={workspaceId}
         access={access}
         trainerWord={trainerWord}
         onClose={() => setSelected(null)}

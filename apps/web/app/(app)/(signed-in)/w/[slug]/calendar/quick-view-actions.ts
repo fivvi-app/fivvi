@@ -1,3 +1,4 @@
+import { offersBookingLink } from '../classes/copy-date-link';
 import { type AssignKind, assignKind } from '../sessions/trainer-dialog-model';
 import type { CalendarAccess, CalendarItem } from './quick-view';
 
@@ -17,6 +18,8 @@ export interface QuickViewActions {
   cancel: boolean;
   /** *Les annuleren* (CO-03, F026): a class date that is not cancelled, for a person who manages classes (the Owner). */
   cancelClass: boolean;
+  /** *Boekingslink kopiëren* (F037, WC-05): an icon button on a class date that is scheduled and has not begun, for who has `booking_link.copy` (the Owner and the Trainers, also on a colleague's class date). */
+  copyLink: boolean;
 }
 
 /**
@@ -25,8 +28,9 @@ export interface QuickViewActions {
  * session it is, not what the role may see elsewhere.
  */
 export function quickViewActions(
-  item: Pick<CalendarItem, 'type' | 'status' | 'trainer' | 'clients' | 'series'>,
+  item: Pick<CalendarItem, 'type' | 'status' | 'startsAt' | 'trainer' | 'clients' | 'series'>,
   access: CalendarAccess,
+  now: Date = new Date(),
 ): QuickViewActions {
   const isPrivate = item.type === 'private';
   const cancelled = item.status === 'cancelled';
@@ -43,5 +47,6 @@ export function quickViewActions(
     assign: access.canAssign ? assignKind(item) : null,
     cancel: isPrivate && !cancelled && (access.canCancelAny || (access.canCancelOwn && own)),
     cancelClass: !isPrivate && !cancelled && access.canChangeClasses,
+    copyLink: access.canCopyLink && offersBookingLink(item, now),
   };
 }

@@ -11,6 +11,7 @@ import { ClassList } from './class-list';
 import { ClassView } from './class-view';
 import type { ClassInput } from './classes-client';
 import { ClassesProvider } from './classes-provider';
+import { CopyBookingLink } from './copy-booking-link';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
@@ -678,6 +679,18 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
 
     it('a date that offers no link (cancelled, past) has no Boekingslink kopiëren', () => {
       expect(view(date, true, false)).not.toContain(escapeHtml(copy.bookingLinks.copyBooking));
+    });
+  });
+
+  describe('WC-05 Boekingslink kopiëren as an icon button (F037)', () => {
+    const html = render(locale, <CopyBookingLink workspaceId="w1" sessionId="s1" variant="icon" />);
+    const name = escapeHtml(copy.bookingLinks.copyBooking);
+
+    it('AC8: shows a link icon only, named and given its tooltip by Boekingslink kopiëren', () => {
+      expect(html).toMatch(new RegExp(`<button[^>]*aria-label="${name}"[^>]*>`));
+      expect(html).toMatch(new RegExp(`<button[^>]*title="${name}"[^>]*>`));
+      expect(html).toMatch(/<button[^>]*><svg[^>]*aria-hidden="true"/);
+      expect(html).not.toContain(`>${name}<`);
     });
   });
 
