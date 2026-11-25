@@ -1086,6 +1086,11 @@
     <string name="settings_location_types_organization_location">Eigen locatie</string>
     <string name="settings_location_types_other">Anders</string>
     <string name="settings_location_types_outdoor">Buiten</string>
+    <string name="settings_wording_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="settings_wording_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="settings_wording_help">Hoe noem je de mensen die lesgeven? Klanten en je team zien dit woord overal in %1$s: in het rooster, de app, e-mails en op de poster. Pilatesstudio\'s kiezen vaak instructeur, yogastudio\'s docent.</string>
+    <string name="settings_wording_saved">Opgeslagen.</string>
+    <string name="settings_wording_title">Woordkeuze</string>
     <!-- Button on the second step that goes back to the email field. -->
     <string name="sign_in_change_email">E-mailadres wijzigen</string>
     <!-- Under the heading of the second step. {email} is the address that was entered. Deliberately does not say whether an account exists (no account enumeration). -->

@@ -784,15 +784,31 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
       await expectNoAxeViolations(page, `the Trainers dialog in ${scheme} and ${appLocale}`);
       await dialog.getByRole('button', { name: copy.team.removeDialog.cancel }).click();
 
-      // General: one card, the title and Save on one line, a refused name red with the message
-      // under it, a saved name in the success colour.
+      // General: the card with the name, the title and Save on one line, a refused name red with
+      // the message under it, a saved name in the success colour; under it the Woordkeuze card (F068).
       await page.goto(`/w/${slug}/settings/general`);
       await expect(
         page.getByRole('heading', { level: 2, name: copy.settingsGeneral.title }),
       ).toBeVisible();
-      const card = page.locator('[data-slot="card"]');
-      await expect(card).toHaveCount(1);
-      await expect(card).toHaveCSS('background-color', tokenColour('web.trainer.card', scheme));
+      const cards = page.locator('[data-slot="card"]');
+      await expect(cards).toHaveCount(2);
+      const card = cards.first();
+      for (const each of await cards.all()) {
+        await expect(each).toHaveCSS('background-color', tokenColour('web.trainer.card', scheme));
+      }
+      // Woordkeuze: four tiles of 10px corners, the chosen one outlined in the foreground colour
+      // (the prototype's `.w-terms button.on`).
+      const tiles = page.locator('label').filter({ has: page.getByRole('radio') });
+      await expect(tiles).toHaveCount(4);
+      await expect(tiles.first()).toHaveCSS('border-radius', '10px');
+      await expect(tiles.first()).toHaveCSS(
+        'border-color',
+        tokenColour('web.trainer.foreground', scheme),
+      );
+      await expect(tiles.nth(1)).not.toHaveCSS(
+        'border-color',
+        tokenColour('web.trainer.foreground', scheme),
+      );
       // The page title above the card: *Settings*, 20px as the prototype's `.w-top h1`.
       const pageTitle = page.getByRole('heading', { level: 1 });
       await expect(pageTitle).toHaveText(copy.workspaceNav.settings);

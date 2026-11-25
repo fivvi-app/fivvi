@@ -1156,6 +1156,15 @@
       "outdoor": "Buiten"
     }
   },
+  "settingsWording": {
+    "errors": {
+      "generic": "Er ging iets mis. Probeer het opnieuw.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw."
+    },
+    "help": "Hoe noem je de mensen die lesgeven? Klanten en je team zien dit woord overal in {workspace}: in het rooster, de app, e-mails en op de poster. Pilatesstudio's kiezen vaak instructeur, yogastudio's docent.",
+    "saved": "Opgeslagen.",
+    "title": "Woordkeuze"
+  },
   "signIn": {
     "changeEmail": "E-mailadres wijzigen",
     "checkEmailBody": "Als {email} bij ons bekend is, ontvang je een e-mail met een code en een inloglink.",

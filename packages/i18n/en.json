@@ -1156,6 +1156,15 @@
       "outdoor": "Outdoors"
     }
   },
+  "settingsWording": {
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "noConnection": "No connection. Check your internet and try again."
+    },
+    "help": "What do you call the people who teach? Clients and your team see this word everywhere in {workspace}: in the timetable, the app, emails and on the poster. Pilates studios often choose instructor, yoga studios teacher.",
+    "saved": "Saved.",
+    "title": "Wording"
+  },
   "signIn": {
     "changeEmail": "Change email address",
     "checkEmailBody": "If {email} is registered, you'll receive an email with a code and a sign-in link.",

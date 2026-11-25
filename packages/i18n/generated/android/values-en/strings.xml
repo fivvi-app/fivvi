@@ -903,6 +903,11 @@
     <string name="settings_location_types_organization_location">Own location</string>
     <string name="settings_location_types_other">Other</string>
     <string name="settings_location_types_outdoor">Outdoors</string>
+    <string name="settings_wording_errors_generic">Something went wrong. Try again.</string>
+    <string name="settings_wording_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="settings_wording_help">What do you call the people who teach? Clients and your team see this word everywhere in %1$s: in the timetable, the app, emails and on the poster. Pilates studios often choose instructor, yoga studios teacher.</string>
+    <string name="settings_wording_saved">Saved.</string>
+    <string name="settings_wording_title">Wording</string>
     <string name="sign_in_change_email">Change email address</string>
     <string name="sign_in_check_email_body">If %1$s is registered, you\'ll receive an email with a code and a sign-in link.</string>
     <string name="sign_in_check_email_body_app">If %1$s is registered, you\'ll receive an email with a code.</string>
