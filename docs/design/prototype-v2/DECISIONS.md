@@ -7,7 +7,7 @@
 | **Scope** | Fivvi Pro and the client app Fivvi (iOS and Android), trainer web, client web; the public website in [§9](#9-public-website) |
 | **Replaces** | [`visual-direction.md`](../visual-direction.md) v1 (muted violet), and the parts of the flows and the IA listed in [§8](#8-what-this-changes-in-existing-documents) |
 
-This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed; the website's are in [§9](#9-public-website).
+This is the record of what the owner and the agent decided while clicking through the prototype, and of the owner's design decisions made on an issue or in chat. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed; the website's are in [§9](#9-public-website).
 
 ## 1. How we decide UI
 

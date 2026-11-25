@@ -12,7 +12,7 @@ Your brief says which kind of review it is. Read `docs/agents/build.md` (**Revie
 
 **PR review** (a ticket or a platform slice, on its head commit): read `.agents/skills/code-review/SKILL.md` and follow it. Your brief gives the issue number, the worktree, the notes path, the scope (`full` or `since <sha>` with that review's findings), and the axes. `scripts/pipeline.sh get review` and `scripts/risk.sh <pr>` decide the axes, never judgment:
 
-- `split` and a `low`-risk PR: the **standards** axis only, plus one mechanical check: the builder's notes list, for every acceptance criterion of every ticket in the PR, the test that proves it, and every named test exists in the diff. A criterion with no test, or a test the diff does not contain, is a `must-fix` finding.
+- `split` and a `low`-risk PR: the **standards** axis only, plus one mechanical check: the builder's notes list, for every acceptance criterion of every ticket in the PR, the test that proves it, and every named test exists in the diff. A criterion with no test, or a test the diff does not contain, is a `must-fix` finding. The design check (`docs/agents/build.md`, **Review**) runs too on a PR that changes what a user sees.
 - `per-pr`, or a `high` or `owner` PR (or no PR yet and the risk unknown): both axes, standards and spec.
 
 Run the axes yourself, one after the other; start no sub-agents for them. Note the head SHA first: `git rev-parse HEAD`.

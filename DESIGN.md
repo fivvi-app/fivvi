@@ -61,8 +61,8 @@ The designs always show the app as it is (owner, 25 November 2026). The next des
 
 - **The same PR:** after a PR that changes what a user sees, on any platform, the design matches what was built. Where it already matches, as for a screen built from the prototype, nothing changes. Where it doesn't, the same PR updates the screen. That holds for the changes that skip the design round above too: a small change that follows a pattern, a fix that changes what is shown, a copy fix that shows on a prototype screen.
 - **Only what the owner decided:** a visible change that nobody decided yet goes to the owner first (design first, above). It is never built and then copied into the design. A decision the owner made outside the prototype, on an issue or in chat, gets its line in `DECISIONS.md` in the same PR. An older flow doc that now disagrees is handled as in step 5 of **How**.
-- **Checked:** the builder runs step 2 of **How** on the screens it changed. The reviewer checks on every such PR, whatever the axes, that the design matches what was built ([`docs/agents/build.md`](docs/agents/build.md), **Review**).
-- **Republished:** after the merge, the main conversation republishes the "Fivvi Prototype" or "Fivvi Website" artifact from `main`, so what the owner clicks is up to date (`work` skill, phase `merged`).
+- **Checked:** the builder runs the checks of step 2 of **How** on the screens it changed, headless in Playwright as `docs/design/website/capture.cjs` does; for the website design that means the changed pages in both languages and themes. The reviewer checks on every such PR, whatever the axes, that the design matches what was built ([`docs/agents/build.md`](docs/agents/build.md), **Review**).
+- **Republished:** after the merge, the main conversation republishes the "Fivvi Prototype" or "Fivvi Website" artifact from `main`, so what the owner clicks is up to date (`work` skill, phase `merged`). Only Claude Code's main conversation has the artifact tool; Copilot and Codex report it to the owner instead.
 - **Out of scope:** work without a screen changes nothing here.
 
 ## Web (`apps/web`, `packages/ui`)
