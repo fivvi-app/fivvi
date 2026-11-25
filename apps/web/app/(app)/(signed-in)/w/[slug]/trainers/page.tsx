@@ -9,9 +9,14 @@ import { workspaceOf } from '../../../../../../server/workspace-of';
 import { NoPermission } from '../settings/general/no-permission';
 import { TeamList } from './team-list';
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<'/w/[slug]/trainers'>): Promise<Metadata> {
   const t = await getTranslations('team');
-  return { title: t('title') };
+  const { trainerWord } = await workspaceOf((await params).slug);
+  return {
+    title: t('title', { ...trainerWordForms(trainerWord, catalogLocale(await getLocale())) }),
+  };
 }
 
 /**

@@ -8278,13 +8278,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ invited you to become a trainer at %2$@."
+            "value" : "%2$@ invited you to become %1$@ at %3$@."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ nodigt je uit om trainer te worden bij %2$@."
+            "value" : "%2$@ nodigt je uit om %1$@ te worden bij %3$@."
           }
         }
       }
@@ -8295,13 +8295,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You've been invited to become a trainer at %1$@."
+            "value" : "You've been invited to become %1$@ at %2$@."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Je bent uitgenodigd om trainer te worden bij %1$@."
+            "value" : "Je bent uitgenodigd om %1$@ te worden bij %2$@."
           }
         }
       }
@@ -15968,13 +15968,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainer"
+            "value" : "%1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainer"
+            "value" : "%1$@"
           }
         }
       }
@@ -16980,13 +16980,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invite trainer"
+            "value" : "Invite %1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainer uitnodigen"
+            "value" : "Nodig %1$@ uit"
           }
         }
       }
@@ -17102,13 +17102,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ will no longer have access to %2$@ as a trainer. What %1$@ has as a client, such as bookings, stays."
+            "value" : "%1$@ loses the %2$@ role at %3$@. What %1$@ has as a client, such as bookings, stays."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ kan niet meer als trainer bij %2$@. Wat %1$@ als klant heeft, zoals boekingen, blijft."
+            "value" : "%1$@ verliest de rol van %2$@ bij %3$@. Wat %1$@ als klant heeft, zoals boekingen, blijft."
           }
         }
       }
@@ -17208,13 +17208,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ is now a trainer."
+            "value" : "%2$@ is now %1$@."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ is nu trainer."
+            "value" : "%2$@ is nu %1$@."
           }
         }
       }
@@ -17294,13 +17294,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Make trainer"
+            "value" : "Make me %1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainer maken"
+            "value" : "Maak mij %1$@"
           }
         }
       }
@@ -17311,13 +17311,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Make yourself a trainer?"
+            "value" : "Make yourself %1$@?"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jezelf trainer maken?"
+            "value" : "Jezelf %1$@ maken?"
           }
         }
       }
@@ -17329,13 +17329,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainers"
+            "value" : "%1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainers"
+            "value" : "%1$@"
           }
         }
       }
@@ -19825,13 +19825,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainers"
+            "value" : "%1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainers"
+            "value" : "%1$@"
           }
         }
       }

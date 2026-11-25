@@ -533,6 +533,7 @@ test.describe('E020 trainer web shell', () => {
   });
 
   test('AC15: the sidebar is the sidebar fill, marks the section the person is on and shows the workspace logo and name', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -558,7 +559,7 @@ test.describe('E020 trainer web shell', () => {
 
       // The current section has the muted row, dark text and its icon in the accent text.
       const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
-      const current = nav.getByRole('link', { name: copy.workspaceNav.trainers });
+      const current = nav.getByRole('link', { name: wording.nav });
       await expect(current).toHaveAttribute('aria-current', 'page');
       await expect(current).toHaveCSS('background-color', tokenColour('web.trainer.muted', scheme));
       await expect(current).toHaveCSS('color', tokenColour('web.trainer.foreground', scheme));
@@ -733,6 +734,7 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
   });
 
   test('AC15: Trainers and the three settings pages match the prototype’s colours and shapes and pass axe, in light and dark', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -752,7 +754,7 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
       // Trainers: the team is the rows of one card, an avatar on the muted fill before each name,
       // the people who train with the neutral pill, the address as the quiet line.
       await page.goto(`/w/${slug}/trainers`);
-      await expect(page.getByRole('heading', { level: 1, name: copy.team.title })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: wording.title })).toBeVisible();
       const table = page.getByRole('table');
       await expect(table.locator('xpath=ancestor::div[@data-slot="card"]')).toHaveCSS(
         'background-color',
@@ -768,7 +770,7 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
       ).toBe('"JO"');
       expect((await avatar.boundingBox())?.width).toBe(28);
       const pill = table.locator('[data-slot="status-pill"]').first();
-      await expect(pill).toHaveText(copy.team.badge.trainer);
+      await expect(pill).toHaveText(wording.badge);
       await expect(pill).toHaveCSS('background-color', tokenColour('status.neutral.bg', scheme));
       await expect(pill).toHaveCSS('color', tokenColour('status.neutral.fg', scheme));
       await expect(table.getByRole('columnheader').first()).toHaveCSS(
@@ -890,6 +892,7 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
   // AC15 (#590): the trainer web is the compact density, as the prototype draws it
   // (`.w-input{height:36px}`, 14px text), not the touch density of the public and client pages.
   test('AC15: the trainer web runs at the compact density: controls 36px, body text 14px', async ({
+    wording,
     page,
     context,
     messages: copy,
@@ -904,7 +907,7 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
 
     // Trainers: the role menu and the Remove button, and the text of a row.
     await page.goto(`/w/${slug}/trainers`);
-    await expect(page.getByRole('heading', { level: 1, name: copy.team.title })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: wording.title })).toBeVisible();
     await expect(page.getByLabel(copy.team.roleMenu.replace('{name}', 'Sarah'))).toHaveCSS(
       'height',
       '36px',

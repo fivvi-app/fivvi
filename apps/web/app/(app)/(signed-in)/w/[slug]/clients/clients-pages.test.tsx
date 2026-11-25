@@ -1,5 +1,5 @@
 import type { Schemas } from '@fivvi/contract';
-import { locales, messages } from '@fivvi/i18n';
+import { locales, messages, trainerWordForms } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { OWNER, TRAINER } from '../../../../../../test/capabilities';
 import { escapeHtml, render } from '../../../../../../test/render';
@@ -36,6 +36,7 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
     render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
@@ -115,6 +116,7 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
     const frameHtml = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"

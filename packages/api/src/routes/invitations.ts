@@ -26,6 +26,7 @@ import {
   validationErrorResponse,
 } from '../errors.ts';
 import { hashInvitationToken } from '../invitations/token.ts';
+import { TrainerWordSchema } from '../schemas.ts';
 import { MyWorkspaceSchema } from './me.ts';
 
 // Answering a trainer invitation (F011, spec #422), second slice: the person who holds the link
@@ -58,6 +59,8 @@ const TokenParamsSchema = z.object({
 const InvitationPreviewSchema = z
   .object({
     workspaceName: z.string().openapi({ description: 'The name of the workspace that invites.' }),
+    // A bare `TrainerWordSchema`, like `defaultLocale` elsewhere (#223).
+    trainerWord: TrainerWordSchema,
     inviterName: z
       .string()
       .nullable()
@@ -122,7 +125,7 @@ const getInvitationRoute = defineRoute(
     summary: 'What an invitation link is for',
     description:
       'Anyone with the link (signed in or not) reads the name of the workspace that invites, the ' +
-      'name of the inviter, the address the invitation is for (also masked) and, when a session ' +
+      'word it uses for its trainers (`trainerWord`, F068), the name of the inviter, the address the invitation is for (also masked) and, when a session ' +
       'is sent, whether the invitation is for that account (`forYou`), and nothing else. An ' +
       'invitation that is expired, withdrawn, used or unknown answers one neutral `404`, with ' +
       'no address.',
@@ -227,6 +230,7 @@ export function registerInvitations(app: OpenAPIHono, dependencies: ApiDependenc
             .outcome === 'allowed';
         return {
           workspaceName: workspace.name,
+          trainerWord: workspace.trainerWord,
           inviterName: inviterName ? inviterName : null,
           email: invitation.email,
           maskedEmail: maskEmail(invitation.email),

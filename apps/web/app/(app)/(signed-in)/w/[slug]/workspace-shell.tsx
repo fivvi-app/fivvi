@@ -94,7 +94,11 @@ export async function WorkspaceShell({
         name={name}
         slug={slug}
         teamRole={role}
-        workspaces={me.workspaces}
+        trainerWord={trainerWordForms(trainerWord, locale)}
+        workspaces={me.workspaces.map((workspace) => ({
+          ...workspace,
+          trainerWord: trainerWordForms(workspace.trainerWord, locale),
+        }))}
         canCreateWorkspace={me.canCreateWorkspace}
         capabilities={capabilities}
         personName={me.name}

@@ -702,8 +702,8 @@
       "generic": "Something went wrong. Try again.",
       "noConnection": "No connection. Check your internet and try again."
     },
-    "intro": "{inviter} invited you to become a trainer at {workspace}.",
-    "introAnonymous": "You've been invited to become a trainer at {workspace}.",
+    "intro": "{inviter} invited you to become {aWord} at {workspace}.",
+    "introAnonymous": "You've been invited to become {aWord} at {workspace}.",
     "noLongerValid": "This invitation is no longer valid. Ask for a new invitation.",
     "signOutAndContinue": "Sign out and continue",
     "title": "Invitation",
@@ -1889,7 +1889,7 @@
   "team": {
     "actionsColumn": "Actions",
     "badge": {
-      "trainer": "Trainer"
+      "trainer": "{Word}"
     },
     "emailColumn": "Email address",
     "errors": {
@@ -1950,7 +1950,7 @@
       "sendAgain": "Send again",
       "sent": "Invitation sent to {name}.",
       "submit": "Send",
-      "title": "Invite trainer"
+      "title": "Invite {aWord}"
     },
     "makeOwnerDialog": {
       "body": "An owner can do everything in {workspace}, including the team, the settings and the money.",
@@ -1961,7 +1961,7 @@
     "nameColumn": "Name",
     "remove": "Remove from team",
     "removeDialog": {
-      "body": "{name} will no longer have access to {workspace} as a trainer. What {name} has as a client, such as bookings, stays.",
+      "body": "{name} loses the {word} role at {workspace}. What {name} has as a client, such as bookings, stays.",
       "cancel": "Cancel",
       "confirm": "Remove",
       "title": "Remove {name} from the team?"
@@ -1969,17 +1969,17 @@
     "removed": "{name} has been removed from the team.",
     "roleChanged": {
       "owner": "{name} is now an owner.",
-      "trainer": "{name} is now a trainer."
+      "trainer": "{name} is now {aWord}."
     },
     "roleColumn": "Role",
     "roleMenu": "Role of {name}",
     "stepDownDialog": {
       "body": "You will no longer be an owner of {workspace}.",
       "cancel": "Cancel",
-      "confirm": "Make trainer",
-      "title": "Make yourself a trainer?"
+      "confirm": "Make me {aWord}",
+      "title": "Make yourself {aWord}?"
     },
-    "title": "Trainers"
+    "title": "{Words}"
   },
   "trainerWord": {
     "coach": {
@@ -2139,7 +2139,7 @@
     "settingsGeneral": "General",
     "settingsLanguage": "Language",
     "settingsLocation": "Location",
-    "trainers": "Trainers",
+    "trainers": "{Words}",
     "workspaceWithRole": "{name} · {role}"
   },
   "workspaceSwitcher": {

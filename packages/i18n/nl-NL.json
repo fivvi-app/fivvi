@@ -702,8 +702,8 @@
       "generic": "Er ging iets mis. Probeer het opnieuw.",
       "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw."
     },
-    "intro": "{inviter} nodigt je uit om trainer te worden bij {workspace}.",
-    "introAnonymous": "Je bent uitgenodigd om trainer te worden bij {workspace}.",
+    "intro": "{inviter} nodigt je uit om {aWord} te worden bij {workspace}.",
+    "introAnonymous": "Je bent uitgenodigd om {aWord} te worden bij {workspace}.",
     "noLongerValid": "Deze uitnodiging is niet meer geldig. Vraag om een nieuwe uitnodiging.",
     "signOutAndContinue": "Uitloggen en verder",
     "title": "Uitnodiging",
@@ -1889,7 +1889,7 @@
   "team": {
     "actionsColumn": "Acties",
     "badge": {
-      "trainer": "Trainer"
+      "trainer": "{Word}"
     },
     "emailColumn": "E-mailadres",
     "errors": {
@@ -1950,7 +1950,7 @@
       "sendAgain": "Opnieuw sturen",
       "sent": "Uitnodiging verstuurd naar {name}.",
       "submit": "Versturen",
-      "title": "Trainer uitnodigen"
+      "title": "Nodig {aWord} uit"
     },
     "makeOwnerDialog": {
       "body": "Een eigenaar kan alles in {workspace}, ook het team, de instellingen en het geld.",
@@ -1961,7 +1961,7 @@
     "nameColumn": "Naam",
     "remove": "Uit het team verwijderen",
     "removeDialog": {
-      "body": "{name} kan niet meer als trainer bij {workspace}. Wat {name} als klant heeft, zoals boekingen, blijft.",
+      "body": "{name} verliest de rol van {word} bij {workspace}. Wat {name} als klant heeft, zoals boekingen, blijft.",
       "cancel": "Annuleren",
       "confirm": "Verwijderen",
       "title": "{name} uit het team verwijderen?"
@@ -1969,17 +1969,17 @@
     "removed": "{name} is uit het team verwijderd.",
     "roleChanged": {
       "owner": "{name} is nu eigenaar.",
-      "trainer": "{name} is nu trainer."
+      "trainer": "{name} is nu {aWord}."
     },
     "roleColumn": "Rol",
     "roleMenu": "Rol van {name}",
     "stepDownDialog": {
       "body": "Je bent dan geen eigenaar meer van {workspace}.",
       "cancel": "Annuleren",
-      "confirm": "Trainer maken",
-      "title": "Jezelf trainer maken?"
+      "confirm": "Maak mij {aWord}",
+      "title": "Jezelf {aWord} maken?"
     },
-    "title": "Trainers"
+    "title": "{Words}"
   },
   "trainerWord": {
     "coach": {
@@ -2139,7 +2139,7 @@
     "settingsGeneral": "Algemeen",
     "settingsLanguage": "Taal",
     "settingsLocation": "Locatie",
-    "trainers": "Trainers",
+    "trainers": "{Words}",
     "workspaceWithRole": "{name} · {role}"
   },
   "workspaceSwitcher": {
