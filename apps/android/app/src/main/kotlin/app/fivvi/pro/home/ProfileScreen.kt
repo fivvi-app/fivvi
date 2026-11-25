@@ -227,12 +227,9 @@ private fun Workspaces(workspaces: List<ProfileWorkspace>, actions: ProfileActio
                 WorkspaceRow(
                     workspace,
                     // A Trainer's label is this workspace's own word (F068), whichever workspace the app is in.
-                    roleLabel = if (workspace.role ==
-                        ProfileRole.Owner
-                    ) {
-                        owner
-                    } else {
-                        trainerRoleLabel(workspace.trainerWord)
+                    roleLabel = when (workspace.role) {
+                        ProfileRole.Owner -> owner
+                        ProfileRole.Trainer -> trainerRoleLabel(workspace.trainerWord)
                     },
                     isCurrent = workspace.id == actions.currentWorkspace,
                     onSelect = if (workspaces.size > 1) ({ actions.onSelectWorkspace(workspace.id) }) else null,

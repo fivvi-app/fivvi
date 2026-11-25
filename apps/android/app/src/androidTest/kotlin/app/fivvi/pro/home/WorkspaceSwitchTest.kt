@@ -175,7 +175,7 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     fun test_F068_AC4_eachWorkspaceShowsItsOwnWordAlsoRightAfterSwitching() {
         val words = mapOf(JOHNS_GYM to TrainerWord.INSTRUCTEUR, YOGA_LOFT to TrainerWord.DOCENT)
         val yogaLoft = Triple(YOGA_LOFT, "yoga-loft", Role.TRAINER)
-        repeat(4) {
+        repeat(6) {
             me.answerAccount(
                 name = "Sarah",
                 email = "trainer@example.com",
@@ -184,7 +184,7 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
                 trainerWords = words,
             )
         }
-        repeat(2) { me.answerWorkspaces(emptySet(), johnsGym, yogaLoft, trainerWords = words) }
+        repeat(3) { me.answerWorkspaces(emptySet(), johnsGym, yogaLoft, trainerWords = words) }
         launch()
         headerShows(JOHNS_GYM)
         openProfile("yoga-loft")
@@ -196,6 +196,13 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         // Choosing a workspace closes Profiel on that workspace's home: open it again.
         compose.onNodeWithTag("${ProfileTags.WORKSPACE}.yoga-loft").performClick()
         headerShows(YOGA_LOFT)
+        openProfile("yoga-loft")
+        johnsRole.assertTextEquals(string(R.string.trainer_word_instructeur_word_cap))
+        yogaRole.assertTextEquals(string(R.string.trainer_word_docent_word_cap))
+
+        // And back: John's Gym again, each row still with its own word.
+        compose.onNodeWithTag("${ProfileTags.WORKSPACE}.johns-gym").performClick()
+        headerShows(JOHNS_GYM)
         openProfile("yoga-loft")
         johnsRole.assertTextEquals(string(R.string.trainer_word_instructeur_word_cap))
         yogaRole.assertTextEquals(string(R.string.trainer_word_docent_word_cap))

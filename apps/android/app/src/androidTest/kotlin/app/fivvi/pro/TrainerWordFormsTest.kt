@@ -2,9 +2,9 @@ package app.fivvi.pro
 
 import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.AppLanguage
-import app.fivvi.core.R
 import app.fivvi.core.TrainerWordForms
 import app.fivvi.core.appLanguageParameters
+import app.fivvi.core.trainerRoleLabel
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -84,10 +84,10 @@ class TrainerWordFormsTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     // The label of a Trainer's role is the word's capital form, through `roles.trainerLabel`.
     @Test
     fun test_F068_AC1_theRoleLabelIsTheCapitalFormOfTheWord() {
-        val instructeur = formsOf(TrainerWord.INSTRUCTEUR).wordCap
+        val label = localizedResources(language).trainerRoleLabel(TrainerWord.INSTRUCTEUR)
 
-        assertEquals(instructeur, localizedString(language, R.string.roles_trainer_label, instructeur))
-        assertEquals(if (language == AppLanguage.DUTCH) "Instructeur" else "Instructor", instructeur)
+        assertEquals(formsOf(TrainerWord.INSTRUCTEUR).wordCap, label)
+        assertEquals(if (language == AppLanguage.DUTCH) "Instructeur" else "Instructor", label)
     }
 
     companion object {
