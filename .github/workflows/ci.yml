@@ -1413,9 +1413,9 @@ jobs:
     if: needs.changes.outputs.android == 'true' && github.event_name != 'push' && needs.changes.outputs.ui_tests == 'true'
     runs-on: ubuntu-24.04
     continue-on-error: ${{ github.event_name == 'push' }}
-    # The setup before the Maestro step (3 minutes measured, the emulator boot is capped at 10), the step (30) and the
-    # steps after it; still bounds a hung run (#519).
-    timeout-minutes: 40
+    # The setup before the Maestro step (3 minutes measured, the emulator boot is capped at 10), the step (45) and the
+    # steps after it; still bounds a hung run (#519, #1578).
+    timeout-minutes: 60
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
@@ -1505,10 +1505,12 @@ jobs:
       # Postgres (migrated and seeded), the fake Lettermint server and the web server, then every flow in nl-NL and en, with the
       # app of "Android build" (nothing is built here).
       # Both locales run one after the other: run 41938461253 (10 flows) took 19 min 47 s on a slow runner, 14 to 18
-      # minutes on main. The 30 minutes are 1.5 x the slowest run (#519); the "Step durations" step shows how close a run
-      # came and warns above 20 minutes (two thirds of the budget).
+      # minutes on main. The suite grows with every Android ticket: the nightly runs of 21 to 24 November 2026 took 24 min
+      # 38 s, 28 min 7 s, 28 min 36 s and, cut off by the 30-minute budget with the last flow of en running (run
+      # 45388530989, nl-NL 14 min 7 s), over 30 min 13 s. The 45 minutes are 1.5 x 30 minutes (#519, #1578); the "Step
+      # durations" step shows how close a run came and warns above 30 minutes (two thirds of the budget).
       - name: Maestro flows (sign-in, anonymous and home; nl-NL and en)
-        timeout-minutes: 30
+        timeout-minutes: 45
         run: scripts/maestro.sh android --apk
 
       # The cache of the emulator is saved after this step: the emulator must not be running, or it would be copied in
@@ -1533,7 +1535,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/step-timings.sh "Maestro flows (sign-in, anonymous and home; nl-NL and en)=30"
+        run: scripts/step-timings.sh "Maestro flows (sign-in, anonymous and home; nl-NL and en)=45"
 
   # The required check "Android": the combined result of the build, the tests and Maestro (AC17); skipped, and so passing,
   # when the native decision says the app's inputs didn't change.
