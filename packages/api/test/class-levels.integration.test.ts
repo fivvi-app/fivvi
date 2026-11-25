@@ -287,6 +287,24 @@ describe('F067 the class level through the API', () => {
     });
   });
 
+  describe('#763 the workspace calendar read', () => {
+    it('AC11, AC12: the calendar read returns the level to Sarah (Trainer), 404 to Mike in another workspace and 401 to anonymous', async () => {
+      const w = await aClassWithADate('advanced');
+      const path = `/v1/workspaces/${w.gym.id}/calendar?from=2026-10-05&to=2026-10-11`;
+
+      const asSarah = await call(w.server, 'GET', path, w.sarah);
+      const asMike = await call(w.server, 'GET', path, w.mike);
+      const anonymous = await call(w.server, 'GET', path, undefined);
+
+      expect(asSarah.status).toBe(200);
+      const { items } = (await asSarah.json()) as { items: { id: string; level?: string }[] };
+      expect(items.find((item) => item.id === w.date.id)?.level).toBe('advanced');
+      expect(asMike.status).toBe(404);
+      expect(await asMike.json()).toEqual({ code: 'not_found' });
+      expect(anonymous.status).toBe(401);
+    });
+  });
+
   describe('AC3: one date', () => {
     it('AC3: one date: John changes one date to beginner; only that date changes, the class and the other date keep advanced', async () => {
       const w = await aClassWithADate();

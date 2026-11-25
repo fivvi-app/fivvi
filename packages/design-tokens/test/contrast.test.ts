@@ -31,6 +31,25 @@ describe('E007 design tokens contrast check', () => {
     expect(check?.problems).toEqual([]);
   });
 
+  it('F067 AC13: the filled bars of the class level icon meet 3:1 on the page and on the card, in light and dark', async () => {
+    const results = (await contrastResults(source)).filter(({ pair }) =>
+      pair.use.startsWith('Trainer web: class level icon bars'),
+    );
+
+    expect(
+      results.map(({ pair, mode }) => `${pair.fg} on ${pair.bg} ${pair.kind} ${mode}`).sort(),
+    ).toEqual([
+      'color.web.trainer.muted-foreground on color.web.trainer.background non-text dark',
+      'color.web.trainer.muted-foreground on color.web.trainer.background non-text light',
+      'color.web.trainer.muted-foreground on color.web.trainer.card non-text dark',
+      'color.web.trainer.muted-foreground on color.web.trainer.card non-text light',
+    ]);
+    for (const result of results) {
+      expect(result.minimum).toBe(3);
+      expect(result.ratio).toBeGreaterThanOrEqual(3);
+    }
+  });
+
   it('AC3: a failing pair fails with pair, mode and ratio', async () => {
     const broken = {
       ...source,

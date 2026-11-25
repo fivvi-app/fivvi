@@ -14,6 +14,7 @@ import {
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
+import { ClassLevelIcon } from '../classes/class-level';
 import { useSessionFormat } from '../sessions/use-session-format';
 import { quickViewActions } from './quick-view-actions';
 
@@ -42,7 +43,7 @@ export interface CalendarAccess {
 /**
  * WC-05 *Snelle weergave* (F014): the facts of one block and the actions that exist, in a sheet
  * on the right (the dialog of the kit, anchored to the side as PS-01 is). Esc or *Sluiten* closes it
- * and focus goes back to the block. A note is never here: the API does not send one. A Trainer's
+ * and focus goes back to the block. A class date shows its level (F067) as icon and word, nothing for *Geen*. A note is never here: the API does not send one. A Trainer's
  * own private session has the actions F020 gives them; another trainer's session has *Openen*
  * only (`quickViewActions`).
  */
@@ -125,6 +126,8 @@ function QuickViewBody({
           })}
         </DialogDescription>
       </DialogHeader>
+      {/* The level of a class date (F067), read-only: icon and word, nothing for Geen. John changes it in Les wijzigen. */}
+      {isPrivate ? null : <ClassLevelIcon level={item.level} />}
       <ul className="grid gap-1 text-sm">
         {cancelled ? <li className="font-medium">{shared('cancelled')}</li> : null}
         <li>

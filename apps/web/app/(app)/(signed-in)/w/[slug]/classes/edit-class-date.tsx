@@ -21,7 +21,14 @@ import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
 import { type DoubleBooking, DoubleBookingDialog } from '../sessions/double-booking';
 import { useSessionFormat } from '../sessions/use-session-format';
-import { type EditDateResult, editClassDate, loadKeptDates, type Session } from './classes-client';
+import { ClassLevelSelect } from './class-level';
+import {
+  type ClassLevelChoice,
+  type EditDateResult,
+  editClassDate,
+  loadKeptDates,
+  type Session,
+} from './classes-client';
 
 /** What the form shows of a date: its start, its end and its capacity as the person types them. */
 function valuesOf(session: Session) {
@@ -29,12 +36,13 @@ function valuesOf(session: Session) {
     localStart: instantToWallClock(new Date(session.startsAt), session.timeZone).time,
     localEnd: instantToWallClock(new Date(session.endsAt), session.timeZone).time,
     capacity: String(session.capacity),
+    level: (session.level ?? '') as ClassLevelChoice,
   };
 }
 
 /**
- * **Wijzigen** and the dialog of CO-04 (F021 AC4): the start, the end and the capacity of this one
- * date; the class itself and its other dates stay as they are. An end that is not after the start
+ * **Wijzigen** and the dialog of CO-04 (F021 AC4): the start, the end, the capacity and the level
+ * (*Niveau*, F067) of this one date; the class itself and its other dates stay as they are. An end that is not after the start
  * says so under the end. A date someone else changed first is shown as it is now, with a line
  * about it, and saving again uses that version. After a save the page asks the server again.
  */
@@ -59,6 +67,9 @@ export function EditClassDate({
   const [open, setOpen] = useState(startOpen);
   const [version, setVersion] = useState(session.version);
   const [value, setValue] = useState(() => valuesOf(session));
+  // The level the date has as the person saw it (F067): it is sent only when they changed it, so a
+  // change of the times for the following dates does not overwrite their levels.
+  const [shownLevel, setShownLevel] = useState<ClassLevelChoice>(() => valuesOf(session).level);
   const [errors, setErrors] = useState<Extract<EditDateResult, { reason: 'fields' }> | null>(null);
   const [formError, setFormError] = useState<'noPermission' | 'notSaved' | null>(null);
   const [changed, setChanged] = useState(false);
@@ -99,6 +110,7 @@ export function EditClassDate({
   function show(next: Session) {
     setVersion(next.version);
     setValue(valuesOf(next));
+    setShownLevel(valuesOf(next).level);
   }
 
   function change(next: boolean) {
@@ -124,9 +136,11 @@ export function EditClassDate({
     setFormError(null);
     setChanged(false);
     setPending(true);
+    const { level, ...times } = value;
     const result = await editClassDate(workspaceId, session.id, {
       version,
-      ...value,
+      ...times,
+      ...(level === shownLevel ? {} : { level }),
       scope,
       ...(allowConflicts ? { allowConflicts } : {}),
     });
@@ -231,6 +245,11 @@ export function EditClassDate({
                     ? e('capacityInvalid', { min: LIMITS.capacity.min, max: LIMITS.capacity.max })
                     : undefined
                 }
+              />
+              <ClassLevelSelect
+                id="edit-class-date-level"
+                value={value.level}
+                onChange={(level) => setValue({ ...value, level })}
               />
               {session.series ? (
                 <fieldset className="grid gap-2">
