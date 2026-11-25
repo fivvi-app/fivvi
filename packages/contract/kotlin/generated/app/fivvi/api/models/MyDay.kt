@@ -29,6 +29,7 @@ import app.fivvi.api.models.MyDayPlace
 import app.fivvi.api.models.MyDaySummary
 import app.fivvi.api.models.MyDayTomorrow
 import app.fivvi.api.models.PersonalSession
+import app.fivvi.api.models.PersonalWorkspaceSessionTypes
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -40,6 +41,8 @@ import kotlinx.serialization.Contextual
  * @param date The day shown: `YYYY-MM-DD`, in `timeZone`.
  * @param timeZone The zone of the personal scope: `Europe/Amsterdam`. The day starts and ends on its wall clock.
  * @param workspaceCount The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one.
+ * @param workspaces The workspaces the account trains in and the view spans, in name order, each with the session types it runs. `workspaceCount` is their number.
+ * @param showsKindLabel Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together run more than one session type. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items.
  * @param items The day’s items in time order, cancelled ones included.
  * @param summary 
  * @param hasSessions Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise.
@@ -64,6 +67,14 @@ data class MyDay (
     /* The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one. */
     @SerialName(value = "workspaceCount")
     val workspaceCount: kotlin.Int,
+
+    /* The workspaces the account trains in and the view spans, in name order, each with the session types it runs. `workspaceCount` is their number. */
+    @SerialName(value = "workspaces")
+    val workspaces: kotlin.collections.List<PersonalWorkspaceSessionTypes>,
+
+    /* Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together run more than one session type. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items. */
+    @SerialName(value = "showsKindLabel")
+    val showsKindLabel: kotlin.Boolean,
 
     /* The day’s items in time order, cancelled ones included. */
     @SerialName(value = "items")

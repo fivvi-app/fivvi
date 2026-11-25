@@ -389,6 +389,7 @@ export {
   mayCancelPrivateSession,
   previewClassCancellation,
 } from './scheduling/cancel.ts';
+export { CLASS_LEVELS, type ClassLevel } from './scheduling/class-level.ts';
 export {
   type ExpandedSeries,
   type ExpandSeriesRefusal,
@@ -431,6 +432,12 @@ export {
   type PersonalRangeDecision,
   type PersonalSessionTimes,
 } from './scheduling/personal-day.ts';
+export {
+  hasMoreThanOneSessionType,
+  type SessionTypeKind,
+  type WorkspaceSessionTypeFacts,
+  workspaceSessionTypes,
+} from './scheduling/personal-session-types.ts';
 export {
   type PlanWeeklySeriesDecision,
   type PlanWeeklySeriesFacts,

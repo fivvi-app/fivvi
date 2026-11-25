@@ -316,6 +316,13 @@
       "when": 1795468671199,
       "tag": "0045_trainer_profile_former_trainer",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1795569918277,
+      "tag": "0046_class_level",
+      "breakpoints": true
     }
   ]
 }

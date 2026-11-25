@@ -66,8 +66,10 @@ struct ClassDateScreen: View {
     ) {
         _model = State(initialValue: ClassDateViewModel(
             api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog,
-            canManage: capabilities.allows(.class_manage, in: workspace.id), added: added,
-            isOnline: { connectivity.isOnline }, onCancelled: onCancelled,
+            canManage: capabilities.allows(.class_manage, in: workspace.id),
+            canShareLink: capabilities.allows(.bookingLink_copy, in: workspace.id), added: added,
+            isOnline: { connectivity.isOnline }, onCancelled: onCancelled, copy: { UIPasteboard.general.string = $0 },
+            now: UITestClock.provider(),
             onForbidden: { await capabilities.forbidden($0, in: workspace.id) }
         ))
         self.language = language

@@ -1,5 +1,6 @@
 package app.fivvi.pro.classes
 
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.CreateGroupClassRequest
 import app.fivvi.api.models.FirstGroupClassDate
 import app.fivvi.api.models.SessionSeries
@@ -66,7 +67,7 @@ class NewGroupClassViewModelTest {
 
     // The person, by their team-member ID in the workspace: John's (the Owner) unless given.
     private fun viewModel(teamMemberId: UUID = john.id) = NewGroupClassViewModel(
-        ClassApis(classes, sessions, locations, trainers, FakeWorkspacesApi()),
+        ClassApis(classes, sessions, locations, trainers, FakeWorkspacesApi(), FakeBookingLinksApi()),
         workspace,
         teamMemberId,
         onNotAllowed = { notAllowed += it.code() },
@@ -546,5 +547,58 @@ class NewGroupClassViewModelTest {
 
         assertEquals(TimeRefusal.TimeDoesNotExist, viewModel.state().time.refusal)
         assertEquals(LocalDate.of(2027, 3, 28), viewModel.state().refusedDate)
+    }
+
+    // F067 (spec #587), TD-05: Niveau starts at Geen, a chosen level makes the form dirty and is sent with the quick create.
+    @Test
+    fun test_F067_AC1_theFormStartsWithGeenAndSendsNoLevelUntilOneIsChosen() {
+        val viewModel = viewModel()
+        assertNull(viewModel.state().level)
+        assertFalse(viewModel.state().isDirty)
+        viewModel.setNameNl("Mobility")
+
+        viewModel.save()
+
+        assertNull(classes.created.single().second.level)
+        assertNull(viewModel.state().saved?.level)
+    }
+
+    @Test
+    fun test_F067_AC1_aChosenLevelMakesTheFormDirtyAndIsSentWithTheQuickCreate() {
+        val viewModel = viewModel()
+        viewModel.setNameNl("Reformer Power")
+        viewModel.setLevel(ClassLevel.ADVANCED)
+        assertTrue(viewModel.state().isDirty)
+
+        viewModel.save()
+
+        assertEquals(CreateGroupClassRequest.Level.ADVANCED, classes.created.single().second.level)
+        assertEquals(ClassLevel.ADVANCED, viewModel.state().saved?.level)
+    }
+
+    @Test
+    fun test_F067_AC1_everyLevelOfTheFieldIsSentAsItsOwnValue() {
+        val sent = ClassLevel.entries.map { level ->
+            val viewModel = viewModel()
+            viewModel.setNameNl("Les")
+            viewModel.setLevel(level)
+            viewModel.save()
+            classes.created.last().second.level?.value
+        }
+
+        assertEquals(listOf("all_levels", "beginner", "intermediate", "advanced"), sent)
+    }
+
+    @Test
+    fun test_F067_AC1_choosingGeenAgainSendsNoLevelAndTheFormIsCleanAgain() {
+        val viewModel = viewModel()
+        viewModel.setLevel(ClassLevel.BEGINNER)
+        viewModel.setLevel(null)
+        assertFalse(viewModel.state().isDirty)
+        viewModel.setNameNl("Les")
+
+        viewModel.save()
+
+        assertNull(classes.created.single().second.level)
     }
 }

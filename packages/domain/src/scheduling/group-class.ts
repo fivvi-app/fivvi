@@ -2,10 +2,12 @@
 //        capacity and duration onto the date, takes the default location and the DST rules of
 //        `zoned-time.ts`; `decideGroupDateEdit` edits one date's day, start, end and capacity (an
 //        end not after the start is refused); `GROUP_CLASS_LIMITS` (name 80, description 500,
-//        capacity 1–100, duration 15–240 in steps of 5)
-// Spec: F021 AC3–AC5, AC9
+//        capacity 1–100, duration 15–240 in steps of 5); the level (F067) is copied like the
+//        capacity and a date's own level wins
+// Spec: F021 AC3–AC5, AC9; F067 AC1, AC3
 
 import { defaultLocation } from '../locations/default-location.ts';
+import type { ClassLevel } from './class-level.ts';
 import { GROUP_CLASS_LIMITS } from './group-class-limits.ts';
 import { instantToWallClock, wallClockToInstant } from './zoned-time.ts';
 
@@ -39,6 +41,8 @@ export interface ScheduleClassOnDateFacts {
     readonly durationMinutes: number;
     /** The usual trainer; `null` for *Trainer nodig*. */
     readonly defaultTrainer: TrainerReference | null;
+    /** The class's level (F067); `null`: *Geen*. */
+    readonly level: ClassLevel | null;
   };
   /**
    * The trainer the person chose for this date: left out takes the class's usual trainer, `null`
@@ -47,6 +51,8 @@ export interface ScheduleClassOnDateFacts {
   readonly requestedTrainer?: (TrainerReference & { readonly trains: boolean }) | null;
   /** The capacity chosen for this date; left out takes the class's. */
   readonly requestedCapacity?: number;
+  /** The level chosen for this date: left out takes the class's, `null` plans it as *Geen* (F067). */
+  readonly requestedLevel?: ClassLevel | null;
   /** The date typed, in the workspace's time zone: `YYYY-MM-DD`. */
   readonly localDate: string;
   /** The start typed, in the workspace's time zone: `HH:mm`, 24 hours. */
@@ -76,6 +82,8 @@ export type ScheduleClassOnDateDecision =
       readonly startsAt: Date;
       readonly endsAt: Date;
       readonly capacity: number;
+      /** The level of the date (F067): the one asked for, else the class's; `null`: *Geen*. */
+      readonly level: ClassLevel | null;
       /** The date starts before `now`: it is saved (entered afterwards). */
       readonly past: boolean;
       /** The start happens twice (the clocks went back); the first one, summer time, was taken. */
@@ -116,6 +124,7 @@ export function scheduleClassOnDate(facts: ScheduleClassOnDateFacts): ScheduleCl
     startsAt: start.instant,
     endsAt: new Date(start.instant.getTime() + groupClass.durationMinutes * MINUTE_MS),
     capacity,
+    level: facts.requestedLevel === undefined ? groupClass.level : facts.requestedLevel,
     past: start.instant.getTime() < facts.now.getTime(),
     repeatedStart: start.repeated,
   };
@@ -124,13 +133,20 @@ export function scheduleClassOnDate(facts: ScheduleClassOnDateFacts): ScheduleCl
 /** What the person changes on one date (CO-04): every field left out stays as it is. */
 export interface GroupDateEditFacts {
   /** The date as stored. */
-  readonly current: { readonly startsAt: Date; readonly endsAt: Date; readonly capacity: number };
+  readonly current: {
+    readonly startsAt: Date;
+    readonly endsAt: Date;
+    readonly capacity: number;
+    readonly level: ClassLevel | null;
+  };
   readonly requested: {
     /** `HH:mm`. */
     readonly localStart?: string;
     /** `HH:mm`, on the same date as the start. */
     readonly localEnd?: string;
     readonly capacity?: number;
+    /** `null` clears the level (*Geen*, F067); left out keeps it. */
+    readonly level?: ClassLevel | null;
   };
   readonly timeZone: string;
 }
@@ -151,6 +167,7 @@ export type GroupDateEditDecision =
       readonly startsAt: Date;
       readonly endsAt: Date;
       readonly capacity: number;
+      readonly level: ClassLevel | null;
     }
   | { readonly outcome: 'refused'; readonly reason: GroupDateEditRefusal };
 
@@ -167,15 +184,23 @@ export function decideGroupDateEdit(facts: GroupDateEditFacts): GroupDateEditDec
   if (
     requested.localStart === undefined &&
     requested.localEnd === undefined &&
-    requested.capacity === undefined
+    requested.capacity === undefined &&
+    requested.level === undefined
   ) {
     return { outcome: 'refused', reason: 'nothing-to-change' };
   }
   const capacity = requested.capacity ?? current.capacity;
   if (!validCapacity(capacity)) return { outcome: 'refused', reason: 'invalid-capacity' };
+  const level = requested.level === undefined ? current.level : requested.level;
 
   if (requested.localStart === undefined && requested.localEnd === undefined) {
-    return { outcome: 'edited', startsAt: current.startsAt, endsAt: current.endsAt, capacity };
+    return {
+      outcome: 'edited',
+      startsAt: current.startsAt,
+      endsAt: current.endsAt,
+      capacity,
+      level,
+    };
   }
 
   const now = instantToWallClock(current.startsAt, timeZone);
@@ -194,5 +219,5 @@ export function decideGroupDateEdit(facts: GroupDateEditFacts): GroupDateEditDec
   if (end.instant.getTime() <= start.instant.getTime()) {
     return { outcome: 'refused', reason: 'end-before-start' };
   }
-  return { outcome: 'edited', startsAt: start.instant, endsAt: end.instant, capacity };
+  return { outcome: 'edited', startsAt: start.instant, endsAt: end.instant, capacity, level };
 }

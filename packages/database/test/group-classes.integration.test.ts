@@ -1,5 +1,5 @@
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   createClassDate,
@@ -199,6 +199,7 @@ describe('F021 group classes', () => {
           descriptionEn: null,
           defaultTrainerProfileId: trainer?.trainerProfileId ?? null,
           capacity: 8,
+          level: null,
           durationMinutes: 60,
         });
       });
@@ -290,6 +291,7 @@ describe('F021 group classes', () => {
           startsAt: new Date('2026-10-06T16:00:00.000Z'),
           endsAt: new Date('2026-10-06T17:00:00.000Z'),
           capacity: 8,
+          level: null,
           createdByTeamMemberId: johnRole.id,
         }),
       );
@@ -325,6 +327,7 @@ describe('F021 group classes', () => {
           startsAt: new Date('2026-10-06T16:00:00.000Z'),
           endsAt: new Date('2026-10-06T17:00:00.000Z'),
           capacity: 8,
+          level: null,
           createdByTeamMemberId: null,
         }),
       );
@@ -359,6 +362,7 @@ describe('F021 group classes', () => {
             startsAt: new Date('2026-10-06T16:30:00.000Z'),
             endsAt: new Date('2026-10-06T17:00:00.000Z'),
             capacity: 10,
+            level: null,
           }),
         );
 
@@ -388,6 +392,7 @@ describe('F021 group classes', () => {
               startsAt: date.startsAt,
               endsAt: date.endsAt,
               capacity,
+              level: null,
             }),
           );
 
@@ -409,6 +414,7 @@ describe('F021 group classes', () => {
               startsAt: new Date('2026-10-06T16:00:00.000Z'),
               endsAt: new Date('2026-10-06T17:00:00.000Z'),
               capacity: 5,
+              level: null,
             }),
           );
 
@@ -420,6 +426,127 @@ describe('F021 group classes', () => {
           .where(eq(sessions.id, other.date.id));
         expect(stored).toEqual({ capacity: 8, version: 1 });
       });
+    });
+  });
+  describe('F067 the level of a class and of its dates', () => {
+    it('AC1: a class stores a level, the list and the read return it, and null is Geen', async () => {
+      const { workspace, john } = await gym();
+
+      const created = await asTeam(john.id, workspace.id, (scope) =>
+        createGroupClass(scope, {
+          nameNl: 'Reformer Power',
+          nameEn: null,
+          descriptionNl: null,
+          descriptionEn: null,
+          defaultTrainerProfileId: null,
+          capacity: 8,
+          durationMinutes: 60,
+          level: 'advanced',
+        }),
+      );
+
+      expect(created.level).toBe('advanced');
+      const [row] = await admin.db
+        .select({ level: groupClasses.level })
+        .from(groupClasses)
+        .where(eq(groupClasses.id, created.id));
+      expect(row?.level).toBe('advanced');
+      const geen = await addGroupClass(admin.db, { workspaceId: workspace.id });
+      expect(
+        await asTeam(john.id, workspace.id, (scope) => findGroupClass(scope, geen.id)),
+      ).toMatchObject({ level: null });
+    });
+
+    it('AC3: a change sets another level and null clears it, and the rest stays', async () => {
+      const { workspace, john } = await gym();
+      const kracht = await addGroupClass(admin.db, {
+        workspaceId: workspace.id,
+        level: 'beginner',
+      });
+
+      const advanced = await asTeam(john.id, workspace.id, (scope) =>
+        updateGroupClass(scope, kracht.id, { level: 'advanced' }),
+      );
+      expect(advanced).toMatchObject({ level: 'advanced', capacity: 8 });
+      const cleared = await asTeam(john.id, workspace.id, (scope) =>
+        updateGroupClass(scope, kracht.id, { level: null }),
+      );
+      expect(cleared).toMatchObject({ level: null, capacity: 8 });
+      const kept = await asTeam(john.id, workspace.id, (scope) =>
+        updateGroupClass(scope, kracht.id, { capacity: 9 }),
+      );
+      expect(kept).toMatchObject({ level: null, capacity: 9 });
+    });
+
+    it('AC4: the database holds the list: a level outside it is refused, and `level` may be marked on a date', async () => {
+      const { workspace } = await gym();
+      const refused = async () => {
+        try {
+          await admin.db.execute(
+            sql`INSERT INTO group_classes (organization_id, name_nl, capacity, duration_minutes, level) VALUES (${workspace.id}, 'Kracht', 8, 60, 'expert')`,
+          );
+          return undefined;
+        } catch (error) {
+          return (error as { cause?: { code?: string } }).cause?.code;
+        }
+      };
+      // 22P02: invalid input value for enum class_level.
+      expect(await refused()).toBe('22P02');
+      const date = await addSession(admin.db, {
+        workspaceId: workspace.id,
+        type: 'group',
+        participant: false,
+      });
+      await admin.db
+        .update(sessions)
+        .set({ detachedFields: ['level'] })
+        .where(eq(sessions.id, date.id));
+      const [stored] = await admin.db
+        .select({ detachedFields: sessions.detachedFields })
+        .from(sessions)
+        .where(eq(sessions.id, date.id));
+      expect(stored?.detachedFields).toEqual(['level']);
+    });
+
+    it('AC1, AC3: a class date is stored with a level of its own and an edit changes only that date', async () => {
+      const { workspace, john, johnRole, locationId } = await gym();
+      const kracht = await addGroupClass(admin.db, {
+        workspaceId: workspace.id,
+        level: 'advanced',
+      });
+      const dateOf = (startsAt: string) =>
+        asTeam(john.id, workspace.id, (scope) =>
+          createClassDate(scope, {
+            groupClassId: kracht.id,
+            trainerProfileId: null,
+            locationId,
+            startsAt: new Date(startsAt),
+            endsAt: new Date(new Date(startsAt).getTime() + 3_600_000),
+            capacity: 8,
+            level: 'advanced',
+            createdByTeamMemberId: johnRole.id,
+          }),
+        );
+      const first = await dateOf('2026-10-06T16:00:00.000Z');
+      const second = await dateOf('2026-10-13T16:00:00.000Z');
+      expect(first.level).toBe('advanced');
+
+      const result = await asTeam(john.id, workspace.id, (scope) =>
+        updateClassDate(scope, first.id, {
+          version: 1,
+          startsAt: first.startsAt,
+          endsAt: first.endsAt,
+          capacity: 8,
+          level: 'beginner',
+        }),
+      );
+
+      expect(result).toMatchObject({ outcome: 'updated', session: { level: 'beginner' } });
+      const others = await asTeam(john.id, workspace.id, (scope) => findSession(scope, second.id));
+      expect(others?.level).toBe('advanced');
+      expect(
+        await asTeam(john.id, workspace.id, (scope) => findGroupClass(scope, kracht.id)),
+      ).toMatchObject({ level: 'advanced' });
     });
   });
 });

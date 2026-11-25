@@ -94,6 +94,15 @@
     "title": "Boekingslinks",
     "trainerNote": "{Words} zien de links, maar kunnen ze niet wijzigen."
   },
+  "classLevel": {
+    "accessibleName": "Niveau: {level}",
+    "advanced": "Gevorderd",
+    "allLevels": "Alle niveaus",
+    "beginner": "Beginner",
+    "field": "Niveau",
+    "intermediate": "Gemiddeld",
+    "none": "Geen"
+  },
   "classes": {
     "app": {
       "cancelBody": "{participants, plural, one {De geboekte klant krijgt een e-mail. Je kunt er een bericht bij zetten op het web.} other {De # geboekte klanten krijgen een e-mail. Je kunt er een bericht bij zetten op het web.}}",
@@ -107,7 +116,10 @@
       "edit": "Les wijzigen",
       "manageOnWeb": "Dit beheer je op het web",
       "newTitle": "Nieuwe groepsles",
-      "ownerNote": "Les wijzigen, een vaste reeks en {words} beheer je op het web."
+      "ownerNote": "Les wijzigen, een vaste reeks en {words} beheer je op het web.",
+      "shareLink": "Boekingslink delen",
+      "shareLinkCopied": "Boekingslink gekopieerd",
+      "shareLinkOffline": "Je bent offline. Delen kan als je weer verbinding hebt."
     },
     "cancel": {
       "action": "Les annuleren",
@@ -144,6 +156,7 @@
       "cancelledSection": "Geannuleerd",
       "changedField": {
         "capacity": "capaciteit",
+        "level": "niveau",
         "location": "locatie",
         "time": "tijd",
         "trainer": "{Word}"
@@ -154,6 +167,7 @@
       "seriesLine": "Onderdeel van: {name}, elke {weekday} {time}",
       "timeRange": "{date}, {start}–{end}",
       "trainerLabel": "{Word}",
+      "typeAndLevel": "{type} · {level}",
       "whenLabel": "Wanneer",
       "whereLabel": "Locatie"
     },

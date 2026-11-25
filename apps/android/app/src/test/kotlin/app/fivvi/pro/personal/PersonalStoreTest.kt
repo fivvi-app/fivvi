@@ -73,7 +73,15 @@ class PersonalStoreTest {
     private fun answer(from: String, until: String, saved: String = "2026-09-22T06:35:00Z") = PersonalCache.Sessions(
         LocalDate.parse(from),
         LocalDate.parse(until),
-        MySessions(from, until, "Europe/Amsterdam", 2, PersonalFixtures.sarah().items),
+        MySessions(
+            from,
+            until,
+            "Europe/Amsterdam",
+            2,
+            PersonalFixtures.sessionTypes(2, true),
+            true,
+            PersonalFixtures.sarah().items,
+        ),
         Instant.parse(saved),
     )
 

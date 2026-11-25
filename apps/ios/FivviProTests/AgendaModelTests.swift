@@ -235,10 +235,23 @@ final class AgendaModelTests: AgendaTestCase {
         XCTAssertEqual(rows.last?.isCancelled, true)
         XCTAssertEqual(rows.first?.workspaceLabel, "Sarah Personal Training", "two workspaces: every row names its own")
 
-        let solo = model(served([PersonalFixtures.anna], workspaceCount: 1))
+        let solo = model(served([PersonalFixtures.anna], workspaceCount: 1, showsKindLabel: false))
         await solo.load()
         XCTAssertNil(solo.rows(on: "2026-09-22").first?.typeLabel, "one kind: no label")
         XCTAssertNil(solo.rows(on: "2026-09-22").first?.workspaceLabel)
+    }
+
+    func test_F013_1534_theKindLabelFollowsTheApiNotTheItemsOfTheRange() async {
+        // Only private sessions in the range, in a workspace that also runs classes: the API says to name the kind.
+        let named = model(served([PersonalFixtures.anna, PersonalFixtures.mark]))
+        await named.load()
+        let word = catalog["myDay.typePrivate"]
+        XCTAssertEqual(named.rows(on: "2026-09-22").map(\.typeLabel), [word, word])
+
+        // Private and class items in the range, and the API says no.
+        let silent = model(served(showsKindLabel: false))
+        await silent.load()
+        XCTAssertTrue(silent.rows(on: "2026-09-22").allSatisfy { $0.typeLabel == nil })
     }
 
     func test_F013_design_openGymIsNotShown() async {

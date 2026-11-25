@@ -3,14 +3,20 @@ package app.fivvi.pro.personal
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.core.AppLanguage
@@ -32,6 +38,7 @@ import app.fivvi.pro.sessions.trainerOf
 import app.fivvi.pro.waitUntilTagExists
 import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -172,6 +179,45 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.onNodeWithTag(StudioTags.SCOPE_MINE).performClick()
         compose.waitUntil(UI_TIMEOUT_MILLIS) { noNode(StudioTags.HEAD) }
         compose.onNodeWithTag(TodayTags.row(PersonalFixtures.sessionIdOf("kracht"))).assertExists()
+    }
+
+    // F067 AC8: John sees the level on the rows of Hele studio, named after the class; *Alle niveaus* shows none; no control.
+    @Test
+    fun test_F067_AC8_johnSeesTheLevelOnTheRowsOfHeleStudioAndHasNoControlToChangeIt() {
+        launch()
+        val reformer = StudioFixtures.session(
+            "reformer",
+            "14:00",
+            "15:00",
+            StudioFixtures.sarah,
+            className = "Reformer Power",
+            level = ClassLevel.ADVANCED,
+        )
+        val alle = StudioFixtures.session(
+            "alle",
+            "16:00",
+            "17:00",
+            StudioFixtures.tom,
+            className = "Kracht",
+            level = ClassLevel.ALL_LEVELS,
+        )
+        workspaces.workspaceDay =
+            StudioFixtures.johnsDay(items = listOf(StudioFixtures.mark, StudioFixtures.kracht, reformer, alle))
+        compose.waitUntilTagExists(StudioTags.SCOPE)
+        compose.onNodeWithTag(StudioTags.SCOPE_STUDIO).performClick()
+        compose.waitUntilTagExists(StudioTags.HEAD)
+
+        val level = string(R.string.class_level_accessible_name, string(R.string.class_level_advanced))
+        val rowTag = TodayTags.row(StudioFixtures.idOf("reformer"))
+        compose.onNode(hasScrollAction()).performScrollToNode(hasTestTag(rowTag))
+        assertTrue(descriptionOf(rowTag).contains(string(R.string.my_day_spoken_join, "Reformer Power", level)))
+        compose.onNodeWithTag("today.level.${StudioFixtures.idOf("reformer")}", useUnmergedTree = true)
+            .assertIsDisplayed().assertHasNoClickAction()
+        val alleTag = TodayTags.row(StudioFixtures.idOf("alle"))
+        compose.onNode(hasScrollAction()).performScrollToNode(hasTestTag(alleTag))
+        assertFalse(descriptionOf(alleTag).contains(string(R.string.class_level_accessible_name, "").trim()))
+        compose.onAllNodes(hasTestTag("today.level.${StudioFixtures.idOf("alle")}"), useUnmergedTree = true)
+            .assertCountEquals(0)
     }
 
     @Test

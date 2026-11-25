@@ -20,8 +20,16 @@ final class StubPersonalRoutes: @unchecked Sendable {
 
     private let lock = NSLock()
     private var served = Day.sarah
+    private var level: String?
     /// Whether the session with this ID has been cancelled meanwhile (from TD-02), so the lists show it struck through.
     var isCancelled: @Sendable (String) -> Bool = { _ in false }
+
+    /// The level the API sends for the class "Kracht" on its dates (F067: `all_levels`, `beginner`, `intermediate` or
+    /// `advanced`); nil is *Geen*, which leaves the field out.
+    var classLevel: String? {
+        get { lock.withLock { level } }
+        set { lock.withLock { level = newValue } }
+    }
 
     var day: Day {
         get { lock.withLock { served } }
@@ -36,6 +44,15 @@ final class StubPersonalRoutes: @unchecked Sendable {
         ["id": Responder.workspaceID(index), "slug": "workspace-\(index)", "name": name]
     }
 
+    /// What the API says each workspace runs (#1534): John's Gym runs classes, so Sarah's answers name the kind; a
+    /// person on one workspace without classes never does.
+    private static func sessionTypes(_ day: Day) -> [String: Any] {
+        let gym: [String: Any] = workspace(0, "John's Gym").merging(["sessionTypes": ["private", "group"]]) { $1 }
+        let own: [String: Any] = workspace(1, "Sarah Personal Training").merging(["sessionTypes": ["private"]]) { $1 }
+        let alone: [String: Any] = workspace(0, "John's Gym").merging(["sessionTypes": ["private"]]) { $1 }
+        return ["workspaces": day == .sarah ? [gym, own] : [alone], "showsKindLabel": day == .sarah]
+    }
+
     private static func place(_ name: String) -> [String: Any] {
         [
             "id": "6d1c2d3e-0000-4000-8000-0000000000b1", "name": name, "type": "external_gym", "isDefault": false,
@@ -46,7 +63,8 @@ final class StubPersonalRoutes: @unchecked Sendable {
 
     private static func item(
         _ id: String, _ workspace: [String: Any], _ start: String, _ end: String, client: String? = nil,
-        className: String? = nil, cancelled: Bool = false, place name: String? = nil, day: String = day
+        className: String? = nil, cancelled: Bool = false, place name: String? = nil, day: String = day,
+        level: String? = nil
     ) -> [String: Any] {
         var item: [String: Any] = [
             "sessionId": id, "workspace": workspace, "type": className == nil ? "private" : "group",
@@ -56,6 +74,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
         ]
         if className != nil { item["booked"] = 0 }
         if let className { item["className"] = className }
+        if let level { item["level"] = level }
         if let client { item["clientName"] = client }
         if let name { item["location"] = place(name) }
         return item
@@ -67,14 +86,14 @@ final class StubPersonalRoutes: @unchecked Sendable {
             return (200, [
                 "date": date, "timeZone": StubSessionRoutes.zone, "workspaceCount": 1, "items": [Any](),
                 "summary": ["count": 0, "done": 0], "hasSessions": true, "nextSessionDate": "2026-10-01"
-            ])
+            ].merging(Self.sessionTypes(which)) { $1 })
         }
         let johns = Self.workspace(0, "John's Gym")
         let sarah = Self.workspace(1, "Sarah Personal Training")
         let items = [
             Self.item(Self.anna, sarah, "09:00", "10:00", client: "Anna de Vries", place: "TrainMore Zuid"),
             Self.item(Self.mark, johns, "11:00", "12:00", client: "Mark Jansen", place: "John's Gym"),
-            Self.item(Self.kracht, johns, "15:00", "16:00", className: "Kracht"),
+            Self.item(Self.kracht, johns, "15:00", "16:00", className: "Kracht", level: classLevel),
             Self.item(Self.krachtCancelled, johns, "18:00", "19:00", className: "Kracht", cancelled: true)
         ]
         let shown = (which == .solo ? Array(items.prefix(2)) : items).map(markCancelled)
@@ -88,7 +107,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
             "placesAhead": (which == .solo ? ["John's Gym"] : ["TrainMore Zuid", "John's Gym"]).map { ["name": $0] },
             "tomorrow": ["date": "2026-09-23", "count": 3, "firstStartsAt": Self.instant("07:00", "2026-09-23")],
             "hasSessions": true
-        ]
+        ].merging(Self.sessionTypes(which)) { $1 }
         // A cancelled session is no next one.
         if !nextIsCancelled { answer["next"] = ["sessionId": Self.anna, "state": "upcoming", "startsInMinutes": 25] }
         return (200, answer)
@@ -135,7 +154,10 @@ final class StubPersonalRoutes: @unchecked Sendable {
             _ id: String, _ day: String, _ times: String, _ name: String, cancelled: Bool = false
         ) -> (day: String, json: [String: Any]) {
             let span = times.split(separator: "-").map(String.init)
-            return (day, Self.item(id, johns, span[0], span[1], className: name, cancelled: cancelled, day: day))
+            let level = name == "Kracht" ? classLevel : nil
+            return (day, Self.item(
+                id, johns, span[0], span[1], className: name, cancelled: cancelled, day: day, level: level
+            ))
         }
         let all = [
             visit(Self.anna, "2026-09-22", "09:00-10:00", sarah, "Anna de Vries"),
@@ -155,7 +177,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
         return (200, [
             "from": first, "to": last, "timeZone": StubSessionRoutes.zone, "workspaceCount": which == .solo ? 1 : 2,
             "items": shown.map { markCancelled($0.json) }
-        ])
+        ].merging(Self.sessionTypes(which)) { $1 })
     }
 
     // MARK: The workspace's day (F014)

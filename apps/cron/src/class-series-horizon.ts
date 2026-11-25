@@ -62,6 +62,7 @@ function extendSeries(ctx: CronTaskContext, seriesId: string): Promise<number | 
         endsAt: occurrence.endsAt,
         trainerProfileId: series.trainerProfileId,
         capacity: series.capacity,
+        level: series.level,
       })),
     );
     await setClassSeriesMaterializedUntil(tx, series.id, through);

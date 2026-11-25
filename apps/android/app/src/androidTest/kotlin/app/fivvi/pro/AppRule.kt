@@ -9,6 +9,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import app.fivvi.api.apis.BookingLinksApi
 import app.fivvi.api.apis.ClientsApi
 import app.fivvi.api.apis.GroupClassesApi
 import app.fivvi.api.apis.LocationsApi
@@ -30,6 +31,7 @@ import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.net.Connectivity
 import app.fivvi.core.net.FakeConnectivity
 import app.fivvi.core.signin.FakeSignInApi
+import app.fivvi.pro.classes.FakeBookingLinksApi
 import app.fivvi.pro.classes.FakeGroupClassesApi
 import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.home.FakeTrainersApi
@@ -71,6 +73,7 @@ class AppRule : ExternalResource() {
         sessionsApi: SessionsApi = FakeSessionsApi(),
         locationsApi: LocationsApi = FakeLocationsApi(),
         groupClassesApi: GroupClassesApi = FakeGroupClassesApi(sessionsApi as? FakeSessionsApi ?: FakeSessionsApi()),
+        bookingLinksApi: BookingLinksApi = FakeBookingLinksApi(),
         session: Session = Session(InMemorySessionStore("token-1")),
         signOutApi: (String) -> SignInApi = { signInApi },
         languageStore: LanguageStore = InMemoryLanguageStore(),
@@ -92,6 +95,7 @@ class AppRule : ExternalResource() {
             override val sessionsApi = sessionsApi
             override val locationsApi = locationsApi
             override val groupClassesApi = groupClassesApi
+            override val bookingLinksApi = bookingLinksApi
             override val session = session
             override val connectivity = connectivity
 

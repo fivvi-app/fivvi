@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import app.fivvi.api.infrastructure.Serializer
 import app.fivvi.api.models.CancelClassDateRefusal
 import app.fivvi.api.models.CancelClassDateRequest
+import app.fivvi.api.models.ClassLevel
+import app.fivvi.api.models.CreateBookingLinkRequest
 import app.fivvi.api.models.GroupClass
 import app.fivvi.api.models.Session
 import app.fivvi.api.models.SessionParticipant
@@ -16,6 +18,7 @@ import java.net.HttpURLConnection.HTTP_CONFLICT
 import java.net.HttpURLConnection.HTTP_FORBIDDEN
 import java.net.HttpURLConnection.HTTP_NOT_FOUND
 import java.time.DayOfWeek
+import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,6 +67,9 @@ sealed interface CancelFailure {
     data object NotSaved : CancelFailure
 }
 
+/** What a *Boekingslink delen* that didn't happen says (F037). Offline has its own line. */
+enum class ShareFailure { NoPermission, NotShared }
+
 /** What TD-03 shows and holds. */
 data class ClassDateState(
     /** The person's own team-member ID in the workspace (`GET /api/v1/me`): a date whose trainer has it reads *Jij*. */
@@ -91,6 +97,15 @@ data class ClassDateState(
     val cancelAsk: CancelAsk? = null,
     val cancelFailure: CancelFailure? = null,
     val isCancelling: Boolean = false,
+    /** The person has `booking_link.copy` (the Owner and the Trainers): they get *Boekingslink delen* (F037). */
+    val canShareLink: Boolean = false,
+    /** The time the model last read the date at: a date that has started is told from one to come by it. */
+    val now: Instant = Instant.EPOCH,
+    /** A *Boekingslink delen* request is on its way. */
+    val isSharing: Boolean = false,
+    val shareFailure: ShareFailure? = null,
+    /** How many times the link was put on the clipboard: "Boekingslink gekopieerd" shows each time it goes up. */
+    val copied: Int = 0,
 ) {
     /** The places taken: the clients who have not cancelled. */
     val booked: Int
@@ -104,6 +119,9 @@ data class ClassDateState(
 
     val isCancelled: Boolean get() = session?.status == Session.Status.CANCELLED
 
+    /** The level of this date (F067), the same for everyone on the team; `null` is *Geen*. */
+    val level: ClassLevel? get() = session?.level
+
     /** The Owner's menu, until the date is cancelled; a Trainer who is not substituting has none (F024 adds the substitute's). */
     val hasMenu: Boolean get() = canManage && !isCancelled
 
@@ -115,6 +133,22 @@ data class ClassDateState(
 
     /** *Les annuleren* is on while the phone is online (nothing is queued). */
     val canStartCancel: Boolean get() = canCancel && !isOffline && !isCancelling
+
+    /**
+     * The person may share this date's link: a group class date still to come, not cancelled (the API refuses a date that
+     * has started, and a private session).
+     */
+    val showsShareLink: Boolean
+        get() = canShareLink && session.let {
+            it != null && it.type == Session.Type.GROUP && it.status == Session.Status.SCHEDULED &&
+                it.startsAt.toInstant().isAfter(now)
+        }
+
+    /** *Boekingslink delen* is the first item of the Owner's ⋯ menu. */
+    val showsShareLinkInMenu: Boolean get() = showsShareLink && hasMenu
+
+    /** *Boekingslink delen* is on while the phone is online and no request is on its way (nothing is queued). */
+    val canTapShareLink: Boolean get() = showsShareLink && !isOffline && !isSharing
 
     /** The class's name in the viewer's language: the English name for an English viewer and a class that has one. */
     fun title(english: Boolean): String {
@@ -158,15 +192,24 @@ class ClassDateViewModel(
     teamMemberId: UUID,
     canManage: Boolean,
     added: Int? = null,
+    canShareLink: Boolean = false,
     /** Whether the phone is online, from the network (`Connectivity`); a model made without one says online. */
     private val isOnline: () -> Boolean = { true },
+    /** The time now, to tell a date to come from one that has started. */
+    private val now: () -> Instant,
+    /** Puts a text on the phone's clipboard. */
+    private val copy: (String) -> Unit = {},
     /** Told once the date is cancelled, so the lists that show it (Vandaag, Agenda) read again. */
     private val onCancelled: () -> Unit = {},
     private val onNotAllowed: (Response<*>) -> Unit = {},
     /** Told a 403 of the cancel calls: they are guarded by `class.manage`, where [onNotAllowed] is about reading. */
     private val onCancelNotAllowed: (Response<*>) -> Unit = {},
+    /** Told a 403 of *Boekingslink delen*: it is guarded by `booking_link.copy`. */
+    private val onShareNotAllowed: (Response<*>) -> Unit = {},
 ) : ViewModel() {
-    private val _state = MutableStateFlow(ClassDateState(teamMemberId, canManage, added))
+    private val _state = MutableStateFlow(
+        ClassDateState(teamMemberId, canManage, added, canShareLink = canShareLink, now = now()),
+    )
     val state: StateFlow<ClassDateState> = _state.asStateFlow()
     private var reading: Job? = null
 
@@ -198,6 +241,18 @@ class ClassDateViewModel(
         viewModelScope.launch { preview() }
     }
 
+    /**
+     * *Boekingslink delen* (F037 AC8, AC9): gets or makes the link of this date in the visitor's language, puts its short
+     * URL on the clipboard and counts it in [ClassDateState.copied]; a second tap gives the same link. Nothing happens
+     * offline (nothing is queued), on a cancelled or past date or for a private session.
+     */
+    fun shareLink() {
+        val shown = _state.value.copy(online = isOnline(), now = now())
+        if (!shown.canTapShareLink) return
+        _state.update { it.copy(isSharing = true, shareFailure = null, now = shown.now) }
+        viewModelScope.launch { share() }
+    }
+
     /** *Terug*: nothing is cancelled. */
     fun dismissCancel() = _state.update { it.copy(cancelAsk = null) }
 
@@ -207,6 +262,37 @@ class ClassDateViewModel(
         if (_state.value.isCancelling || session.status != Session.Status.SCHEDULED) return
         _state.update { it.copy(cancelAsk = null, cancelFailure = null, isCancelling = true) }
         viewModelScope.launch { cancel(session) }
+    }
+
+    private suspend fun share() {
+        val request = CreateBookingLinkRequest(
+            scope = CreateBookingLinkRequest.Scope.SESSION,
+            language = CreateBookingLinkRequest.Language.VISITOR,
+            sessionId = sessionId,
+            surface = CreateBookingLinkRequest.Surface.ANDROID,
+        )
+        val response = try {
+            apis.bookingLinks.createBookingLink(workspaceId, request)
+        } catch (_: IOException) {
+            return _state.update { it.copy(isSharing = false, requestFailedOffline = true) }
+        } catch (_: SerializationException) {
+            return _state.update { it.copy(isSharing = false, shareFailure = ShareFailure.NotShared) }
+        }
+        // The link exists (`201`) or was there (`200`): either way it is the date's.
+        val link = response.body()?.takeIf { response.isSuccessful }
+        when {
+            link != null -> {
+                copy(link.url.toString())
+                _state.update { it.copy(isSharing = false, requestFailedOffline = false, copied = it.copied + 1) }
+            }
+
+            response.code() == HTTP_FORBIDDEN -> {
+                onShareNotAllowed(response)
+                _state.update { it.copy(isSharing = false, shareFailure = ShareFailure.NoPermission) }
+            }
+
+            else -> _state.update { it.copy(isSharing = false, shareFailure = ShareFailure.NotShared) }
+        }
     }
 
     private suspend fun preview() {
@@ -317,7 +403,7 @@ class ClassDateViewModel(
         val fresh = response.body()?.takeIf { response.isSuccessful }
         when {
             fresh != null -> _state.update {
-                it.copy(load = ClassDateLoad.Loaded, session = fresh, requestFailedOffline = false)
+                it.copy(load = ClassDateLoad.Loaded, session = fresh, requestFailedOffline = false, now = now())
             }
 
             response.code() == HTTP_FORBIDDEN || response.code() == HTTP_NOT_FOUND -> {

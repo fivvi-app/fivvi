@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import app.fivvi.api.models.Client
+import app.fivvi.api.models.CreateGroupClassRequest
 import app.fivvi.api.models.FirstGroupClassDate
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.core.AppLanguage
@@ -36,6 +37,7 @@ import app.fivvi.pro.sessions.sessionOf
 import app.fivvi.pro.sessions.trainerOf
 import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -90,12 +92,12 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
         launch()
     }
 
-    private fun launchAsJohn() {
+    private fun launchAsJohn(now: Instant? = null) {
         me.answerAccount(email = "owner@example.com", name = "John", teamMemberId = john.id)
-        launch()
+        launch(now)
     }
 
-    private fun launch() {
+    private fun launch(now: Instant? = null) {
         trainers.trainers = listOf(john, sarah, tom)
         sessions.trainers += listOf(john, sarah, tom).associateBy { it.id }
         app.launch(
@@ -107,6 +109,7 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
             sessionsApi = sessions,
             locationsApi = locations,
             groupClassesApi = classes,
+            now = now,
         )
         compose.waitUntilTagExists(HomeTags.OPEN_CLIENTS)
     }
@@ -217,6 +220,24 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
 
         compose.onNodeWithTag(ClassDateTags.MANAGE_ON_WEB).assertTextEquals(string(R.string.classes_app_manage_on_web))
         compose.onNodeWithTag(ClassDateTags.OWNER_NOTE).assertIsDisplayed()
+    }
+
+    // F037 AC8: the first item of John's ⋯ on TD-03 is *Boekingslink delen*. The menu is a popup window that does not take
+    // the test's language override, so its text is read here through the app, in both languages. The clock is fixed before
+    // the date (the form's first start is the next full hour after it), so the date is still to come.
+    @Test
+    fun test_F037_AC8_johnsMenuOnTd03StartsWithBoekingslinkDelenInTheLanguageOfTheApp() {
+        launchAsJohn(now = Instant.parse("2026-11-16T07:20:00Z"))
+        openNewClass()
+        type(NewClassTags.NAME_NL, "Mobility")
+        app.hideKeyboard(compose)
+        save()
+        compose.waitUntilTagExists(ClassDateTags.MENU)
+
+        compose.onNodeWithTag(ClassDateTags.MENU).performClick()
+        compose.waitUntilTagExists(ClassDateTags.SHARE_LINK_MENU)
+
+        compose.onNodeWithTag(ClassDateTags.SHARE_LINK_MENU).assertTextEquals(string(R.string.classes_app_share_link))
     }
 
     // AC7: Sarah's + has no Groepsles and shows the footnote.
@@ -538,6 +559,83 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
         assertTrue(sessions.sessions.isEmpty())
         assertEquals(1, classes.created.size)
         compose.onNodeWithTag(NewClassTags.TITLE).assertIsDisplayed()
+    }
+
+    // F067 AC1, TD-05: Niveau comes after the trainer and starts at Geen; the choices are Geen, Alle niveaus, Beginner,
+    // Gemiddeld and Gevorderd.
+    @Test
+    fun test_F067_AC1_niveauStartsAtGeenAndOffersAllFiveChoices() {
+        launchAsJohn()
+        openNewClass()
+
+        compose.onNodeWithTag(NewClassTags.LEVEL).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag(NewClassTags.LEVEL_VALUE).assertTextEquals(string(R.string.class_level_none))
+        compose.onNodeWithTag(NewClassTags.LEVEL).performClick()
+        val choices = listOf(
+            NewClassTags.LEVEL_NONE to R.string.class_level_none,
+            "${NewClassTags.LEVEL}.all_levels" to R.string.class_level_all_levels,
+            "${NewClassTags.LEVEL}.beginner" to R.string.class_level_beginner,
+            "${NewClassTags.LEVEL}.intermediate" to R.string.class_level_intermediate,
+            "${NewClassTags.LEVEL}.advanced" to R.string.class_level_advanced,
+        )
+        choices.forEach { (tag, word) -> compose.onNodeWithTag(tag).assertTextEquals(string(word)) }
+        val trainerTop = compose.onNodeWithTag(NewClassTags.TRAINER).fetchSemanticsNode().boundsInRoot.top
+        val levelTop = compose.onNodeWithTag(NewClassTags.LEVEL).fetchSemanticsNode().boundsInRoot.top
+        assertTrue("Niveau is after the trainer", levelTop > trainerTop)
+    }
+
+    // F067 AC1: John adds "Reformer Power" with Gevorderd; TD-03 opens with "Groepsles · Gevorderd" and the icon.
+    @Test
+    fun test_F067_AC1_johnAddsReformerPowerWithGevorderdAndTd03OpensWithTheLevelInTheEyebrowAndTheIcon() {
+        launchAsJohn()
+        openNewClass()
+        type(NewClassTags.NAME_NL, "Reformer Power")
+        app.hideKeyboard(compose)
+
+        compose.onNodeWithTag(NewClassTags.LEVEL).performScrollTo().performClick()
+        compose.onNodeWithTag("${NewClassTags.LEVEL}.advanced").performClick()
+        compose.onNodeWithTag(NewClassTags.LEVEL_VALUE).assertTextEquals(string(R.string.class_level_advanced))
+        save()
+
+        compose.waitUntilTagExists(ClassDateTags.TITLE)
+        compose.waitUntil(UI_TIMEOUT_MILLIS) { classes.created.isNotEmpty() }
+        assertEquals(CreateGroupClassRequest.Level.ADVANCED, classes.created.single().second.level)
+        compose.onNodeWithTag(ClassDateTags.EYEBROW)
+            .assertTextEquals(if (dutch) "Groepsles · Gevorderd" else "Group class · Advanced")
+        compose.onNodeWithTag(ClassDateTags.LEVEL)
+            .assertContentDescriptionEquals(if (dutch) "Niveau: Gevorderd" else "Level: Advanced")
+    }
+
+    // F067 AC1: with Geen (the starting value) TD-03 is just the type, with no icon and no stray separator.
+    @Test
+    fun test_F067_AC1_aClassAddedWithGeenHasNoLevelOnTd03() {
+        launchAsJohn()
+        openNewClass()
+        type(NewClassTags.NAME_NL, "Mobility")
+        app.hideKeyboard(compose)
+        save()
+
+        compose.waitUntilTagExists(ClassDateTags.TITLE)
+        assertNull(classes.created.single().second.level)
+        compose.onNodeWithTag(ClassDateTags.EYEBROW).assertTextEquals(string(R.string.workspace_nav_new_group_class))
+        compose.onNodeWithTag(ClassDateTags.LEVEL).assertDoesNotExist()
+    }
+
+    // F067: a chosen level makes the form dirty, so leaving asks first.
+    @Test
+    fun test_F067_AC1_aChosenLevelMakesLeavingAskFirst() {
+        launchAsJohn()
+        openNewClass()
+
+        compose.onNodeWithTag(NewClassTags.CANCEL).performClick()
+        compose.onNodeWithTag(NewClassTags.DISCARD).assertDoesNotExist()
+        compose.onNodeWithTag(NewClassTags.TITLE).assertDoesNotExist()
+        openNewClass()
+        compose.onNodeWithTag(NewClassTags.LEVEL).performScrollTo().performClick()
+        compose.onNodeWithTag("${NewClassTags.LEVEL}.beginner").performClick()
+        compose.onNodeWithTag(NewClassTags.CANCEL).performClick()
+
+        compose.onNodeWithTag(NewClassTags.DISCARD).assertIsDisplayed()
     }
 
     companion object {

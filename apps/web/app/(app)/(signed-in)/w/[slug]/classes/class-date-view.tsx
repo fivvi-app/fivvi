@@ -7,6 +7,7 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { AssignTrainer } from '../sessions/assign-trainer';
 import { useSessionFormat } from '../sessions/use-session-format';
 import { CancelClass } from './cancel-class';
+import { ClassLevelIcon } from './class-level';
 import type { Session } from './classes-client';
 import { CopyBookingLink } from './copy-booking-link';
 import { EditClassDate } from './edit-class-date';
@@ -15,7 +16,7 @@ import { orderedFields, referenceDay } from './series';
 /**
  * CO-01 *Les op datum* (`/w/{slug}/classes/{classId}/{sessionId}`, F021): the title with the class
  * name in the viewer's language (else Dutch), the date and the start–end, the location, the trainer
- * or *Trainer nodig*, *{booked}/{capacity} geboekt* with the free spots, and *Nog geen boekingen.*
+ * or *Trainer nodig*, the *Niveau* with its icon and word unless it is *Geen* (F067), *{booked}/{capacity} geboekt* with the free spots, and *Nog geen boekingen.*
  * until bookings exist (M5). The Owner has **Wijzigen** (CO-04, this one date); the assigned
  * Trainer sees the page without those. The Owner also has **Les annuleren** (CO-03, F026); a
  * cancelled date shows "Geannuleerd op {date} om {time} door {name}", its cancelled participants
@@ -56,6 +57,7 @@ export function ClassDateView({
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('classes');
+  const levelCopy = useTranslations('classLevel');
   const locale = useLocale();
   const format = useFormatter();
   const { day, longDay, time } = useSessionFormat(session.timeZone);
@@ -175,6 +177,14 @@ export function ClassDateView({
             <dd>
               {session.trainer ? session.trainer.name : t('trainerNeeded', { ...trainerWord })}
             </dd>
+            {session.level ? (
+              <>
+                <dt className="text-muted-foreground">{levelCopy('field')}</dt>
+                <dd>
+                  <ClassLevelIcon level={session.level} />
+                </dd>
+              </>
+            ) : null}
             {cancelled ? null : (
               <>
                 <dt className="text-muted-foreground">{t('date.bookedLabel')}</dt>

@@ -39,13 +39,15 @@ final class StubClasses: @unchecked Sendable {
     @discardableResult
     func seed(
         nameNl: String, nameEn: String? = nil, descriptionNl: String? = nil, descriptionEn: String? = nil,
-        capacity: Int = 8, durationMinutes: Int = 60, trainer: Components.Schemas.SessionTrainer? = nil
+        capacity: Int = 8, durationMinutes: Int = 60, trainer: Components.Schemas.SessionTrainer? = nil,
+        level: Components.Schemas.ClassLevel? = nil
     ) -> GroupClass {
         lock.withLock {
             let made = make(
                 .init(
                     nameNl: nameNl, nameEn: nameEn, descriptionNl: descriptionNl, descriptionEn: descriptionEn,
-                    trainerId: trainer?.id, capacity: capacity, durationMinutes: durationMinutes
+                    trainerId: trainer?.id, capacity: capacity, durationMinutes: durationMinutes,
+                    level: level.flatMap { .init(rawValue: $0.rawValue) }
                 ),
                 trainer: trainer
             )
@@ -64,7 +66,8 @@ final class StubClasses: @unchecked Sendable {
             nameNl: body.nameNl.trimmingCharacters(in: .whitespaces), nameEn: Self.text(body.nameEn),
             descriptionNl: Self.text(body.descriptionNl), descriptionEn: Self.text(body.descriptionEn),
             capacity: body.capacity, durationMinutes: body.durationMinutes,
-            defaultTrainer: trainer.flatMap { try? .init(value1: $0, value2: .init(unvalidatedValue: nil)) }
+            defaultTrainer: trainer.flatMap { try? .init(value1: $0, value2: .init(unvalidatedValue: nil)) },
+            level: body.level.flatMap { Components.Schemas.ClassLevel(rawValue: $0.rawValue) }
         )
     }
 

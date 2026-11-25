@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.SessionCancellation
 import app.fivvi.api.models.SessionGroupClass
@@ -50,6 +51,7 @@ import kotlinx.serialization.Contextual
  * @param trainer 
  * @param cancellation 
  * @param groupClass 
+ * @param level 
  * @param series 
  * @param datesAdded How many dates the request made: 12 for a weekly repeat (“12 groepslessen toegevoegd”); left out for one date. The session is the first of them.
  */
@@ -104,6 +106,9 @@ data class ScheduledClassDate (
 
     @SerialName(value = "groupClass")
     val groupClass: SessionGroupClass? = null,
+
+    @Contextual @SerialName(value = "level")
+    val level: ClassLevel? = null,
 
     @SerialName(value = "series")
     val series: SessionSeries? = null,

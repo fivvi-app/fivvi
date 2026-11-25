@@ -80,6 +80,7 @@ const FORBIDDEN: Record<string, string> = {
   'the session status enum': "import { sessionStatus } from '@fivvi/database';",
   'the attendance status enum': "import { attendanceStatus } from '@fivvi/database';",
   'the cancellation initiator enum': "import { cancellationInitiator } from '@fivvi/database';",
+  'the class level enum': "import { classLevel } from '@fivvi/database';",
   'the session participant status changes table':
     "import { sessionParticipantStatusChanges } from '@fivvi/database';",
   'the participant status source enum':
@@ -577,6 +578,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     updateSeriesDates: 'repository of the class series, takes the workspace scope (F022)',
     updateWorkspace: 'repository of workspaces, takes the workspace scope (F002, F010)',
     withdrawInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    workspaceHasGroupClasses:
+      'repository of the personal sessions, takes the workspace scope; answers yes or no (F013)',
   };
 
   let forbidden: string[];

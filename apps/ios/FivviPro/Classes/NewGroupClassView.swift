@@ -8,8 +8,9 @@ import FivviUI
 /// TD-05 *Nieuwe groepsles* (F021), the sheet of **+** → *Groepsles* for the Owner: *Annuleren* and *Opslaan* in the
 /// bar and a form in titled sections, as the owner asked (6 November 2026): *Naam en omschrijving* (the names and
 /// descriptions in Dutch and English, each on a line of its own and as wide as the screen), *De les* (the trainer or
-/// *Trainer nodig*, the capacity and the location) and *Wanneer* (the date, the start, the end and *Herhalen: Niet
-/// herhalen* or *Elke week op {weekday}*, F022, with the note that the next 12 weeks go in the calendar). Leaving with something entered asks first. Without a connection the form says so and *Opslaan* is off.
+/// *Trainer nodig*, the level *Niveau* (F067), the capacity and the location) and *Wanneer* (the date, the start, the
+/// end and *Herhalen: Niet herhalen* or *Elke week op {weekday}*, F022, with the note that the next 12 weeks go in the
+/// calendar). Leaving with something entered asks first. Without a connection the form says so and *Opslaan* is off.
 struct NewGroupClassView: View {
     @Bindable var model: NewGroupClassViewModel
     let language: AppLanguage
@@ -148,6 +149,7 @@ struct NewGroupClassView: View {
         }
         InsetGroup(header: model.classSectionText) {
             trainerRow
+            levelRow
             capacityRow
             Text(model.locationText)
                 .font(.system(Tokens.TextStyle.body))

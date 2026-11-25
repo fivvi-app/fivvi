@@ -7,6 +7,18 @@ export type GroupClass = Schemas['GroupClass'];
 export type Session = Schemas['Session'];
 export type Trainer = Schemas['Trainer'];
 export type ClassSeries = Schemas['ClassSeries'];
+/** A class's level (F067): the four of the contract; *Geen* is no level. */
+export type ClassLevel = Schemas['ClassLevel'];
+/** What the *Niveau* select holds: a level, or `''` for *Geen* (the starting value). */
+export type ClassLevelChoice = ClassLevel | '';
+
+/** The levels in the order the select lists them, after *Geen*. */
+export const CLASS_LEVELS: readonly ClassLevel[] = [
+  'all_levels',
+  'beginner',
+  'intermediate',
+  'advanced',
+];
 
 /** The fields of the class form (TW-03) that can be refused. */
 export type ClassField =
@@ -32,6 +44,8 @@ export interface ClassInput {
   descriptionNl: string;
   descriptionEn: string;
   trainerId: string;
+  /** *Niveau* (F067): `''` is *Geen*, which is sent as no level. */
+  level: ClassLevelChoice;
   capacity: string;
   durationMinutes: string;
 }
@@ -223,6 +237,7 @@ export async function createClass(
     capacity: whole(input.capacity),
     durationMinutes: whole(input.durationMinutes),
   };
+  if (input.level !== '') body.level = input.level;
   if (trimmed(input.nameEn) !== '') body.nameEn = trimmed(input.nameEn);
   if (trimmed(input.descriptionNl) !== '') body.descriptionNl = trimmed(input.descriptionNl);
   if (trimmed(input.descriptionEn) !== '') body.descriptionEn = trimmed(input.descriptionEn);
@@ -324,6 +339,8 @@ export interface EditDateInput {
   localStart: string;
   localEnd: string;
   capacity: string;
+  /** *Niveau* (F067), only when it changed: a level, or `''` for *Geen* (sent as `null`); left out keeps it. */
+  level?: ClassLevelChoice;
   /** *Wijzigen voor* (F022): `this` (the default) changes this date, `following` the series from it on. */
   scope?: 'this' | 'following';
   /** *Toch opslaan* (PS-07): save although the trainer has something then. */
@@ -332,7 +349,7 @@ export interface EditDateInput {
 
 /**
  * Changes one date of a class (`PATCH …/sessions/{sessionId}`, F021 AC4): the start, the end and
- * the capacity of this date only. `version` is the one the person saw; a 409 comes back with the
+ * the capacity of this date only (and, from F067, its level). `version` is the one the person saw; a 409 comes back with the
  * date as it is now. An end that is not after the start is refused before the request, with the
  * API's own refusal worded the same way.
  */
@@ -355,6 +372,7 @@ export async function editClassDate(
     localEnd: input.localEnd,
     capacity: whole(input.capacity),
   };
+  if (input.level !== undefined) body.level = input.level === '' ? null : input.level;
   if (input.scope === 'following') body.scope = 'following';
   if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(

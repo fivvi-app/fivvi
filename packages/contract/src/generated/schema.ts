@@ -137,7 +137,7 @@ export interface paths {
         };
         /**
          * My day: the sessions of one day across my workspaces
-         * @description Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with the number done), for today the next free gap and the places still ahead, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
+         * @description Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with the number done), for today the next free gap and the places still ahead, the tomorrow line, the date of the next session when the day is empty, the number of workspaces and the session types each one runs, with whether a row names its kind. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
          */
         get: operations["getMyDay"];
         put?: never;
@@ -1488,6 +1488,10 @@ export interface components {
             timeZone: string;
             /** @description The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one. */
             workspaceCount: number;
+            /** @description The workspaces the account trains in and the view spans, in name order, each with the session types it runs. `workspaceCount` is their number. */
+            workspaces: components["schemas"]["PersonalWorkspaceSessionTypes"][];
+            /** @description Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together run more than one session type. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items. */
+            showsKindLabel: boolean;
             /** @description The day’s items in time order, cancelled ones included. */
             items: components["schemas"]["PersonalSession"][];
             summary: components["schemas"]["MyDaySummary"];
@@ -1500,6 +1504,20 @@ export interface components {
             nextSessionDate?: string;
             /** @description Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise. */
             hasSessions: boolean;
+        };
+        /** @description A workspace the personal view spans, with the session types it runs. */
+        PersonalWorkspaceSessionTypes: {
+            /**
+             * Format: uuid
+             * @description The workspace ID.
+             */
+            id: string;
+            /** @description The URL name: `/w/{slug}` on the web. */
+            slug: string;
+            /** @description The name shown in the product. */
+            name: string;
+            /** @description The session types the workspace runs, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later). */
+            sessionTypes: ("private" | "group")[];
         };
         /** @description A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. */
         PersonalSession: {
@@ -1537,6 +1555,7 @@ export interface components {
             booked?: number;
             /** @description The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym. */
             className?: string;
+            level?: components["schemas"]["ClassLevel"];
             location?: components["schemas"]["Location"];
             /** @description The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart. */
             clientName?: string;
@@ -1555,6 +1574,11 @@ export interface components {
             /** @description The name shown in the product. */
             name: string;
         };
+        /**
+         * @description The level of a class: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*). Information only: nothing in booking reads it, and the timetable has no filter on it. A class without one is *Geen*: the field is left out.
+         * @enum {string}
+         */
+        ClassLevel: "all_levels" | "beginner" | "intermediate" | "advanced";
         /** @description A place where sessions of the workspace take place. */
         Location: {
             /**
@@ -1668,6 +1692,10 @@ export interface components {
             timeZone: string;
             /** @description The workspaces the account trains in and the view spans. */
             workspaceCount: number;
+            /** @description The workspaces the account trains in and the view spans, in name order, each with the session types it runs. `workspaceCount` is their number. */
+            workspaces: components["schemas"]["PersonalWorkspaceSessionTypes"][];
+            /** @description Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together run more than one session type. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items. */
+            showsKindLabel: boolean;
             /** @description The sessions from the start of `from` to the end of `to`, in time order. */
             items: components["schemas"]["PersonalSession"][];
         };
@@ -2064,6 +2092,7 @@ export interface components {
             trainer?: components["schemas"]["SessionTrainer"];
             cancellation?: components["schemas"]["SessionCancellation"];
             groupClass?: components["schemas"]["SessionGroupClass"];
+            level?: components["schemas"]["ClassLevel"];
             series?: components["schemas"]["SessionSeries"];
             /** @description The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5). */
             participants: components["schemas"]["SessionParticipant"][];
@@ -2123,7 +2152,7 @@ export interface components {
             /** @description The local date in the series’ rule this date stands for: `YYYY-MM-DD`. */
             occurrenceDate: string;
             /** @description What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are. */
-            changedFields: ("time" | "trainer" | "capacity" | "location")[];
+            changedFields: ("time" | "trainer" | "capacity" | "location" | "level")[];
         };
         /** @description A client’s place in a session. */
         SessionParticipant: {
@@ -2624,6 +2653,7 @@ export interface components {
             trainer?: components["schemas"]["SessionTrainer"] & unknown;
             /** @description The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session. */
             className?: string;
+            level?: components["schemas"]["ClassLevel"];
             /** @description The client’s display name, for a private session; left out for the other kinds. It holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `; `clients` has them apart. */
             clientName?: string;
             /** @description The clients of a private session in the order they were added: one, or two for a duo. A client who cancelled is left out, a cancelled session keeps its clients. Left out for the other kinds. */
@@ -2681,6 +2711,7 @@ export interface components {
             /** @description How long a date of the class lasts: 15 to 240 minutes in steps of 5. */
             durationMinutes: number;
             defaultTrainer?: components["schemas"]["SessionTrainer"] & unknown;
+            level?: components["schemas"]["ClassLevel"];
         };
         /** @description The class that was created, with its first date when the request had one. */
         CreatedGroupClass: {
@@ -2708,6 +2739,11 @@ export interface components {
             capacity: number;
             /** @description 15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`. */
             durationMinutes: number;
+            /**
+             * @description The class’s level (F067); left out is *Geen*: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+             * @enum {string|null}
+             */
+            level?: "all_levels" | "beginner" | "intermediate" | "advanced" | null;
             /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
             allowConflicts?: boolean;
             firstDate?: components["schemas"]["FirstGroupClassDate"];
@@ -2748,6 +2784,11 @@ export interface components {
             capacity?: number;
             /** @description The new duration, 15 to 240 minutes in steps of 5. */
             durationMinutes?: number;
+            /**
+             * @description The new level of the class (F067); `null` clears it, left out keeps it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+             * @enum {string|null}
+             */
+            level?: "all_levels" | "beginner" | "intermediate" | "advanced" | null;
         };
         /** @description The class date that was scheduled, with how many dates a weekly repeat made. */
         ScheduledClassDate: components["schemas"]["Session"] & {
@@ -2767,6 +2808,11 @@ export interface components {
             trainerId?: string | null;
             /** @description The capacity of this date, 1 to 100. Leave it out for the class’s. */
             capacity?: number;
+            /**
+             * @description The level of this date (F067); left out takes the class’s, `null` plans it as *Geen*. With `repeat: weekly` the series and its dates take it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+             * @enum {string|null}
+             */
+            level?: "all_levels" | "beginner" | "intermediate" | "advanced" | null;
             /**
              * @description *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
              * @enum {string}
@@ -2808,6 +2854,7 @@ export interface components {
             trainer?: components["schemas"]["SessionTrainer"] & unknown;
             /** @description The capacity its dates start with. */
             capacity: number;
+            level?: components["schemas"]["ClassLevel"];
             /** @description The first day it may have a date: `YYYY-MM-DD`. */
             startsOn: string;
             /** @description The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on. */
@@ -2833,7 +2880,7 @@ export interface components {
             /** @description The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`. */
             conflicts?: components["schemas"]["TrainerConflictItem"][];
         };
-        /** @description Changes a whole weekly series (CO-04): the start, length, capacity and trainer of its dates, each only when given. */
+        /** @description Changes a whole weekly series (CO-04): the start, length, capacity, level and trainer of its dates, each only when given. */
         UpdateClassSeriesRequest: {
             /** @description The version of the series the change was made from (`ClassSeries.version`). If the series changed since, the answer is `409` with the series as it is now and nothing is written. */
             version: number;
@@ -2843,6 +2890,11 @@ export interface components {
             durationMinutes?: number;
             /** @description The new capacity of every date, 1 to 100. Leave it out to keep it. */
             capacity?: number;
+            /**
+             * @description The new level of every date (F067); `null` is *Geen*, left out keeps it. Dates whose level was changed on their own keep it (`keptDates`): `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+             * @enum {string|null}
+             */
+            level?: "all_levels" | "beginner" | "intermediate" | "advanced" | null;
             /**
              * Format: uuid
              * @description The new trainer of every date, a team-member ID from `GET …/trainers`; `null` makes the dates *Trainer nodig*. Leave it out to keep the trainer. A team member who is no trainer of the workspace answers `404`.
@@ -2882,7 +2934,7 @@ export interface components {
             /** @description The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`. */
             conflicts?: components["schemas"]["TrainerConflictItem"][];
         };
-        /** @description Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes. */
+        /** @description Changes one date of a class (CO-04): the start, the end, the capacity and the level, each only when given. The date stays on its day. The class itself never changes. */
         UpdateGroupClassDateRequest: {
             /** @description The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written. */
             version: number;
@@ -2892,6 +2944,11 @@ export interface components {
             localEnd?: string;
             /** @description The new capacity of this date, 1 to 100. Leave it out to keep it. */
             capacity?: number;
+            /**
+             * @description The new level of this date (F067) (*Les wijzigen*); `null` is *Geen*, left out keeps it. With `scope: following` the series and the following dates take it, except dates whose level was changed on their own: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+             * @enum {string|null}
+             */
+            level?: "all_levels" | "beginner" | "intermediate" | "advanced" | null;
             /**
              * @description *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
              * @enum {string}
@@ -5986,6 +6043,15 @@ export interface operations {
                     "application/json": components["schemas"]["UpdateGroupClassDateRefusal"];
                 };
             };
+            /** @description The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
             500: {
                 headers: {
@@ -6943,6 +7009,15 @@ export interface operations {
                     "application/json": components["schemas"]["TrainerConflict"];
                 };
             };
+            /** @description The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
             500: {
                 headers: {
@@ -7087,6 +7162,15 @@ export interface operations {
                     "application/json": components["schemas"]["NotFound"];
                 };
             };
+            /** @description The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
             500: {
                 headers: {
@@ -7168,6 +7252,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrainerConflict"];
+                };
+            };
+            /** @description The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
@@ -7323,6 +7416,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UpdateClassSeriesRefusal"];
+                };
+            };
+            /** @description The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

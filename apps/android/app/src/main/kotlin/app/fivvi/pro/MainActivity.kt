@@ -339,6 +339,7 @@ class MainActivity : ComponentActivity() {
             dependencies.locationsApi,
             dependencies.trainersApi,
             dependencies.workspacesApi,
+            dependencies.bookingLinksApi,
         )
         // The workspace a screen above the tabs is in: the one shown, or the item's of a screen Vandaag opened.
         val target = if (scope == null) {
@@ -433,6 +434,7 @@ class MainActivity : ComponentActivity() {
                         onBack = { stack = Routes.pop(stack) },
                         connectivity = dependencies.connectivity,
                         onCancelled = ::personalChanged,
+                        now = dependencies.clock::instant,
                     )
 
                     Routes.sessionId(plain) != null -> SessionFlow(

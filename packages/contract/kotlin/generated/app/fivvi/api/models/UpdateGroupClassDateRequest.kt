@@ -29,12 +29,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes.
+ * Changes one date of a class (CO-04): the start, the end, the capacity and the level, each only when given. The date stays on its day. The class itself never changes.
  *
  * @param version The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written.
  * @param localStart The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
  * @param localEnd The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
  * @param capacity The new capacity of this date, 1 to 100. Leave it out to keep it.
+ * @param level The new level of this date (F067) (*Les wijzigen*); `null` is *Geen*, left out keeps it. With `scope: following` the series and the following dates take it, except dates whose level was changed on their own: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
  * @param scope *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
  * @param allowConflicts Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
  * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -59,6 +60,10 @@ data class UpdateGroupClassDateRequest (
     @SerialName(value = "capacity")
     val capacity: kotlin.Int? = null,
 
+    /* The new level of this date (F067) (*Les wijzigen*); `null` is *Geen*, left out keeps it. With `scope: following` the series and the following dates take it, except dates whose level was changed on their own: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`. */
+    @SerialName(value = "level")
+    val level: UpdateGroupClassDateRequest.Level? = null,
+
     /* *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`). */
     @SerialName(value = "scope")
     val scope: UpdateGroupClassDateRequest.Scope? = null,
@@ -73,6 +78,18 @@ data class UpdateGroupClassDateRequest (
 
 ) {
 
+    /**
+     * The new level of this date (F067) (*Les wijzigen*); `null` is *Geen*, left out keeps it. With `scope: following` the series and the following dates take it, except dates whose level was changed on their own: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+     *
+     * Values: ALL_LEVELS,BEGINNER,INTERMEDIATE,ADVANCED
+     */
+    @Serializable
+    enum class Level(val value: kotlin.String) {
+        @SerialName(value = "all_levels") ALL_LEVELS("all_levels"),
+        @SerialName(value = "beginner") BEGINNER("beginner"),
+        @SerialName(value = "intermediate") INTERMEDIATE("intermediate"),
+        @SerialName(value = "advanced") ADVANCED("advanced");
+    }
     /**
      * *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
      *

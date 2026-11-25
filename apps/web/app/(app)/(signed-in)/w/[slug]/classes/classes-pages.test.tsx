@@ -6,6 +6,7 @@ import { escapeHtml, render } from '../../../../../../test/render';
 import { WorkspaceFrame } from '../workspace-frame';
 import { ClassDateView } from './class-date-view';
 import { ClassFormSections } from './class-form';
+import { ClassLevelIcon, ClassLevelSelect } from './class-level';
 import { ClassList } from './class-list';
 import { ClassView } from './class-view';
 import type { ClassInput } from './classes-client';
@@ -67,6 +68,7 @@ const empty: ClassInput = {
   descriptionNl: '',
   descriptionEn: '',
   trainerId: '',
+  level: '',
   capacity: '',
   durationMinutes: '',
 };
@@ -162,6 +164,41 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
 
       expect(html).toContain(escapeHtml(copy.classes.trainerNeeded.replace('{Word}', word.Word)));
       expect(html).toContain('Sarah');
+    });
+
+    it('F067 AC1: Niveau sits in De les with Geen as the starting value and the four levels in the viewer’s language', () => {
+      const html = form();
+      const classSection = html.slice(html.indexOf(escapeHtml(copy.classes.form.classSection)));
+      const select =
+        classSection.match(/<select[^>]*name="level"[^>]*>[\s\S]*?<\/select>/)?.[0] ?? '';
+
+      expect(classSection).toContain(`>${escapeHtml(copy.classLevel.field)}</label>`);
+      expect(select).not.toBe('');
+      expect(
+        [...select.matchAll(/<option [^>]*value="([^"]*)"[^>]*>([^<]*)</g)].map((m) => [
+          m[1],
+          m[2],
+        ]),
+      ).toEqual([
+        ['', escapeHtml(copy.classLevel.none)],
+        ['all_levels', escapeHtml(copy.classLevel.allLevels)],
+        ['beginner', escapeHtml(copy.classLevel.beginner)],
+        ['intermediate', escapeHtml(copy.classLevel.intermediate)],
+        ['advanced', escapeHtml(copy.classLevel.advanced)],
+      ]);
+      // The level comes after the trainer and before the capacity.
+      expect(classSection.indexOf('name="trainerId"')).toBeLessThan(
+        classSection.indexOf('name="level"'),
+      );
+      expect(classSection.indexOf('name="level"')).toBeLessThan(
+        classSection.indexOf('name="capacity"'),
+      );
+    });
+
+    it('F067 AC1: the select shows the level it holds', () => {
+      const html = render(locale, <ClassLevelSelect id="x" value="advanced" onChange={() => {}} />);
+
+      expect(html).toMatch(/<option [^>]*value="advanced"[^>]* selected=""/);
     });
 
     it('AC2: each refused field has its message under it', () => {
@@ -279,6 +316,42 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
 
       expect(html).not.toContain('Sarah');
       expect(html).toContain(escapeHtml(copy.classes.trainerNeeded.replace('{Word}', word.Word)));
+    });
+
+    describe('F067 the level', () => {
+      const levels = [
+        ['all_levels', 'allLevels', 3],
+        ['beginner', 'beginner', 1],
+        ['intermediate', 'intermediate', 2],
+        ['advanced', 'advanced', 3],
+      ] as const;
+
+      it.each(levels)('AC7: %s shows the icon and the word', (level, key) => {
+        const html = view({ ...date, level });
+        const word = copy.classLevel[key];
+
+        expect(html).toContain(
+          `aria-label="${escapeHtml(copy.classLevel.accessibleName.replace('{level}', word))}"`,
+        );
+        expect(html).toContain(`title="${escapeHtml(word)}"`);
+        expect(html).toContain(`>${escapeHtml(word)}</span>`);
+        expect(html).toContain(`>${escapeHtml(copy.classLevel.field)}</dt>`);
+      });
+
+      it('AC7: Geen shows nothing and leaves no empty line', () => {
+        const html = view(date);
+
+        expect(html).not.toContain('data-slot="level-icon"');
+        expect(html).not.toContain(`>${escapeHtml(copy.classLevel.field)}</dt>`);
+      });
+
+      it('AC8: the Trainer sees the level on the page, with nothing to change it', () => {
+        const html = view({ ...date, level: 'advanced' }, false);
+
+        expect(html).toContain('data-slot="level-icon"');
+        expect(html).not.toContain('<select');
+        expect(html).not.toContain('<button');
+      });
     });
 
     it('AC4: the Owner has Wijzigen', () => {
@@ -707,6 +780,26 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
       expect(frame(['clients.view', 'class.manage'], true)).toContain(
         escapeHtml(copy.workspaceNav.new),
       );
+    });
+  });
+
+  describe('F067 the level icon', () => {
+    const icon = (level: Parameters<typeof ClassLevelIcon>[0]['level'], compact = false) =>
+      render(locale, <ClassLevelIcon level={level} compact={compact} />);
+
+    it('AC13: the accessible name has the word in the viewer’s language: "Niveau: Gevorderd" / "Level: Advanced"', () => {
+      expect(icon('advanced')).toContain(
+        `aria-label="${escapeHtml(locale === 'en' ? 'Level: Advanced' : 'Niveau: Gevorderd')}"`,
+      );
+      expect(icon('intermediate', true)).toContain(
+        `aria-label="${escapeHtml(locale === 'en' ? 'Level: Intermediate' : 'Niveau: Gemiddeld')}"`,
+      );
+    });
+
+    it('draws nothing for Geen, and nothing in a list for Alle niveaus', () => {
+      expect(icon(undefined)).toBe('');
+      expect(icon('all_levels', true)).toBe('');
+      expect(icon('all_levels')).not.toBe('');
     });
   });
 });

@@ -234,6 +234,7 @@ export {
   listMyTrainingWorkspaces,
   type PersonalSessionRow,
   type PersonalWorkspace,
+  workspaceHasGroupClasses,
 } from './repositories/personal-sessions.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {

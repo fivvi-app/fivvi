@@ -15,7 +15,7 @@ final class AgendaTimelineTests: XCTestCase {
 
     private func timeline(_ items: [PersonalItem], now: Date = PersonalFixtures.now, day: String = PersonalFixtures.day)
         -> AgendaTimeline? {
-        let rows = PersonalRows(items: items, workspaceCount: 2, catalog: catalog, now: now)
+        let rows = PersonalRows(namesKinds: true, workspaceCount: 2, catalog: catalog, now: now)
         let entries = items.map { AgendaTimeline.Entry(row: rows.row($0), startsAt: $0.startsAt, endsAt: $0.endsAt) }
         return AgendaTimeline.make(entries: entries, day: day, now: now, calendar: calendar)
     }

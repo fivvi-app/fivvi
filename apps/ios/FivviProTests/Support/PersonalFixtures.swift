@@ -33,12 +33,12 @@ enum PersonalFixtures {
     static func session(
         _ id: String, _ workspace: Components.Schemas.PersonalWorkspace, from start: String, to end: String,
         client: String? = nil, className: String? = nil, booked: Int? = nil, capacity: Int = 1, cancelled: Bool = false,
-        place name: String? = nil, day: String = PersonalFixtures.day
+        place name: String? = nil, day: String = PersonalFixtures.day, level: Components.Schemas.ClassLevel? = nil
     ) -> PersonalItem {
         PersonalItem(
             sessionId: id, workspace: workspace, _type: className == nil ? ._private : .group,
             status: cancelled ? .cancelled : .scheduled, startsAt: at(start, day), endsAt: at(end, day),
-            timeZone: "Europe/Amsterdam", capacity: capacity, booked: booked, className: className,
+            timeZone: "Europe/Amsterdam", capacity: capacity, booked: booked, className: className, level: level,
             location: name.map { place($0) }, clientName: client
         )
     }
@@ -54,14 +54,32 @@ enum PersonalFixtures {
         "kracht-late", johns, from: "18:00", to: "19:00", className: "Kracht", booked: 0, capacity: 8, cancelled: true
     )
 
-    /// Sarah's day: four items in two workspaces, Anna next, a free gap and two places ahead.
+    /// What the API says each workspace runs (#1534): John's Gym runs classes, Sarah Personal Training does not.
+    static func sessionTypes(
+        workspaceCount: Int, showsKindLabel: Bool
+    ) -> [Components.Schemas.PersonalWorkspaceSessionTypes] {
+        let gym = Components.Schemas.PersonalWorkspaceSessionTypes(
+            id: johns.id, slug: johns.slug, name: johns.name,
+            sessionTypes: showsKindLabel ? [._private, .group] : [._private]
+        )
+        let own = Components.Schemas.PersonalWorkspaceSessionTypes(
+            id: sarahPT.id, slug: sarahPT.slug, name: sarahPT.name, sessionTypes: [._private]
+        )
+        return Array([gym, own].prefix(workspaceCount))
+    }
+
+    /// Sarah's day: four items in two workspaces, Anna next, a free gap and two places ahead. `showsKindLabel` is what
+    /// the API answers: true while a workspace of hers runs classes, whatever the day holds.
     static func sarah(
         items: [PersonalItem] = [anna, mark, kracht, krachtCancelled], workspaceCount: Int = 2,
+        showsKindLabel: Bool = true,
         done: Int = 0, gap: (String, String)? = ("12:00", "13:30"), places: [String] = ["TrainMore Zuid", "John's Gym"]
     ) -> PersonalDay {
         let first = items.first, last = items.last
         return PersonalDay(
-            date: day, timeZone: "Europe/Amsterdam", workspaceCount: workspaceCount, items: items,
+            date: day, timeZone: "Europe/Amsterdam", workspaceCount: workspaceCount,
+            workspaces: sessionTypes(workspaceCount: workspaceCount, showsKindLabel: showsKindLabel),
+            showsKindLabel: showsKindLabel, items: items,
             summary: .init(
                 count: items.count, done: done, firstStartsAt: first?.startsAt, lastEndsAt: last?.endsAt
             ),
@@ -78,7 +96,9 @@ enum PersonalFixtures {
         nextSession: String? = nil, hasSessions: Bool = true, tomorrow: Bool = false
     ) -> PersonalDay {
         PersonalDay(
-            date: day, timeZone: "Europe/Amsterdam", workspaceCount: 1, items: [], summary: .init(count: 0, done: 0),
+            date: day, timeZone: "Europe/Amsterdam", workspaceCount: 1,
+            workspaces: sessionTypes(workspaceCount: 1, showsKindLabel: false), showsKindLabel: false, items: [],
+            summary: .init(count: 0, done: 0),
             tomorrow: tomorrow ? .init(date: "2026-09-23", count: 3, firstStartsAt: at("07:00", "2026-09-23")) : nil,
             // As the API answers: with sessions tomorrow, tomorrow is also the date of the next one.
             nextSessionDate: nextSession ?? (tomorrow ? "2026-09-23" : nil), hasSessions: hasSessions

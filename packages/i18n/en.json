@@ -94,6 +94,15 @@
     "title": "Booking links",
     "trainerNote": "{Words} see the links, but can't change them."
   },
+  "classLevel": {
+    "accessibleName": "Level: {level}",
+    "advanced": "Advanced",
+    "allLevels": "All levels",
+    "beginner": "Beginner",
+    "field": "Level",
+    "intermediate": "Intermediate",
+    "none": "None"
+  },
   "classes": {
     "app": {
       "cancelBody": "{participants, plural, one {The booked client gets an email. You can add a message to it on the web.} other {The # booked clients get an email. You can add a message to it on the web.}}",
@@ -107,7 +116,10 @@
       "edit": "Edit class",
       "manageOnWeb": "You manage this on the web",
       "newTitle": "New group class",
-      "ownerNote": "You manage editing a class, a fixed series and {words} on the web."
+      "ownerNote": "You manage editing a class, a fixed series and {words} on the web.",
+      "shareLink": "Share booking link",
+      "shareLinkCopied": "Booking link copied",
+      "shareLinkOffline": "You're offline. You can share once you're back online."
     },
     "cancel": {
       "action": "Cancel class",
@@ -144,6 +156,7 @@
       "cancelledSection": "Cancelled",
       "changedField": {
         "capacity": "capacity",
+        "level": "level",
         "location": "location",
         "time": "time",
         "trainer": "{Word}"
@@ -154,6 +167,7 @@
       "seriesLine": "Part of: {name}, every {weekday} {time}",
       "timeRange": "{date}, {start}–{end}",
       "trainerLabel": "{Word}",
+      "typeAndLevel": "{type} · {level}",
       "whenLabel": "When",
       "whereLabel": "Location"
     },

@@ -38,6 +38,7 @@ import kotlinx.serialization.Contextual
  * @param trainerId The new usual trainer’s team-member ID; `null` makes the class *Trainer nodig*; left out keeps it.
  * @param capacity The new capacity, 1 to 100.
  * @param durationMinutes The new duration, 15 to 240 minutes in steps of 5.
+ * @param level The new level of the class (F067); `null` clears it, left out keeps it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
  */
 @Serializable
 
@@ -69,10 +70,26 @@ data class UpdateGroupClassRequest (
 
     /* The new duration, 15 to 240 minutes in steps of 5. */
     @SerialName(value = "durationMinutes")
-    val durationMinutes: kotlin.Int? = null
+    val durationMinutes: kotlin.Int? = null,
+
+    /* The new level of the class (F067); `null` clears it, left out keeps it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`. */
+    @SerialName(value = "level")
+    val level: UpdateGroupClassRequest.Level? = null
 
 ) {
 
+    /**
+     * The new level of the class (F067); `null` clears it, left out keeps it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+     *
+     * Values: ALL_LEVELS,BEGINNER,INTERMEDIATE,ADVANCED
+     */
+    @Serializable
+    enum class Level(val value: kotlin.String) {
+        @SerialName(value = "all_levels") ALL_LEVELS("all_levels"),
+        @SerialName(value = "beginner") BEGINNER("beginner"),
+        @SerialName(value = "intermediate") INTERMEDIATE("intermediate"),
+        @SerialName(value = "advanced") ADVANCED("advanced");
+    }
 
 }
 

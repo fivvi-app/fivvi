@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.SessionCancellation
 import app.fivvi.api.models.SessionGroupClass
@@ -50,6 +51,7 @@ import kotlinx.serialization.Contextual
  * @param trainer 
  * @param cancellation 
  * @param groupClass 
+ * @param level 
  * @param series 
  */
 @Serializable
@@ -103,6 +105,9 @@ data class Session (
 
     @SerialName(value = "groupClass")
     val groupClass: SessionGroupClass? = null,
+
+    @Contextual @SerialName(value = "level")
+    val level: ClassLevel? = null,
 
     @SerialName(value = "series")
     val series: SessionSeries? = null

@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.SessionTrainer
 
 import kotlinx.serialization.Serializable
@@ -40,6 +41,7 @@ import kotlinx.serialization.Contextual
  * @param capacity How many people fit: 1 to 100.
  * @param durationMinutes How long a date of the class lasts: 15 to 240 minutes in steps of 5.
  * @param defaultTrainer The usual trainer. Left out for *Trainer nodig* (none).
+ * @param level 
  */
 @Serializable
 
@@ -75,7 +77,10 @@ data class GroupClass (
 
     /* The usual trainer. Left out for *Trainer nodig* (none). */
     @SerialName(value = "defaultTrainer")
-    val defaultTrainer: SessionTrainer? = null
+    val defaultTrainer: SessionTrainer? = null,
+
+    @Contextual @SerialName(value = "level")
+    val level: ClassLevel? = null
 
 ) {
 

@@ -9,7 +9,7 @@ typealias PersonalSessions = Components.Schemas.MySessions
 
 /// A line of Vandaag (TD-01), and later of Agenda (TD-04): one item of the personal scope, worded in the app's language
 /// and in Dutch time. Nothing here decides anything: what the API sent is written down, and the words that only fit when
-/// the person has more than one kind or team are left out otherwise (F013 AC2, the design of `DECISIONS.md` §3).
+/// the person has more than one kind (the API says so) or team are left out otherwise (F013 AC2, the design of `DECISIONS.md` §3).
 struct PersonalRow: Identifiable, Equatable {
     let id: String
     let workspaceID: String
@@ -20,7 +20,7 @@ struct PersonalRow: Identifiable, Equatable {
     let timeText: String
     let startText: String
     let endText: String
-    /// *Privésessie* / *Groepsles*: only when the person's items are of more than one kind.
+    /// *Privésessie* / *Groepsles*: only when the caller says the rows name their kind (`PersonalRows.namesKinds`).
     let typeLabel: String?
     /// The workspace's name, with its colour dot: only when the person is on more than one team.
     let workspaceLabel: String?
@@ -31,8 +31,11 @@ struct PersonalRow: Identifiable, Equatable {
     let pillIsFull: Bool
     let isCancelled: Bool
     let isPast: Bool
+    /// The class level whose bars show after the class name (F067): *Beginner*, *Gemiddeld* or *Gevorderd* of a class; nil
+    /// for *Alle niveaus*, *Geen* and a private session, which show no icon in a list.
+    let level: Components.Schemas.ClassLevel?
     /// "09:00 tot 10:00, Anna de Vries, privésessie, John's Gym, Sarah Personal Training": one VoiceOver element, and
-    /// it always names the type.
+    /// it always names the type; a class with a level names it right after the class name.
     let spokenLabel: String
     /// *Jij*, a trainer's name or *Geen trainer*: only on the workspace's day (*Hele studio*, F014), where each row names
     /// its trainer.
@@ -44,7 +47,9 @@ struct PersonalRows {
     let catalog: Catalog
     let now: Date
     let workspaceCount: Int
-    /// The items are of more than one kind, so each row names its kind.
+    /// Whether each row names its kind. The caller decides: *Vandaag* and *Agenda* pass the API's `showsKindLabel`
+    /// (the person's workspaces run more than one session type, #1534); *Hele studio* still works it out from the
+    /// workspace's own day.
     let namesKinds: Bool
 
     /// The personal day is in Dutch time (F013 AC14); the workspace's day (*Hele studio*) in the workspace's own zone.
@@ -52,12 +57,6 @@ struct PersonalRows {
     let timeZone: TimeZone
 
     private var format: SessionFormat { SessionFormat(locale: catalog.formattingLocale, timeZone: timeZone) }
-
-    init(items: [PersonalItem], workspaceCount: Int, catalog: Catalog, now: Date) {
-        self.init(
-            namesKinds: Set(items.map(\._type)).count > 1, workspaceCount: workspaceCount, catalog: catalog, now: now
-        )
-    }
 
     init(
         namesKinds: Bool, workspaceCount: Int, catalog: Catalog, now: Date, timeZone: TimeZone = PersonalRows.timeZone
@@ -83,7 +82,7 @@ struct PersonalRows {
             id: item.sessionId, workspaceID: item.workspace.id, workspaceName: item.workspace.name, isGroup: isGroup,
             title: (isGroup ? item.className : item.clientName) ?? "", startsAt: item.startsAt, endsAt: item.endsAt,
             location: item.location, booked: item.booked, capacity: item.capacity,
-            isCancelled: item.status == .cancelled
+            isCancelled: item.status == .cancelled, level: item.level
         ))
     }
 
@@ -101,6 +100,8 @@ struct PersonalRows {
         let capacity: Int
         let isCancelled: Bool
         var trainerText: String?
+        /// The level of a class date; a row shows it as bars only where `ClassLevel.showsInList`.
+        var level: Components.Schemas.ClassLevel?
     }
 
     func row(_ facts: Facts) -> PersonalRow {
@@ -111,9 +112,13 @@ struct PersonalRows {
             booked >= facts.capacity
                 ? catalog[.todayFull] : catalog.string(.todayBookedPill, String(booked), String(facts.capacity))
         } : nil
+        // Only a class shows a level, and *Alle niveaus* shows none in a list.
+        let level = facts.isGroup ? facts.level.flatMap { $0.showsInList ? $0 : nil } : nil
+        let levelName = level.map { catalog.levelAccessibleName($0) }
         let spoken = [
-            catalog.string(.todaySpokenTime, end, start), facts.title, typeWord(isGroup: facts.isGroup).lowercased(),
-            location, workspaceCount > 1 ? facts.workspaceName : nil, facts.trainerText,
+            catalog.string(.todaySpokenTime, end, start), facts.title, levelName,
+            typeWord(isGroup: facts.isGroup).lowercased(), location,
+            workspaceCount > 1 ? facts.workspaceName : nil, facts.trainerText,
             facts.isCancelled ? catalog[.todayCancelled] : nil
         ].compactMap { $0 }
         return PersonalRow(
@@ -124,7 +129,7 @@ struct PersonalRows {
             location: facts.isGroup ? nil : location,
             routeURL: facts.isGroup ? nil : LocationRoute.url(facts.location?.address),
             pill: pill, pillIsFull: pill == catalog[.todayFull], isCancelled: facts.isCancelled,
-            isPast: facts.endsAt <= now,
+            isPast: facts.endsAt <= now, level: level,
             spokenLabel: spoken.dropFirst().reduce(spoken[0]) { catalog.string(.todaySpokenJoin, $0, $1) },
             trainerText: facts.trainerText
         )

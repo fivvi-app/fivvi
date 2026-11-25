@@ -14,6 +14,7 @@ extension StubSessionRoutes {
         case ("POST", "sessions", 7) where parts[6] == "cancel": cancel(parts[5], body)
         case ("POST", "sessions", 7) where parts[6] == "cancel-class": cancelClass(parts[5], body)
         case ("GET", "sessions", 7) where parts[6] == "cancel-preview": cancelPreview(parts[5])
+        case ("POST", "booking-links", 5): createBookingLink(body)
         default: respondToClassRoute(method: method, parts: parts, body: body)
         }
     }

@@ -1,8 +1,23 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, integer, text, uuid } from 'drizzle-orm/pg-core';
+import { check, foreignKey, integer, pgEnum, text, uuid } from 'drizzle-orm/pg-core';
 import { businessTable } from './business-table.ts';
 import { instant, timestamps } from './columns.ts';
 import { trainerProfiles } from './tenancy.ts';
+
+/**
+ * The level of a class (F067, spec #587): a fixed list, not free text and not translated user
+ * content (the apps show the word from `classLevel.*` in `packages/i18n`). Each of `group_classes`
+ * (the class's own), `class_series` and `sessions` (a date) holds one, nullable: `NULL` is *Geen*,
+ * the starting value. It is information only: nothing in booking reads it.
+ */
+export const classLevel = pgEnum('class_level', [
+  'all_levels',
+  'beginner',
+  'intermediate',
+  'advanced',
+]);
+
+export type ClassLevel = (typeof classLevel.enumValues)[number];
 
 /**
  * A group class of a workspace (F021, spec #427; `PRODUCT.md §76` calls the table
@@ -23,6 +38,8 @@ import { trainerProfiles } from './tenancy.ts';
  *   that column; the migration writes the column list, Drizzle cannot).
  * - `capacity` 1 to 100 and `duration_minutes` 15 to 240 in steps of 5; `packages/domain` holds
  *   the same limits (`GROUP_CLASS_LIMITS`), these checks repeat them for what the API never writes.
+ * - `level` (F067) is the default level of the class: copied onto each date and series when they are
+ *   made, like the capacity; `NULL` is *Geen*.
  * - `archived_at` is unused in M4 (archiving comes once bookings make it matter).
  *
  * The composite foreign key `(organization_id, default_trainer_profile_id)` keeps the trainer
@@ -38,6 +55,7 @@ export const groupClasses = businessTable(
     defaultTrainerProfileId: uuid('default_trainer_profile_id'),
     capacity: integer('capacity').notNull(),
     durationMinutes: integer('duration_minutes').notNull(),
+    level: classLevel('level'),
     archivedAt: instant('archived_at'),
     ...timestamps(),
   },

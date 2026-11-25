@@ -1,8 +1,10 @@
 package app.fivvi.pro.personal
 
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.MyDay
 import app.fivvi.api.models.MyDayNext
 import app.fivvi.api.models.PersonalSession
+import app.fivvi.core.kit.showsInList
 import app.fivvi.pro.sessions.SessionFormat
 import app.fivvi.pro.sessions.SessionRoute
 import java.text.NumberFormat
@@ -36,7 +38,7 @@ sealed interface PersonalPill {
 
 /**
  * A line of Vandaag (TD-01), and later of Agenda (TD-04): one item of the personal scope, written down in Dutch time. Nothing
- * here decides anything: what the API sent is kept, and what only fits when the person has more than one kind or team
+ * here decides anything: what the API sent is kept, and what only fits when the person has more than one kind (the API says so) or team
  * ([namesKind], [showsWorkspace]) is switched on only then (F013 AC2, the design of `DECISIONS.md` §3). The texts around
  * these come from the string catalog on screen.
  */
@@ -49,7 +51,7 @@ data class PersonalRow(
     /** *09:00* */
     val startText: String,
     val endText: String,
-    /** The row says *Privésessie* or *Groepsles*: the person's items are of more than one kind. */
+    /** The row says *Privésessie* or *Groepsles*: the caller decided that rows name their kind ([PersonalRows]). */
     val namesKind: Boolean,
     /** The row says its workspace, with the colour dot: the person is on more than one team. */
     val showsWorkspace: Boolean,
@@ -62,17 +64,28 @@ data class PersonalRow(
     val isPast: Boolean,
     /** Who trains it, on the rows of *Hele studio*; `null` on Mijn dag, where every row is the person's own. */
     val trainer: PersonalTrainer? = null,
+    /**
+     * The level whose bars show after the class name (F067): *Beginner*, *Gemiddeld* or *Gevorderd* of a class date. `null` for
+     * *Geen*, for *Alle niveaus* (a list shows no icon for it) and for a private session.
+     */
+    val level: ClassLevel? = null,
 )
+
+/** The level a list shows as bars after the class name: only a class has one, and *Alle niveaus* shows none (F067). */
+internal fun listLevel(isGroup: Boolean, level: ClassLevel?): ClassLevel? = level?.takeIf { isGroup && it.showsInList }
 
 /** Builds the rows of a list of items, in the language's formatting locale and Dutch time. */
 class PersonalRows(
-    items: List<PersonalSession>,
+    /**
+     * Whether each row names its kind. The caller decides: *Vandaag* and *Agenda* pass the API's `showsKindLabel` (the
+     * person's workspaces run more than one session type, #1534); *Hele studio* still works it out from the
+     * workspace's own day.
+     */
+    private val namesKinds: Boolean,
     private val workspaceCount: Int,
     private val now: Instant,
     private val format: SessionFormat,
 ) {
-    /** The items are of more than one kind, so each row names its kind. */
-    private val namesKinds = items.map { it.type }.toSet().size > 1
 
     fun row(item: PersonalSession): PersonalRow {
         val isGroup = item.type == PersonalSession.Type.GROUP
@@ -104,6 +117,7 @@ class PersonalRows(
             },
             isCancelled = item.status == PersonalSession.Status.CANCELLED,
             isPast = !item.endsAt.toInstant().isAfter(now),
+            level = listLevel(isGroup, item.level),
         )
     }
 
@@ -158,7 +172,7 @@ data class PersonalNext(val row: PersonalRow, private val startsAt: Instant, pri
  */
 class TodayContent(private val day: MyDay, now: Instant, private val format: SessionFormat) {
     private val items = day.items.filter { it.type != PersonalSession.Type.OPEN_GYM }
-    private val builder = PersonalRows(items, day.workspaceCount, now, format)
+    private val builder = PersonalRows(day.showsKindLabel, day.workspaceCount, now, format)
 
     /** *4 sessies · 09:00–19:00 · 1 klaar*, or `null` for *Geen sessies vandaag*. */
     val summary: PersonalSummary? = run {

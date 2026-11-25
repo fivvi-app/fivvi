@@ -686,6 +686,8 @@ interface SeedClass {
   readonly trainer: string | null;
   readonly capacity: number;
   readonly minutes: number;
+  /** The class's level (F067): `Alle niveaus`, `Gevorderd`, or none (*Geen*). */
+  readonly level: 'all_levels' | 'beginner' | 'intermediate' | 'advanced' | null;
   readonly dates: readonly { readonly weekday: number; readonly start: string }[];
 }
 
@@ -698,6 +700,7 @@ const SEED_CLASSES: readonly SeedClass[] = [
     trainer: 'trainer@example.com',
     capacity: 8,
     minutes: 60,
+    level: 'all_levels',
     dates: [
       { weekday: 2, start: '18:00' },
       { weekday: 4, start: '18:00' },
@@ -710,6 +713,7 @@ const SEED_CLASSES: readonly SeedClass[] = [
     trainer: 'tom@example.com',
     capacity: 12,
     minutes: 45,
+    level: null,
     dates: [
       { weekday: 3, start: '12:15' },
       { weekday: 6, start: '10:00' },
@@ -722,6 +726,7 @@ const SEED_CLASSES: readonly SeedClass[] = [
     trainer: null,
     capacity: 15,
     minutes: 60,
+    level: 'advanced',
     dates: [
       { weekday: 5, start: '18:00' },
       { weekday: 6, start: '11:15' },
@@ -1015,6 +1020,7 @@ async function seedGroupClasses(
         defaultTrainerProfileId: trainerOf(plan.trainer),
         capacity: plan.capacity,
         durationMinutes: plan.minutes,
+        level: plan.level,
       })
       .returning({ id: groupClasses.id });
     if (!created) throw new Error('The seed did not store a class.');
@@ -1039,6 +1045,7 @@ async function seedGroupClasses(
       .select({
         capacity: groupClasses.capacity,
         durationMinutes: groupClasses.durationMinutes,
+        level: groupClasses.level,
         defaultTrainerProfileId: groupClasses.defaultTrainerProfileId,
       })
       .from(groupClasses)
@@ -1057,6 +1064,7 @@ async function seedGroupClasses(
           localStartTime: classSeries.localStartTime,
           trainerProfileId: classSeries.trainerProfileId,
           capacity: classSeries.capacity,
+          level: classSeries.level,
           durationMinutes: classSeries.durationMinutes,
         })
         .from(classSeries)
@@ -1082,6 +1090,7 @@ async function seedGroupClasses(
                 timeZone: tz,
                 trainerProfileId: current.defaultTrainerProfileId,
                 capacity: current.capacity,
+                level: current.level,
                 startsOn: addDaysTo(monday, date.weekday - 1),
                 materializedUntil: through,
               })
@@ -1092,6 +1101,7 @@ async function seedGroupClasses(
                 localStartTime: classSeries.localStartTime,
                 trainerProfileId: classSeries.trainerProfileId,
                 capacity: classSeries.capacity,
+                level: classSeries.level,
                 durationMinutes: classSeries.durationMinutes,
               });
       // Each series is filled with its own time and defaults, up to its end when it has one.
@@ -1118,6 +1128,7 @@ async function seedGroupClasses(
                   endsAt:
                     sql`(${startsAt}) + ${series.durationMinutes} * interval '1 minute'` as never,
                   capacity: series.capacity,
+                  level: series.level,
                   createdByTeamMemberId: plannedBy,
                 };
               }),

@@ -102,6 +102,8 @@ actor StubAPI: APIProtocol {
     let mySessions = StubMySessions()
     /// What `getWorkspaceDay` answers (F014).
     let workspaceDay = StubWorkspaceDay()
+    /// What `createBookingLink` answers (F037).
+    let bookingLinks = StubBookingLinks()
     private var goneWorkspaces: Set<String> = []
     private var workspaceStatus: Int?
     private var workspaceOffline = false
