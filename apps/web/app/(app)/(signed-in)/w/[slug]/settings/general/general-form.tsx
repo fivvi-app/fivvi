@@ -15,7 +15,7 @@ import { Field } from '@fivvi/ui/kit/field';
 import { SuccessLine } from '@fivvi/ui/kit/success-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
 import { SettingsPage } from '../settings-page';
 import { type NameErrorKey, renameWorkspace } from './rename-workspace-client';
 
@@ -23,18 +23,21 @@ import { type NameErrorKey, renameWorkspace } from './rename-workspace-client';
  * TW-08, Settings → General (F002, Owner only): the workspace name with *Save*, and the URL name
  * and time zone as read-only text (owner decision 2). Nothing is checked here: the API's answer
  * words the field error, and a refused name stays as typed. After a save the page asks the server
- * again, so the sidebar and every other page show the new name.
+ * again, so the sidebar and every other page show the new name. The cards under it (the
+ * *Woordkeuze*, F068) are its children: each saves on its own, so one never changes the other.
  */
 export function GeneralForm({
   workspaceId,
   name,
   slug,
   timeZone,
+  children,
 }: {
   workspaceId: string;
   name: string;
   slug: string;
   timeZone: string;
+  children?: ReactNode;
 }) {
   const t = useTranslations('settingsGeneral');
   const router = useRouter();
@@ -108,6 +111,7 @@ export function GeneralForm({
           </CardContent>
         </form>
       </Card>
+      {children}
     </SettingsPage>
   );
 }

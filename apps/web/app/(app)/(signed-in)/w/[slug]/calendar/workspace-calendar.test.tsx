@@ -363,6 +363,7 @@ describe.each(locales)('F014 the sidebar of a workspace in %s', (locale) => {
     render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"

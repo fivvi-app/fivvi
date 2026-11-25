@@ -122,6 +122,9 @@ export function TeamList({
 
   useEffect(() => setReady(true), []);
 
+  // The role is Trainer in code; what the person reads is the workspace's word (F068).
+  const roleLabel = (role: Role) =>
+    role === 'trainer' ? roles('trainerLabel', { ...trainerWord }) : roles(role);
   const trainers = new Set(trainerIds);
   const owners = members.filter(({ role }) => role === 'owner').length;
 
@@ -212,7 +215,7 @@ export function TeamList({
   const changeRole = (member: TeamMember, role: Role) =>
     run(
       () => changeTeamMemberRole(workspaceId, member.id, role),
-      t(`roleChanged.${role}`, { name: displayName(member) }),
+      t(`roleChanged.${role}`, { name: displayName(member), ...trainerWord }),
     );
 
   /** The menu applies a change to a Trainer at once, and asks first for the two that need it. */
@@ -234,10 +237,10 @@ export function TeamList({
   return (
     <PageShell>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t('title', { ...trainerWord })}</h1>
         {canInvite ? (
           <Button type="button" disabled={!ready} onClick={() => setInviting(true)}>
-            {t('invite.title')}
+            {t('invite.title', { ...trainerWord })}
           </Button>
         ) : null}
       </div>
@@ -289,15 +292,15 @@ export function TeamList({
                         >
                           {ROLES.map((role) => (
                             <NativeSelectOption key={role} value={role}>
-                              {roles(role)}
+                              {roleLabel(role)}
                             </NativeSelectOption>
                           ))}
                         </NativeSelect>
                       ) : (
-                        roles(member.role)
+                        roleLabel(member.role)
                       )}
                       {trainers.has(member.id) ? (
-                        <StatusPill>{t('badge.trainer')}</StatusPill>
+                        <StatusPill>{t('badge.trainer', { ...trainerWord })}</StatusPill>
                       ) : null}
                     </div>
                   </td>
@@ -327,7 +330,7 @@ export function TeamList({
                   <td className={cell}>{invitation.email}</td>
                   <td className={cell}>
                     <div className="flex flex-wrap items-center gap-2">
-                      {roles('trainer')}
+                      {roleLabel('trainer')}
                       <StatusPill>{t('invitations.status')}</StatusPill>
                       <span className="text-muted-foreground">
                         {format.dateTime(new Date(invitation.sentAt), 'dateWithYear', { timeZone })}
@@ -369,12 +372,16 @@ export function TeamList({
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {t(`${DIALOGS[asking.kind]}.title`, { name: displayName(asking.member) })}
+                {t(`${DIALOGS[asking.kind]}.title`, {
+                  name: displayName(asking.member),
+                  ...trainerWord,
+                })}
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {t(`${DIALOGS[asking.kind]}.body`, {
                   name: displayName(asking.member),
                   workspace: workspaceName,
+                  ...trainerWord,
                 })}
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -388,7 +395,7 @@ export function TeamList({
                   void confirm(asking);
                 }}
               >
-                {t(`${DIALOGS[asking.kind]}.confirm`)}
+                {t(`${DIALOGS[asking.kind]}.confirm`, { ...trainerWord })}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -442,6 +449,7 @@ export function TeamList({
             <InviteTrainerDialogContent
               workspaceId={workspaceId}
               defaultLocale={defaultLocale}
+              trainerWord={trainerWord}
               teamNames={teamNames}
               done={invited}
             />

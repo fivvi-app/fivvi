@@ -8273,35 +8273,37 @@
       }
     },
     "invitation.intro" : {
+      "comment" : "First line of the invitation page, an invitation to become a Trainer. {inviter} is the name of the person who invited; {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor; {workspace} the workspace name.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ invited you to become a trainer at %2$@."
+            "value" : "%2$@ invited you to become %1$@ at %3$@."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ nodigt je uit om trainer te worden bij %2$@."
+            "value" : "%2$@ nodigt je uit om %1$@ te worden bij %3$@."
           }
         }
       }
     },
     "invitation.introAnonymous" : {
+      "comment" : "First line of the invitation page when the inviter is not named. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor; {workspace} the workspace name.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You've been invited to become a trainer at %1$@."
+            "value" : "You've been invited to become %1$@ at %2$@."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Je bent uitgenodigd om trainer te worden bij %1$@."
+            "value" : "Je bent uitgenodigd om %1$@ te worden bij %2$@."
           }
         }
       }
@@ -15357,6 +15359,91 @@
         }
       }
     },
+    "settingsWording.errors.generic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ging iets mis. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "settingsWording.errors.noConnection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "settingsWording.help" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What do you call the people who teach? Clients and your team see this word everywhere in %1$@: in the timetable, the app, emails and on the poster. Pilates studios often choose instructor, yoga studios teacher."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoe noem je de mensen die lesgeven? Klanten en je team zien dit woord overal in %1$@: in het rooster, de app, e-mails en op de poster. Pilatesstudio's kiezen vaak instructeur, yogastudio's docent."
+          }
+        }
+      }
+    },
+    "settingsWording.saved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opgeslagen."
+          }
+        }
+      }
+    },
+    "settingsWording.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wording"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Woordkeuze"
+          }
+        }
+      }
+    },
     "signIn.changeEmail" : {
       "comment" : "Button on the second step that goes back to the email field.",
       "extractionState" : "manual",
@@ -15877,19 +15964,19 @@
       }
     },
     "team.badge.trainer" : {
-      "comment" : "Badge on a team member of the Trainers page (TW-06) who trains in the workspace, next to their role label. The word for the role Trainer.",
+      "comment" : "Badge on a team member of the Trainers page (TW-06) who trains in the workspace, next to their role label. The whole text is the singular word of the workspace (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainer"
+            "value" : "%1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainer"
+            "value" : "%1$@"
           }
         }
       }
@@ -16890,18 +16977,19 @@
       }
     },
     "team.invite.title" : {
+      "comment" : "Title of the invite dialog of the Trainers page (TW-06), an invitation to become a Trainer of the workspace. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor. Dutch 'Nodig {aWord} uit' breaks GLOSSARY §5.1's object-first order ('{AWord} uitnodigen') because parity forces it: '{AWord} uitnodigen' would need 'Invite {AWord}' in English, which would put a capitalised word after the verb in English.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invite trainer"
+            "value" : "Invite %1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainer uitnodigen"
+            "value" : "Nodig %1$@ uit"
           }
         }
       }
@@ -17011,19 +17099,19 @@
       }
     },
     "team.removeDialog.body" : {
-      "comment" : "Body of the remove dialog. {name} is the person's name, repeated instead of a pronoun; {workspace} the workspace name. Says that only the team access goes and what they have as a client stays.",
+      "comment" : "Body of the remove dialog. {name} is the person's name, repeated instead of a pronoun; {word} the workspace's word for a Trainer (F068), singular, lowercase, e.g. instructeur / instructor; {workspace} the workspace name. Says that only the team access goes and what they have as a client stays.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ will no longer have access to %2$@ as a trainer. What %1$@ has as a client, such as bookings, stays."
+            "value" : "%1$@ loses the %2$@ role at %3$@. What %1$@ has as a client, such as bookings, stays."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ kan niet meer als trainer bij %2$@. Wat %1$@ als klant heeft, zoals boekingen, blijft."
+            "value" : "%1$@ verliest de rol van %2$@ bij %3$@. Wat %1$@ als klant heeft, zoals boekingen, blijft."
           }
         }
       }
@@ -17118,18 +17206,19 @@
       }
     },
     "team.roleChanged.trainer" : {
+      "comment" : "Confirmation shown after an Owner became a Trainer of the workspace (stepped down). {name} is the person's name; {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ is now a trainer."
+            "value" : "%2$@ is now %1$@."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ is nu trainer."
+            "value" : "%2$@ is nu %1$@."
           }
         }
       }
@@ -17204,53 +17293,55 @@
       }
     },
     "team.stepDownDialog.confirm" : {
+      "comment" : "Button of the step-down dialog. Makes the Owner a Trainer of the workspace. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor. Dutch puts the object first: 'Mezelf {aWord} maken', like the title.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Make trainer"
+            "value" : "Make me %1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainer maken"
+            "value" : "Mezelf %1$@ maken"
           }
         }
       }
     },
     "team.stepDownDialog.title" : {
+      "comment" : "Title of the step-down dialog, a question the Owner answers about themselves. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Make yourself a trainer?"
+            "value" : "Make yourself %1$@?"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jezelf trainer maken?"
+            "value" : "Jezelf %1$@ maken?"
           }
         }
       }
     },
     "team.title" : {
-      "comment" : "Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title.",
+      "comment" : "Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title. The whole text is the plural word of the workspace (F068): {Words} is the plural with a capital start, e.g. Instructeurs / Instructors.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainers"
+            "value" : "%1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainers"
+            "value" : "%1$@"
           }
         }
       }
@@ -19734,19 +19825,19 @@
       }
     },
     "workspaceNav.trainers" : {
-      "comment" : "Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only.",
+      "comment" : "Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only. The whole text is the plural word of the workspace (F068): {Words} is the plural with a capital start, e.g. Instructeurs / Instructors.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainers"
+            "value" : "%1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trainers"
+            "value" : "%1$@"
           }
         }
       }

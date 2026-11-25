@@ -7,6 +7,7 @@ import {
   createTenantScopes,
   type DatabaseClient,
   hasPendingInvitation,
+  organizations,
   type SignedInAccount,
   teamMembers,
   trainerInvitations,
@@ -229,6 +230,7 @@ describe('F011 answering a trainer invitation', () => {
     expect(preview.status).toBe(200);
     expect(await preview.json()).toEqual({
       workspaceName: w.gym.marker,
+      trainerWord: 'trainer',
       inviterName: 'John',
       email: 'lisa@example.com',
       maskedEmail: 'l***@example.com',
@@ -445,6 +447,29 @@ describe('F011 answering a trainer invitation', () => {
     });
   });
 
+  describe('F068: the link says the workspace’s word for its trainers', () => {
+    it('AC1, AC4: the read carries the word of the workspace that invites, and a change shows on the next read', async () => {
+      const w = await world();
+      const server = setup();
+      const lisa = await invitation(w, { email: 'lisa@example.com' });
+      const word = async () =>
+        ((await (await read(server, lisa.token)).json()) as { trainerWord: string }).trainerWord;
+
+      expect(await word()).toBe('trainer');
+      await admin.db
+        .update(organizations)
+        .set({ trainerWord: 'docent' })
+        .where(eq(organizations.id, w.gym.id));
+      expect(await word()).toBe('docent');
+      // Another workspace's word is not this one's.
+      await admin.db
+        .update(organizations)
+        .set({ trainerWord: 'coach' })
+        .where(eq(organizations.id, w.other.id));
+      expect(await word()).toBe('docent');
+    });
+  });
+
   describe('AC9: the read is anonymous and minimal; answering needs a session', () => {
     it('shows only the workspace name, the inviter’s name, the address and its masked form, to anyone who holds a valid token', async () => {
       const w = await world();
@@ -463,6 +488,7 @@ describe('F011 answering a trainer invitation', () => {
           'forYou',
           'inviterName',
           'maskedEmail',
+          'trainerWord',
           'workspaceName',
         ]);
         // The sign-in (TW-10) opens with this address filled in (#1413).
@@ -670,6 +696,7 @@ describe('F011 answering a trainer invitation', () => {
     );
     expect(Object.keys(contract.components.schemas.InvitationPreview.properties)).toEqual([
       'workspaceName',
+      'trainerWord',
       'inviterName',
       'email',
       'maskedEmail',

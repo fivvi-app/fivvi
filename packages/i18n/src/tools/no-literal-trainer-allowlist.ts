@@ -65,59 +65,6 @@ export const trainerAllowlist: TrainerAllowlist = [
       'The demo request is an email to Fivvi’s own team, sent from the public website about a visitor who has no workspace yet, so there is no word to use.',
   },
 
-  // For now: #746, the trainer web.
-  {
-    key: 'workspaceNav.trainers',
-    movesWith: 746,
-    reason: 'moves with #746: the sidebar entry of the trainer web.',
-  },
-  {
-    key: 'team.title',
-    movesWith: 746,
-    reason: 'moves with #746: the title of the Trainers page.',
-  },
-  {
-    key: 'team.invite.title',
-    movesWith: 746,
-    reason: 'moves with #746: the invite button and dialog of the Trainers page.',
-  },
-  {
-    key: 'invitation.intro',
-    movesWith: 746,
-    reason:
-      'moves with #746: the invitation page (F011); the invitation preview names the workspace but not its word yet, so #746 adds the word to the preview.',
-  },
-  {
-    key: 'invitation.introAnonymous',
-    movesWith: 746,
-    reason:
-      'moves with #746: the invitation page (F011), the same line when the Owner has no name; see invitation.intro.',
-  },
-  {
-    key: 'team.removeDialog.body',
-    movesWith: 746,
-    reason: 'moves with #746: the remove-from-team dialog of the Trainers page.',
-  },
-  {
-    key: 'team.stepDownDialog.title',
-    movesWith: 746,
-    reason: 'moves with #746: the step-down dialog of the Trainers page.',
-  },
-  {
-    key: 'team.stepDownDialog.confirm',
-    movesWith: 746,
-    reason: 'moves with #746: the step-down dialog of the Trainers page.',
-  },
-  {
-    key: 'team.roleChanged.trainer',
-    movesWith: 746,
-    reason: 'moves with #746: the confirmation after a role change on the Trainers page.',
-  },
-  {
-    key: 'team.badge.trainer',
-    movesWith: 746,
-    reason: 'moves with #746: the badge on the Trainers page.',
-  },
   {
     key: 'dataImport.problems.trainerUnknown',
     movesWith: 751,

@@ -62,6 +62,7 @@ test.describe('F011 trainer invitations on the web', () => {
   }
 
   test('AC1, AC8: John invites Lisa and sees her pending; the team and the pending address are refused with their texts', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -72,8 +73,8 @@ test.describe('F011 trainer invitations on the web', () => {
     await signInWithSession(context, john);
     await page.goto(`/w/${slug}/trainers`);
 
-    await page.getByRole('button', { name: copy.team.invite.title }).click();
-    const dialog = page.getByRole('dialog', { name: copy.team.invite.title });
+    await page.getByRole('button', { name: wording.invite }).click();
+    const dialog = page.getByRole('dialog', { name: wording.invite });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByLabel(copy.team.invite.localeLabel)).toHaveValue('');
     await expect(
@@ -105,7 +106,7 @@ test.describe('F011 trainer invitations on the web', () => {
     await waitForEmails(lisa);
 
     // AC8: Sarah is on the team already: the dialog says so by name and nothing is sent.
-    await page.getByRole('button', { name: copy.team.invite.title }).click();
+    await page.getByRole('button', { name: wording.invite }).click();
     await dialog.getByLabel(copy.team.invite.nameLabel).fill('S.');
     await dialog.getByLabel(copy.team.invite.emailLabel).fill(sarah);
     await dialog.getByRole('button', { name: copy.team.invite.submit }).click();
@@ -127,6 +128,7 @@ test.describe('F011 trainer invitations on the web', () => {
   });
 
   test('AC7: John sends an invitation again, which retires the old link, and withdraws it after the question', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -174,11 +176,12 @@ test.describe('F011 trainer invitations on the web', () => {
     await expect(page.getByRole('row')).toHaveCount(3);
     await expect(page.getByText(lisa)).toHaveCount(0);
     expect((await page.request.get(`/api/v1/invitations/${second}`)).status()).toBe(404);
-    await expect(page).toHaveTitle(copy.team.title);
+    await expect(page).toHaveTitle(wording.title);
     await expectNoAxeViolations(page, `TW-06 after a withdrawal in ${appLocale}`);
   });
 
   test('AC3: Lisa opens the link signed out, signs in with the code, accepts and lands in John’s Gym', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -200,11 +203,7 @@ test.describe('F011 trainer invitations on the web', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: copy.invitation.title }),
     ).toBeVisible();
-    await expect(
-      page.getByText(
-        copy.invitation.intro.replace('{inviter}', 'John').replace('{workspace}', GYM),
-      ),
-    ).toBeVisible();
+    await expect(page.getByText(wording.intro('John', GYM))).toBeVisible();
     await expect(page).toHaveTitle(copy.invitation.title);
     await expectNoAxeViolations(page, `the invitation page in ${appLocale}`);
 
@@ -402,6 +401,7 @@ test.describe('F011 trainer invitations on the web', () => {
   });
 
   test('AC9: Sarah sees no invite button and no pending rows, and the API refuses her', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -416,13 +416,13 @@ test.describe('F011 trainer invitations on the web', () => {
 
     await page.goto(`/w/${slug}`);
     // Sarah has no Trainers page at all (F003); the invite tools are not anywhere she can go.
-    await expect(page.getByRole('button', { name: copy.team.invite.title })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: wording.invite })).toHaveCount(0);
     await page.goto(`/w/${slug}/trainers`);
     await expect(
       page.getByRole('heading', { level: 1, name: copy.noPermission.title }),
     ).toBeVisible();
     await expect(page.getByText(lisa)).toHaveCount(0);
-    await expect(page.getByRole('button', { name: copy.team.invite.title })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: wording.invite })).toHaveCount(0);
     const id = await workspaceId(page);
     expect((await page.request.get(`/api/v1/workspaces/${id}/trainer-invitations`)).status()).toBe(
       403,

@@ -104,6 +104,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
   }
 
   test('AC2: John sees John and Sarah with names, email addresses and role labels, and only his gym', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -113,11 +114,11 @@ test.describe('F003 my workspaces and the role in the header', () => {
     await signInWithSession(context, john);
 
     await page.goto(`/w/${slug}`);
-    await page.getByRole('link', { name: copy.workspaceNav.trainers }).click();
+    await page.getByRole('link', { name: wording.nav }).click();
 
     await expect(page).toHaveURL(`/w/${slug}/trainers`);
-    await expect(page).toHaveTitle(copy.team.title);
-    await expect(page.getByRole('heading', { level: 1, name: copy.team.title })).toBeVisible();
+    await expect(page).toHaveTitle(wording.title);
+    await expect(page.getByRole('heading', { level: 1, name: wording.title })).toBeVisible();
     const rows = page.getByRole('row');
     await expect(rows).toHaveCount(3);
     await expect(rows.nth(1)).toContainText(`John${john}${copy.roles.owner}`);
@@ -134,6 +135,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
   });
 
   test('F005 AC7: the trainer badge shows for John and Sarah, and for Sarah only after John switches training off', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -147,7 +149,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
 
     await page.goto(`/w/${slug}/trainers`);
     const rows = page.getByRole('row');
-    const badge = copy.team.badge.trainer;
+    const badge = wording.badge;
     await expect(rows).toHaveCount(3);
     await expect(rows.nth(1).locator('[data-slot="status-pill"]')).toHaveText(badge);
     await expect(rows.nth(2).locator('[data-slot="status-pill"]')).toHaveText(badge);
@@ -166,6 +168,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
   });
 
   test('@permission AC3: Sarah has no Trainers in her navigation and the URL shows the no-permission page', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -175,7 +178,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
     await signInWithSession(context, sarah);
 
     await page.goto(`/w/${slug}`);
-    await expect(page.getByRole('link', { name: copy.workspaceNav.trainers })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: wording.nav })).toHaveCount(0);
 
     await page.goto(`/w/${slug}/trainers`);
     await expect(
@@ -186,6 +189,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
   });
 
   test('AC4, AC6: John removes Sarah after confirming, and her signed-in browser shows the no-access page', async ({
+    wording,
     page,
     context,
     browser,
@@ -214,11 +218,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
           name: copy.team.removeDialog.title.replace('{name}', 'Sarah'),
         }),
       ).toBeVisible();
-      await expect(
-        dialog.getByText(
-          copy.team.removeDialog.body.replaceAll('{name}', 'Sarah').replace('{workspace}', GYM),
-        ),
-      ).toBeVisible();
+      await expect(dialog.getByText(wording.removeBody('Sarah', GYM))).toBeVisible();
       await expectNoAxeViolations(page, `the remove dialog in ${appLocale}`);
 
       // Cancelling removes nobody.
@@ -235,7 +235,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
       await expect(page.getByRole('row')).toHaveCount(2);
       await expect(page.getByText(sarah)).toHaveCount(0);
       // The title streams in after the body of the refresh (#353, #354), and axe wants one.
-      await expect(page).toHaveTitle(copy.team.title);
+      await expect(page).toHaveTitle(wording.title);
       await expectNoAxeViolations(page, `TW-06 after a removal in ${appLocale}`);
 
       // The data path: the API holds only John.
