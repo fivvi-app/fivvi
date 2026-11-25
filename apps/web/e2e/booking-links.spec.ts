@@ -625,15 +625,6 @@ test.describe('F037 booking links on the web', () => {
     await expect(page.getByRole('button', { name: copy.bookingLinks.copyBooking })).toHaveCount(0);
   });
 
-  /**
-   * Kracht, in whichever of its two names the Agenda writes.
-   *
-   * This regex is a workaround for bug #1595, not intended behaviour: the Agenda's server-side
-   * fetch forwards only the cookie, so the API answers in English for an account with no stored
-   * language. When #1595 is fixed, go back to `className(appLocale)` here.
-   */
-  const KRACHT = /Kracht|Strength/;
-
   /** The Agenda's week of `date`, and the quick view of the block of that week that has `text`, starting at `time`. */
   async function openQuickView(
     page: Page,
@@ -688,7 +679,7 @@ test.describe('F037 booking links on the web', () => {
     // John opens the quick view of Tuesday's Kracht: a share icon button right after the class name
     // in the header, named and with its tooltip by Boekingslink kopiëren, and not in the footer
     // row of actions beside Openen.
-    let dialog = await openQuickView(page, slug, tuesday(), KRACHT);
+    let dialog = await openQuickView(page, slug, tuesday(), className(appLocale));
     const open = dialog.getByRole('link', { name: week.open });
     await expect(open).toBeVisible();
     const copyButton = dialog.getByRole('button', { name });
@@ -711,7 +702,7 @@ test.describe('F037 booking links on the web', () => {
     ).toBeVisible();
     // Focus starts on Openen, not on the share button, so Enter opens the date.
     await expect(open).toBeFocused();
-    const title = dialog.getByRole('heading', { name: KRACHT });
+    const title = dialog.getByRole('heading', { name: className(appLocale) });
     const titleBox = await title.boundingBox();
     const buttonBox = await copyButton.boundingBox();
     if (!titleBox || !buttonBox) throw new Error('the title and the button have a box');
@@ -749,7 +740,7 @@ test.describe('F037 booking links on the web', () => {
     await context.clearCookies();
     await signInWithSession(context, sarah);
     await page.evaluate(() => navigator.clipboard.writeText(''));
-    dialog = await openQuickView(page, slug, tuesday(), KRACHT);
+    dialog = await openQuickView(page, slug, tuesday(), className(appLocale));
     await expect(dialog.getByRole('link', { name: week.open })).toBeVisible();
     await dialog.getByRole('button', { name }).click();
     await expect(page.getByRole('status')).toHaveText(copy.bookingLinks.copied);
@@ -766,6 +757,7 @@ test.describe('F037 booking links on the web', () => {
   test('AC8: the quick view of a cancelled or past class date has no Boekingslink kopiëren', async ({
     page,
     context,
+    appLocale,
     messages: copy,
   }) => {
     test.slow();
@@ -783,13 +775,13 @@ test.describe('F037 booking links on the web', () => {
     const name = copy.bookingLinks.copyBooking;
 
     // The open date has it.
-    let dialog = await openQuickView(page, slug, tuesday(), KRACHT, '18:00');
+    let dialog = await openQuickView(page, slug, tuesday(), className(appLocale), '18:00');
     await expect(dialog.getByRole('link', { name: copy.workspaceCalendar.open })).toBeVisible();
     await expect(dialog.getByRole('button', { name })).toBeVisible();
 
     // Cancelled: the quick view still opens (Openen), without the button.
     await cancelSession(sessionId);
-    dialog = await openQuickView(page, slug, tuesday(), KRACHT, '18:00');
+    dialog = await openQuickView(page, slug, tuesday(), className(appLocale), '18:00');
     await expect(dialog.getByRole('link', { name: copy.workspaceCalendar.open })).toBeVisible();
     await expect(dialog.getByRole('button', { name })).toHaveCount(0);
 
@@ -797,7 +789,7 @@ test.describe('F037 booking links on the web', () => {
     await passSession(pastId);
     const past = new Date(`${tuesday()}T12:00:00Z`);
     past.setUTCDate(past.getUTCDate() - 60);
-    dialog = await openQuickView(page, slug, past.toISOString().slice(0, 10), KRACHT);
+    dialog = await openQuickView(page, slug, past.toISOString().slice(0, 10), className(appLocale));
     await expect(dialog.getByRole('link', { name: copy.workspaceCalendar.open })).toBeVisible();
     await expect(dialog.getByRole('button', { name })).toHaveCount(0);
   });

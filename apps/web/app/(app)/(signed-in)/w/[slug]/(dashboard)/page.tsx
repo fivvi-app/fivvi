@@ -1,10 +1,10 @@
 import { trainerWordForms } from '@fivvi/i18n';
 import type { Metadata, Route } from 'next';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
 import { catalogLocale } from '../../../../../../i18n/config';
 import { apiClient } from '../../../../../../server/api';
+import { currentPageApiHeaders } from '../../../../../../server/page-api-headers';
 import { currentTrainsAnywhere } from '../../../../../../server/signed-in';
 import { workspaceOf } from '../../../../../../server/workspace-of';
 import { NoPermission } from '../settings/general/no-permission';
@@ -32,8 +32,8 @@ export default async function WorkspaceDashboardPage({ params }: PageProps<'/w/[
     if (await currentTrainsAnywhere()) redirect(`/w/${workspace.slug}/my-day` as Route);
     return <NoPermission workspace={workspace.name} />;
   }
-  const cookie = (await headers()).get('cookie');
-  const authorization = cookie ? { cookie } : {};
+  // The page's language goes along: the API names the classes in it for an account with no stored one (#1595).
+  const authorization = await currentPageApiHeaders();
   const [day, trainers, trains] = await Promise.all([
     apiClient.GET('/v1/workspaces/{workspaceId}/day', {
       params: { path: { workspaceId: workspace.id } },

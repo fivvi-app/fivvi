@@ -1,9 +1,10 @@
 import { PERSONAL_TIME_ZONE } from '@fivvi/domain';
 import { localDateOf } from '@fivvi/domain/zoned-time';
 import type { Metadata } from 'next';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { apiClient } from '../../../../../../server/api';
+import { currentPageApiHeaders } from '../../../../../../server/page-api-headers';
 import { currentMe } from '../../../../../../server/signed-in';
 import { startWorkspace } from '../../../../../../server/start-workspace';
 import { LAST_WORKSPACE_COOKIE } from '../../../../last-workspace';
@@ -26,8 +27,8 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function MyDayPage() {
   const now = new Date();
-  const cookie = (await headers()).get('cookie');
-  const authorization = cookie ? { cookie } : {};
+  // The page's language goes along: the API names the classes in it for an account with no stored one (#1595).
+  const authorization = await currentPageApiHeaders();
   // The frame is the one of the workspace this browser opens (`PersonalLayout`).
   const frame = startWorkspace(
     (await currentMe()).workspaces,
