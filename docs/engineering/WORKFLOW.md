@@ -95,6 +95,7 @@ From `PRODUCT.md §86`, extended for native apps. A user-facing feature is **not
 - [ ] Tests cover the acceptance criteria per the spec issue's Test plan and the checklist in [`TESTING.md §3`](TESTING.md) (e2e runs in both locales for user flows)
 - [ ] Review by the `reviewer` (`code-review`, both axes; with `review: split` the standards axis per `low`-risk PR and the spec review per slice and per spec, ADR-034) completed and findings fixed (`CODING_STANDARDS.md`); a `low`-risk PR may keep should-fix findings as follow-ups until pilot setup (ADR-033)
 - [ ] Spec issue up to date with what was built (ACs, languages, platforms)
+- [ ] The prototype (or the website design) and `DECISIONS.md` match what was built, and the artifact is republished after the merge ([`DESIGN.md`](../../DESIGN.md#the-designs-follow-the-app))
 - [ ] Feature registry status updated
 - [ ] Acceptance criteria pass
 - [ ] Cleanup (§5) completed after merge: `flow.sh finish` ran and `scripts/clean.sh` left no worktree, simulator or build output of the change behind

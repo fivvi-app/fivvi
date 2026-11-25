@@ -55,6 +55,16 @@ Where the design matters, the owner decides by **talking it over in the clickabl
 - The prototype shows look and flow, never architecture. Business rules stay in `packages/domain`; strings in the product come from `packages/i18n`.
 - `DECISIONS.md` §7 lists the prototype's assumptions and which of them the owner confirmed. A spec builds a confirmed one as written. It asks the owner about any other it touches, and never builds that as if it were decided.
 
+## The designs follow the app
+
+The designs always show the app as it is (owner, 25 November 2026). The next design round starts from them, so they never fall behind what was built. The designs are the prototype (`docs/design/prototype-v2`), the website design (`docs/design/website`) and `DECISIONS.md`.
+
+- **The same PR:** after a PR that changes what a user sees, on any platform, the design matches what was built. Where it already matches, as for a screen built from the prototype, nothing changes. Where it doesn't, the same PR updates the screen. That holds for the changes that skip the design round above too: a small change that follows a pattern, a fix that changes what is shown, a copy fix that shows on a prototype screen.
+- **Only what the owner decided:** a visible change that nobody decided yet goes to the owner first (design first, above). It is never built and then copied into the design. A decision the owner made outside the prototype, on an issue or in chat, gets its line in `DECISIONS.md` in the same PR. An older flow doc that now disagrees is handled as in step 5 of **How**.
+- **Checked:** the builder runs the checks of step 2 of **How** on the screens it changed, headless in Playwright as `docs/design/website/capture.cjs` does; for the website design that means the changed pages in both languages and themes. The reviewer checks on every such PR, whatever the axes, that the design matches what was built ([`docs/agents/build.md`](docs/agents/build.md), **Review**).
+- **Republished:** after the merge, the main conversation republishes the "Fivvi Prototype" or "Fivvi Website" artifact from `main`, so what the owner clicks is up to date (`work` skill, phase `merged`). Only Claude Code's main conversation has the artifact tool; Copilot and Codex report it to the owner instead.
+- **Out of scope:** work without a screen changes nothing here.
+
 ## Web (`apps/web`, `packages/ui`)
 
 - shadcn/ui on Tailwind v4, themed only by the tokens (zinc neutrals and the accent on the trainer web, the Fivvi Pro theme on the client web): import `@fivvi/ui/globals.css` and use shadcn's theme classes plus `session-*` and `status-*` ([`packages/ui`](packages/ui/README.md)). Tailwind's default palette is removed; no literal colours, no `--th-*` variables or palette in app code.
