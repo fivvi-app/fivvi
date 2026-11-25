@@ -625,7 +625,13 @@ test.describe('F037 booking links on the web', () => {
     await expect(page.getByRole('button', { name: copy.bookingLinks.copyBooking })).toHaveCount(0);
   });
 
-  /** Kracht, in whichever of its two names the Agenda writes. */
+  /**
+   * Kracht, in whichever of its two names the Agenda writes.
+   *
+   * This regex is a workaround for bug #1595, not intended behaviour: the Agenda's server-side
+   * fetch forwards only the cookie, so the API answers in English for an account with no stored
+   * language. When #1595 is fixed, go back to `className(appLocale)` here.
+   */
   const KRACHT = /Kracht|Strength/;
 
   /** The Agenda's week of `date`, and the quick view of the block of that week that has `text`, starting at `time`. */
