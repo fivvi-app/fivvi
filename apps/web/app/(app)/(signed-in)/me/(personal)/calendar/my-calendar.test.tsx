@@ -65,8 +65,8 @@ const week: Calendar = {
   timeZone: 'Europe/Amsterdam',
   workspaceCount: 2,
   workspaces: [
-    { ...gym, offers: ['private', 'group'] },
-    { ...own, offers: ['private'] },
+    { ...gym, sessionTypes: ['private', 'group'] },
+    { ...own, sessionTypes: ['private'] },
   ],
   showsKindLabel: true,
   items: [anna, mark, kracht, krachtCancelled, openGym],

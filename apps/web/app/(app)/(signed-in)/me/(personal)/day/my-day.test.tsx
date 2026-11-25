@@ -69,8 +69,8 @@ const day: Day = {
   timeZone: 'Europe/Amsterdam',
   workspaceCount: 2,
   workspaces: [
-    { ...gym, offers: ['private', 'group'] },
-    { ...own, offers: ['private'] },
+    { ...gym, sessionTypes: ['private', 'group'] },
+    { ...own, sessionTypes: ['private'] },
   ],
   showsKindLabel: true,
   items: [anna, mark, kracht, krachtCancelled],
@@ -163,7 +163,7 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
     const html = seen(
       view({
         workspaceCount: 1,
-        workspaces: [{ ...gym, offers: ['private', 'group'] }],
+        workspaces: [{ ...gym, sessionTypes: ['private', 'group'] }],
         showsKindLabel: true,
         items: [mark],
         next: undefined,
@@ -184,7 +184,7 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
     const html = seen(
       view({
         workspaceCount: 1,
-        workspaces: [{ ...own, offers: ['private'] }],
+        workspaces: [{ ...own, sessionTypes: ['private'] }],
         showsKindLabel: false,
         items: [anna],
         next: undefined,
