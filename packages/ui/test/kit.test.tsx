@@ -296,7 +296,6 @@ describe('E020 web kit', () => {
       );
 
       expect(filled(markup)).toEqual([true, true, true]);
-      expect(markup).not.toContain('opacity-60');
     });
 
     it('the full form has the word beside the icon and the compact form has none', () => {

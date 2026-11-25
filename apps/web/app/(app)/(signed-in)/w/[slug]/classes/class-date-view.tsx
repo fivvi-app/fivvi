@@ -57,7 +57,7 @@ export function ClassDateView({
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('classes');
-  const level = useTranslations('classLevel');
+  const levelCopy = useTranslations('classLevel');
   const locale = useLocale();
   const format = useFormatter();
   const { day, longDay, time } = useSessionFormat(session.timeZone);
@@ -179,7 +179,7 @@ export function ClassDateView({
             </dd>
             {session.level ? (
               <>
-                <dt className="text-muted-foreground">{level('field')}</dt>
+                <dt className="text-muted-foreground">{levelCopy('field')}</dt>
                 <dd>
                   <ClassLevelIcon level={session.level} />
                 </dd>
