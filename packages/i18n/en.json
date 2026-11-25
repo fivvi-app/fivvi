@@ -400,7 +400,7 @@
       "languageNotSupported": "Row {row}: language must be nl or en.",
       "sheetMissing": "The {sheet} sheet is missing.",
       "statusNotSupported": "Row {row}: status must be active or inactive.",
-      "trainerUnknown": "Row {row}: {email} isn't a trainer of {workspace}.",
+      "trainerUnknown": "Row {row}: {email} isn't {aWord} of {workspace}.",
       "valueMissing": "Row {row}: {column} is missing."
     }
   },
@@ -854,6 +854,7 @@
     "save": "Save",
     "saved": "Saved.",
     "title": "My profile",
+    "trainerRole": "Trainer",
     "workspacesTitle": "My workspaces"
   },
   "noAccess": {
@@ -917,7 +918,6 @@
   },
   "roles": {
     "owner": "Owner",
-    "trainer": "Trainer",
     "trainerLabel": "{Word}"
   },
   "sessions": {

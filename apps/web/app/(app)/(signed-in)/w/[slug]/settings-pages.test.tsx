@@ -106,7 +106,9 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     );
 
     expect(owner).toContain(`John&#x27;s Gym · ${escapeHtml(copy.roles.owner)}`);
-    expect(trainer).toContain(`John&#x27;s Gym · ${escapeHtml(copy.roles.trainer)}`);
+    expect(trainer).toContain(
+      `John&#x27;s Gym · ${escapeHtml(trainerWordForms('trainer', locale).Word)}`,
+    );
     expect(trainer).not.toContain(escapeHtml(copy.roles.owner));
   });
 

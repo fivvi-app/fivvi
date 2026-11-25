@@ -61,7 +61,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     expect(menu).toBeDefined();
     expect(menu).toMatch(new RegExp(`<option[^>]*value="owner"[^>]*>${copy.roles.owner}</option>`));
     expect(menu).toMatch(
-      new RegExp(`<option[^>]*value="trainer"[^>]*selected[^>]*>${copy.roles.trainer}</option>`),
+      new RegExp(`<option[^>]*value="trainer"[^>]*selected[^>]*>${forms.Word}</option>`),
     );
   });
 
@@ -87,7 +87,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
 
     expect(html).not.toContain('<select');
     expect(html).not.toContain('<button');
-    expect(html).toContain(copy.roles.trainer);
+    expect(html).toContain(forms.Word);
   });
 
   it('AC4: a Trainer row has the remove action, and a person who can not invite has no add button', () => {
@@ -210,7 +210,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
 
       expect(html).toMatch(
         new RegExp(
-          `Lisa(?:</span>)+</td><td[^>]*>lisa@example.com</td><td[^>]*>.*?${copy.roles.trainer}.*?<span[^>]*data-slot="status-pill"[^>]*>${copy.team.invitations.status}</span>.*?>\\p{L}+,? \\d{1,2} \\p{L}+\\.? 2026</span>`,
+          `Lisa(?:</span>)+</td><td[^>]*>lisa@example.com</td><td[^>]*>.*?${forms.Word}.*?<span[^>]*data-slot="status-pill"[^>]*>${copy.team.invitations.status}</span>.*?>\\p{L}+,? \\d{1,2} \\p{L}+\\.? 2026</span>`,
           'u',
         ),
       );

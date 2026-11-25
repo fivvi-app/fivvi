@@ -10772,6 +10772,24 @@
         }
       }
     },
+    "myProfile.trainerRole" : {
+      "comment" : "Role label of a Trainer in the list of workspaces on the web My profile (TW-09), which lists the workspaces of one person and so has no one workspace word: it says the literal word, on the allowlist of the no-literal-trainer check (F068, AC12). Everywhere else the role label is roles.trainerLabel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        }
+      }
+    },
     "myProfile.workspacesTitle" : {
       "comment" : "Heading of the section listing the workspaces the person is on the team of, each with their role.",
       "extractionState" : "manual",
@@ -11773,24 +11791,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eigenaar"
-          }
-        }
-      }
-    },
-    "roles.trainer" : {
-      "comment" : "OLD role label of a Trainer, shown as a plain label with the literal word trainer. Kept until the web, iOS and Android use roles.trainerLabel (F068, ticket #751 removes it).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trainer"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trainer"
           }
         }
       }

@@ -3,7 +3,8 @@
 # The sign-in is the shared sub-flow; Profiel is reached from the signed-in home and answers from
 # GET /api/v1/me/workspaces. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on
 # both apps (the row ids end in the workspace's slug).
-# ROLE_OWNER, ROLE_TRAINER and PROFILE_WORKSPACES_TITLE, set by scripts/maestro.sh: roles.owner, roles.trainer and
+# ROLE_OWNER, ROLE_TRAINER and PROFILE_WORKSPACES_TITLE, set by scripts/maestro.sh: roles.owner, trainerWord.trainer.wordCap (the word of
+# John's Gym, which the seed leaves on trainer, with a capital start: what roles.trainerLabel shows) and
 # myProfile.workspacesTitle from packages/i18n in the device language. They have no default here: a flow's own env default
 # would win over the value maestro.sh passes.
 appId: ${APP_ID}

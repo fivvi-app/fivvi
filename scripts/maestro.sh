@@ -127,7 +127,7 @@ set_flow_env() {
   add_catalog_env SIGN_IN_SEND_CODE "$1" signIn.sendCode || return 1
   add_catalog_env HOME_SET_UP_ON_WEB "$1" home.setUpOnWeb || return 1
   add_catalog_env ROLE_OWNER "$1" roles.owner || return 1
-  add_catalog_env ROLE_TRAINER "$1" roles.trainer || return 1
+  add_catalog_env ROLE_TRAINER "$1" trainerWord.trainer.wordCap || return 1
   add_catalog_env PROFILE_WORKSPACES_TITLE "$1" myProfile.workspacesTitle || return 1
   add_catalog_env SIGN_OUT_LABEL "$1" signOut.label || return 1
   add_catalog_env PROFILE_LANGUAGE_THIS "$1" profile.language || return 1

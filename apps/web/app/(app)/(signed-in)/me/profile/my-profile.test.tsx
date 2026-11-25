@@ -48,7 +48,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
     // F012: each row links to its workspace (a link, not a button: the page changes).
     expect(html).toMatch(
       new RegExp(
-        `<a[^>]*href="/w/johns-gym"[^>]*>John&#x27;s Gym</a><span[^>]*>${escapeHtml(copy.roles.trainer)}<`,
+        `<a[^>]*href="/w/johns-gym"[^>]*>John&#x27;s Gym</a><span[^>]*>${escapeHtml(copy.myProfile.trainerRole)}<`,
       ),
     );
     expect(html).toMatch(

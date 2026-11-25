@@ -419,8 +419,8 @@ test.describe('F068 the workspace’s word', () => {
     );
     await page.goto('/me/profile');
     await expect(page.getByRole('listitem')).toHaveText([
-      `${GYM}${copy.roles.trainer}`,
-      `Yoga Loft${copy.roles.trainer}`,
+      `${GYM}${copy.myProfile.trainerRole}`,
+      `Yoga Loft${copy.myProfile.trainerRole}`,
     ]);
   });
 

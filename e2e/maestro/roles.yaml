@@ -4,7 +4,7 @@
 # lists (the helper's unit tests); no action is visible yet, F006's *+ Nieuwe klant* is the first. The sign-in is the
 # shared sub-flow; elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on both
 # apps (the row ids end in the workspace's slug).
-# ROLE_OWNER and ROLE_TRAINER, set by scripts/maestro.sh: roles.owner and roles.trainer from packages/i18n in the device
+# ROLE_OWNER and ROLE_TRAINER, set by scripts/maestro.sh: roles.owner and trainerWord.trainer.wordCap (the word of John's Gym, which the seed leaves on trainer, with a capital start: what roles.trainerLabel shows) from packages/i18n in the device
 # language. They have no default here: a flow's own env default would win over the value maestro.sh passes.
 appId: ${APP_ID}
 name: AC10 Profiel shows my role per workspace
