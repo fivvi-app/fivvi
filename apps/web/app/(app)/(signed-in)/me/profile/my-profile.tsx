@@ -34,6 +34,7 @@ export function MyProfile({
 }) {
   const t = useTranslations('myProfile');
   const roles = useTranslations('roles');
+  // This page lists the workspaces of one person, so it has no one workspace's word (F068, AC12).
   // Shown from the capability the API lists, never from the role name (F004).
   const owned = workspaces.filter(({ capabilities }) => capabilities.includes('team.manage'));
   return (
@@ -55,7 +56,7 @@ export function MyProfile({
                 <Link href={`/w/${slug}` as Route} className="font-semibold hover:underline">
                   {name}
                 </Link>
-                <StatusPill>{roles(role)}</StatusPill>
+                <StatusPill>{role === 'trainer' ? t('trainerRole') : roles(role)}</StatusPill>
               </li>
             ))}
           </ul>

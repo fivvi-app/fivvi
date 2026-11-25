@@ -400,7 +400,7 @@
       "languageNotSupported": "Rij {row}: taal moet nl of en zijn.",
       "sheetMissing": "Het tabblad {sheet} ontbreekt.",
       "statusNotSupported": "Rij {row}: status moet active of inactive zijn.",
-      "trainerUnknown": "Rij {row}: {email} is geen trainer van {workspace}.",
+      "trainerUnknown": "Rij {row}: {email} hoort niet bij de {words} van {workspace}.",
       "valueMissing": "Rij {row}: {column} ontbreekt."
     }
   },
@@ -854,6 +854,7 @@
     "save": "Opslaan",
     "saved": "Opgeslagen.",
     "title": "Mijn profiel",
+    "trainerRole": "Trainer",
     "workspacesTitle": "Mijn werkruimtes"
   },
   "noAccess": {
@@ -917,7 +918,6 @@
   },
   "roles": {
     "owner": "Eigenaar",
-    "trainer": "Trainer",
     "trainerLabel": "{Word}"
   },
   "sessions": {

@@ -1,4 +1,4 @@
-import { formattingLocales } from '@fivvi/i18n';
+import { formattingLocales, trainerWordForms } from '@fivvi/i18n';
 import {
   clientIpHeaders,
   createAccount,
@@ -59,13 +59,15 @@ test.describe('F003 my workspaces and the role in the header', () => {
     ).toBeVisible();
     const items = page.getByRole('listitem');
     await expect(items).toHaveCount(2);
-    await expect(items.nth(0)).toHaveText(`${GYM}${copy.roles.trainer}`);
+    await expect(items.nth(0)).toHaveText(`${GYM}${copy.myProfile.trainerRole}`);
     await expect(items.nth(1)).toHaveText(`${PERSONAL}${copy.roles.owner}`);
     await expectNoAxeViolations(page, `TW-09 in ${appLocale}`);
 
     // Nothing from one workspace shows in the pages of the other.
     await page.goto(`/w/${gymSlug}`);
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     await expect(page.getByText(PERSONAL)).toHaveCount(0);
     await page.goto(`/w/${personalSlug}`);
     await expect(page.getByText(`${PERSONAL} · ${copy.roles.owner}`)).toBeVisible();
@@ -208,7 +210,9 @@ test.describe('F003 my workspaces and the role in the header', () => {
       await signInWithSession(sarahsBrowser, sarah);
       const sarahsPage = await sarahsBrowser.newPage();
       await sarahsPage.goto(`/w/${slug}`);
-      await expect(sarahsPage.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+      await expect(
+        sarahsPage.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+      ).toBeVisible();
 
       await page.goto(`/w/${slug}/trainers`);
       await page.getByRole('button', { name: copy.team.remove }).click();

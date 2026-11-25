@@ -1,4 +1,4 @@
-import { formattingLocales } from '@fivvi/i18n';
+import { formattingLocales, trainerWordForms } from '@fivvi/i18n';
 import type { Page } from '@playwright/test';
 import {
   clientIpHeaders,
@@ -114,7 +114,9 @@ test.describe('@permission F004 roles on the web', () => {
     await signInWithSession(context, sarah);
 
     await page.goto(`/w/${slug}`);
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
     // A Trainer has the Persoonlijk group (Mijn dag, Mijn agenda: no permission, her own days, F013), Clients (clients.view, F006), the Aanmeldlink (join_link.view, F029) and nothing the role may not use.
     await expect(nav.getByRole('link')).toHaveText([
@@ -158,7 +160,9 @@ test.describe('@permission F004 roles on the web', () => {
       await signInWithSession(sarahsBrowser, sarah);
       const sarahsPage = await sarahsBrowser.newPage();
       await sarahsPage.goto(`/w/${slug}`);
-      await expect(sarahsPage.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+      await expect(
+        sarahsPage.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+      ).toBeVisible();
 
       await page.goto(`/w/${slug}/trainers`);
       const menuOf = (name: string) => page.getByLabel(copy.team.roleMenu.replace('{name}', name));
@@ -167,7 +171,7 @@ test.describe('@permission F004 roles on the web', () => {
       await expect(menuOf('Sarah')).toHaveValue('trainer');
       await expect(menuOf('Sarah').locator('option')).toHaveText([
         copy.roles.owner,
-        copy.roles.trainer,
+        trainerWordForms('trainer', appLocale).Word,
       ]);
       const { workspaceId, members } = await teamOf(page, GYM);
       const johnsId = members.find(({ name }) => name === 'John')?.id;
@@ -232,7 +236,9 @@ test.describe('@permission F004 roles on the web', () => {
         'trainer',
       ]);
       await sarahsPage.goto(`/w/${slug}`);
-      await expect(sarahsPage.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+      await expect(
+        sarahsPage.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+      ).toBeVisible();
       await expect(sarahsPage.getByRole('navigation').getByRole('link')).toHaveText([
         copy.workspaceNav.myDay,
         copy.workspaceNav.myCalendar,
@@ -287,7 +293,9 @@ test.describe('@permission F004 roles on the web', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: copy.noPermission.title }),
     ).toBeVisible();
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     await expect(page.getByRole('navigation').getByRole('link')).toHaveText([
       copy.workspaceNav.myDay,
       copy.workspaceNav.myCalendar,
@@ -356,7 +364,9 @@ test.describe('@permission F004 roles on the web', () => {
     const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
 
     await page.goto(`/w/${gymSlug}`);
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     // A Trainer has the Persoonlijk group (Mijn dag, Mijn agenda: no permission, her own days, F013), Clients (clients.view, F006), the Aanmeldlink (join_link.view, F029) and nothing the role may not use.
     await expect(nav.getByRole('link')).toHaveText([
       copy.workspaceNav.myDay,
@@ -388,7 +398,7 @@ test.describe('@permission F004 roles on the web', () => {
 
     await page.goto('/me/profile');
     const items = page.getByRole('listitem');
-    await expect(items.nth(0)).toHaveText(`${GYM}${copy.roles.trainer}`);
+    await expect(items.nth(0)).toHaveText(`${GYM}${copy.myProfile.trainerRole}`);
     await expect(items.nth(1)).toHaveText(`${PERSONAL}${copy.roles.owner}`);
   });
 });

@@ -726,6 +726,8 @@
     <string name="my_profile_saved">Opgeslagen.</string>
     <!-- Title of the page My profile (TW-09). -->
     <string name="my_profile_title">Mijn profiel</string>
+    <!-- Role label of a Trainer in the list of workspaces on the web My profile (TW-09), which lists the workspaces of one person and so has no one workspace word: it says the literal word, on the allowlist of the no-literal-trainer check (F068, AC12). Everywhere else the role label is roles.trainerLabel. -->
+    <string name="my_profile_trainer_role">Trainer</string>
     <!-- Heading of the section listing the workspaces the person is on the team of, each with their role. -->
     <string name="my_profile_workspaces_title">Mijn werkruimtes</string>
     <!-- Text of the no-access page (information-architecture §9.5, No permission). Native apps show it too, under the same conditions. The Dutch uses 'werkruimte' as the spec words it. -->
@@ -820,8 +822,6 @@
     <string name="profile_version">Versie %1$s</string>
     <!-- Role label of an Owner (Eigenaar) of a workspace, shown as a plain label. -->
     <string name="roles_owner">Eigenaar</string>
-    <!-- OLD role label of a Trainer, shown as a plain label with the literal word trainer. Kept until the web, iOS and Android use roles.trainerLabel (F068, ticket #751 removes it). -->
-    <string name="roles_trainer">Trainer</string>
     <!-- Role label of a Trainer of a workspace, shown as a plain label, in the workspace's word (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor. The role itself stays Trainer. -->
     <string name="roles_trainer_label">%1$s</string>
     <!-- PS-06: the button on the session page (and the quick view) that opens the cancel dialog; it cancels the session, it does not dismiss anything. "Annuleren" / "Cancel" here is the cancel-the-session verb (GLOSSARY: Cancel / Annuleren), not the Cancel button of a dialog that closes it (common.cancel). -->

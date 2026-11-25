@@ -1,3 +1,4 @@
+import { trainerWordForms } from '@fivvi/i18n';
 import type { Page } from '@playwright/test';
 import {
   clientIpHeaders,
@@ -213,7 +214,9 @@ test.describe('F011 trainer invitations on the web', () => {
     // the workspace and sends her there, inside John's Gym's frame.
     await expect(page).toHaveURL('/me/day');
     await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     await expect(
       page
         .getByRole('navigation', { name: copy.workspaceNav.label })
@@ -230,7 +233,9 @@ test.describe('F011 trainer invitations on the web', () => {
     await context.clearCookies();
     await signInWithSession(context, john);
     await page.goto(`/w/${slug}/trainers`);
-    await expect(page.getByRole('row').filter({ hasText: lisa })).toContainText(copy.roles.trainer);
+    await expect(page.getByRole('row').filter({ hasText: lisa })).toContainText(
+      trainerWordForms('trainer', appLocale).Word,
+    );
     await expect(
       page.locator('[data-slot="status-pill"]', { hasText: copy.team.invitations.status }),
     ).toHaveCount(0);

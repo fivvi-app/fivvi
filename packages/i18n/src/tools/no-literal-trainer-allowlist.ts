@@ -1,16 +1,16 @@
 /**
  * The messages that may still say *trainer* literally (F068, spec #588). Every other message
  * names the role with the workspace's word (`{word}`, `{Word}`, … see `trainerWordForms`),
- * and the `no-literal-trainer` check fails on a new literal.
+ * and the `no-literal-trainer` check fails on a new literal. No entry is temporary: the
+ * rollout is over, and the check alone keeps a new string from saying *trainer*.
  *
  * Every entry gives its reason, in one of three kinds:
- * - **For good**: a screen with no workspace, which can't know one word (sign-in, *Mijn profiel*,
- *   the apps' no-workspace screen, rows from several workspaces together, Fivvi's own team
- *   emails about a visitor with no workspace), and the public website's copy, which is out of
- *   scope. Covers every key under its prefix.
- * - **For now**: a string that said *trainer* before the word existed. It moves with the #588
- *   ticket that switches its callers, and that ticket takes the entry off (the check fails on
- *   an entry no message needs any more). Covers exactly one key.
+ * - **For good, a prefix**: a screen with no workspace, which can't know one word (sign-in,
+ *   the apps' no-workspace screen, Fivvi's own team emails about a visitor with no workspace),
+ *   and the public website's copy, which is out of scope. Covers every key under its prefix.
+ * - **For good, one key**: a message on a screen with no workspace that sits in a namespace
+ *   other screens share (*Mijn profiel* lists the workspaces of one person, each with a
+ *   role). Covers exactly one key.
  * - **Not the role**: a message whose text contains *trainer* but doesn't mean the role (the
  *   equipment *crosstrainer*, *hometrainer*). Covers exactly one key, never a prefix, and
  *   stays as long as the message says it (the check still fails on an entry no message needs).
@@ -22,15 +22,10 @@ export interface AllowedForGood {
   reason: string;
 }
 
-/** The tickets of spec #588 that switch callers to the word, and #751 which removes the old role label. */
-export const MOVES_WITH_TICKETS = [746, 747, 748, 749, 750, 751] as const;
-export type MovesWithTicket = (typeof MOVES_WITH_TICKETS)[number];
-
-export interface AllowedForNow {
-  key: string;
-  /** The ticket that switches the callers of this message and takes the entry off. */
-  movesWith: MovesWithTicket;
-  /** Starts with "moves with #<ticket>". */
+export interface AllowedForGoodKey {
+  /** Exactly this key; another key with the same text still fails. */
+  exactKey: string;
+  scope: 'no-workspace';
   reason: string;
 }
 
@@ -42,7 +37,7 @@ export interface AllowedNotTheRole {
   reason: string;
 }
 
-export type TrainerAllowlist = readonly (AllowedForGood | AllowedForNow | AllowedNotTheRole)[];
+export type TrainerAllowlist = readonly (AllowedForGood | AllowedForGoodKey | AllowedNotTheRole)[];
 
 export const trainerAllowlist: TrainerAllowlist = [
   // For good.
@@ -64,21 +59,11 @@ export const trainerAllowlist: TrainerAllowlist = [
     reason:
       'The demo request is an email to Fivvi’s own team, sent from the public website about a visitor who has no workspace yet, so there is no word to use.',
   },
-
   {
-    key: 'dataImport.problems.trainerUnknown',
-    movesWith: 751,
+    exactKey: 'myProfile.trainerRole',
+    scope: 'no-workspace',
     reason:
-      'moves with #751: the import’s problem is resolved in packages/domain/src/import/messages.ts and no web, email or app ticket names the import, so the last ticket moves it to the word.',
-  },
-
-  // For now: the old role label, which the web (#746), iOS (#748) and Android (#749) leave for
-  // `roles.trainerLabel` one by one, and which #751 removes.
-  {
-    key: 'roles.trainer',
-    movesWith: 751,
-    reason:
-      'moves with #751: the old role label; #746, #748 and #749 move their callers to roles.trainerLabel, #751 removes it.',
+      'The role label of a Trainer in the web Mijn profiel, which lists the workspaces of one person, each with the role there, so it has no one workspace and no one word (spec #588, AC12).',
   },
 
   // Not the role: the word is part of the name of a piece of equipment.

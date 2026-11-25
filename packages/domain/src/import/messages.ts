@@ -1,4 +1,4 @@
-import { type Locale, messages } from '@fivvi/i18n';
+import { type Locale, messages, type TrainerWord, trainerWordForms } from '@fivvi/i18n';
 import { createTranslator } from 'use-intl/core';
 import type { ImportProblem, ImportProblemType } from './check.ts';
 import type { ImportFileErrorReason } from './parse.ts';
@@ -50,9 +50,17 @@ function translate(locale: Locale, key: string, values: Record<string, string> =
   );
 }
 
-/** The message of a finding, in the language of the Owner who reads it. */
-export function describeProblem(problem: ImportProblem, locale: Locale): string {
+/**
+ * The message of a finding, in the language of the Owner who reads it. The workspace's word
+ * (F068) names the role where a message says it (*geen instructeur van …*).
+ */
+export function describeProblem(
+  problem: ImportProblem,
+  locale: Locale,
+  trainerWord: TrainerWord,
+): string {
   return translate(locale, `dataImport.problems.${PROBLEM_KEYS[problem.type]}`, {
+    ...trainerWordForms(trainerWord, locale),
     ...problem.values,
   });
 }

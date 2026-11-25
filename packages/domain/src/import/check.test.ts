@@ -60,39 +60,45 @@ describe('E015 checking the clients sheet', () => {
       row: PROBLEM_ROWS.duplicateKey,
       column: 'client_key',
     });
-    expect(describeProblem(duplicateKey, 'nl-NL')).toBe(
+    expect(describeProblem(duplicateKey, 'nl-NL', 'trainer')).toBe(
       'Rij 5: client_key K003 komt twee keer voor.',
     );
-    expect(describeProblem(duplicateKey, 'en')).toBe('Row 5: client_key K003 appears twice.');
+    expect(describeProblem(duplicateKey, 'en', 'trainer')).toBe(
+      'Row 5: client_key K003 appears twice.',
+    );
 
     expect(at('email-duplicate')).toMatchObject({
       row: PROBLEM_ROWS.duplicateEmail,
       column: 'email',
     });
-    expect(describeProblem(at('email-duplicate'), 'nl-NL')).toBe(
+    expect(describeProblem(at('email-duplicate'), 'nl-NL', 'trainer')).toBe(
       'Rij 7: dit e-mailadres staat ook in rij 6.',
     );
-    expect(describeProblem(at('email-duplicate'), 'en')).toBe(
+    expect(describeProblem(at('email-duplicate'), 'en', 'trainer')).toBe(
       'Row 7: this email address is also in row 6.',
     );
 
     expect(at('email-invalid')).toMatchObject({ row: PROBLEM_ROWS.invalidEmail, column: 'email' });
-    expect(describeProblem(at('email-invalid'), 'nl-NL')).toBe(
+    expect(describeProblem(at('email-invalid'), 'nl-NL', 'trainer')).toBe(
       'Rij 9: dit e-mailadres klopt niet.',
     );
-    expect(describeProblem(at('email-invalid'), 'en')).toBe(
+    expect(describeProblem(at('email-invalid'), 'en', 'trainer')).toBe(
       "Row 9: this email address doesn't look right.",
     );
 
     expect(at('email-missing')).toMatchObject({ row: PROBLEM_ROWS.missingEmail, column: 'email' });
-    expect(describeProblem(at('email-missing'), 'nl-NL')).toBe('Rij 11: e-mailadres ontbreekt.');
-    expect(describeProblem(at('email-missing'), 'en')).toBe('Row 11: email address is missing.');
+    expect(describeProblem(at('email-missing'), 'nl-NL', 'trainer')).toBe(
+      'Rij 11: e-mailadres ontbreekt.',
+    );
+    expect(describeProblem(at('email-missing'), 'en', 'trainer')).toBe(
+      'Row 11: email address is missing.',
+    );
 
     expect(at('language-not-supported')).toMatchObject({
       row: PROBLEM_ROWS.languageNotSupported,
       column: 'language',
     });
-    expect(describeProblem(at('language-not-supported'), 'en')).toBe(
+    expect(describeProblem(at('language-not-supported'), 'en', 'trainer')).toBe(
       'Row 13: language must be nl or en.',
     );
 
@@ -100,11 +106,22 @@ describe('E015 checking the clients sheet', () => {
       row: PROBLEM_ROWS.unknownTrainer,
       column: 'trainer_email',
     });
-    expect(describeProblem(at('trainer-unknown'), 'nl-NL')).toBe(
-      "Rij 15: nobody@example.com is geen trainer van John's Gym.",
+    expect(describeProblem(at('trainer-unknown'), 'nl-NL', 'trainer')).toBe(
+      "Rij 15: nobody@example.com hoort niet bij de trainers van John's Gym.",
     );
-    expect(describeProblem(at('trainer-unknown'), 'en')).toBe(
-      "Row 15: nobody@example.com isn't a trainer of John's Gym.",
+    expect(describeProblem(at('trainer-unknown'), 'en', 'trainer')).toBe(
+      "Row 15: nobody@example.com isn't one of the trainers at John's Gym.",
+    );
+
+    // The problem names the role with the workspace's word (F068, AC6), in the Owner's language.
+    expect(describeProblem(at('trainer-unknown'), 'nl-NL', 'instructeur')).toBe(
+      "Rij 15: nobody@example.com hoort niet bij de instructeurs van John's Gym.",
+    );
+    expect(describeProblem(at('trainer-unknown'), 'en', 'instructeur')).toBe(
+      "Row 15: nobody@example.com isn't one of the instructors at John's Gym.",
+    );
+    expect(describeProblem(at('trainer-unknown'), 'en', 'docent')).toBe(
+      "Row 15: nobody@example.com isn't one of the teachers at John's Gym.",
     );
 
     expect(at('status-not-supported')).toMatchObject({
@@ -115,7 +132,9 @@ describe('E015 checking the clients sheet', () => {
       row: PROBLEM_ROWS.missingFirstName,
       column: 'first_name',
     });
-    expect(describeProblem(at('value-missing'), 'nl-NL')).toBe('Rij 19: first_name ontbreekt.');
+    expect(describeProblem(at('value-missing'), 'nl-NL', 'trainer')).toBe(
+      'Rij 19: first_name ontbreekt.',
+    );
     expect(result.problems).toHaveLength(8);
     expect(result.canImport).toBe(false);
     expect(result.problems.every((problem) => problem.severity === 'error')).toBe(true);
@@ -135,10 +154,10 @@ describe('E015 checking the clients sheet', () => {
       row: 1,
       column: 'email',
     });
-    expect(describeProblem(repeated[0] as ImportProblem, 'nl-NL')).toBe(
+    expect(describeProblem(repeated[0] as ImportProblem, 'nl-NL', 'trainer')).toBe(
       'Kolom email staat twee keer in het bestand.',
     );
-    expect(describeProblem(repeated[0] as ImportProblem, 'en')).toBe(
+    expect(describeProblem(repeated[0] as ImportProblem, 'en', 'trainer')).toBe(
       'Column email appears twice in the file.',
     );
     expect(result.problems.filter((problem) => problem.column === 'email')).toEqual(repeated);
@@ -160,10 +179,10 @@ describe('E015 checking the clients sheet', () => {
       row: 1,
       column: 'I',
     });
-    expect(describeProblem(unnamed[0] as ImportProblem, 'nl-NL')).toBe(
+    expect(describeProblem(unnamed[0] as ImportProblem, 'nl-NL', 'trainer')).toBe(
       'Kolom I heeft geen naam en wordt niet geïmporteerd.',
     );
-    expect(describeProblem(unnamed[0] as ImportProblem, 'en')).toBe(
+    expect(describeProblem(unnamed[0] as ImportProblem, 'en', 'trainer')).toBe(
       "Column I has no name and isn't imported.",
     );
     expect(result.canImport).toBe(true);
@@ -198,10 +217,12 @@ describe('E015 checking the clients sheet', () => {
     expect(refused.every((problem) => problem.severity === 'error' && problem.row === 1)).toBe(
       true,
     );
-    expect(describeProblem(refused[0] as ImportProblem, 'nl-NL')).toBe(
+    expect(describeProblem(refused[0] as ImportProblem, 'nl-NL', 'trainer')).toBe(
       'Kolom phone wordt niet geïmporteerd.',
     );
-    expect(describeProblem(refused[0] as ImportProblem, 'en')).toBe("Column phone isn't imported.");
+    expect(describeProblem(refused[0] as ImportProblem, 'en', 'trainer')).toBe(
+      "Column phone isn't imported.",
+    );
     expect(result.canImport).toBe(false);
     const planText = JSON.stringify(plan);
     for (const value of ['0600000000', '1900-01-01', 'NL00TEST0000000000', 'synthetic note']) {
@@ -226,7 +247,7 @@ describe('E015 checking the clients sheet', () => {
     expect(withoutEmail.problems).toEqual([
       expect.objectContaining({ type: 'column-missing', column: 'email', row: 1 }),
     ]);
-    expect(describeProblem(withoutEmail.problems[0] as ImportProblem, 'nl-NL')).toBe(
+    expect(describeProblem(withoutEmail.problems[0] as ImportProblem, 'nl-NL', 'trainer')).toBe(
       'Kolom email ontbreekt.',
     );
   });
@@ -264,10 +285,10 @@ describe('E015 checking the clients sheet', () => {
       row: 2,
       column: 'email',
     });
-    expect(describeProblem(warning as ImportProblem, 'nl-NL')).toBe(
+    expect(describeProblem(warning as ImportProblem, 'nl-NL', 'trainer')).toBe(
       'Rij 2: er bestaat al een klant met dit e-mailadres.',
     );
-    expect(describeProblem(warning as ImportProblem, 'en')).toBe(
+    expect(describeProblem(warning as ImportProblem, 'en', 'trainer')).toBe(
       'Row 2: a client with this email address already exists.',
     );
     expect(result.canImport).toBe(true);
