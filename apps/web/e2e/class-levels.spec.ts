@@ -353,4 +353,116 @@ test.describe('F067 class levels on the trainer web', () => {
     expect(refused.status()).toBe(403);
     expect((await storedDate(page.request, workspaceId, date.id)).level).toBe('advanced');
   });
+
+  /** A day of the spec's week: `tuesday()` plus `days`. */
+  const dayOfWeek = (days: number) =>
+    new Date(Date.parse(`${tuesday()}T12:00:00Z`) + days * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+
+  /** The levels of the Agenda's week, one class date each (all on a different day), and Geen. */
+  const AGENDA = [
+    ['Yoga Alle', 'all_levels'],
+    ['Yoga Beginner', 'beginner'],
+    ['Yoga Gemiddeld', 'intermediate'],
+    ['Yoga Gevorderd', 'advanced'],
+    ['Yoga Geen', undefined],
+  ] as const;
+
+  /** Seeds a class date per level in the week of `tuesday()`, taught by Sarah; as John, on `request`. */
+  async function seedAgenda(request: APIRequestContext, workspaceId: string) {
+    const sarah = await trainerId(request, workspaceId, 'Sarah');
+    for (const [index, [name, level]] of AGENDA.entries()) {
+      const groupClass = await seedClass(request, workspaceId, {
+        nameNl: name,
+        trainerId: sarah,
+        ...(level ? { level } : {}),
+      });
+      await seedDate(request, workspaceId, groupClass.id, { localDate: dayOfWeek(index) });
+    }
+  }
+
+  /** The blocks of the Agenda: each opens the quick view (WC-05). */
+  const block = (page: Page, name: string) =>
+    page.getByRole('main').locator('button[aria-haspopup="dialog"]').filter({ hasText: name });
+
+  test('AC7: the Agenda’s session sheet shows the icon and the word for each level, and with Geen nothing and no empty line', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    await seedAgenda(page.request, await gymId(page.request));
+    await page.goto(`/w/${slug}/calendar?date=${tuesday()}&view=week`);
+    const sheet = page.getByRole('dialog');
+    const words = {
+      all_levels: copy.classLevel.allLevels,
+      beginner: copy.classLevel.beginner,
+      intermediate: copy.classLevel.intermediate,
+      advanced: copy.classLevel.advanced,
+    } as const;
+
+    for (const [name, level] of AGENDA) {
+      await block(page, name).click();
+      await expect(sheet).toContainText(name);
+      if (level) {
+        const word = words[level];
+        await expect(sheet.getByRole('img', { name: iconName(copy, word) })).toBeVisible();
+        await expect(sheet.getByText(word, { exact: true })).toBeVisible();
+        expect(
+          await sheet
+            .locator('[data-slot="level-icon"] i')
+            .evaluateAll((bars) => bars.map((bar) => !bar.className.includes('opacity-30'))),
+        ).toEqual(
+          level === 'beginner'
+            ? [true, false, false]
+            : level === 'intermediate'
+              ? [true, true, false]
+              : [true, true, true],
+        );
+        await expectNoAxeViolations(page, `the session sheet with ${level} in ${appLocale}`);
+      } else {
+        await expect(sheet.locator('[data-slot="level-icon"]')).toHaveCount(0);
+        for (const word of Object.values(words)) {
+          await expect(sheet.getByText(word, { exact: true })).toHaveCount(0);
+        }
+        // No empty line: every line of the sheet's list has text.
+        const lines = await sheet.locator('ul > li').allInnerTexts();
+        expect(lines.every((line) => line.trim() !== '')).toBe(true);
+        await expectNoAxeViolations(page, `the session sheet with Geen in ${appLocale}`);
+      }
+      await page.keyboard.press('Escape');
+      await expect(sheet).toHaveCount(0);
+    }
+  });
+
+  test('AC8: Sarah (Trainer) sees the same level on the sheet and has no control to change it', async ({
+    page,
+    context,
+    browser,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, sarah, slug } = await team();
+    const owner = await browser.newContext({ extraHTTPHeaders: clientIpHeaders() });
+    await signInWithSession(owner, john);
+    await owner.request.get('/api/v1/me/workspaces');
+    await seedAgenda(owner.request, await gymId(owner.request));
+    await owner.close();
+
+    await signInWithSession(context, sarah);
+    await page.goto(`/w/${slug}/calendar?date=${tuesday()}&view=week`);
+    await block(page, 'Yoga Gevorderd').click();
+    const sheet = page.getByRole('dialog');
+    await expect(
+      sheet.getByRole('img', { name: iconName(copy, copy.classLevel.advanced) }),
+    ).toBeVisible();
+    await expect(sheet.getByText(copy.classLevel.advanced, { exact: true })).toBeVisible();
+    await expect(sheet.getByRole('combobox')).toHaveCount(0);
+    await expect(sheet.getByRole('link', { name: copy.workspaceCalendar.change })).toHaveCount(0);
+    await expectNoAxeViolations(page, `the session sheet as a Trainer in ${appLocale}`);
+  });
 });
