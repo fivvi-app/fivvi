@@ -11,7 +11,7 @@ import {
 import { executorOf, type WorkspaceScope } from '../tenant-scope.ts';
 import { type LocationView, locationColumns, toLocationView } from './locations.ts';
 import { listSessionPlaces, type PersonalSessionRow, placesShown } from './personal-sessions.ts';
-import type { SessionSeriesView } from './sessions.ts';
+import type { SessionLevel, SessionSeriesView } from './sessions.ts';
 
 // The workspace calendar's read model (F014, spec #458): every session of ONE workspace in a
 // window of time, whoever its trainer is. No new tables. The query is about the scope's workspace
@@ -28,6 +28,8 @@ export interface WorkspaceCalendarRow {
   readonly startsAt: Date;
   readonly endsAt: Date;
   readonly capacity: number;
+  /** The level of a class date (F067); `null` is *Geen*, and what any other kind has. */
+  readonly level: SessionLevel | null;
   /** Raised by every change; a drag move says the version it saw. */
   readonly version: number;
   /** The places taken: participants whose place is not cancelled. */
@@ -65,6 +67,7 @@ export async function listWorkspaceCalendar(
       startsAt: sessions.startsAt,
       endsAt: sessions.endsAt,
       capacity: sessions.capacity,
+      level: sessions.level,
       version: sessions.version,
       location: locationColumns,
       // A trainer who was removed keeps their profile (F023): past sessions still show who it was.
@@ -139,6 +142,7 @@ export async function listWorkspaceCalendar(
     startsAt: row.startsAt,
     endsAt: row.endsAt,
     capacity: row.capacity,
+    level: row.level,
     version: row.version,
     location: toLocationView(row.location),
     trainer: row.trainerId ? { id: row.trainerId, name: row.trainerName ?? '' } : null,

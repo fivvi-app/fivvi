@@ -36,6 +36,7 @@ function differsFrom(series: SeriesState, change: SeriesChange): boolean {
     (change.localStartTime !== undefined && change.localStartTime !== series.localStartTime) ||
     (change.durationMinutes !== undefined && change.durationMinutes !== series.durationMinutes) ||
     (change.capacity !== undefined && change.capacity !== series.capacity) ||
+    (change.level !== undefined && change.level !== series.level) ||
     (change.trainerProfileId !== undefined && change.trainerProfileId !== series.trainerProfileId)
   );
 }

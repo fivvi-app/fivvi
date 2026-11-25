@@ -94,6 +94,15 @@
     "title": "Booking links",
     "trainerNote": "{Words} see the links, but can't change them."
   },
+  "classLevel": {
+    "accessibleName": "Level: {level}",
+    "advanced": "Advanced",
+    "allLevels": "All levels",
+    "beginner": "Beginner",
+    "field": "Level",
+    "intermediate": "Intermediate",
+    "none": "None"
+  },
   "classes": {
     "app": {
       "cancelBody": "{participants, plural, one {The booked client gets an email. You can add a message to it on the web.} other {The # booked clients get an email. You can add a message to it on the web.}}",
@@ -147,6 +156,7 @@
       "cancelledSection": "Cancelled",
       "changedField": {
         "capacity": "capacity",
+        "level": "level",
         "location": "location",
         "time": "time",
         "trainer": "{Word}"

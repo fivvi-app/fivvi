@@ -689,6 +689,9 @@
             "type": "string",
             "description": "The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym."
           },
+          "level": {
+            "$ref": "#/components/schemas/ClassLevel"
+          },
           "location": {
             "$ref": "#/components/schemas/Location"
           },
@@ -739,6 +742,16 @@
           "name"
         ],
         "description": "The workspace an item of the personal view is in."
+      },
+      "ClassLevel": {
+        "type": "string",
+        "enum": [
+          "all_levels",
+          "beginner",
+          "intermediate",
+          "advanced"
+        ],
+        "description": "The level of a class: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*). Information only: nothing in booking reads it, and the timetable has no filter on it. A class without one is *Geen*: the field is left out."
       },
       "Location": {
         "type": "object",
@@ -1908,6 +1921,9 @@
           "groupClass": {
             "$ref": "#/components/schemas/SessionGroupClass"
           },
+          "level": {
+            "$ref": "#/components/schemas/ClassLevel"
+          },
           "series": {
             "$ref": "#/components/schemas/SessionSeries"
           },
@@ -2053,7 +2069,8 @@
                 "time",
                 "trainer",
                 "capacity",
-                "location"
+                "location",
+                "level"
               ]
             },
             "description": "What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are."
@@ -3181,6 +3198,9 @@
             "type": "string",
             "description": "The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session."
           },
+          "level": {
+            "$ref": "#/components/schemas/ClassLevel"
+          },
           "clientName": {
             "type": "string",
             "description": "The client’s display name, for a private session; left out for the other kinds. It holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `; `clients` has them apart."
@@ -3339,6 +3359,9 @@
                 "description": "The usual trainer. Left out for *Trainer nodig* (none)."
               }
             ]
+          },
+          "level": {
+            "$ref": "#/components/schemas/ClassLevel"
           }
         },
         "required": [
@@ -3421,6 +3444,20 @@
             "minimum": 15,
             "maximum": 240,
             "description": "15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`."
+          },
+          "level": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "all_levels",
+              "beginner",
+              "intermediate",
+              "advanced",
+              null
+            ],
+            "description": "The class’s level (F067); left out is *Geen*: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`."
           },
           "allowConflicts": {
             "type": "boolean",
@@ -3516,6 +3553,20 @@
             "minimum": 15,
             "maximum": 240,
             "description": "The new duration, 15 to 240 minutes in steps of 5."
+          },
+          "level": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "all_levels",
+              "beginner",
+              "intermediate",
+              "advanced",
+              null
+            ],
+            "description": "The new level of the class (F067); `null` clears it, left out keeps it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`."
           }
         },
         "description": "Changes a class: every field left out stays as it is. Dates already planned keep their own trainer, capacity and times (they were copied when they were planned). Other fields are ignored."
@@ -3563,6 +3614,20 @@
             "minimum": 1,
             "maximum": 100,
             "description": "The capacity of this date, 1 to 100. Leave it out for the class’s."
+          },
+          "level": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "all_levels",
+              "beginner",
+              "intermediate",
+              "advanced",
+              null
+            ],
+            "description": "The level of this date (F067); left out takes the class’s, `null` plans it as *Geen*. With `repeat: weekly` the series and its dates take it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`."
           },
           "repeat": {
             "type": "string",
@@ -3646,6 +3711,9 @@
           "capacity": {
             "type": "integer",
             "description": "The capacity its dates start with."
+          },
+          "level": {
+            "$ref": "#/components/schemas/ClassLevel"
           },
           "startsOn": {
             "type": "string",
@@ -3756,6 +3824,20 @@
             "maximum": 100,
             "description": "The new capacity of every date, 1 to 100. Leave it out to keep it."
           },
+          "level": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "all_levels",
+              "beginner",
+              "intermediate",
+              "advanced",
+              null
+            ],
+            "description": "The new level of every date (F067); `null` is *Geen*, left out keeps it. Dates whose level was changed on their own keep it (`keptDates`): `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`."
+          },
           "trainerId": {
             "type": [
               "string",
@@ -3780,7 +3862,7 @@
         "required": [
           "version"
         ],
-        "description": "Changes a whole weekly series (CO-04): the start, length, capacity and trainer of its dates, each only when given."
+        "description": "Changes a whole weekly series (CO-04): the start, length, capacity, level and trainer of its dates, each only when given."
       },
       "KeptClassDates": {
         "type": "object",
@@ -3877,6 +3959,20 @@
             "maximum": 100,
             "description": "The new capacity of this date, 1 to 100. Leave it out to keep it."
           },
+          "level": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "all_levels",
+              "beginner",
+              "intermediate",
+              "advanced",
+              null
+            ],
+            "description": "The new level of this date (F067) (*Les wijzigen*); `null` is *Geen*, left out keeps it. With `scope: following` the series and the following dates take it, except dates whose level was changed on their own: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`."
+          },
           "scope": {
             "type": "string",
             "enum": [
@@ -3901,7 +3997,7 @@
         "required": [
           "version"
         ],
-        "description": "Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes."
+        "description": "Changes one date of a class (CO-04): the start, the end, the capacity and the level, each only when given. The date stays on its day. The class itself never changes."
       },
       "JoinLink": {
         "type": "object",
@@ -9123,6 +9219,16 @@
               }
             }
           },
+          "422": {
+            "description": "The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected server error, reported to error tracking. Contains no error details.",
             "content": {
@@ -10702,6 +10808,16 @@
               }
             }
           },
+          "422": {
+            "description": "The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected server error, reported to error tracking. Contains no error details.",
             "content": {
@@ -10937,6 +11053,16 @@
               }
             }
           },
+          "422": {
+            "description": "The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected server error, reported to error tracking. Contains no error details.",
             "content": {
@@ -11066,6 +11192,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TrainerConflict"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
                 }
               }
             }
@@ -11326,6 +11462,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UpdateClassSeriesRefusal"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The `level` is not one of the four values nor `null`. `issues` names the field. Nothing is stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
                 }
               }
             }

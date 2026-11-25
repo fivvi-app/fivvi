@@ -15,7 +15,7 @@ import { CRON_ROLE } from '../cron-role.ts';
 import { businessTable } from './business-table.ts';
 import { classSeries } from './class-series.ts';
 import { instant, timestamps } from './columns.ts';
-import { groupClasses } from './group-classes.ts';
+import { classLevel, groupClasses } from './group-classes.ts';
 import { locations } from './locations.ts';
 import { clients, teamMembers, trainerProfiles } from './tenancy.ts';
 
@@ -55,6 +55,8 @@ export const attendanceStatus = pgEnum('attendance_status', [
  *   shown again in the workspace's time zone.
  * - `capacity` is 1 for a private session, or 2 for a duo (F066): a check keeps it at one of the two,
  *   and the domain keeps the participants within it. A check keeps the end after the start.
+ * - `level` (F067) is the level of a class date, copied from its class or series when it is made
+ *   and changeable on this date alone; `NULL` is *Geen*, and what a private session has.
  * - `trainer_profile_id` is nullable (Open Gym has no trainer). Removing the trainer's profile (the
  *   Owner stops training, or the team member is removed) leaves the session with no trainer
  *   (`ON DELETE SET NULL (trainer_profile_id)`, which only clears that column; the migration
@@ -70,7 +72,7 @@ export const attendanceStatus = pgEnum('attendance_status', [
  * - `series_id` points a class date at its weekly series (F022, `class_series`), empty for a date
  *   put on the calendar on its own. `occurrence_date` is the local date in the series' rule (unique
  *   per series, so the daily task can never make a date twice); `detached_fields` lists what was
- *   changed on this date alone (`time`, `trainer`, `capacity`, `location`), which a change of the
+ *   changed on this date alone (`time`, `trainer`, `capacity`, `location`, `level`), which a change of the
  *   series from a date on leaves alone.
  * - `cancelled_at`, `cancelled_by_team_member_id` and `cancellation_initiator` are the record of a
  *   cancellation (F026): when (UTC), which team member clicked, and who it came from. All three are
@@ -99,6 +101,7 @@ export const sessions = businessTable(
     startsAt: instant('starts_at').notNull(),
     endsAt: instant('ends_at').notNull(),
     capacity: integer('capacity').notNull(),
+    level: classLevel('level'),
     seriesId: uuid('series_id'),
     occurrenceDate: date('occurrence_date', { mode: 'string' }),
     detachedFields: text('detached_fields').array().notNull().default(sql`'{}'::text[]`),
@@ -158,7 +161,7 @@ export const sessions = businessTable(
     ),
     check(
       'sessions_detached_fields_valid',
-      sql`${table.detachedFields} <@ ARRAY['time', 'trainer', 'capacity', 'location']::text[]`,
+      sql`${table.detachedFields} <@ ARRAY['time', 'trainer', 'capacity', 'location', 'level']::text[]`,
     ),
     foreignKey({
       name: 'sessions_created_by_fk',

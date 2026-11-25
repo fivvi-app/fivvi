@@ -255,6 +255,8 @@ export async function addGroupClass(
     defaultTrainerProfileId?: string | null;
     capacity?: number;
     durationMinutes?: number;
+    /** The class's level (F067); none (*Geen*) when left out. */
+    level?: (typeof groupClasses.level.enumValues)[number] | null;
   },
 ): Promise<{ id: string; nameNl: string }> {
   return first(
@@ -269,6 +271,7 @@ export async function addGroupClass(
         defaultTrainerProfileId: options.defaultTrainerProfileId ?? null,
         capacity: options.capacity ?? 8,
         durationMinutes: options.durationMinutes ?? 60,
+        level: options.level ?? null,
       })
       .returning({ id: groupClasses.id, nameNl: groupClasses.nameNl }),
     'group class',
@@ -344,6 +347,8 @@ export async function addClassSeries(
     timeZone?: string;
     trainerProfileId?: string | null;
     capacity?: number;
+    /** The level of its dates (F067); none (*Geen*) when left out. */
+    level?: (typeof groupClasses.level.enumValues)[number] | null;
     startsOn?: string;
     endsOn?: string | null;
     materializedUntil?: string;
@@ -364,6 +369,7 @@ export async function addClassSeries(
         timeZone: options.timeZone ?? 'Europe/Amsterdam',
         trainerProfileId: options.trainerProfileId ?? null,
         capacity: options.capacity ?? 8,
+        level: options.level ?? null,
         startsOn: options.startsOn ?? '2026-10-06',
         endsOn: options.endsOn ?? null,
         materializedUntil: options.materializedUntil ?? '2026-12-28',
@@ -404,6 +410,8 @@ export async function addSession(
     startsAt?: Date;
     durationMinutes?: number;
     capacity?: number;
+    /** The level of a class date (F067); none (*Geen*) when left out. */
+    level?: (typeof groupClasses.level.enumValues)[number] | null;
     version?: number;
   },
 ): Promise<{ id: string; startsAt: Date; endsAt: Date; locationId: string }> {
@@ -445,6 +453,7 @@ export async function addSession(
         capacity:
           options.capacity ??
           (type === 'private' ? (options.secondClientId === undefined ? 1 : 2) : 10),
+        level: options.level ?? null,
         createdByTeamMemberId: options.createdByTeamMemberId ?? null,
         updatedByTeamMemberId:
           options.updatedByTeamMemberId ?? options.createdByTeamMemberId ?? null,

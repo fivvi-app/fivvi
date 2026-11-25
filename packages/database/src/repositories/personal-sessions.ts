@@ -11,7 +11,7 @@ import {
 } from '../schema/index.ts';
 import { executorOf, type TenantScope, type WorkspaceScope } from '../tenant-scope.ts';
 import { type LocationView, locationColumns, toLocationView } from './locations.ts';
-import type { AttendanceStatus, SessionStatus, SessionType } from './sessions.ts';
+import type { AttendanceStatus, SessionLevel, SessionStatus, SessionType } from './sessions.ts';
 
 // The personal read model of a trainer (F013, spec #457): the sessions whose current trainer is
 // the signed-in account, in the workspaces it trains in. No new tables. The queries here are
@@ -66,6 +66,8 @@ export interface PersonalSessionRow {
   readonly startsAt: Date;
   readonly endsAt: Date;
   readonly capacity: number;
+  /** The level of a class date (F067); `null` is *Geen*, and what any other kind has. */
+  readonly level: SessionLevel | null;
   /** The places taken: participants whose place is not cancelled. */
   readonly booked: number;
   readonly location: LocationView;
@@ -132,6 +134,7 @@ export async function listMySessions(
       startsAt: sessions.startsAt,
       endsAt: sessions.endsAt,
       capacity: sessions.capacity,
+      level: sessions.level,
       location: locationColumns,
       classNameNl: groupClasses.nameNl,
       classNameEn: groupClasses.nameEn,

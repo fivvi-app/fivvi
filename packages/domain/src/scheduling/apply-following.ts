@@ -1,6 +1,7 @@
 // Module: Part of the module described in `series-rule.ts` (same folder).
 // Spec: F022 AC2, AC3, AC5, AC7, AC10
 
+import type { ClassLevel } from './class-level.ts';
 import { expandEach } from './expand-series.ts';
 import { GROUP_CLASS_LIMITS } from './group-class.ts';
 import { horizonEnd, type SeriesFacts } from './series-rule.ts';
@@ -13,7 +14,7 @@ import { addDays } from './zoned-time.ts';
 // lost. Pure: the caller reads the dates and writes the decision.
 
 /** What a date can differ in from its series: the fields `sessions.detached_fields` names. */
-export const DETACHABLE_FIELDS = ['time', 'trainer', 'capacity', 'location'] as const;
+export const DETACHABLE_FIELDS = ['time', 'trainer', 'capacity', 'location', 'level'] as const;
 export type DetachedField = (typeof DETACHABLE_FIELDS)[number];
 
 /** A series as stored: the rule plus the defaults every new date copies. */
@@ -21,6 +22,8 @@ export interface SeriesState extends SeriesFacts {
   /** The usual trainer of the series' dates; `null`: *Trainer nodig*. */
   readonly trainerProfileId: string | null;
   readonly capacity: number;
+  /** The level of the series' dates (F067); `null`: *Geen*. */
+  readonly level: ClassLevel | null;
   /** The last day the calendar was filled to, `null` before the first fill. */
   readonly materializedUntil: string | null;
 }
@@ -31,6 +34,8 @@ export interface SeriesChange {
   readonly durationMinutes?: number;
   readonly trainerProfileId?: string | null;
   readonly capacity?: number;
+  /** `null` clears it (*Geen*); left out keeps it. */
+  readonly level?: ClassLevel | null;
 }
 
 /** A date the series already has, whatever its status. */
@@ -45,6 +50,7 @@ export interface SeriesDate {
   readonly endsAt: Date;
   readonly trainerProfileId: string | null;
   readonly capacity: number;
+  readonly level: ClassLevel | null;
 }
 
 /** What to write to one date that follows the series: all the series' fields, as they are from now on. */
@@ -55,6 +61,7 @@ export interface DateUpdate {
   readonly endsAt: Date;
   readonly trainerProfileId: string | null;
   readonly capacity: number;
+  readonly level: ClassLevel | null;
   /** What still differs from the series after the update: nothing, for a date that followed it. */
   readonly detachedFields: readonly DetachedField[];
 }
@@ -151,6 +158,7 @@ export function applyThisAndFollowing(
     ...(change.durationMinutes === undefined ? {} : { durationMinutes: change.durationMinutes }),
     ...(change.trainerProfileId === undefined ? {} : { trainerProfileId: change.trainerProfileId }),
     ...(change.capacity === undefined ? {} : { capacity: change.capacity }),
+    ...(change.level === undefined ? {} : { level: change.level }),
   };
 
   const reached = existing.filter((date) => date.occurrenceDate >= fromDate);
@@ -183,6 +191,7 @@ export function applyThisAndFollowing(
     );
     const keepsTrainer = keeps('trainer', change.trainerProfileId !== undefined);
     const keepsCapacity = keeps('capacity', change.capacity !== undefined);
+    const keepsLevel = keeps('level', change.level !== undefined);
     updates.push({
       sessionId: date.id,
       occurrenceDate: date.occurrenceDate,
@@ -190,12 +199,14 @@ export function applyThisAndFollowing(
       endsAt: keepsTime ? date.endsAt : occurrence.endsAt,
       trainerProfileId: keepsTrainer ? date.trainerProfileId : later.trainerProfileId,
       capacity: keepsCapacity ? date.capacity : later.capacity,
+      level: keepsLevel ? date.level : later.level,
       detachedFields: date.detachedFields.filter(
         (field) =>
           isChosen &&
           ((field === 'time' && keepsTime) ||
             (field === 'trainer' && keepsTrainer) ||
             (field === 'capacity' && keepsCapacity) ||
+            (field === 'level' && keepsLevel) ||
             field === 'location'),
       ),
     });

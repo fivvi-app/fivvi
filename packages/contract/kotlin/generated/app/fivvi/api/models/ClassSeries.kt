@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.SessionTrainer
 
 import kotlinx.serialization.Serializable
@@ -44,6 +45,7 @@ import kotlinx.serialization.Contextual
  * @param materializedUntil The last day the calendar was filled to: `YYYY-MM-DD`.
  * @param version Raised by every change of the series.
  * @param trainer The usual trainer of its dates. Left out for *Trainer nodig*.
+ * @param level 
  * @param endsOn The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on.
  */
 @Serializable
@@ -97,6 +99,9 @@ data class ClassSeries (
     /* The usual trainer of its dates. Left out for *Trainer nodig*. */
     @SerialName(value = "trainer")
     val trainer: SessionTrainer? = null,
+
+    @Contextual @SerialName(value = "level")
+    val level: ClassLevel? = null,
 
     /* The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on. */
     @SerialName(value = "endsOn")

@@ -31,6 +31,7 @@ describe('F022 series helpers', () => {
 
   it('AC4: names what differs in a fixed order', () => {
     expect(orderedFields(['capacity', 'time'])).toEqual(['time', 'capacity']);
+    expect(orderedFields(['level', 'location', 'time'])).toEqual(['time', 'location', 'level']);
     expect(orderedFields([])).toEqual([]);
   });
 

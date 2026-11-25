@@ -25,6 +25,7 @@ export interface ClassBody {
   capacity: number;
   durationMinutes: number;
   defaultTrainer?: { id: string; name: string };
+  level?: string;
 }
 
 export interface SessionBody {
@@ -39,12 +40,14 @@ export interface SessionBody {
   location: { id: string; name: string; isDefault: boolean };
   trainer?: { id: string; name: string };
   groupClass?: { id: string; nameNl: string; nameEn: string | null };
+  level?: string;
   participants: unknown[];
 }
 
 export interface CreatedClassBody {
   groupClass: ClassBody;
   firstDate?: SessionBody;
+  datesAdded?: number;
 }
 
 export function setupGroupClassApi(
@@ -217,6 +220,7 @@ export interface SeriesBody {
   timeZone: string;
   trainer?: { id: string; name: string };
   capacity: number;
+  level?: string;
   startsOn: string;
   endsOn?: string;
   materializedUntil: string;
@@ -247,3 +251,15 @@ export const updateSeries = (
     body,
     headers,
   );
+
+/** Fivvi Pro's *Vandaag* (F013): the signed-in account's own day. */
+export const myDay = (server: GroupClassServer, date: string, who?: { id: string }) =>
+  call(server, 'GET', `/v1/me/day?date=${date}`, who);
+
+/** Fivvi Pro's *Agenda* (F013): the signed-in account's own sessions in a range of days. */
+export const mySessions = (
+  server: GroupClassServer,
+  from: string,
+  to: string,
+  who?: { id: string },
+) => call(server, 'GET', `/v1/me/sessions?from=${from}&to=${to}`, who);

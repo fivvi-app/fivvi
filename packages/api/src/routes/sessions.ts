@@ -11,6 +11,7 @@ import {
   type SessionView,
 } from '@fivvi/database';
 import {
+  CLASS_LEVELS,
   clientFirstName,
   confirmationLanguage,
   type DetachedField,
@@ -110,7 +111,7 @@ export const SessionSeriesSchema = z
     occurrenceDate: z.string().openapi({
       description: 'The local date in the series’ rule this date stands for: `YYYY-MM-DD`.',
     }),
-    changedFields: z.array(z.enum(['time', 'trainer', 'capacity', 'location'])).openapi({
+    changedFields: z.array(z.enum(['time', 'trainer', 'capacity', 'location', 'level'])).openapi({
       description:
         'What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when ' +
         'the date follows its series. A change of the series from an earlier date leaves these ' +
@@ -129,6 +130,17 @@ export const SessionTrainerSchema = z
     name: z.string().openapi({ description: 'The account’s name; empty when it has none.' }),
   })
   .openapi('SessionTrainer', { description: 'The trainer of a session.' });
+
+/**
+ * The level of a class (F067): a fixed list, not translated user content (the UI shows the word
+ * from `classLevel.*`). A thing without one (*Geen*) leaves the field out.
+ */
+export const ClassLevelSchema = z.enum(CLASS_LEVELS).openapi('ClassLevel', {
+  description:
+    'The level of a class: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` ' +
+    '(*Gemiddeld*) or `advanced` (*Gevorderd*). Information only: nothing in booking reads it, ' +
+    'and the timetable has no filter on it. A class without one is *Geen*: the field is left out.',
+});
 
 export const SessionCancellationSchema = z
   .object({
@@ -196,6 +208,7 @@ export const SessionSchema = z
     groupClass: SessionGroupClassSchema.optional().openapi({
       description: 'The class of a class date (F021); left out for the other kinds.',
     }),
+    level: ClassLevelSchema.optional(),
     series: SessionSeriesSchema.optional().openapi({
       description: 'The weekly series of a class date (F022); left out for a date on its own.',
     }),
@@ -605,6 +618,7 @@ export function shown(session: SessionView, timeZone: string) {
     groupClass,
     series,
     cancellation,
+    level,
     lastChangedBy: _lastChangedBy,
     ...rest
   } = session;
@@ -613,6 +627,7 @@ export function shown(session: SessionView, timeZone: string) {
     ...rest,
     ...(trainer ? { trainer } : {}),
     ...(groupClass ? { groupClass } : {}),
+    ...(level ? { level } : {}),
     ...(cancellation
       ? {
           cancellation: {

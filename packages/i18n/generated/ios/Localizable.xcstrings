@@ -1094,6 +1094,132 @@
         }
       }
     },
+    "classLevel.accessibleName" : {
+      "comment" : "Accessible name (screen reader) and tooltip of the three-bar level icon after a class name in a list (F067): {level} is the level word of classLevel.allLevels … classLevel.advanced in the viewer's language, e.g. 'Niveau: Gevorderd'. Never shown for Geen or Alle niveaus in a list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Level: %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niveau: %1$@"
+          }
+        }
+      }
+    },
+    "classLevel.advanced" : {
+      "comment" : "Level of a class (F067): the highest of the four; three bars filled. Shown with the icon on a page about one class and as the option in the Niveau field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gevorderd"
+          }
+        }
+      }
+    },
+    "classLevel.allLevels" : {
+      "comment" : "Level of a class (F067): the class suits everyone. Option in the Niveau field and the word on a page about one class; a list shows no icon for it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All levels"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle niveaus"
+          }
+        }
+      }
+    },
+    "classLevel.beginner" : {
+      "comment" : "Level of a class (F067): the lowest of the four; one bar filled. The same word in both languages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beginner"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beginner"
+          }
+        }
+      }
+    },
+    "classLevel.field" : {
+      "comment" : "Label of the Niveau field on the class form, Nieuwe groepsles and Les wijzigen (F067): one of the five words of classLevel.*.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Level"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niveau"
+          }
+        }
+      }
+    },
+    "classLevel.intermediate" : {
+      "comment" : "Level of a class (F067): the middle level; two bars filled. Dutch: Gemiddeld.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intermediate"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemiddeld"
+          }
+        }
+      }
+    },
+    "classLevel.none" : {
+      "comment" : "The starting value of the Niveau field (F067): the class has no level. Dutch: Geen. A page about one class shows nothing for it, and no empty line remains.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen"
+          }
+        }
+      }
+    },
     "classes.app.cancelBody" : {
       "comment" : "CO-03 in the apps (the native confirmation of Les annuleren): says how many booked clients get the cancellation email (EM-05). The message for the participants is written on the web only. {participants} is a count of at least 1; the case of no participants uses classes.cancel.countNone.",
       "extractionState" : "manual",
@@ -2141,6 +2267,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "capaciteit"
+          }
+        }
+      }
+    },
+    "classes.date.changedField.level" : {
+      "comment" : "One word in the line 'Aangepast t.o.v. de reeks: {fields}' on a class date (CO-01): the level of this date was changed on its own (F067). Lowercase; Dutch: niveau.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "level"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "niveau"
           }
         }
       }

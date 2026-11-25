@@ -70,6 +70,20 @@
     <string name="booking_links_status_active">Actief</string>
     <string name="booking_links_title">Boekingslinks</string>
     <string name="booking_links_trainer_note">%1$s zien de links, maar kunnen ze niet wijzigen.</string>
+    <!-- Accessible name (screen reader) and tooltip of the three-bar level icon after a class name in a list (F067): {level} is the level word of classLevel.allLevels … classLevel.advanced in the viewer's language, e.g. 'Niveau: Gevorderd'. Never shown for Geen or Alle niveaus in a list. -->
+    <string name="class_level_accessible_name">Niveau: %1$s</string>
+    <!-- Level of a class (F067): the highest of the four; three bars filled. Shown with the icon on a page about one class and as the option in the Niveau field. -->
+    <string name="class_level_advanced">Gevorderd</string>
+    <!-- Level of a class (F067): the class suits everyone. Option in the Niveau field and the word on a page about one class; a list shows no icon for it. -->
+    <string name="class_level_all_levels">Alle niveaus</string>
+    <!-- Level of a class (F067): the lowest of the four; one bar filled. The same word in both languages. -->
+    <string name="class_level_beginner">Beginner</string>
+    <!-- Label of the Niveau field on the class form, Nieuwe groepsles and Les wijzigen (F067): one of the five words of classLevel.*. -->
+    <string name="class_level_field">Niveau</string>
+    <!-- Level of a class (F067): the middle level; two bars filled. Dutch: Gemiddeld. -->
+    <string name="class_level_intermediate">Gemiddeld</string>
+    <!-- The starting value of the Niveau field (F067): the class has no level. Dutch: Geen. A page about one class shows nothing for it, and no empty line remains. -->
+    <string name="class_level_none">Geen</string>
     <!-- CO-03 in the apps (the native confirmation of Les annuleren): says how many booked clients get the cancellation email (EM-05). The message for the participants is written on the web only. {participants} is a count of at least 1; the case of no participants uses classes.cancel.countNone. -->
     <plurals name="classes_app_cancel_body">
         <item quantity="one">De geboekte klant krijgt een e-mail. Je kunt er een bericht bij zetten op het web.</item>
@@ -139,6 +153,8 @@
     <string name="classes_date_cancelled_participant">%2$s · %1$s, %3$s</string>
     <string name="classes_date_cancelled_section">Geannuleerd</string>
     <string name="classes_date_changed_field_capacity">capaciteit</string>
+    <!-- One word in the line 'Aangepast t.o.v. de reeks: {fields}' on a class date (CO-01): the level of this date was changed on its own (F067). Lowercase; Dutch: niveau. -->
+    <string name="classes_date_changed_field_level">niveau</string>
     <string name="classes_date_changed_field_location">locatie</string>
     <string name="classes_date_changed_field_time">tijd</string>
     <string name="classes_date_changed_field_trainer">%1$s</string>

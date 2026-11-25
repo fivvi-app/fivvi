@@ -81,14 +81,15 @@ data class SessionSeries (
     /**
      * What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are.
      *
-     * Values: TIME,TRAINER,CAPACITY,LOCATION
+     * Values: TIME,TRAINER,CAPACITY,LOCATION,LEVEL
      */
     @Serializable
     enum class ChangedFields(val value: kotlin.String) {
         @SerialName(value = "time") TIME("time"),
         @SerialName(value = "trainer") TRAINER("trainer"),
         @SerialName(value = "capacity") CAPACITY("capacity"),
-        @SerialName(value = "location") LOCATION("location");
+        @SerialName(value = "location") LOCATION("location"),
+        @SerialName(value = "level") LEVEL("level");
     }
 
 }

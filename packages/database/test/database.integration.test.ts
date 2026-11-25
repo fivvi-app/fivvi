@@ -1332,6 +1332,51 @@ describe('E004 database', () => {
       });
     });
 
+    it('F067: John’s Gym has a class of each kind of level: Alle niveaus, Gevorderd and none, on the class, its series and every date', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+
+        const levels = await rows<{
+          name: string;
+          classLevel: string | null;
+          series: number;
+          dates: number;
+        }>(
+          tx,
+          sql`select gc.name_nl as name, gc.level::text as "classLevel",
+                     (select count(*)::int from class_series cs where cs.group_class_id = gc.id
+                        and cs.level is not distinct from gc.level) as series,
+                     (select count(*)::int from sessions s where s.group_class_id = gc.id
+                        and s.series_id is not null and s.level is not distinct from gc.level) as dates
+              from group_classes gc join organizations o on o.id = gc.organization_id and o.slug = 'johns-gym'
+              order by gc.name_nl`,
+        );
+        expect(levels.map(({ name, classLevel }) => [name, classLevel])).toEqual([
+          ['Bootcamp', 'advanced'],
+          ['Kracht', 'all_levels'],
+          ['Mobility', null],
+        ]);
+        // Each series and each date of a class carries the level of its class.
+        const all = await rows<{
+          series: number;
+          seriesOfClass: number;
+          dates: number;
+          datesOfClass: number;
+        }>(
+          tx,
+          sql`select (select count(*)::int from class_series) as series,
+                     (select count(*)::int from class_series cs join group_classes gc on gc.id = cs.group_class_id
+                        where cs.level is not distinct from gc.level) as "seriesOfClass",
+                     (select count(*)::int from sessions where series_id is not null) as dates,
+                     (select count(*)::int from sessions s join group_classes gc on gc.id = s.group_class_id
+                        where s.series_id is not null and s.level is not distinct from gc.level) as "datesOfClass"`,
+        );
+        expect(all[0]?.series).toBe(all[0]?.seriesOfClass);
+        expect(all[0]?.dates).toBe(all[0]?.datesOfClass);
+        expect(levels.every(({ series, dates }) => series > 0 && dates > 0)).toBe(true);
+      });
+    });
+
     it('AC13: the times stay on the wall clock across the clocks changing: Kracht at 18:00 in Amsterdam all the way to March', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx, { now: new Date('2027-01-06T12:00:00Z') });

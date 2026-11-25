@@ -29,12 +29,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * Changes a whole weekly series (CO-04): the start, length, capacity and trainer of its dates, each only when given.
+ * Changes a whole weekly series (CO-04): the start, length, capacity, level and trainer of its dates, each only when given.
  *
  * @param version The version of the series the change was made from (`ClassSeries.version`). If the series changed since, the answer is `409` with the series as it is now and nothing is written.
  * @param localStartTime The new start of every date, `HH:mm` on the wall clock of the workspace’s time zone (it stays so across daylight saving time). Leave it out to keep it.
  * @param durationMinutes The new length of every date: 15 to 240 minutes in steps of 5, else `400` on `durationMinutes` (`invalid_duration`). Leave it out to keep it.
  * @param capacity The new capacity of every date, 1 to 100. Leave it out to keep it.
+ * @param level The new level of every date (F067); `null` is *Geen*, left out keeps it. Dates whose level was changed on their own keep it (`keptDates`): `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
  * @param trainerId The new trainer of every date, a team-member ID from `GET …/trainers`; `null` makes the dates *Trainer nodig*. Leave it out to keep the trainer. A team member who is no trainer of the workspace answers `404`.
  * @param allowConflicts Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
  * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -59,6 +60,10 @@ data class UpdateClassSeriesRequest (
     @SerialName(value = "capacity")
     val capacity: kotlin.Int? = null,
 
+    /* The new level of every date (F067); `null` is *Geen*, left out keeps it. Dates whose level was changed on their own keep it (`keptDates`): `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`. */
+    @SerialName(value = "level")
+    val level: UpdateClassSeriesRequest.Level? = null,
+
     /* The new trainer of every date, a team-member ID from `GET …/trainers`; `null` makes the dates *Trainer nodig*. Leave it out to keep the trainer. A team member who is no trainer of the workspace answers `404`. */
     @Contextual @SerialName(value = "trainerId")
     val trainerId: java.util.UUID? = null,
@@ -73,6 +78,18 @@ data class UpdateClassSeriesRequest (
 
 ) {
 
+    /**
+     * The new level of every date (F067); `null` is *Geen*, left out keeps it. Dates whose level was changed on their own keep it (`keptDates`): `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+     *
+     * Values: ALL_LEVELS,BEGINNER,INTERMEDIATE,ADVANCED
+     */
+    @Serializable
+    enum class Level(val value: kotlin.String) {
+        @SerialName(value = "all_levels") ALL_LEVELS("all_levels"),
+        @SerialName(value = "beginner") BEGINNER("beginner"),
+        @SerialName(value = "intermediate") INTERMEDIATE("intermediate"),
+        @SerialName(value = "advanced") ADVANCED("advanced");
+    }
     /**
      * The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
      *

@@ -169,7 +169,7 @@ describe('F022 class series', () => {
             series: { id: series.id, occurrenceDate: '2026-10-06', detachedFields },
           }),
         );
-      expect(await withFields(['time', 'capacity'])).toBeUndefined();
+      expect(await withFields(['time', 'capacity', 'level'])).toBeUndefined();
       expect(await withFields(['name'])).toBe('sessions_detached_fields_valid');
     });
 
@@ -203,6 +203,7 @@ describe('F022 class series', () => {
           timeZone: 'Europe/Amsterdam',
           trainerProfileId: null,
           capacity: 8,
+          level: null,
           startsOn: '2026-10-06',
           endsOn: null,
           materializedUntil: '2026-12-28',
@@ -218,6 +219,7 @@ describe('F022 class series', () => {
       endsAt: new Date(new Date(startsAt).getTime() + 3_600_000),
       trainerProfileId: null,
       capacity: 8,
+      level: null,
       createdByTeamMemberId: null,
     });
 
@@ -296,6 +298,7 @@ describe('F022 class series', () => {
           timeZone: 'Europe/Amsterdam',
           trainerProfileId: null,
           capacity: 10,
+          level: null,
           startsOn: '2026-10-13',
           endsOn: null,
           materializedUntil: '2026-12-28',
@@ -321,6 +324,7 @@ describe('F022 class series', () => {
             endsAt: new Date('2026-10-13T17:30:00Z'),
             trainerProfileId: null,
             capacity: 10,
+            level: null,
             detachedFields: [],
           },
         ]);
@@ -336,6 +340,50 @@ describe('F022 class series', () => {
         startsAt: new Date('2026-10-13T16:30:00Z'),
         version: 2,
       });
+    });
+
+    it('F067: a series stores its level, its dates carry their own and a change of one date leaves the others', async () => {
+      const { workspace, john, locationId, groupClass, series } = await aSeries();
+      expect(series.level).toBeNull();
+      const advanced = await asOwner(john.id, workspace.id, (scope) =>
+        updateClassSeries(scope, series.id, { level: 'advanced' }),
+      );
+      expect(advanced?.level).toBe('advanced');
+      const made = await asOwner(john.id, workspace.id, (scope) =>
+        createSeriesDates(scope, series.id, groupClass.id, [
+          { ...seriesDate(locationId, '2026-10-06', '2026-10-06T16:00:00Z'), level: 'advanced' },
+          { ...seriesDate(locationId, '2026-10-13', '2026-10-13T16:00:00Z'), level: 'advanced' },
+        ]),
+      );
+      const [first, second] = made;
+      if (!first || !second) throw new Error('no dates');
+
+      await asOwner(john.id, workspace.id, (scope) =>
+        updateSeriesDates(scope, [
+          {
+            sessionId: second.id,
+            startsAt: new Date('2026-10-13T16:00:00Z'),
+            endsAt: new Date('2026-10-13T17:00:00Z'),
+            trainerProfileId: null,
+            capacity: 8,
+            level: 'beginner',
+            detachedFields: ['level'],
+          },
+        ]),
+      );
+
+      const dates = await asOwner(john.id, workspace.id, (scope) =>
+        listSeriesDates(scope, series.id),
+      );
+      expect(dates.map((date) => [date.occurrenceDate, date.level, date.detachedFields])).toEqual([
+        ['2026-10-06', 'advanced', []],
+        ['2026-10-13', 'beginner', ['level']],
+      ]);
+      // Null clears: a series with no level (Geen) starts its dates without one.
+      const cleared = await asOwner(john.id, workspace.id, (scope) =>
+        updateClassSeries(scope, series.id, { level: null }),
+      );
+      expect(cleared?.level).toBeNull();
     });
 
     it('a series of another workspace is not found', async () => {

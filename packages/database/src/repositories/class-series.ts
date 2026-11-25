@@ -1,4 +1,5 @@
 import { and, asc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
+import type { ClassLevel } from '../schema/index.ts';
 import { authUsers, classSeries, sessions, teamMembers, trainerProfiles } from '../schema/index.ts';
 import { executorOf, type WorkspaceScope } from '../tenant-scope.ts';
 import type { SessionStatus } from './sessions.ts';
@@ -24,6 +25,8 @@ export interface ClassSeriesView {
   /** The usual trainer: the team-member ID (what the API calls a trainer) and the account's name. */
   readonly trainer: { readonly id: string; readonly name: string } | null;
   readonly capacity: number;
+  /** The level its dates start with (F067); `null` is *Geen*. */
+  readonly level: ClassLevel | null;
   /** Local dates, `YYYY-MM-DD`. */
   readonly startsOn: string;
   readonly endsOn: string | null;
@@ -40,6 +43,7 @@ export interface NewClassSeries {
   readonly timeZone: string;
   readonly trainerProfileId: string | null;
   readonly capacity: number;
+  readonly level: ClassLevel | null;
   readonly startsOn: string;
   readonly endsOn: string | null;
   readonly materializedUntil: string;
@@ -53,6 +57,7 @@ export type ClassSeriesChanges = Partial<
     | 'durationMinutes'
     | 'trainerProfileId'
     | 'capacity'
+    | 'level'
     | 'startsOn'
     | 'endsOn'
     | 'materializedUntil'
@@ -73,6 +78,7 @@ const seriesColumns = {
   trainerTeamMemberId: teamMembers.id,
   trainerName: authUsers.name,
   capacity: classSeries.capacity,
+  level: classSeries.level,
   startsOn: classSeries.startsOn,
   endsOn: classSeries.endsOn,
   materializedUntil: classSeries.materializedUntil,
@@ -265,6 +271,7 @@ export interface SeriesDateRow {
   readonly endsAt: Date;
   readonly trainerProfileId: string | null;
   readonly capacity: number;
+  readonly level: ClassLevel | null;
 }
 
 /** Every date of a series, whatever its status, by date. */
@@ -282,6 +289,7 @@ export async function listSeriesDates(
       endsAt: sessions.endsAt,
       trainerProfileId: sessions.trainerProfileId,
       capacity: sessions.capacity,
+      level: sessions.level,
     })
     .from(sessions)
     .where(and(eq(sessions.organizationId, scope.workspaceId), eq(sessions.seriesId, seriesId)))
@@ -299,6 +307,7 @@ export interface NewSeriesDate {
   readonly endsAt: Date;
   readonly trainerProfileId: string | null;
   readonly capacity: number;
+  readonly level: ClassLevel | null;
   /** The team-member record of the person who plans it; `null` for none (the daily task). */
   readonly createdByTeamMemberId: string | null;
 }
@@ -347,13 +356,14 @@ export async function moveDatesToSeries(
     );
 }
 
-/** What one date that follows its series is written as: start, end, trainer, capacity and what still differs. */
+/** What one date that follows its series is written as: start, end, trainer, capacity, level and what still differs. */
 export interface SeriesDateUpdate {
   readonly sessionId: string;
   readonly startsAt: Date;
   readonly endsAt: Date;
   readonly trainerProfileId: string | null;
   readonly capacity: number;
+  readonly level: ClassLevel | null;
   readonly detachedFields: readonly string[];
   /** The version the writer read: the date is written only if it is still that one. Left out: always written. */
   readonly version?: number;
@@ -378,6 +388,7 @@ export async function updateSeriesDates(
         endsAt: fields.endsAt,
         trainerProfileId: fields.trainerProfileId,
         capacity: fields.capacity,
+        level: fields.level,
         detachedFields: [...fields.detachedFields],
         version: sql`${sessions.version} + 1`,
       })

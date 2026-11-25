@@ -17,7 +17,7 @@ const NOW = fixedClock('2026-09-28T10:00:00Z').now();
 
 function schedule(overrides: Partial<ScheduleClassOnDateFacts> = {}): ScheduleClassOnDateFacts {
   return {
-    groupClass: { capacity: 8, durationMinutes: 60, defaultTrainer: SARAH },
+    groupClass: { capacity: 8, durationMinutes: 60, defaultTrainer: SARAH, level: null },
     localDate: '2026-10-06',
     localStart: '18:00',
     timeZone: AMSTERDAM,
@@ -36,6 +36,7 @@ describe('F021 AC9: schedule a class on a date', () => {
       startsAt: new Date('2026-10-06T16:00:00.000Z'),
       endsAt: new Date('2026-10-06T17:00:00.000Z'),
       capacity: 8,
+      level: null,
       past: false,
       repeatedStart: false,
     });
@@ -58,7 +59,7 @@ describe('F021 AC9: schedule a class on a date', () => {
     expect(
       scheduleClassOnDate(
         schedule({
-          groupClass: { capacity: 8, durationMinutes: 60, defaultTrainer: null },
+          groupClass: { capacity: 8, durationMinutes: 60, defaultTrainer: null, level: null },
         }),
       ),
     ).toMatchObject({ outcome: 'scheduled', trainer: null });
@@ -105,7 +106,7 @@ describe('F021 AC9: schedule a class on a date', () => {
     expect(
       scheduleClassOnDate(
         schedule({
-          groupClass: { capacity: 8, durationMinutes: 75, defaultTrainer: SARAH },
+          groupClass: { capacity: 8, durationMinutes: 75, defaultTrainer: SARAH, level: null },
         }),
       ),
     ).toMatchObject({ endsAt: new Date('2026-10-06T17:15:00.000Z') });
@@ -146,7 +147,7 @@ describe('F021 AC9: schedule a class on a date', () => {
           schedule({
             localDate: '2026-10-25',
             localStart: '02:00',
-            groupClass: { capacity: 8, durationMinutes: 90, defaultTrainer: SARAH },
+            groupClass: { capacity: 8, durationMinutes: 90, defaultTrainer: SARAH, level: null },
           }),
         ),
       ).toMatchObject({
@@ -171,6 +172,7 @@ function edit(overrides: Partial<GroupDateEditFacts> = {}): GroupDateEditFacts {
       startsAt: new Date('2026-10-06T16:00:00.000Z'),
       endsAt: new Date('2026-10-06T17:00:00.000Z'),
       capacity: 8,
+      level: null,
     },
     requested: {},
     timeZone: AMSTERDAM,
@@ -186,6 +188,7 @@ describe('F021 AC4: edit one date', () => {
         startsAt: new Date('2026-10-06T16:30:00.000Z'),
         endsAt: new Date('2026-10-06T17:00:00.000Z'),
         capacity: 10,
+        level: null,
       },
     );
   });
@@ -196,6 +199,7 @@ describe('F021 AC4: edit one date', () => {
       startsAt: new Date('2026-10-06T16:00:00.000Z'),
       endsAt: new Date('2026-10-06T17:30:00.000Z'),
       capacity: 8,
+      level: null,
     });
   });
 
@@ -241,6 +245,7 @@ describe('F021 AC4: edit one date', () => {
         startsAt: new Date('2027-03-28T00:00:00.000Z'),
         endsAt: new Date('2027-03-28T05:00:00.000Z'),
         capacity: 8,
+        level: null,
       },
     };
     expect(
@@ -257,6 +262,7 @@ describe('F021 AC4: edit one date', () => {
         startsAt: new Date('2026-10-25T08:00:00.000Z'),
         endsAt: new Date('2026-10-25T09:00:00.000Z'),
         capacity: 8,
+        level: null,
       },
     };
     expect(
@@ -275,6 +281,7 @@ describe('F021 AC4: edit one date', () => {
             startsAt: new Date('2026-10-06T21:30:00.000Z'),
             endsAt: new Date('2026-10-06T21:50:00.000Z'),
             capacity: 8,
+            level: null,
           },
           requested: { localStart: '23:35', localEnd: '23:55' },
         }),
@@ -290,12 +297,14 @@ describe('F021 AC4: edit one date', () => {
       startsAt: new Date('2026-09-24T21:30:00.000Z'),
       endsAt: new Date('2026-09-24T23:00:00.000Z'),
       capacity: 8,
+      level: null,
     };
     expect(decideGroupDateEdit(edit({ current, requested: { capacity: 9 } }))).toEqual({
       outcome: 'edited',
       startsAt: current.startsAt,
       endsAt: current.endsAt,
       capacity: 9,
+      level: null,
     });
   });
 
@@ -315,5 +324,53 @@ describe('F021 the limits of a class', () => {
       capacity: { min: 1, max: 100 },
       duration: { min: 15, max: 240, step: 5 },
     });
+  });
+});
+
+describe('F067 AC1, AC3: the level of a class and of one date', () => {
+  const GEVORDERD = {
+    capacity: 8,
+    durationMinutes: 60,
+    defaultTrainer: SARAH,
+    level: 'advanced',
+  } as const;
+
+  it('AC1: a date takes the class’s level when it is scheduled', () => {
+    expect(scheduleClassOnDate(schedule({ groupClass: GEVORDERD }))).toMatchObject({
+      outcome: 'scheduled',
+      level: 'advanced',
+    });
+  });
+
+  it('AC3: a level chosen for the date wins, and null plans it as Geen', () => {
+    expect(
+      scheduleClassOnDate(schedule({ groupClass: GEVORDERD, requestedLevel: 'beginner' })),
+    ).toMatchObject({ level: 'beginner' });
+    expect(
+      scheduleClassOnDate(schedule({ groupClass: GEVORDERD, requestedLevel: null })),
+    ).toMatchObject({ level: null });
+  });
+
+  it('AC3: a level alone is an edit of the date, and every other field stays', () => {
+    expect(decideGroupDateEdit(edit({ requested: { level: 'intermediate' } }))).toEqual({
+      outcome: 'edited',
+      startsAt: new Date('2026-10-06T16:00:00.000Z'),
+      endsAt: new Date('2026-10-06T17:00:00.000Z'),
+      capacity: 8,
+      level: 'intermediate',
+    });
+  });
+
+  it('AC3: null clears the level of the date, and a start moved alone keeps it', () => {
+    const advanced = { ...edit().current, level: 'advanced' } as const;
+    expect(
+      decideGroupDateEdit(edit({ current: advanced, requested: { level: null } })),
+    ).toMatchObject({
+      outcome: 'edited',
+      level: null,
+    });
+    expect(
+      decideGroupDateEdit(edit({ current: advanced, requested: { localStart: '18:30' } })),
+    ).toMatchObject({ outcome: 'edited', level: 'advanced' });
   });
 });

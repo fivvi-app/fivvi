@@ -65,6 +65,13 @@
     <string name="booking_links_status_active">Active</string>
     <string name="booking_links_title">Booking links</string>
     <string name="booking_links_trainer_note">%1$s see the links, but can\'t change them.</string>
+    <string name="class_level_accessible_name">Level: %1$s</string>
+    <string name="class_level_advanced">Advanced</string>
+    <string name="class_level_all_levels">All levels</string>
+    <string name="class_level_beginner">Beginner</string>
+    <string name="class_level_field">Level</string>
+    <string name="class_level_intermediate">Intermediate</string>
+    <string name="class_level_none">None</string>
     <plurals name="classes_app_cancel_body">
         <item quantity="one">The booked client gets an email. You can add a message to it on the web.</item>
         <item quantity="other">The %1$d booked clients get an email. You can add a message to it on the web.</item>
@@ -129,6 +136,7 @@
     <string name="classes_date_cancelled_participant">%2$s · %1$s, %3$s</string>
     <string name="classes_date_cancelled_section">Cancelled</string>
     <string name="classes_date_changed_field_capacity">capacity</string>
+    <string name="classes_date_changed_field_level">level</string>
     <string name="classes_date_changed_field_location">location</string>
     <string name="classes_date_changed_field_time">time</string>
     <string name="classes_date_changed_field_trainer">%1$s</string>

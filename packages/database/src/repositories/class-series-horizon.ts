@@ -1,6 +1,6 @@
 import { and, asc, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
-import { classSeries, locations, sessions } from '../schema/index.ts';
+import { type ClassLevel, classSeries, locations, sessions } from '../schema/index.ts';
 
 // What the daily task that keeps class series 12 weeks ahead needs (F022, ticket #453, E012). It
 // runs as the cron role, which sets no workspace context: its table privileges and its policies
@@ -21,6 +21,8 @@ export interface SeriesToExtend {
   readonly timeZone: string;
   readonly trainerProfileId: string | null;
   readonly capacity: number;
+  /** The level its dates start with (F067); `null` is *Geen*. */
+  readonly level: ClassLevel | null;
   /** Local dates, `YYYY-MM-DD`. */
   readonly startsOn: string;
   readonly endsOn: string | null;
@@ -38,6 +40,7 @@ export interface SeriesDateToAdd {
   readonly endsAt: Date;
   readonly trainerProfileId: string | null;
   readonly capacity: number;
+  readonly level: ClassLevel | null;
 }
 
 const columns = {
@@ -50,6 +53,7 @@ const columns = {
   timeZone: classSeries.timeZone,
   trainerProfileId: classSeries.trainerProfileId,
   capacity: classSeries.capacity,
+  level: classSeries.level,
   startsOn: classSeries.startsOn,
   endsOn: classSeries.endsOn,
   materializedUntil: classSeries.materializedUntil,
@@ -138,6 +142,7 @@ export async function addSeriesDatesIfMissing(
         endsAt: date.endsAt,
         trainerProfileId: date.trainerProfileId,
         capacity: date.capacity,
+        level: date.level,
         createdByTeamMemberId: null,
       })),
     )

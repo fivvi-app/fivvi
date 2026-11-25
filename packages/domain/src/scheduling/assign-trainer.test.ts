@@ -26,6 +26,7 @@ const KRACHT: SeriesState = {
   endsOn: null,
   trainerProfileId: SARAH,
   capacity: 8,
+  level: null,
   materializedUntil: '2026-12-28',
 };
 
@@ -39,6 +40,7 @@ function stored(occurrenceDate: string) {
     endsAt: new Date(startsAt.instant.getTime() + 3_600_000),
     trainerProfileId: SARAH as string | null,
     capacity: 8,
+    level: null as SeriesDate['level'],
   };
 }
 

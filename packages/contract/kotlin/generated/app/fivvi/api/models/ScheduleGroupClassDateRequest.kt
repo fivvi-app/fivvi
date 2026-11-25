@@ -35,6 +35,7 @@ import kotlinx.serialization.Contextual
  * @param localStart The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
  * @param trainerId The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*.
  * @param capacity The capacity of this date, 1 to 100. Leave it out for the class’s.
+ * @param level The level of this date (F067); left out takes the class’s, `null` plans it as *Geen*. With `repeat: weekly` the series and its dates take it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
  * @param repeat *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
  * @param allowConflicts Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
  * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -59,6 +60,10 @@ data class ScheduleGroupClassDateRequest (
     @SerialName(value = "capacity")
     val capacity: kotlin.Int? = null,
 
+    /* The level of this date (F067); left out takes the class’s, `null` plans it as *Geen*. With `repeat: weekly` the series and its dates take it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`. */
+    @SerialName(value = "level")
+    val level: ScheduleGroupClassDateRequest.Level? = null,
+
     /* *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created. */
     @SerialName(value = "repeat")
     val repeat: ScheduleGroupClassDateRequest.Repeat? = null,
@@ -73,6 +78,18 @@ data class ScheduleGroupClassDateRequest (
 
 ) {
 
+    /**
+     * The level of this date (F067); left out takes the class’s, `null` plans it as *Geen*. With `repeat: weekly` the series and its dates take it: `all_levels` (*Alle niveaus*), `beginner`, `intermediate` (*Gemiddeld*) or `advanced` (*Gevorderd*); `null` is *Geen*. Information only: nothing in booking reads it. A value outside the list answers `422` on `level`.
+     *
+     * Values: ALL_LEVELS,BEGINNER,INTERMEDIATE,ADVANCED
+     */
+    @Serializable
+    enum class Level(val value: kotlin.String) {
+        @SerialName(value = "all_levels") ALL_LEVELS("all_levels"),
+        @SerialName(value = "beginner") BEGINNER("beginner"),
+        @SerialName(value = "intermediate") INTERMEDIATE("intermediate"),
+        @SerialName(value = "advanced") ADVANCED("advanced");
+    }
     /**
      * *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
      *
