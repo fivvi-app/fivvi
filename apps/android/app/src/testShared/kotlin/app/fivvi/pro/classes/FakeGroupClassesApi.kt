@@ -5,6 +5,7 @@ import app.fivvi.api.models.CancelClassDateRequest
 import app.fivvi.api.models.CancelledClassDate
 import app.fivvi.api.models.ClassCancellationCounts
 import app.fivvi.api.models.ClassCancellationPreview
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.ClassSeries
 import app.fivvi.api.models.CreateGroupClassRequest
 import app.fivvi.api.models.CreatedGroupClass
@@ -83,6 +84,7 @@ fun classDateOf(
     location: Location = gymLocation(),
     zone: String = "Europe/Amsterdam",
     series: SessionSeries? = null,
+    level: ClassLevel? = null,
 ): Session {
     val begin = start.atZone(ZoneId.of(zone)).toOffsetDateTime()
     fun participant(index: Int, status: SessionParticipant.AttendanceStatus) =
@@ -101,6 +103,7 @@ fun classDateOf(
             List(cancelled) { participant(booked + it, SessionParticipant.AttendanceStatus.CANCELLED) },
         trainer?.let { SessionTrainer(it.id, it.name) },
         groupClass = SessionGroupClass(groupClass.id, groupClass.nameNl, groupClass.nameEn),
+        level = level,
         series = series,
     )
 }
@@ -172,6 +175,7 @@ class FakeGroupClassesApi(private val sessions: FakeSessionsApi) : GroupClassesA
                     trainer,
                     at,
                     location = sessions.location,
+                    level = createGroupClassRequest.level?.let { ClassLevel.decode(it.value) },
                     series = SessionSeries(
                         seriesId,
                         weekdayOf(begin.toLocalDate()),

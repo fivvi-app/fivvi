@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.fivvi.api.infrastructure.Serializer
 import app.fivvi.api.models.CancelClassDateRefusal
 import app.fivvi.api.models.CancelClassDateRequest
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.CreateBookingLinkRequest
 import app.fivvi.api.models.GroupClass
 import app.fivvi.api.models.Session
@@ -117,6 +118,9 @@ data class ClassDateState(
     val trainerIsMe: Boolean get() = session?.trainer?.id.let { it != null && it == myTeamMemberId }
 
     val isCancelled: Boolean get() = session?.status == Session.Status.CANCELLED
+
+    /** The level of this date (F067), the same for everyone on the team; `null` is *Geen*. */
+    val level: ClassLevel? get() = session?.level
 
     /** The Owner's menu, until the date is cancelled; a Trainer who is not substituting has none (F024 adds the substitute's). */
     val hasMenu: Boolean get() = canManage && !isCancelled

@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.Trainer
 import app.fivvi.core.R
 import app.fivvi.core.kit.FieldErrorLine
@@ -84,6 +85,9 @@ object NewClassTags {
     const val TRAINER = "newClass.trainer"
     const val TRAINER_VALUE = "newClass.trainerValue"
     const val TRAINER_NEEDED = "newClass.trainer.needed"
+    const val LEVEL = "newClass.level"
+    const val LEVEL_VALUE = "newClass.levelValue"
+    const val LEVEL_NONE = "newClass.level.none"
     const val CAPACITY = "newClass.capacity"
     const val CAPACITY_VALUE = "newClass.capacityValue"
     const val CAPACITY_DOWN = "newClass.capacityDown"
@@ -124,6 +128,8 @@ class NewGroupClassActions(
     val onCapacity: (Int) -> Unit,
     /** `null` is *Trainer nodig*. */
     val onTrainer: (UUID?) -> Unit,
+    /** *Niveau* (F067); `null` is *Geen*. */
+    val onLevel: (ClassLevel?) -> Unit,
     val onDate: (LocalDate) -> Unit,
     val onStart: (LocalTime) -> Unit,
     val onEnd: (LocalTime) -> Unit,
@@ -134,7 +140,8 @@ class NewGroupClassActions(
 /**
  * TD-05 *Nieuwe groepsles* (F021) as a full-screen dialog (`information-architecture.md §5.2`): ✕ and *Opslaan* in the bar
  * and a form in titled sections, as the owner asked (6 November 2026): *Naam en omschrijving* (the names and descriptions in
- * Dutch and English), *De les* (the trainer or *Trainer nodig*, the capacity and the location) and *Wanneer* (the date, the
+ * Dutch and English), *De les* (the trainer or *Trainer nodig*, *Niveau* (F067: *Geen* to start with, then *Alle niveaus*,
+ * *Beginner*, *Gemiddeld* and *Gevorderd*), the capacity and the location) and *Wanneer* (the date, the
  * start, the end and *Herhalen: Niet herhalen*). Leaving with something entered asks first. Without a connection the form
  * says so and *Opslaan* is off; nothing is queued. [workspaceName] is named when the person has no access.
  */
@@ -351,6 +358,7 @@ private fun ClassSection(
         SectionHeader(stringResource(R.string.classes_form_class_section))
         InsetGroupedList {
             row { TrainerRow(state, ownName, forms, actions.onTrainer) }
+            row { LevelRow(state.level, actions.onLevel) }
             row { CapacityRow(state.capacity, actions.onCapacity) }
             row {
                 Text(
