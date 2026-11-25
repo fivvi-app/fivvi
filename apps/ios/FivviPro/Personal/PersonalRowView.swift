@@ -13,6 +13,8 @@ struct PersonalRowView: View {
     /// The row's test ids are `<prefix>.row.<id>` and `<prefix>.route.<id>`: Vandaag's are `today`, Agenda's `calendar`.
     var identifierPrefix = "today"
     @Environment(\.openURL) private var openURL
+    /// The bars scale with the text size (they are drawn for the body text).
+    @ScaledMetric(relativeTo: .body) private var barsScale = 1
 
     var body: some View {
         HStack(spacing: 0) {
@@ -58,10 +60,7 @@ struct PersonalRowView: View {
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(row.title)
-                .font(.system(Tokens.TextStyle.body, weight: .semibold))
-                .strikethrough(row.isCancelled)
-                .foregroundStyle(Tokens.Colors.textPrimary)
+            title
             if let typeLabel = row.typeLabel { secondary(typeLabel) }
             if let location = row.location { secondary(location) }
             if let workspace = row.workspaceLabel {
@@ -73,6 +72,16 @@ struct PersonalRowView: View {
             if row.isCancelled { secondary(catalog[.todayCancelled]) }
         }
         .multilineTextAlignment(.leading)
+    }
+
+    /// The class name, and for a class with a level the compact bars right after it (F067): they are part of the text, so a
+    /// long name wraps and the bars stay with its last word; nothing is cut off.
+    private var title: Text {
+        let name = Text(row.title)
+            .font(.system(Tokens.TextStyle.body, weight: .semibold))
+            .strikethrough(row.isCancelled)
+            .foregroundStyle(Tokens.Colors.textPrimary)
+        return LevelIcon.row(name: name, level: row.level, scale: barsScale)
     }
 
     private func secondary(_ text: String) -> some View {

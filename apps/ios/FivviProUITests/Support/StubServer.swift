@@ -126,6 +126,11 @@ final class StubServer: Sendable {
         responder.sessionRoutes.bookOnSeededClassDate(count)
     }
 
+    /// The seeded class date (*Kracht*) has this level, or none (*Geen*), as the API sends it (F067).
+    func setSeededClassLevel(_ level: String?) {
+        responder.sessionRoutes.setSeededLevel(level)
+    }
+
     /// The seeded private session is a colleague's: its trainer is not the signed-in person (F026 AC5).
     func bookSeededSessionWithAnotherTrainer() {
         responder.sessionRoutes.giveSeededSessionToAnotherTrainer()
@@ -145,6 +150,13 @@ final class StubServer: Sendable {
     var personalDay: StubPersonalRoutes.Day {
         get { responder.personalRoutes.day }
         set { responder.personalRoutes.day = newValue }
+    }
+
+    /// The level of the class "Kracht" in My day and My sessions (F067): `all_levels`, `beginner`, `intermediate` or
+    /// `advanced`; nil is *Geen*.
+    var personalClassLevel: String? {
+        get { responder.personalRoutes.classLevel }
+        set { responder.personalRoutes.classLevel = newValue }
     }
 
     /// While true, `GET /api/v1/me` gets no answer, so the loading state of the home stays on screen. Setting it to

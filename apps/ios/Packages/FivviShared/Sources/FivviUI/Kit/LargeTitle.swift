@@ -5,15 +5,19 @@ import FivviDesignTokens
 /// capitals above it where the prototype has one (*Vandaag*) and a line under it.
 public struct LargeTitleHeader: View {
     public init(
-        title: String, eyebrow: String? = nil, subtitle: String? = nil, titleIdentifier: String = "largeTitle.title"
+        title: String, eyebrow: String? = nil, eyebrowLevel: LevelIcon? = nil, subtitle: String? = nil,
+        titleIdentifier: String = "largeTitle.title"
     ) {
         self.title = title
         self.eyebrow = eyebrow
+        self.eyebrowLevel = eyebrowLevel
         self.subtitle = subtitle
         self.titleIdentifier = titleIdentifier
     }
     public let title: String
     public var eyebrow: String?
+    /// The class level's bars after the eyebrow (F067, TD-03), where the eyebrow names the level.
+    public var eyebrowLevel: LevelIcon?
     public var subtitle: String?
     /// The title's accessibility identifier: a screen with its own test ids for its title passes it.
     public var titleIdentifier = "largeTitle.title"
@@ -21,12 +25,15 @@ public struct LargeTitleHeader: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let eyebrow {
-                Text(eyebrow)
-                    .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
-                    .textCase(.uppercase)
-                    .tracking(0.26)
-                    .foregroundStyle(Tokens.Colors.textSecondary)
-                    .accessibilityIdentifier("largeTitle.eyebrow")
+                HStack(spacing: Tokens.Spacing.space2) {
+                    Text(eyebrow)
+                        .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
+                        .textCase(.uppercase)
+                        .tracking(0.26)
+                        .foregroundStyle(Tokens.Colors.textSecondary)
+                        .accessibilityIdentifier("largeTitle.eyebrow")
+                    eyebrowLevel
+                }
             }
             Text(title)
                 .font(.system(Tokens.TextStyle.display, weight: .bold))
@@ -52,24 +59,29 @@ public struct LargeTitleHeader: View {
 /// system's, so they are Liquid Glass without anything here drawing it.
 public struct LargeTitleScreen<Content: View>: View {
     public init(
-        title: String, eyebrow: String? = nil, subtitle: String? = nil, titleIdentifier: String = "largeTitle.title",
-        @ViewBuilder content: () -> Content
+        title: String, eyebrow: String? = nil, eyebrowLevel: LevelIcon? = nil, subtitle: String? = nil,
+        titleIdentifier: String = "largeTitle.title", @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.eyebrow = eyebrow
+        self.eyebrowLevel = eyebrowLevel
         self.subtitle = subtitle
         self.titleIdentifier = titleIdentifier
         self.content = content()
     }
     public let title: String
     public var eyebrow: String?
+    public var eyebrowLevel: LevelIcon?
     public var subtitle: String?
     public var titleIdentifier = "largeTitle.title"
     @ViewBuilder public let content: Content
 
     public var body: some View {
         InsetGroupedList {
-            LargeTitleHeader(title: title, eyebrow: eyebrow, subtitle: subtitle, titleIdentifier: titleIdentifier)
+            LargeTitleHeader(
+                title: title, eyebrow: eyebrow, eyebrowLevel: eyebrowLevel, subtitle: subtitle,
+                titleIdentifier: titleIdentifier
+            )
         } content: {
             content
         }

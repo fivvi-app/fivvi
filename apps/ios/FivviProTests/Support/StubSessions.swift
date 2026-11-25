@@ -220,7 +220,7 @@ final class StubSessions: @unchecked Sendable {
     func addGroupDate(
         of groupClass: Components.Schemas.GroupClass, start: Date, minutes: Int, capacity: Int,
         trainer: Components.Schemas.SessionTrainer?, series: Components.Schemas.SessionSeries? = nil,
-        participants: [Components.Schemas.SessionParticipant] = []
+        participants: [Components.Schemas.SessionParticipant] = [], level: Components.Schemas.ClassLevel? = nil
     ) -> Session {
         lock.withLock {
             defer { nextNumber += 1 }
@@ -229,7 +229,7 @@ final class StubSessions: @unchecked Sendable {
                 startsAt: start, endsAt: start.addingTimeInterval(TimeInterval(minutes * 60)), timeZone: timeZoneName,
                 capacity: capacity, version: 1, location: place, trainer: trainer,
                 groupClass: .init(id: groupClass.id, nameNl: groupClass.nameNl, nameEn: groupClass.nameEn),
-                series: series, participants: participants
+                level: level, series: series, participants: participants
             )
             stored.append(made)
             return made

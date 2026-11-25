@@ -2442,6 +2442,24 @@
         }
       }
     },
+    "classes.date.typeAndLevel" : {
+      "comment" : "The eyebrow of the class-on-a-date screen (TD-03, F067): the kind of session and the level word, e.g. 'Groepsles · Gevorderd'. {type} is the session type, {level} one of classLevel.allLevels … classLevel.advanced. Not used for Geen: the eyebrow is then the type alone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ · %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ · %1$@"
+          }
+        }
+      }
+    },
     "classes.date.whenLabel" : {
       "extractionState" : "manual",
       "localizations" : {

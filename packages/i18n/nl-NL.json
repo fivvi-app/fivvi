@@ -167,6 +167,7 @@
       "seriesLine": "Onderdeel van: {name}, elke {weekday} {time}",
       "timeRange": "{date}, {start}–{end}",
       "trainerLabel": "{Word}",
+      "typeAndLevel": "{type} · {level}",
       "whenLabel": "Wanneer",
       "whereLabel": "Locatie"
     },

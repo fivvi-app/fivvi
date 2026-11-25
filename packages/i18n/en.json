@@ -167,6 +167,7 @@
       "seriesLine": "Part of: {name}, every {weekday} {time}",
       "timeRange": "{date}, {start}–{end}",
       "trainerLabel": "{Word}",
+      "typeAndLevel": "{type} · {level}",
       "whenLabel": "When",
       "whereLabel": "Location"
     },

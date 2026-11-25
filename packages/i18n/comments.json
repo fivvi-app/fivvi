@@ -17,6 +17,7 @@
   "classes.app.shareLinkCopied": "TD-03 in the apps (F037): shown after Boekingslink delen has put the date's short link on the clipboard.",
   "classes.app.shareLinkOffline": "TD-03 in the apps (F037): shown on the class date page while the phone is offline, where Boekingslink delen is disabled; nothing is queued.",
   "classes.date.changedField.level": "One word in the line 'Aangepast t.o.v. de reeks: {fields}' on a class date (CO-01): the level of this date was changed on its own (F067). Lowercase; Dutch: niveau.",
+  "classes.date.typeAndLevel": "The eyebrow of the class-on-a-date screen (TD-03, F067): the kind of session and the level word, e.g. 'Groepsles · Gevorderd'. {type} is the session type, {level} one of classLevel.allLevels … classLevel.advanced. Not used for Geen: the eyebrow is then the type alone.",
   "clientNav.book": "Second tab of the client app: where a client books a class. A verb in the tab bar (GLOSSARY: Book / Boeken).",
   "clientNav.home": "First tab of the client app. The same word in both languages (GLOSSARY: Home).",
   "clientNav.label": "Accessibility label of the client app's tab bar (TalkBack).",

@@ -33,12 +33,12 @@ enum PersonalFixtures {
     static func session(
         _ id: String, _ workspace: Components.Schemas.PersonalWorkspace, from start: String, to end: String,
         client: String? = nil, className: String? = nil, booked: Int? = nil, capacity: Int = 1, cancelled: Bool = false,
-        place name: String? = nil, day: String = PersonalFixtures.day
+        place name: String? = nil, day: String = PersonalFixtures.day, level: Components.Schemas.ClassLevel? = nil
     ) -> PersonalItem {
         PersonalItem(
             sessionId: id, workspace: workspace, _type: className == nil ? ._private : .group,
             status: cancelled ? .cancelled : .scheduled, startsAt: at(start, day), endsAt: at(end, day),
-            timeZone: "Europe/Amsterdam", capacity: capacity, booked: booked, className: className,
+            timeZone: "Europe/Amsterdam", capacity: capacity, booked: booked, className: className, level: level,
             location: name.map { place($0) }, clientName: client
         )
     }

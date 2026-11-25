@@ -63,6 +63,7 @@ extension StubSessionRoutes {
             "participants": [[String: Any]]()
         ]
         if let trainer { made["trainer"] = ["id": trainer.id, "name": trainer.name] }
+        if let level = groupClass["level"] { made["level"] = level }
         return made
     }
 
@@ -165,6 +166,21 @@ extension StubSessionRoutes {
             "nameNl": (body["nameNl"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
             "nameEn": text("nameEn"), "descriptionNl": text("descriptionNl"), "descriptionEn": text("descriptionEn"),
             "capacity": body["capacity"] as? Int ?? 1, "durationMinutes": body["durationMinutes"] as? Int ?? 60
-        ]
+        ].merging(body["level"].map { ["level": $0] } ?? [:]) { $1 }
+    }
+
+    /// The seeded class and its date have this level (F067: `all_levels`, `beginner`, `intermediate` or `advanced`), or
+    /// none for *Geen*.
+    func setSeededLevel(_ level: String?) {
+        lock.withLock {
+            func apply(_ item: [String: Any]) -> [String: Any] {
+                var next = item
+                next["level"] = level
+                if level == nil { next.removeValue(forKey: "level") }
+                return next
+            }
+            classes = classes.map { $0["id"] as? String == Self.seededClassID ? apply($0) : $0 }
+            sessions = sessions.map { $0["id"] as? String == Self.seededClassDateID ? apply($0) : $0 }
+        }
     }
 }
