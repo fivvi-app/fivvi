@@ -707,12 +707,13 @@ test.describe('F037 booking links on the web', () => {
     const title = dialog.getByRole('heading', { name: KRACHT });
     const titleBox = await title.boundingBox();
     const buttonBox = await copyButton.boundingBox();
-    expect(titleBox && buttonBox).toBeTruthy();
+    if (!titleBox || !buttonBox) throw new Error('the title and the button have a box');
     // On one row: the button starts where the title ends and is centred on it.
-    expect(buttonBox!.x).toBeGreaterThanOrEqual(titleBox!.x + titleBox!.width - 1);
-    expect(buttonBox!.x - (titleBox!.x + titleBox!.width)).toBeLessThan(16);
+    const gap = buttonBox.x - (titleBox.x + titleBox.width);
+    expect(gap).toBeGreaterThanOrEqual(-1);
+    expect(gap).toBeLessThan(16);
     expect(
-      Math.abs(buttonBox!.y + buttonBox!.height / 2 - (titleBox!.y + titleBox!.height / 2)),
+      Math.abs(buttonBox.y + buttonBox.height / 2 - (titleBox.y + titleBox.height / 2)),
     ).toBeLessThan(6);
     await expectNoAxeViolations(page, `WC-05 with Boekingslink kopiëren in ${appLocale}`);
 
