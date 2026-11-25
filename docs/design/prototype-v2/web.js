@@ -598,7 +598,7 @@
   function pickRow(a, d, t, on, off) {
     return "<li><button data-a=\"" + a + "\"" + dat(d) + (off ? " disabled" : "") + "><span translate=\"no\">" + esc(t) + '</span><span class="w-muted">' + F.tplCount(D.tpl[t].length) + "</span>" + (off ? '<span class="w-muted">Op de lijst</span>' : "") + (on ? ic("check") : "") + "</button></li>";
   }
-  /* WC-05: Boekingslink kopiëren as a share icon button right after the class name (proposal on the owner's comment of 25 Nov 2026; was a link icon beside Les openen, #970), on a group class date that is not cancelled and has not started (owner, 25 Nov 2026, #970) */
+  /* WC-05: Boekingslink kopiëren as a share icon button right after the class name (owner, 25 Nov 2026, in a comment on the prototype; was a link icon beside Les openen, #970), on a group class date that is not cancelled and has not started (owner, 25 Nov 2026, #970) */
   function copyLinkBtn(it, k) {
     if (it.type !== "group" || it.cancelled || k < F.TODAY || (k === F.TODAY && F.mins(it.s) <= F.mins(F.NOWT))) return "";
     return '<button class="w-icon" data-a="w-toast" data-m="Link gekopieerd" aria-label="Boekingslink kopiëren" title="Boekingslink kopiëren">' + ic("share") + "</button>";
