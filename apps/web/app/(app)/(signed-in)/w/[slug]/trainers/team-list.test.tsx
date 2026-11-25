@@ -280,6 +280,9 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
 
       // `trainer` is a role value in the markup (`value="trainer"`), never text a person reads.
       const text = html.replace(/<[^>]*>/g, ' ');
+      // The chosen word is what the page says, for every choice (also when it is `trainer`).
+      expect(text).toContain(word.Words);
+      expect(text).toContain(word.Word);
       if (choice !== 'trainer') expect(text).not.toMatch(/trainer/i);
     });
   });

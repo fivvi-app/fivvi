@@ -1976,7 +1976,7 @@
     "stepDownDialog": {
       "body": "Je bent dan geen eigenaar meer van {workspace}.",
       "cancel": "Annuleren",
-      "confirm": "Maak mij {aWord}",
+      "confirm": "Mezelf {aWord} maken",
       "title": "Jezelf {aWord} maken?"
     },
     "title": "{Words}"

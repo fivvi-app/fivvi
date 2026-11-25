@@ -145,7 +145,7 @@ test.describe('F068 the workspace’s word', () => {
     await choose('docent');
     await choose('coach');
 
-    // The name field of the same page keeps what was typed and unsaved; the workspace keeps its name, URL name, language and time zone.
+    // The name field of the same page keeps its value; the workspace keeps its name, URL name, language and time zone.
     await expect(page.getByLabel(copy.settingsGeneral.nameLabel)).toHaveValue(GYM);
     const after = await workspaceOf(page, workspaceId);
     expect(after).toEqual({ ...before, trainerWord: 'coach' });
@@ -453,6 +453,8 @@ test.describe('F068 the workspace’s word', () => {
     await page.goto(`/w/${slug}/trainers`);
     await expect(page.getByRole('heading', { level: 1, name: coach.title })).toBeVisible();
     await expect(page.getByRole('button', { name: coach.invite })).toBeVisible();
+    // John is the Owner: the switcher keeps his Owner label, never the workspace's word.
+    await expect(page.getByText(`${GYM} · ${copy.roles.owner}`)).toBeVisible();
     await expect(page.getByText(`${GYM} · ${coach.forms.Word}`)).toHaveCount(0);
     await expectNoAxeViolations(page, `Trainers after changing to coach in ${appLocale}`);
 

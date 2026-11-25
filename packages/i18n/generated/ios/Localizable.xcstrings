@@ -8273,6 +8273,7 @@
       }
     },
     "invitation.intro" : {
+      "comment" : "First line of the invitation page, an invitation to become a Trainer. {inviter} is the name of the person who invited; {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor; {workspace} the workspace name.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8290,6 +8291,7 @@
       }
     },
     "invitation.introAnonymous" : {
+      "comment" : "First line of the invitation page when the inviter is not named. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor; {workspace} the workspace name.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -15962,7 +15964,7 @@
       }
     },
     "team.badge.trainer" : {
-      "comment" : "Badge on a team member of the Trainers page (TW-06) who trains in the workspace, next to their role label. The word for the role Trainer.",
+      "comment" : "Badge on a team member of the Trainers page (TW-06) who trains in the workspace, next to their role label. The whole text is the singular word of the workspace (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -16975,6 +16977,7 @@
       }
     },
     "team.invite.title" : {
+      "comment" : "Title of the invite dialog of the Trainers page (TW-06), an invitation to become a Trainer of the workspace. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor. Dutch 'Nodig {aWord} uit' breaks GLOSSARY §5.1's object-first order ('{AWord} uitnodigen') because parity forces it: '{AWord} uitnodigen' would need 'Invite {AWord}' in English, which would put a capitalised word after the verb in English.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -17096,7 +17099,7 @@
       }
     },
     "team.removeDialog.body" : {
-      "comment" : "Body of the remove dialog. {name} is the person's name, repeated instead of a pronoun; {workspace} the workspace name. Says that only the team access goes and what they have as a client stays.",
+      "comment" : "Body of the remove dialog. {name} is the person's name, repeated instead of a pronoun; {word} the workspace's word for a Trainer (F068), singular, lowercase, e.g. instructeur / instructor; {workspace} the workspace name. Says that only the team access goes and what they have as a client stays.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -17203,6 +17206,7 @@
       }
     },
     "team.roleChanged.trainer" : {
+      "comment" : "Confirmation shown after an Owner became a Trainer of the workspace (stepped down). {name} is the person's name; {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -17289,6 +17293,7 @@
       }
     },
     "team.stepDownDialog.confirm" : {
+      "comment" : "Button of the step-down dialog. Makes the Owner a Trainer of the workspace. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor. Dutch puts the object first: 'Mezelf {aWord} maken', like the title.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -17300,12 +17305,13 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Maak mij %1$@"
+            "value" : "Mezelf %1$@ maken"
           }
         }
       }
     },
     "team.stepDownDialog.title" : {
+      "comment" : "Title of the step-down dialog, a question the Owner answers about themselves. {aWord} is the workspace's word with its article, lowercase (F068), e.g. een instructeur / an instructor.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -17323,7 +17329,7 @@
       }
     },
     "team.title" : {
-      "comment" : "Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title.",
+      "comment" : "Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title. The whole text is the plural word of the workspace (F068): {Words} is the plural with a capital start, e.g. Instructeurs / Instructors.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -19819,7 +19825,7 @@
       }
     },
     "workspaceNav.trainers" : {
-      "comment" : "Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only.",
+      "comment" : "Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only. The whole text is the plural word of the workspace (F068): {Words} is the plural with a capital start, e.g. Instructeurs / Instructors.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
