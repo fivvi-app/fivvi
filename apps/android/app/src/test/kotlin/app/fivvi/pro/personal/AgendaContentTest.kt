@@ -34,7 +34,7 @@ class AgendaContentTest {
             base.range.until.toString(),
             "Europe/Amsterdam",
             workspaceCount,
-            PersonalFixtures.offered(workspaceCount, showsKindLabel),
+            PersonalFixtures.sessionTypes(workspaceCount, showsKindLabel),
             showsKindLabel,
             items.filter { AgendaCalendar(PersonalRows.TIME_ZONE).day(it.startsAt) in base.visibleDays },
         )

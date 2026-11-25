@@ -11,7 +11,7 @@ import app.fivvi.api.models.MyDaySummary
 import app.fivvi.api.models.MyDayTomorrow
 import app.fivvi.api.models.PersonalSession
 import app.fivvi.api.models.PersonalWorkspace
-import app.fivvi.api.models.PersonalWorkspaceOffers
+import app.fivvi.api.models.PersonalWorkspaceSessionTypes
 import app.fivvi.core.me.workspaceIdOf
 import java.time.Instant
 import java.time.LocalDate
@@ -148,26 +148,19 @@ object PersonalFixtures {
     )
 
     /**
-     * What the API says each workspace offers (#1534): John's Gym runs classes, Sarah Personal Training does not. With
-     * [showsKindLabel] false the gym offers private sessions only too.
+     * What the API says each workspace runs (#1534): John's Gym runs classes, Sarah Personal Training does not. With
+     * [showsKindLabel] false the gym runs private sessions only too.
      */
-    fun offered(workspaceCount: Int, showsKindLabel: Boolean): List<PersonalWorkspaceOffers> {
-        val gym = PersonalWorkspaceOffers(
+    fun sessionTypes(workspaceCount: Int, showsKindLabel: Boolean): List<PersonalWorkspaceSessionTypes> {
+        val private = PersonalWorkspaceSessionTypes.SessionTypes.PRIVATE
+        val group = PersonalWorkspaceSessionTypes.SessionTypes.GROUP
+        val gym = PersonalWorkspaceSessionTypes(
             johns.id,
             johns.slug,
             johns.name,
-            if (showsKindLabel) {
-                listOf(PersonalWorkspaceOffers.Offers.PRIVATE, PersonalWorkspaceOffers.Offers.GROUP)
-            } else {
-                listOf(PersonalWorkspaceOffers.Offers.PRIVATE)
-            },
+            if (showsKindLabel) listOf(private, group) else listOf(private),
         )
-        val own = PersonalWorkspaceOffers(
-            sarahPT.id,
-            sarahPT.slug,
-            sarahPT.name,
-            listOf(PersonalWorkspaceOffers.Offers.PRIVATE),
-        )
+        val own = PersonalWorkspaceSessionTypes(sarahPT.id, sarahPT.slug, sarahPT.name, listOf(private))
         return listOf(gym, own).take(workspaceCount)
     }
 
@@ -187,7 +180,7 @@ object PersonalFixtures {
         date = DAY,
         timeZone = "Europe/Amsterdam",
         workspaceCount = workspaceCount,
-        workspaces = offered(workspaceCount, showsKindLabel),
+        workspaces = sessionTypes(workspaceCount, showsKindLabel),
         showsKindLabel = showsKindLabel,
         items = items,
         summary = summaryOf(items, done),
@@ -206,7 +199,7 @@ object PersonalFixtures {
         date = DAY,
         timeZone = "Europe/Amsterdam",
         workspaceCount = 1,
-        workspaces = offered(1, false),
+        workspaces = sessionTypes(1, false),
         showsKindLabel = false,
         items = emptyList(),
         summary = MyDaySummary(0, 0),

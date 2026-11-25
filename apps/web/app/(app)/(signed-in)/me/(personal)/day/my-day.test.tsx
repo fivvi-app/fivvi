@@ -180,7 +180,7 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
     );
   });
 
-  it('#1534: a person whose workspaces offer only private sessions never sees the kind on a row, as the API says', () => {
+  it('#1534: a person whose workspaces run only private sessions never sees the kind on a row, as the API says', () => {
     const html = seen(
       view({
         workspaceCount: 1,

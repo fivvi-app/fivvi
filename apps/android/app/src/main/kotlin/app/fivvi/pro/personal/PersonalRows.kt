@@ -49,7 +49,7 @@ data class PersonalRow(
     /** *09:00* */
     val startText: String,
     val endText: String,
-    /** The row says *Privésessie* or *Groepsles*: the API says the person's workspaces offer more than one kind. */
+    /** The row says *Privésessie* or *Groepsles*: the caller decided that rows name their kind ([PersonalRows]). */
     val namesKind: Boolean,
     /** The row says its workspace, with the colour dot: the person is on more than one team. */
     val showsWorkspace: Boolean,
@@ -66,7 +66,11 @@ data class PersonalRow(
 
 /** Builds the rows of a list of items, in the language's formatting locale and Dutch time. */
 class PersonalRows(
-    /** The API says the person's workspaces offer more than one kind (`showsKindLabel`): each row names its kind. */
+    /**
+     * Whether each row names its kind. The caller decides: *Vandaag* and *Agenda* pass the API's `showsKindLabel` (the
+     * person's workspaces run more than one session type, #1534); *Hele studio* still works it out from the
+     * workspace's own day.
+     */
     private val namesKinds: Boolean,
     private val workspaceCount: Int,
     private val now: Instant,

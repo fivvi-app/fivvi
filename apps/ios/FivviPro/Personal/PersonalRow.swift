@@ -20,7 +20,7 @@ struct PersonalRow: Identifiable, Equatable {
     let timeText: String
     let startText: String
     let endText: String
-    /// *Privésessie* / *Groepsles*: only when the API says the person's workspaces offer more than one kind.
+    /// *Privésessie* / *Groepsles*: only when the caller says the rows name their kind (`PersonalRows.namesKinds`).
     let typeLabel: String?
     /// The workspace's name, with its colour dot: only when the person is on more than one team.
     let workspaceLabel: String?
@@ -44,8 +44,9 @@ struct PersonalRows {
     let catalog: Catalog
     let now: Date
     let workspaceCount: Int
-    /// The API says the person's workspaces offer more than one kind (`showsKindLabel`), so each row names its kind.
-    /// Never worked out from the items of the day.
+    /// Whether each row names its kind. The caller decides: *Vandaag* and *Agenda* pass the API's `showsKindLabel`
+    /// (the person's workspaces run more than one session type, #1534); *Hele studio* still works it out from the
+    /// workspace's own day.
     let namesKinds: Bool
 
     /// The personal day is in Dutch time (F013 AC14); the workspace's day (*Hele studio*) in the workspace's own zone.

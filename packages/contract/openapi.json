@@ -544,13 +544,13 @@
           "workspaces": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PersonalWorkspaceOffers"
+              "$ref": "#/components/schemas/PersonalWorkspaceSessionTypes"
             },
-            "description": "The workspaces the account trains in and the view spans, in name order, each with the kinds of session it offers. `workspaceCount` is their number."
+            "description": "The workspaces the account trains in and the view spans, in name order, each with the session types it runs. `workspaceCount` is their number."
           },
           "showsKindLabel": {
             "type": "boolean",
-            "description": "Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together offer more than one kind. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items."
+            "description": "Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together run more than one session type. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items."
           },
           "items": {
             "type": "array",
@@ -599,7 +599,7 @@
         ],
         "description": "The personal day of a trainer across all their workspaces."
       },
-      "PersonalWorkspaceOffers": {
+      "PersonalWorkspaceSessionTypes": {
         "type": "object",
         "properties": {
           "id": {
@@ -615,7 +615,7 @@
             "type": "string",
             "description": "The name shown in the product."
           },
-          "offers": {
+          "sessionTypes": {
             "type": "array",
             "items": {
               "type": "string",
@@ -624,16 +624,16 @@
                 "group"
               ]
             },
-            "description": "The kinds of session the workspace offers, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later)."
+            "description": "The session types the workspace runs, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later)."
           }
         },
         "required": [
           "id",
           "slug",
           "name",
-          "offers"
+          "sessionTypes"
         ],
-        "description": "A workspace the personal view spans, with what it offers."
+        "description": "A workspace the personal view spans, with the session types it runs."
       },
       "PersonalSession": {
         "type": "object",
@@ -985,13 +985,13 @@
           "workspaces": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PersonalWorkspaceOffers"
+              "$ref": "#/components/schemas/PersonalWorkspaceSessionTypes"
             },
-            "description": "The workspaces the account trains in and the view spans, in name order, each with the kinds of session it offers. `workspaceCount` is their number."
+            "description": "The workspaces the account trains in and the view spans, in name order, each with the session types it runs. `workspaceCount` is their number."
           },
           "showsKindLabel": {
             "type": "boolean",
-            "description": "Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together offer more than one kind. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items."
+            "description": "Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together run more than one session type. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items."
           },
           "items": {
             "type": "array",
@@ -5801,7 +5801,7 @@
           "me"
         ],
         "summary": "My day: the sessions of one day across my workspaces",
-        "description": "Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with the number done), for today the next free gap and the places still ahead, the tomorrow line, the date of the next session when the day is empty, the number of workspaces and what each one offers, with whether a row names its kind. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.",
+        "description": "Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with the number done), for today the next free gap and the places still ahead, the tomorrow line, the date of the next session when the day is empty, the number of workspaces and the session types each one runs, with whether a row names its kind. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.",
         "security": [
           {
             "cookieAuth": []

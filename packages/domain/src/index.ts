@@ -432,11 +432,11 @@ export {
   type PersonalSessionTimes,
 } from './scheduling/personal-day.ts';
 export {
-  type OfferedKind,
-  offersMoreThanOneKind,
-  type WorkspaceOfferFacts,
-  workspaceOffers,
-} from './scheduling/personal-offers.ts';
+  hasMoreThanOneSessionType,
+  type SessionTypeKind,
+  type WorkspaceSessionTypeFacts,
+  workspaceSessionTypes,
+} from './scheduling/personal-session-types.ts';
 export {
   type PlanWeeklySeriesDecision,
   type PlanWeeklySeriesFacts,

@@ -29,16 +29,16 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * A workspace the personal view spans, with what it offers.
+ * A workspace the personal view spans, with the session types it runs.
  *
  * @param id The workspace ID.
  * @param slug The URL name: `/w/{slug}` on the web.
  * @param name The name shown in the product.
- * @param offers The kinds of session the workspace offers, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later).
+ * @param sessionTypes The session types the workspace runs, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later).
  */
 @Serializable
 
-data class PersonalWorkspaceOffers (
+data class PersonalWorkspaceSessionTypes (
 
     /* The workspace ID. */
     @Contextual @SerialName(value = "id")
@@ -52,19 +52,19 @@ data class PersonalWorkspaceOffers (
     @SerialName(value = "name")
     val name: kotlin.String,
 
-    /* The kinds of session the workspace offers, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later). */
-    @SerialName(value = "offers")
-    val offers: kotlin.collections.List<PersonalWorkspaceOffers.Offers>
+    /* The session types the workspace runs, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later). */
+    @SerialName(value = "sessionTypes")
+    val sessionTypes: kotlin.collections.List<PersonalWorkspaceSessionTypes.SessionTypes>
 
 ) {
 
     /**
-     * The kinds of session the workspace offers, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later).
+     * The session types the workspace runs, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later).
      *
      * Values: PRIVATE,GROUP
      */
     @Serializable
-    enum class Offers(val value: kotlin.String) {
+    enum class SessionTypes(val value: kotlin.String) {
         @SerialName(value = "private") PRIVATE("private"),
         @SerialName(value = "group") GROUP("group");
     }

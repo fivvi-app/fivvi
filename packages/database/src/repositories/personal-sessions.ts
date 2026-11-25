@@ -277,7 +277,7 @@ export async function hasMySession(scope: WorkspaceScope): Promise<boolean> {
 
 /**
  * Whether the scope's workspace has a group class that is not archived: what decides that it
- * offers group classes (`workspaceOffers` in `packages/domain`, F013 #1534).
+ * runs group classes (`workspaceSessionTypes` in `packages/domain`, F013 #1534).
  */
 export async function workspaceHasGroupClasses(scope: WorkspaceScope): Promise<boolean> {
   const found = await executorOf(scope)

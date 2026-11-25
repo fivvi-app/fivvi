@@ -78,7 +78,7 @@ class PersonalStoreTest {
             until,
             "Europe/Amsterdam",
             2,
-            PersonalFixtures.offered(2, true),
+            PersonalFixtures.sessionTypes(2, true),
             true,
             PersonalFixtures.sarah().items,
         ),

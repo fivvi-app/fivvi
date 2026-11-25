@@ -14,7 +14,7 @@ const rowClass = 'flex min-h-11 items-start gap-3 rounded-lg px-3 py-2 hover:bg-
 /**
  * *Mijn dag* / *My day* (`/me/day`, F013): the same content as TD-01 *Vandaag* of the apps, as a
  * list in the row format of WC-01 (`flows/03-workspace-calendar.md`): the time, the client or the
- * class, the type in words (only when `showsKindLabel`: the person's workspaces offer more than one
+ * class, the type in words (only when `showsKindLabel`: the person's workspaces run more than one
  * kind) with its location or bookings, and the workspace only when the person trains in more than one. Everything shown is what `GET /v1/me/day` answers: the web decides
  * nothing (ordering, *Straks*, the summary and the tomorrow line are the domain's, in the API).
  *
@@ -63,8 +63,8 @@ export function MyDayView({
     const detail = isPrivate
       ? item.location?.name
       : t('booked', { booked: item.booked ?? 0, capacity: item.capacity });
-    // The kind in words only when the API says so (`showsKindLabel`, decided by what the workspaces
-    // offer), never from the items of the day.
+    // The kind in words only when the API says so (`showsKindLabel`, decided by the session types the workspaces
+    // run), never from the items of the day.
     const sub = day.showsKindLabel
       ? detail
         ? t('typeWithDetail', { type: typeOf(item), detail })

@@ -50,7 +50,8 @@ final class StubMySessions: @unchecked Sendable {
         }
         return .ok(.init(body: .json(.init(
             from: query.from, to: query.to, timeZone: "Europe/Amsterdam", workspaceCount: count,
-            workspaces: PersonalFixtures.offered(workspaceCount: count, showsKindLabel: shows), showsKindLabel: shows,
+            workspaces: PersonalFixtures.sessionTypes(workspaceCount: count, showsKindLabel: shows),
+            showsKindLabel: shows,
             items: inRange.sorted { $0.startsAt < $1.startsAt }
         ))))
     }

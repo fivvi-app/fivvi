@@ -137,7 +137,7 @@ export interface paths {
         };
         /**
          * My day: the sessions of one day across my workspaces
-         * @description Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with the number done), for today the next free gap and the places still ahead, the tomorrow line, the date of the next session when the day is empty, the number of workspaces and what each one offers, with whether a row names its kind. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
+         * @description Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with the number done), for today the next free gap and the places still ahead, the tomorrow line, the date of the next session when the day is empty, the number of workspaces and the session types each one runs, with whether a row names its kind. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
          */
         get: operations["getMyDay"];
         put?: never;
@@ -1488,9 +1488,9 @@ export interface components {
             timeZone: string;
             /** @description The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one. */
             workspaceCount: number;
-            /** @description The workspaces the account trains in and the view spans, in name order, each with the kinds of session it offers. `workspaceCount` is their number. */
-            workspaces: components["schemas"]["PersonalWorkspaceOffers"][];
-            /** @description Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together offer more than one kind. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items. */
+            /** @description The workspaces the account trains in and the view spans, in name order, each with the session types it runs. `workspaceCount` is their number. */
+            workspaces: components["schemas"]["PersonalWorkspaceSessionTypes"][];
+            /** @description Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together run more than one session type. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items. */
             showsKindLabel: boolean;
             /** @description The day’s items in time order, cancelled ones included. */
             items: components["schemas"]["PersonalSession"][];
@@ -1505,8 +1505,8 @@ export interface components {
             /** @description Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise. */
             hasSessions: boolean;
         };
-        /** @description A workspace the personal view spans, with what it offers. */
-        PersonalWorkspaceOffers: {
+        /** @description A workspace the personal view spans, with the session types it runs. */
+        PersonalWorkspaceSessionTypes: {
             /**
              * Format: uuid
              * @description The workspace ID.
@@ -1516,8 +1516,8 @@ export interface components {
             slug: string;
             /** @description The name shown in the product. */
             name: string;
-            /** @description The kinds of session the workspace offers, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later). */
-            offers: ("private" | "group")[];
+            /** @description The session types the workspace runs, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later). */
+            sessionTypes: ("private" | "group")[];
         };
         /** @description A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. */
         PersonalSession: {
@@ -1686,9 +1686,9 @@ export interface components {
             timeZone: string;
             /** @description The workspaces the account trains in and the view spans. */
             workspaceCount: number;
-            /** @description The workspaces the account trains in and the view spans, in name order, each with the kinds of session it offers. `workspaceCount` is their number. */
-            workspaces: components["schemas"]["PersonalWorkspaceOffers"][];
-            /** @description Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together offer more than one kind. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items. */
+            /** @description The workspaces the account trains in and the view spans, in name order, each with the session types it runs. `workspaceCount` is their number. */
+            workspaces: components["schemas"]["PersonalWorkspaceSessionTypes"][];
+            /** @description Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together run more than one session type. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items. */
             showsKindLabel: boolean;
             /** @description The sessions from the start of `from` to the end of `to`, in time order. */
             items: components["schemas"]["PersonalSession"][];

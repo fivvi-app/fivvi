@@ -136,7 +136,7 @@ describe('F013 the personal read model', () => {
     });
   });
 
-  describe('what a workspace offers (#1534)', () => {
+  describe('which session types a workspace runs (#1534)', () => {
     it('has group classes once it has a class that is not archived, and no class means none', async () => {
       const w = await world();
       await addGroupClass(admin.db, { workspaceId: w.gym.id, nameNl: 'Kracht' });
