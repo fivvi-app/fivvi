@@ -202,9 +202,11 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     }
 
     // F068 AC11 (spec AC1): John has Hele studio open with *trainer*, the web sets *instructeur*, and coming back to the app
-    // reads the account again: the studio's lines say *instructeurs* (*instructors*) without a restart.
+    // reads the account again: the studio's lines say *instructeurs* (*instructors*) without a restart. Coming back to the
+    // app stands in for the pull to refresh: both go through TodayViewModel.refresh -> HomeViewModel.refreshWorkspaces.
     @Test
     fun test_F068_AC11_theStudioDayFollowsAChangedWordWhenTheAppIsBack() {
+        // Two reads of `GET /v1/me` at start: the home's, and Vandaag's. The word changes on the third.
         launch(trainerWord = TrainerWord.TRAINER, reads = 2)
         compose.waitUntilTagExists(StudioTags.SCOPE)
         compose.onNodeWithTag(StudioTags.SCOPE_STUDIO).performClick()
@@ -227,13 +229,13 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         val plural = string(R.string.trainer_word_instructeur_words)
         assertEquals(if (language == AppLanguage.DUTCH) "instructeurs" else "instructors", plural)
         compose.waitUntil(UI_TIMEOUT_MILLIS) {
-            descriptionOrText(StudioTags.SCOPE_LINE) == string(R.string.my_day_app_studio_line, plural, JOHNS_GYM)
+            textOf(StudioTags.SCOPE_LINE) == string(R.string.my_day_app_studio_line, plural, JOHNS_GYM)
         }
         compose.onNodeWithTag(StudioTags.HEAD)
             .assertTextEquals(string(R.string.my_day_app_studio_trainers_many, "3", plural))
     }
 
-    private fun descriptionOrText(tag: String) = compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().firstOrNull()
+    private fun textOf(tag: String) = compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().firstOrNull()
         ?.config?.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text }
 
     // F067 AC8: John sees the level on the rows of Hele studio, named after the class; *Alle niveaus* shows none; no control.
