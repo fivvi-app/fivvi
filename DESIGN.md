@@ -55,6 +55,16 @@ Where the design matters, the owner decides by **talking it over in the clickabl
 - The prototype shows look and flow, never architecture. Business rules stay in `packages/domain`; strings in the product come from `packages/i18n`.
 - `DECISIONS.md` §7 lists the prototype's assumptions and which of them the owner confirmed. A spec builds a confirmed one as written. It asks the owner about any other it touches, and never builds that as if it were decided.
 
+## The designs follow the app
+
+The prototype and `DECISIONS.md` always show the app as it is (owner, 25 November 2026). The next design round starts from them, so they never fall behind what was built.
+
+- **Same PR:** a PR that changes what a user sees, on any platform, also changes the prototype screen to match. This includes the changes that skip the design round above: a small change that follows a pattern, a fix that changes what is shown, an improvement found while building.
+- **Decisions:** a new decision gets its line in `DECISIONS.md`, and a flow in `docs/design/` that says otherwise is updated with it.
+- **Copy:** a copy fix also changes the prototype's text where it shows the same words.
+- **Review:** the reviewer checks that the prototype and the app match.
+- **Out of scope:** work without a screen changes nothing here.
+
 ## Web (`apps/web`, `packages/ui`)
 
 - shadcn/ui on Tailwind v4, themed only by the tokens (zinc neutrals and the accent on the trainer web, the Fivvi Pro theme on the client web): import `@fivvi/ui/globals.css` and use shadcn's theme classes plus `session-*` and `status-*` ([`packages/ui`](packages/ui/README.md)). Tailwind's default palette is removed; no literal colours, no `--th-*` variables or palette in app code.

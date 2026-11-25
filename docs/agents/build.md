@@ -19,6 +19,10 @@ Each agent's `claude-tools` field is its tool allowlist in Claude Code (the gene
 
 A ticket with a screen builds what the owner decided in the prototype. Before building or reviewing it, read the part of [`docs/design/prototype-v2/DECISIONS.md`](../design/prototype-v2/DECISIONS.md) for that surface, and the comments on the parent spec (`gh issue view <spec> --comments`): `issue.sh show` prints only the body, and the design decisions on specs approved before the prototype are in their comments. Where a ticket and `DECISIONS.md` disagree, stop and report it. `DECISIONS.md` §7 lists the prototype's assumptions: build the ones the owner confirmed, and ask about any other, don't build it as decided. The prototype shows look and flow, never architecture.
 
+**The designs follow the app** ([`DESIGN.md`](../../DESIGN.md#the-designs-follow-the-app), owner, 25 November 2026):
+- **Builder:** a ticket or fix that changes what a user sees also updates the prototype screen in `docs/design/prototype-v2` in the same branch, even when the change needed no design round. A new decision gets its line in `DECISIONS.md`, and a flow doc in `docs/design/` that says otherwise is updated with it.
+- **Reviewer:** check on the spec axis that the prototype matches what was built. A visible change without the prototype update is a must-fix finding.
+
 ## Loop
 
 1. `builder` builds the ticket and commits; it does **not** run `code-review`. `implement` ends with a `code-review` call; here that step belongs to the reviewer, so skip it.
