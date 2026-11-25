@@ -126,12 +126,20 @@ function QuickViewBody({
   return (
     <>
       <DialogHeader>
-        <DialogTitle className={cancelled ? 'line-through' : undefined}>
-          {shared('block', {
-            type: isPrivate ? shared('typePrivate') : shared('typeGroup'),
-            name,
-          })}
-        </DialogTitle>
+        {/* The share icon sits right after the class name (WC-05); the title wraps before it, the button never shrinks. */}
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-2">
+          <DialogTitle
+            className={`min-w-0 max-w-[calc(100%-2.5rem)]${cancelled ? ' line-through' : ''}`}
+          >
+            {shared('block', {
+              type: isPrivate ? shared('typePrivate') : shared('typeGroup'),
+              name,
+            })}
+          </DialogTitle>
+          {actions.copyLink ? (
+            <CopyBookingLink workspaceId={workspaceId} sessionId={item.id} variant="icon" />
+          ) : null}
+        </div>
         <DialogDescription>
           {t('when', {
             date: when.day(item.startsAt),
@@ -170,9 +178,6 @@ function QuickViewBody({
         <Button asChild>
           <Link href={href as Route}>{t('open')}</Link>
         </Button>
-        {actions.copyLink ? (
-          <CopyBookingLink workspaceId={workspaceId} sessionId={item.id} variant="icon" />
-        ) : null}
         {actions.move ? (
           <Button asChild variant="outline">
             <Link href={`${href}?move=1` as Route}>{t('move')}</Link>

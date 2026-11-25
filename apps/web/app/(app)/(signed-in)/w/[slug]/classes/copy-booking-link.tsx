@@ -4,7 +4,7 @@ import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import { Button } from '@fivvi/ui/components/button';
 import { Input } from '@fivvi/ui/components/input';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
-import { LinkIcon } from '@fivvi/ui/kit/icons';
+import { ShareIcon } from '@fivvi/ui/kit/icons';
 import { Toast } from '@fivvi/ui/kit/toast';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -17,7 +17,7 @@ import { copyDateLinkToClipboard } from './copy-date-link';
  * has not started. A second copy gives the same link.
  *
  * The same code serves the Agenda's quick view (WC-05): there `variant="icon"` shows the button as
- * a link icon only, named (and given its tooltip) by the same words.
+ * a share icon only, named (and given its tooltip) by the same words.
  */
 export function CopyBookingLink({
   workspaceId,
@@ -71,7 +71,7 @@ export function CopyBookingLink({
           disabled={!ready || pending}
           onClick={() => void copy()}
         >
-          <LinkIcon />
+          <ShareIcon />
         </Button>
       ) : (
         <Button
