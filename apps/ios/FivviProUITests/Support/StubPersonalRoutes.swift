@@ -20,8 +20,16 @@ final class StubPersonalRoutes: @unchecked Sendable {
 
     private let lock = NSLock()
     private var served = Day.sarah
+    private var level: String?
     /// Whether the session with this ID has been cancelled meanwhile (from TD-02), so the lists show it struck through.
     var isCancelled: @Sendable (String) -> Bool = { _ in false }
+
+    /// The level the API sends for the class "Kracht" on its dates (F067: `all_levels`, `beginner`, `intermediate` or
+    /// `advanced`); nil is *Geen*, which leaves the field out.
+    var classLevel: String? {
+        get { lock.withLock { level } }
+        set { lock.withLock { level = newValue } }
+    }
 
     var day: Day {
         get { lock.withLock { served } }
@@ -55,7 +63,8 @@ final class StubPersonalRoutes: @unchecked Sendable {
 
     private static func item(
         _ id: String, _ workspace: [String: Any], _ start: String, _ end: String, client: String? = nil,
-        className: String? = nil, cancelled: Bool = false, place name: String? = nil, day: String = day
+        className: String? = nil, cancelled: Bool = false, place name: String? = nil, day: String = day,
+        level: String? = nil
     ) -> [String: Any] {
         var item: [String: Any] = [
             "sessionId": id, "workspace": workspace, "type": className == nil ? "private" : "group",
@@ -65,6 +74,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
         ]
         if className != nil { item["booked"] = 0 }
         if let className { item["className"] = className }
+        if let level { item["level"] = level }
         if let client { item["clientName"] = client }
         if let name { item["location"] = place(name) }
         return item
@@ -83,7 +93,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
         let items = [
             Self.item(Self.anna, sarah, "09:00", "10:00", client: "Anna de Vries", place: "TrainMore Zuid"),
             Self.item(Self.mark, johns, "11:00", "12:00", client: "Mark Jansen", place: "John's Gym"),
-            Self.item(Self.kracht, johns, "15:00", "16:00", className: "Kracht"),
+            Self.item(Self.kracht, johns, "15:00", "16:00", className: "Kracht", level: classLevel),
             Self.item(Self.krachtCancelled, johns, "18:00", "19:00", className: "Kracht", cancelled: true)
         ]
         let shown = (which == .solo ? Array(items.prefix(2)) : items).map(markCancelled)
@@ -144,7 +154,10 @@ final class StubPersonalRoutes: @unchecked Sendable {
             _ id: String, _ day: String, _ times: String, _ name: String, cancelled: Bool = false
         ) -> (day: String, json: [String: Any]) {
             let span = times.split(separator: "-").map(String.init)
-            return (day, Self.item(id, johns, span[0], span[1], className: name, cancelled: cancelled, day: day))
+            let level = name == "Kracht" ? classLevel : nil
+            return (day, Self.item(
+                id, johns, span[0], span[1], className: name, cancelled: cancelled, day: day, level: level
+            ))
         }
         let all = [
             visit(Self.anna, "2026-09-22", "09:00-10:00", sarah, "Anna de Vries"),

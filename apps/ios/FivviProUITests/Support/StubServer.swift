@@ -152,6 +152,13 @@ final class StubServer: Sendable {
         set { responder.personalRoutes.day = newValue }
     }
 
+    /// The level of the class "Kracht" in My day and My sessions (F067): `all_levels`, `beginner`, `intermediate` or
+    /// `advanced`; nil is *Geen*.
+    var personalClassLevel: String? {
+        get { responder.personalRoutes.classLevel }
+        set { responder.personalRoutes.classLevel = newValue }
+    }
+
     /// While true, `GET /api/v1/me` gets no answer, so the loading state of the home stays on screen. Setting it to
     /// false answers the reads held.
     func holdAccountRequests(_ hold: Bool) {

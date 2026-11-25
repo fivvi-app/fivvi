@@ -206,7 +206,8 @@ final class StudioDayModel {
             id: item.id, workspaceID: workspace?.id ?? "", workspaceName: workspace?.name ?? "", isGroup: isGroup,
             title: (isGroup ? item.className : item.clientName) ?? builder.typeWord(isGroup: isGroup),
             startsAt: item.startsAt, endsAt: item.endsAt, location: item.location, booked: item.booked,
-            capacity: item.capacity, isCancelled: item.status == .cancelled, trainerText: trainerText(item)
+            capacity: item.capacity, isCancelled: item.status == .cancelled, trainerText: trainerText(item),
+            level: item.level
         ))
     }
 

@@ -33,7 +33,8 @@ enum StudioFixtures {
 
     static func session(
         _ id: String, from start: String, to end: String, trainer: Components.Schemas.Trainer? = nil,
-        client: String? = nil, className: String? = nil, cancelled: Bool = false, day: String = StudioFixtures.day
+        client: String? = nil, className: String? = nil, cancelled: Bool = false, day: String = StudioFixtures.day,
+        level: Components.Schemas.ClassLevel? = nil
     ) -> Item {
         let isGroup = className != nil
         return Item(
@@ -42,7 +43,7 @@ enum StudioFixtures {
             timeZone: "Europe/Amsterdam", capacity: isGroup ? 8 : 1, version: 1, booked: isGroup ? 0 : nil,
             location: PersonalFixtures.place("John's Gym"),
             trainer: trainer.map(payload),
-            className: className, clientName: client
+            className: className, level: level, clientName: client
         )
     }
 

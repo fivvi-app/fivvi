@@ -31,8 +31,13 @@ struct PersonalRow: Identifiable, Equatable {
     let pillIsFull: Bool
     let isCancelled: Bool
     let isPast: Bool
+    /// The class level whose bars show after the class name (F067): *Beginner*, *Gemiddeld* or *Gevorderd* of a class; nil
+    /// for *Alle niveaus*, *Geen* and a private session, which show no icon in a list.
+    let level: Components.Schemas.ClassLevel?
+    /// *Niveau: Gevorderd*: the icon's name, which the row's label has after the class name; nil without the icon.
+    let levelAccessibleName: String?
     /// "09:00 tot 10:00, Anna de Vries, privésessie, John's Gym, Sarah Personal Training": one VoiceOver element, and
-    /// it always names the type.
+    /// it always names the type; a class with a level names it right after the class name.
     let spokenLabel: String
     /// *Jij*, a trainer's name or *Geen trainer*: only on the workspace's day (*Hele studio*, F014), where each row names
     /// its trainer.
@@ -79,7 +84,7 @@ struct PersonalRows {
             id: item.sessionId, workspaceID: item.workspace.id, workspaceName: item.workspace.name, isGroup: isGroup,
             title: (isGroup ? item.className : item.clientName) ?? "", startsAt: item.startsAt, endsAt: item.endsAt,
             location: item.location, booked: item.booked, capacity: item.capacity,
-            isCancelled: item.status == .cancelled
+            isCancelled: item.status == .cancelled, level: item.level
         ))
     }
 
@@ -97,6 +102,8 @@ struct PersonalRows {
         let capacity: Int
         let isCancelled: Bool
         var trainerText: String?
+        /// The level of a class date; a row shows it as bars only where `ClassLevel.showsInList`.
+        var level: Components.Schemas.ClassLevel?
     }
 
     func row(_ facts: Facts) -> PersonalRow {
@@ -107,9 +114,13 @@ struct PersonalRows {
             booked >= facts.capacity
                 ? catalog[.todayFull] : catalog.string(.todayBookedPill, String(booked), String(facts.capacity))
         } : nil
+        // Only a class shows a level, and *Alle niveaus* shows none in a list.
+        let level = facts.isGroup ? facts.level.flatMap { $0.showsInList ? $0 : nil } : nil
+        let levelName = level.map { catalog.levelAccessibleName($0) }
         let spoken = [
-            catalog.string(.todaySpokenTime, end, start), facts.title, typeWord(isGroup: facts.isGroup).lowercased(),
-            location, workspaceCount > 1 ? facts.workspaceName : nil, facts.trainerText,
+            catalog.string(.todaySpokenTime, end, start), facts.title, levelName,
+            typeWord(isGroup: facts.isGroup).lowercased(), location,
+            workspaceCount > 1 ? facts.workspaceName : nil, facts.trainerText,
             facts.isCancelled ? catalog[.todayCancelled] : nil
         ].compactMap { $0 }
         return PersonalRow(
@@ -120,7 +131,7 @@ struct PersonalRows {
             location: facts.isGroup ? nil : location,
             routeURL: facts.isGroup ? nil : LocationRoute.url(facts.location?.address),
             pill: pill, pillIsFull: pill == catalog[.todayFull], isCancelled: facts.isCancelled,
-            isPast: facts.endsAt <= now,
+            isPast: facts.endsAt <= now, level: level, levelAccessibleName: levelName,
             spokenLabel: spoken.dropFirst().reduce(spoken[0]) { catalog.string(.todaySpokenJoin, $0, $1) },
             trainerText: facts.trainerText
         )
