@@ -25,7 +25,9 @@ interface ClassBody {
 interface SessionBody {
   id: string;
   version: number;
+  capacity?: number;
   level?: Level;
+  series?: { changedFields: string[] };
 }
 
 /** The `YYYY-MM-DD` of the first Tuesday at least three weeks ahead, plus `weeks` weeks. */
@@ -269,6 +271,46 @@ test.describe('F067 class levels on the trainer web', () => {
     await expect(dialog).toBeHidden();
     await expect(main.locator('[data-slot="level-icon"]')).toHaveCount(0);
     expect((await storedDate(page.request, workspaceId, date.id)).level).toBeUndefined();
+  });
+
+  test('AC3: changing only the capacity in Les wijzigen sends no level, and the level does not count as changed on its own', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const reformer = await seedClass(page.request, workspaceId, { level: 'advanced' });
+    // A weekly date: a series date lists what was changed on its own.
+    const first = await seedDate(page.request, workspaceId, reformer.id, { repeat: 'weekly' });
+    expect((await storedDate(page.request, workspaceId, first.id)).series?.changedFields).toEqual(
+      [],
+    );
+
+    await page.goto(`/w/${slug}/classes/${reformer.id}/${first.id}`);
+    await page.getByRole('button', { name: copy.classes.date.edit }).click();
+    const dialog = page.getByRole('dialog', { name: copy.classes.edit.title });
+    await expect(dialog.getByLabel(copy.classLevel.field, { exact: true })).toHaveValue('advanced');
+    await dialog.getByLabel(copy.classes.edit.capacityLabel, { exact: true }).fill('10');
+    const request = page.waitForRequest(
+      (each) => each.method() === 'PATCH' && each.url().endsWith(`/sessions/${first.id}`),
+    );
+    await dialog.getByRole('button', { name: copy.classes.edit.save }).click();
+
+    // The request carries the capacity and no level.
+    const body = (await request).postDataJSON() as Record<string, unknown>;
+    expect(body).toMatchObject({ capacity: 10 });
+    expect(body).not.toHaveProperty('level');
+    await expect(
+      page.getByRole('status').filter({ hasText: copy.classes.edit.saved }),
+    ).toBeVisible();
+
+    // The date keeps its level, and only the capacity counts as changed on its own.
+    const stored = await storedDate(page.request, workspaceId, first.id);
+    expect(stored).toMatchObject({ capacity: 10, level: 'advanced' });
+    expect(stored.series?.changedFields).toEqual(['capacity']);
   });
 
   test('AC7: CO-01 shows the icon and the word for each level; with Geen nothing shows and no empty line remains', async ({
