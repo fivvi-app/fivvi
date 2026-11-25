@@ -56,7 +56,15 @@ sealed interface HomeDestination {
         val teamMemberId: UUID,
         /** The word this workspace uses for the people who teach (F068), from the same answer as the rest. */
         val trainerWord: TrainerWord,
-    ) : HomeDestination
+    ) : HomeDestination {
+        /**
+         * This workspace with the word the account lists for it now (F068): the home loads the destination once, but the
+         * list is replaced on every pull to refresh and return to the foreground, so a word changed on the web shows
+         * without a restart. Without a list, or a workspace not on it, the word it loaded with stays.
+         */
+        fun withListedWord(listed: List<MeWorkspace>?): Workspace =
+            listed?.firstOrNull { it.id == id }?.let { copy(trainerWord = it.trainerWord) } ?: this
+    }
 
     /** No workspace, and the API says the account may create one: set it up on the web. */
     data object SetUpOnWeb : HomeDestination
