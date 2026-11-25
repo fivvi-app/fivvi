@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performClick
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.MyWorkspace.Role
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
@@ -37,6 +38,7 @@ import org.junit.runners.Parameterized
 
 private const val JOHNS_GYM = "John's Gym"
 private const val SARAH_PT = "Sarah Personal Training"
+private const val YOGA_LOFT = "Yoga Loft"
 
 // F012 (spec #423): Sarah is Trainer of John's Gym and Owner of Sarah Personal Training (F003 seed). Profiel switches the
 // workspace the app is in; the app reopens in the one used last; the first tab shows its name.
@@ -85,10 +87,10 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         lastWorkspace = lastWorkspace,
     )
 
-    private fun openProfile() {
+    private fun openProfile(lastSlug: String = "sarah-personal-training") {
         compose.waitUntilTagExists(HomeTags.OPEN_PROFILE)
         compose.onNodeWithTag(HomeTags.OPEN_PROFILE).performClick()
-        compose.waitUntilTagExists("${ProfileTags.WORKSPACE}.sarah-personal-training")
+        compose.waitUntilTagExists("${ProfileTags.WORKSPACE}.$lastSlug")
     }
 
     private fun headerShows(name: String) {
@@ -164,7 +166,43 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         openProfile()
 
         sarahRow().assertContentDescriptionEquals("$SARAH_PT, ${string(R.string.roles_owner)}")
-        johnsRow().assertContentDescriptionEquals("$JOHNS_GYM, ${string(R.string.roles_trainer)}")
+        johnsRow().assertContentDescriptionEquals("$JOHNS_GYM, ${string(R.string.trainer_word_trainer_word_cap)}")
+    }
+
+    // F068 AC4: Sarah is a Trainer in John's Gym (*instructeur*) and in Yoga Loft (*docent*): each row names its own word,
+    // also right after she switches to the other workspace, and back; her role is Trainer in both, so the same actions.
+    @Test
+    fun test_F068_AC4_eachWorkspaceShowsItsOwnWordAlsoRightAfterSwitching() {
+        val words = mapOf(JOHNS_GYM to TrainerWord.INSTRUCTEUR, YOGA_LOFT to TrainerWord.DOCENT)
+        val yogaLoft = Triple(YOGA_LOFT, "yoga-loft", Role.TRAINER)
+        repeat(4) {
+            me.answerAccount(
+                name = "Sarah",
+                email = "trainer@example.com",
+                workspaces = listOf(JOHNS_GYM, YOGA_LOFT),
+                role = MeWorkspace.Role.TRAINER,
+                trainerWords = words,
+            )
+        }
+        repeat(2) { me.answerWorkspaces(emptySet(), johnsGym, yogaLoft, trainerWords = words) }
+        launch()
+        headerShows(JOHNS_GYM)
+        openProfile("yoga-loft")
+        val johnsRole = compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.johns-gym")
+        val yogaRole = compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.yoga-loft")
+        johnsRole.assertTextEquals(string(R.string.trainer_word_instructeur_word_cap))
+        yogaRole.assertTextEquals(string(R.string.trainer_word_docent_word_cap))
+
+        // Choosing a workspace closes Profiel on that workspace's home: open it again.
+        compose.onNodeWithTag("${ProfileTags.WORKSPACE}.yoga-loft").performClick()
+        headerShows(YOGA_LOFT)
+        openProfile("yoga-loft")
+        johnsRole.assertTextEquals(string(R.string.trainer_word_instructeur_word_cap))
+        yogaRole.assertTextEquals(string(R.string.trainer_word_docent_word_cap))
+        johnsRole.assertTextEquals(if (language == AppLanguage.DUTCH) "Instructeur" else "Instructor")
+        yogaRole.assertTextEquals(if (language == AppLanguage.DUTCH) "Docent" else "Teacher")
+        compose.onNodeWithTag("${ProfileTags.TRAINS_HERE}.johns-gym").assertDoesNotExist()
+        compose.onNodeWithTag("${ProfileTags.TRAINS_HERE}.yoga-loft").assertDoesNotExist()
     }
 
     @Test

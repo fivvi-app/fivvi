@@ -219,12 +219,14 @@ class FakeMeApi : MeApi {
     /**
      * The same, and the Owners of the workspaces named in [trainingOwners] train there (an Owner's switch is on). A
      * workspace named in [capabilities] lists exactly those capabilities, whatever the role; the others list what the
-     * permission matrix gives their role.
+     * permission matrix gives their role. A workspace named in [trainerWords] uses that word for the people who teach
+     * (F068); the others use *trainer*.
      */
     fun answerWorkspaces(
         trainingOwners: Set<String>,
         vararg workspaces: Triple<String, String, MyWorkspace.Role>,
         capabilities: Map<String, List<MyWorkspace.Capabilities>> = emptyMap(),
+        trainerWords: Map<String, TrainerWord> = emptyMap(),
     ) {
         workspaceAnswers += {
             Response.success(
@@ -233,7 +235,7 @@ class FakeMeApi : MeApi {
                         workspaceIdOf(name),
                         name,
                         slug,
-                        TrainerWord.TRAINER,
+                        trainerWords[name] ?: TrainerWord.TRAINER,
                         role,
                         teamMemberIdOf(name),
                         capabilities[name] ?: capabilitiesOf(role),
@@ -262,6 +264,7 @@ class FakeMeApi : MeApi {
         preferredLocale: MeResponse.PreferredLocale? = null,
         capabilities: List<MeWorkspace.Capabilities> = MeWorkspace.Capabilities.values().toList(),
         capabilitiesByWorkspace: Map<String, List<MeWorkspace.Capabilities>> = emptyMap(),
+        trainerWords: Map<String, TrainerWord> = emptyMap(),
         role: MeWorkspace.Role = MeWorkspace.Role.OWNER,
         teamMemberId: UUID? = null,
     ) {
@@ -279,7 +282,7 @@ class FakeMeApi : MeApi {
                             workspaceIdOf(it),
                             it,
                             "slug",
-                            TrainerWord.TRAINER,
+                            trainerWords[it] ?: TrainerWord.TRAINER,
                             role,
                             teamMemberId ?: teamMemberIdOf(it),
                             capabilitiesByWorkspace[it] ?: capabilities,

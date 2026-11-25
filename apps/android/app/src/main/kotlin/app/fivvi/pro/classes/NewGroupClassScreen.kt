@@ -31,12 +31,14 @@ import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.Trainer
 import app.fivvi.core.R
+import app.fivvi.core.TrainerWordForms
 import app.fivvi.core.kit.FieldErrorLine
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.FivviField
 import app.fivvi.core.kit.InsetGroupedList
 import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStyle
+import app.fivvi.core.trainerWordForms
 import app.fivvi.core.ui.testTagsAsIds
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
@@ -54,9 +56,7 @@ import app.fivvi.pro.sessions.Notice
 import app.fivvi.pro.sessions.SaveFailure
 import app.fivvi.pro.sessions.TimeDialog
 import app.fivvi.pro.sessions.TimeRefusal
-import app.fivvi.pro.sessions.TrainerWordForms
 import app.fivvi.pro.sessions.rememberSessionFormat
-import app.fivvi.pro.sessions.trainerWordForms
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID

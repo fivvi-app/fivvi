@@ -40,6 +40,7 @@ import app.fivvi.core.kit.InsetGroupedList
 import app.fivvi.core.kit.ListRow
 import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStyle
+import app.fivvi.core.trainerWordForms
 import app.fivvi.core.ui.testTagsAsIds
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body

@@ -57,6 +57,7 @@ import app.fivvi.core.kit.ListRow
 import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStack
 import app.fivvi.core.theme.tokens
+import app.fivvi.core.trainerRoleLabel
 import app.fivvi.core.web.SitePage
 import app.fivvi.designtokens.Radius
 import app.fivvi.designtokens.Spacing
@@ -220,13 +221,19 @@ private fun SectionHeader(@StringRes text: Int, tag: String) {
 @Composable
 private fun Workspaces(workspaces: List<ProfileWorkspace>, actions: ProfileActions) {
     val owner = stringResource(R.string.roles_owner)
-    val trainer = stringResource(R.string.roles_trainer)
     InsetGroupedList {
         workspaces.forEach { workspace ->
             row {
                 WorkspaceRow(
                     workspace,
-                    roleLabel = if (workspace.role == ProfileRole.Owner) owner else trainer,
+                    // A Trainer's label is this workspace's own word (F068), whichever workspace the app is in.
+                    roleLabel = if (workspace.role ==
+                        ProfileRole.Owner
+                    ) {
+                        owner
+                    } else {
+                        trainerRoleLabel(workspace.trainerWord)
+                    },
                     isCurrent = workspace.id == actions.currentWorkspace,
                     onSelect = if (workspaces.size > 1) ({ actions.onSelectWorkspace(workspace.id) }) else null,
                 )

@@ -28,10 +28,12 @@ import androidx.compose.ui.semantics.semantics
 import app.fivvi.api.models.Locale
 import app.fivvi.api.models.Trainer
 import app.fivvi.core.R
+import app.fivvi.core.TrainerWordForms
 import app.fivvi.core.kit.FieldErrorLine
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.InsetGroupedList
 import app.fivvi.core.kit.PillButton
+import app.fivvi.core.trainerWordForms
 import app.fivvi.core.ui.testTagsAsIds
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
