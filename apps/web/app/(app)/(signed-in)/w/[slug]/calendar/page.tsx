@@ -84,6 +84,7 @@ export default async function WorkspaceCalendarPage({
         canAssign: can('session.assign'),
         canCancelAny: can('session.private.cancel.any'),
         canCancelOwn: can('session.private.cancel.own'),
+        canCopyLink: can('booking_link.copy'),
         teamMemberId: workspace.teamMemberId,
       }}
     />

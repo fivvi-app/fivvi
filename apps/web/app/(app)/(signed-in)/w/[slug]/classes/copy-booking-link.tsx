@@ -4,6 +4,7 @@ import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import { Button } from '@fivvi/ui/components/button';
 import { Input } from '@fivvi/ui/components/input';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
+import { LinkIcon } from '@fivvi/ui/kit/icons';
 import { Toast } from '@fivvi/ui/kit/toast';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -14,13 +15,18 @@ import { copyDateLinkToClipboard } from './copy-date-link';
  * the visitor's language, puts it on the clipboard and says "Link gekopieerd" in a snackbar
  * announced politely. The Owner and the Trainers have it, on a class date that is scheduled and
  * has not started. A second copy gives the same link.
+ *
+ * The same code serves the Agenda's quick view (WC-05): there `variant="icon"` shows the button as
+ * a link icon only, named (and given its tooltip) by the same words.
  */
 export function CopyBookingLink({
   workspaceId,
   sessionId,
+  variant = 'text',
 }: {
   workspaceId: string;
   sessionId: string;
+  variant?: 'text' | 'icon';
 }) {
   const t = useTranslations('bookingLinks');
   const [notice, setNotice] = useState<string | null>(null);
@@ -55,14 +61,28 @@ export function CopyBookingLink({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        disabled={!ready || pending}
-        onClick={() => void copy()}
-      >
-        {t('copyBooking')}
-      </Button>
+      {variant === 'icon' ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label={t('copyBooking')}
+          title={t('copyBooking')}
+          disabled={!ready || pending}
+          onClick={() => void copy()}
+        >
+          <LinkIcon />
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!ready || pending}
+          onClick={() => void copy()}
+        >
+          {t('copyBooking')}
+        </Button>
+      )}
       {failure ? <ErrorLine className="basis-full">{t(`errors.${failure}`)}</ErrorLine> : null}
       {shownUrl ? (
         <Input

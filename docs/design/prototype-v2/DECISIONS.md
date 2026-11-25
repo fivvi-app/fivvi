@@ -166,6 +166,7 @@ Trainers manage workout templates on the phone too, not only on the web (owner, 
 
 - **Views:** week, day per trainer (one column per trainer) and list.
 - **The side sheet** shows *Vorige keer*, per client in a duo.
+- **WC-05 quick view, *Boekingslink kopiëren*** (owner, 25 Nov 2026, #970): an **icon button** (a link icon) in the footer next to *Les openen*. *Boekingslink kopiëren* / *Copy booking link* is its accessible name and tooltip. It does what CO-01's *Boekingslink kopiëren* does (the date's link in the visitor's language, copied, "Link gekopieerd"). It shows on a **group class date** that is not cancelled and has not started, for the Owner and the Trainers (also on a colleague's class date); never on a private session.
 - **Schema** (F042): the session panel has the same *Schema* row as Fivvi Pro (§3, *Sessie*), with the picker as a dialog.
 
 ### Klanten and Klantprofiel
