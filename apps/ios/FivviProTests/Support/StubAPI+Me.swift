@@ -23,7 +23,7 @@ extension StubAPI {
                 }
                 : team.map {
                     .init(
-                        id: $0.workspaceID, name: $0.name, slug: $0.slug, trainerWord: .trainer,
+                        id: $0.workspaceID, name: $0.name, slug: $0.slug, trainerWord: $0.trainerWord,
                         role: Self.meRole($0.role), teamMemberId: Self.memberID(of: $0.workspaceID),
                         capabilities: ($0.capabilities ?? Self.capabilities(of: $0.role)).compactMap {
                             .init(rawValue: $0.rawValue)

@@ -29,7 +29,6 @@ extension StringKey {
     static let profileTrainsHereErrorsNoConnection = StringKey("profile.trainsHere.errors.noConnection")
     static let profileTrainsHereErrorsGeneric = StringKey("profile.trainsHere.errors.generic")
     static let rolesOwner = StringKey("roles.owner")
-    static let rolesTrainer = StringKey("roles.trainer")
     static let signOutLabel = StringKey("signOut.label")
     static let userMenuError = StringKey("userMenu.error")
     static let clientsOffline = StringKey("clients.offline")
