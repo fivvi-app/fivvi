@@ -7,12 +7,12 @@
 | **Scope** | Fivvi Pro and the client app Fivvi (iOS and Android), trainer web, client web; the public website in [§9](#9-public-website) |
 | **Replaces** | [`visual-direction.md`](../visual-direction.md) v1 (muted violet), and the parts of the flows and the IA listed in [§8](#8-what-this-changes-in-existing-documents) |
 
-This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed; the website's are in [§9](#9-public-website).
+This is the record of what the owner and the agent decided while clicking through the prototype, and of the owner's design decisions made on an issue or in chat. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed; the website's are in [§9](#9-public-website).
 
 ## 1. How we decide UI
 
 - **Design first, where design matters.** A new screen or flow, a visible change to one, or a product question a screen makes concrete is talked over in the clickable prototype before a spec is written (owner, 5 November 2026). Work without a screen, and small changes that follow a pattern already here, skip it. The agent builds the proposal in the prototype, the owner clicks through it and comments, and the result is recorded here. Then the spec follows. See [`DESIGN.md`](../../../DESIGN.md).
-- The prototype is throwaway code. It shows the look and the flow, not the architecture.
+- The prototype's code shows the look and the flow, not the architecture. It is kept in step with the app: after every PR that changes what a user sees, the prototype and this file match what was built (owner, 25 November 2026, [`DESIGN.md`](../../../DESIGN.md#the-designs-follow-the-app)).
 
 ## 2. Platforms and visual direction
 
@@ -166,7 +166,7 @@ Trainers manage workout templates on the phone too, not only on the web (owner, 
 
 - **Views:** week, day per trainer (one column per trainer) and list.
 - **The side sheet** shows *Vorige keer*, per client in a duo.
-- **WC-05 quick view, *Boekingslink kopiëren*** (owner, 25 Nov 2026, #970): an **icon button** (a link icon) in the footer next to *Les openen*. *Boekingslink kopiëren* / *Copy booking link* is its accessible name and tooltip. It does what CO-01's *Boekingslink kopiëren* does (the date's link in the visitor's language, copied, "Link gekopieerd"). It shows on a **group class date** that is not cancelled and has not started, for the Owner and the Trainers (also on a colleague's class date); never on a private session.
+- **WC-05 quick view, *Boekingslink kopiëren*** (owner, 25 Nov 2026, #970): an **icon button** with a **share icon**, right after the class name in the quick view's header (owner, 25 Nov 2026, in a comment on the prototype; at first a link icon in the footer next to *Les openen*). *Boekingslink kopiëren* / *Copy booking link* is its accessible name and tooltip. It does what CO-01's *Boekingslink kopiëren* does (the date's link in the visitor's language, copied, "Link gekopieerd"). It shows on a **group class date** that is not cancelled and has not started, for the Owner and the Trainers (also on a colleague's class date); never on a private session.
 - **Schema** (F042): the session panel has the same *Schema* row as Fivvi Pro (§3, *Sessie*), with the picker as a dialog.
 
 ### Klanten and Klantprofiel

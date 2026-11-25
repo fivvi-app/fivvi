@@ -14,6 +14,7 @@ import {
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
+import { type RefObject, useRef } from 'react';
 import { ClassLevelIcon } from '../classes/class-level';
 import { CopyBookingLink } from '../classes/copy-booking-link';
 import { useSessionFormat } from '../sessions/use-session-format';
@@ -48,8 +49,10 @@ export interface CalendarAccess {
  * on the right (the dialog of the kit, anchored to the side as PS-01 is). Esc or *Sluiten* closes it
  * and focus goes back to the block. A class date shows its level (F067) as icon and word, nothing for *Geen*. A note is never here: the API does not send one. A Trainer's
  * own private session has the actions F020 gives them; another trainer's session has *Openen*
- * only (`quickViewActions`). A class date that lies ahead also has *Boekingslink kopiëren* as an
- * icon button next to *Openen* (F037, the same code as on CO-01).
+ * only (`quickViewActions`). A class date that lies ahead also has *Boekingslink kopiëren* as a
+ * share icon button right after the class name in the header (F037, the same code as on CO-01).
+ * The share button is the first thing to focus, so focus goes to *Openen* when the sheet opens:
+ * Enter opens the date instead of copying the link.
  */
 export function QuickView({
   item,
@@ -70,12 +73,18 @@ export function QuickView({
   returnFocus: () => void;
 }) {
   const t = useTranslations('workspaceCalendar');
+  // The share icon comes first in the header, so Radix would focus it; Openen gets the focus instead.
+  const openLink = useRef<HTMLAnchorElement>(null);
   return (
     <Dialog open={item !== null} onOpenChange={(open) => !open && onClose()}>
       {item ? (
         <DialogContent
           aria-label={t('quickView')}
           className="top-0 right-0 left-auto h-dvh max-w-none translate-x-0 translate-y-0 content-start overflow-y-auto rounded-none p-5 sm:max-w-md"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            openLink.current?.focus();
+          }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             returnFocus();
@@ -87,6 +96,7 @@ export function QuickView({
             workspaceId={workspaceId}
             access={access}
             trainerWord={trainerWord}
+            openLink={openLink}
           />
         </DialogContent>
       ) : null}
@@ -100,12 +110,14 @@ function QuickViewBody({
   workspaceId,
   access,
   trainerWord,
+  openLink,
 }: {
   item: CalendarItem;
   slug: string;
   workspaceId: string;
   access: CalendarAccess;
   trainerWord: TrainerWordForms;
+  openLink: RefObject<HTMLAnchorElement | null>;
 }) {
   const t = useTranslations('workspaceCalendar');
   const shared = useTranslations('myCalendar');
@@ -126,12 +138,23 @@ function QuickViewBody({
   return (
     <>
       <DialogHeader>
-        <DialogTitle className={cancelled ? 'line-through' : undefined}>
-          {shared('block', {
-            type: isPrivate ? shared('typePrivate') : shared('typeGroup'),
-            name,
-          })}
-        </DialogTitle>
+        {/* The share icon sits right after the class name (WC-05); the title wraps before it, the button never shrinks. */}
+        <div
+          data-testid="quick-view-title-row"
+          className="flex flex-wrap items-center gap-x-1 gap-y-2"
+        >
+          <DialogTitle
+            className={`min-w-0 max-w-[calc(100%-2.5rem)]${cancelled ? ' line-through' : ''}`}
+          >
+            {shared('block', {
+              type: isPrivate ? shared('typePrivate') : shared('typeGroup'),
+              name,
+            })}
+          </DialogTitle>
+          {actions.copyLink ? (
+            <CopyBookingLink workspaceId={workspaceId} sessionId={item.id} variant="icon" />
+          ) : null}
+        </div>
         <DialogDescription>
           {t('when', {
             date: when.day(item.startsAt),
@@ -166,13 +189,12 @@ function QuickViewBody({
           </li>
         ) : null}
       </ul>
-      <div className="flex flex-wrap gap-2">
+      <div data-testid="quick-view-actions" className="flex flex-wrap gap-2">
         <Button asChild>
-          <Link href={href as Route}>{t('open')}</Link>
+          <Link ref={openLink} href={href as Route}>
+            {t('open')}
+          </Link>
         </Button>
-        {actions.copyLink ? (
-          <CopyBookingLink workspaceId={workspaceId} sessionId={item.id} variant="icon" />
-        ) : null}
         {actions.move ? (
           <Button asChild variant="outline">
             <Link href={`${href}?move=1` as Route}>{t('move')}</Link>
