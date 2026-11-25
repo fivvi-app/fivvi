@@ -577,6 +577,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     updateSeriesDates: 'repository of the class series, takes the workspace scope (F022)',
     updateWorkspace: 'repository of workspaces, takes the workspace scope (F002, F010)',
     withdrawInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    workspaceHasGroupClasses:
+      'repository of the personal sessions, takes the workspace scope; answers yes or no (F013)',
   };
 
   let forbidden: string[];

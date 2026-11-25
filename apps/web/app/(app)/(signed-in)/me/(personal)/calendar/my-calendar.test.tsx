@@ -64,6 +64,11 @@ const week: Calendar = {
   to: '2026-09-27',
   timeZone: 'Europe/Amsterdam',
   workspaceCount: 2,
+  workspaces: [
+    { ...gym, sessionTypes: ['private', 'group'] },
+    { ...own, sessionTypes: ['private'] },
+  ],
+  showsKindLabel: true,
   items: [anna, mark, kracht, krachtCancelled, openGym],
 };
 const workspaces = [

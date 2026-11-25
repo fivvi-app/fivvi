@@ -26,6 +26,7 @@ class AgendaContentTest {
         now: Instant = PersonalFixtures.now,
         format: SessionFormat = TestFormat.dutch,
         workspaceCount: Int = 2,
+        showsKindLabel: Boolean = true,
     ): AgendaContent {
         val base = AgendaState(mode = mode, selectedDay = day(selected), now = now)
         val response = MySessions(
@@ -33,6 +34,8 @@ class AgendaContentTest {
             base.range.until.toString(),
             "Europe/Amsterdam",
             workspaceCount,
+            PersonalFixtures.sessionTypes(workspaceCount, showsKindLabel),
+            showsKindLabel,
             items.filter { AgendaCalendar(PersonalRows.TIME_ZONE).day(it.startsAt) in base.visibleDays },
         )
         val state = base.copy(
@@ -199,9 +202,22 @@ class AgendaContentTest {
         assertTrue("two workspaces: every row names its own", rows.all { it.showsWorkspace })
         assertEquals("Sarah Personal Training", rows.first().workspaceName)
 
-        val solo = content(listOf(PersonalFixtures.anna), workspaceCount = 1).rows(day("2026-09-22")).first()
+        val solo = content(listOf(PersonalFixtures.anna), workspaceCount = 1, showsKindLabel = false)
+            .rows(day("2026-09-22")).first()
         assertFalse("one kind: no label", solo.namesKind)
         assertFalse(solo.showsWorkspace)
+    }
+
+    @Test
+    fun test_F013_1534_theKindLabelFollowsTheApiNotTheItemsOfTheRange() {
+        // Only private sessions in the range, in a workspace that also runs classes: the API says to name the kind.
+        val named = content(listOf(PersonalFixtures.anna, PersonalFixtures.mark)).rows(day("2026-09-22"))
+        assertTrue(named.all { it.namesKind })
+
+        // Private and class items in the range, and the API says no.
+        val silent = content(showsKindLabel = false).rows(day("2026-09-22"))
+        assertEquals(4, silent.size)
+        assertTrue(silent.none { it.namesKind })
     }
 
     @Test

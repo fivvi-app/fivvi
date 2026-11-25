@@ -107,7 +107,18 @@ class FakeMeApi : MeApi {
         dayRequests += date to surface
         dayGate?.await()
         dayFailure?.let { return it() }
-        return Response.success(day ?: MyDay(date, "Europe/Amsterdam", 1, emptyList(), MyDaySummary(0, 0), true))
+        return Response.success(
+            day ?: MyDay(
+                date = date,
+                timeZone = "Europe/Amsterdam",
+                workspaceCount = 1,
+                workspaces = emptyList(),
+                showsKindLabel = false,
+                items = emptyList(),
+                summary = MyDaySummary(0, 0),
+                hasSessions = true,
+            ),
+        )
     }
 
     /** The next `GET /v1/me/day` finds no connection. */
@@ -133,6 +144,9 @@ class FakeMeApi : MeApi {
 
     /** The workspaces `GET /v1/me/sessions` says the view spans. */
     var sessionsWorkspaceCount = 2
+
+    /** What the sessions answer says of the kind label (#1534): the API decides it, not the items. */
+    var sessionsShowKindLabel = true
 
     /** `GET /v1/me/sessions` fails with this instead: an `IOException` is a missing connection, a code a server answer. */
     var sessionsFailure: (() -> Response<MySessions>)? = null
@@ -160,7 +174,15 @@ class FakeMeApi : MeApi {
             !day.isBefore(first) && !day.isAfter(last)
         }
         return Response.success(
-            MySessions(from, to, "Europe/Amsterdam", sessionsWorkspaceCount, inRange.sortedBy { it.startsAt }),
+            MySessions(
+                from = from,
+                to = to,
+                timeZone = "Europe/Amsterdam",
+                workspaceCount = sessionsWorkspaceCount,
+                workspaces = emptyList(),
+                showsKindLabel = sessionsShowKindLabel,
+                items = inRange.sortedBy { it.startsAt },
+            ),
         )
     }
 

@@ -21,9 +21,11 @@ class AgendaTestCase: XCTestCase {
         AgendaModel(api: api, catalog: Catalog(locale: language), store: store, now: { now }, deviceTimeZone: device)
     }
 
-    func served(_ items: [PersonalItem] = PersonalFixtures.septemberWeek, workspaceCount: Int = 2) -> StubAPI {
+    func served(
+        _ items: [PersonalItem] = PersonalFixtures.septemberWeek, workspaceCount: Int = 2, showsKindLabel: Bool = true
+    ) -> StubAPI {
         let api = StubAPI()
-        api.mySessions.serve(items, workspaceCount: workspaceCount)
+        api.mySessions.serve(items, workspaceCount: workspaceCount, showsKindLabel: showsKindLabel)
         return api
     }
 }

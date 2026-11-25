@@ -25,7 +25,7 @@ class AgendaTimelineTest {
         now: Instant = PersonalFixtures.now,
         day: String = PersonalFixtures.DAY,
     ): AgendaTimeline? {
-        val rows = PersonalRows(items, 2, now, format)
+        val rows = PersonalRows(true, 2, now, format)
         val entries = items.map { AgendaTimeline.Entry(rows.row(it), it.startsAt, it.endsAt) }
         return AgendaTimeline.make(entries, java.time.LocalDate.parse(day), now, calendar)
     }

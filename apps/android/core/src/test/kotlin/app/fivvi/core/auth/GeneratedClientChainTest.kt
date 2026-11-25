@@ -26,7 +26,8 @@ class GeneratedClientChainTest {
 
     @Test
     fun test_F013_note604_theDayIsAskedForInTheLanguageShown() = runBlocking {
-        network.json = """{"date":"2026-09-22","timeZone":"Europe/Amsterdam","workspaceCount":1,"items":[],""" +
+        network.json = """{"date":"2026-09-22","timeZone":"Europe/Amsterdam","workspaceCount":1,""" +
+            """"workspaces":[],"showsKindLabel":false,"items":[],""" +
             """"summary":{"count":0,"done":0},"hasSessions":false}"""
         val services = ApiServices("https://example.com/api/", Session(InMemorySessionStore("tok-1")), network) { "en" }
 
@@ -40,7 +41,8 @@ class GeneratedClientChainTest {
     // `400 validation_failed` on `surface` when the app sent the name.
     @Test
     fun test_F013_theSurfaceOfTheDayIsSentAsTheContractNamesIt() = runBlocking {
-        network.json = """{"date":"2026-09-22","timeZone":"Europe/Amsterdam","workspaceCount":1,"items":[],""" +
+        network.json = """{"date":"2026-09-22","timeZone":"Europe/Amsterdam","workspaceCount":1,""" +
+            """"workspaces":[],"showsKindLabel":false,"items":[],""" +
             """"summary":{"count":0,"done":0},"hasSessions":false}"""
 
         apiClient(Session(InMemorySessionStore("tok-1"))).meApi.getMyDay("2026-09-22", MeApi.SurfaceGetMyDay.ANDROID)

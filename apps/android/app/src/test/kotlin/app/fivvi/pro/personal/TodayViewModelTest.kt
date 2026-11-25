@@ -122,13 +122,41 @@ class TodayViewModelTest {
 
     @Test
     fun test_F013_design_privateOnlyShowsNoKindLabelAndNoGroupFigure() {
-        serve(PersonalFixtures.sarah(items = listOf(PersonalFixtures.anna, PersonalFixtures.mark), workspaceCount = 1))
+        serve(
+            PersonalFixtures.sarah(
+                items = listOf(PersonalFixtures.anna, PersonalFixtures.mark),
+                workspaceCount = 1,
+                showsKindLabel = false,
+            ),
+        )
 
         val content = model().apply { load() }.content()
 
         assertFalse(content.next?.row?.namesKind == true)
         assertFalse(content.rows[0].namesKind)
         assertNull(content.rows[0].pill)
+    }
+
+    @Test
+    fun test_F013_1534_aDayOfOnlyPrivateSessionsStillNamesTheKindWhenTheApiSaysSo() {
+        serve(PersonalFixtures.sarah(items = listOf(PersonalFixtures.anna, PersonalFixtures.mark)))
+
+        val content = model().apply { load() }.content()
+
+        assertTrue(content.next?.row?.namesKind == true)
+        assertTrue(content.rows[0].namesKind)
+    }
+
+    @Test
+    fun test_F013_1534_theAppNeverWorksTheKindOutFromTheItems() {
+        // Private and class items on the day, and the API says no: no row names its kind.
+        serve(PersonalFixtures.sarah(showsKindLabel = false))
+
+        val content = model().apply { load() }.content()
+
+        assertFalse(content.next?.row?.namesKind == true)
+        assertTrue(content.rows.none { it.namesKind })
+        assertTrue(content.rows.any { it.isGroup })
     }
 
     @Test

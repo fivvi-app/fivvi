@@ -239,6 +239,7 @@ class TodayScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
                 PersonalFixtures.sarah(
                     items = listOf(PersonalFixtures.anna, PersonalFixtures.mark),
                     workspaceCount = 1,
+                    showsKindLabel = false,
                 ),
             ),
         )
@@ -249,6 +250,15 @@ class TodayScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
         texts(string(R.string.my_calendar_block_booked, "0", "8")).assertCountEquals(0)
         // The accessible name still names the type.
         rowOf("mark").assertNamed(string(R.string.my_day_type_private).lowercase())
+    }
+
+    @Test
+    fun test_F013_1534_aDayOfOnlyPrivateSessionsStillNamesTheKindWhenTheApiSaysSo() {
+        show(loaded(PersonalFixtures.sarah(items = listOf(PersonalFixtures.anna, PersonalFixtures.mark))))
+
+        tag(TodayTags.NEXT).assertIsDisplayed()
+        texts(string(R.string.my_day_type_private)).assertCountAtLeast(1)
+        texts(string(R.string.my_day_type_group)).assertCountEquals(0)
     }
 
     @Test

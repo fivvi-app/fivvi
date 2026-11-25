@@ -210,7 +210,10 @@ final class AgendaModel {
     }
 
     private func rowBuilder(at now: Date) -> PersonalRows {
-        PersonalRows(items: items, workspaceCount: current?.response.workspaceCount ?? 1, catalog: catalog, now: now)
+        PersonalRows(
+            namesKinds: current?.response.showsKindLabel ?? false,
+            workspaceCount: current?.response.workspaceCount ?? 1, catalog: catalog, now: now
+        )
     }
 
     /// The rows of a day, TD-01's rows, in time order.

@@ -13,16 +13,18 @@ final class StubMySessions: @unchecked Sendable {
     private let lock = NSLock()
     private var held: [PersonalItem]?
     private var workspaceCount = 2
+    private var showsKindLabel = true
     private var failure: Failure?
     private var asked: [Operations.ListMySessions.Input.Query] = []
 
     /// The query of every call, in order.
     var queries: [Operations.ListMySessions.Input.Query] { lock.withLock { asked } }
 
-    func serve(_ items: [PersonalItem]?, workspaceCount: Int = 2) {
+    func serve(_ items: [PersonalItem]?, workspaceCount: Int = 2, showsKindLabel: Bool = true) {
         lock.withLock {
             held = items
             self.workspaceCount = workspaceCount
+            self.showsKindLabel = showsKindLabel
         }
     }
 
@@ -31,9 +33,9 @@ final class StubMySessions: @unchecked Sendable {
     }
 
     func answer(_ query: Operations.ListMySessions.Input.Query) throws -> Operations.ListMySessions.Output {
-        let (items, count, failure) = lock.withLock {
+        let (items, count, shows, failure) = lock.withLock {
             asked.append(query)
-            return (held, workspaceCount, self.failure)
+            return (held, workspaceCount, showsKindLabel, self.failure)
         }
         switch failure {
         case .offline: throw URLError(.notConnectedToInternet)
@@ -48,6 +50,8 @@ final class StubMySessions: @unchecked Sendable {
         }
         return .ok(.init(body: .json(.init(
             from: query.from, to: query.to, timeZone: "Europe/Amsterdam", workspaceCount: count,
+            workspaces: PersonalFixtures.sessionTypes(workspaceCount: count, showsKindLabel: shows),
+            showsKindLabel: shows,
             items: inRange.sorted { $0.startsAt < $1.startsAt }
         ))))
     }

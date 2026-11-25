@@ -24,6 +24,7 @@
 package app.fivvi.api.models
 
 import app.fivvi.api.models.PersonalSession
+import app.fivvi.api.models.PersonalWorkspaceSessionTypes
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -36,6 +37,8 @@ import kotlinx.serialization.Contextual
  * @param to The last day, included: `YYYY-MM-DD`.
  * @param timeZone The zone of the personal scope: `Europe/Amsterdam`. The days follow its wall clock.
  * @param workspaceCount The workspaces the account trains in and the view spans.
+ * @param workspaces The workspaces the account trains in and the view spans, in name order, each with the session types it runs. `workspaceCount` is their number.
+ * @param showsKindLabel Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together run more than one session type. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items.
  * @param items The sessions from the start of `from` to the end of `to`, in time order.
  */
 @Serializable
@@ -57,6 +60,14 @@ data class MySessions (
     /* The workspaces the account trains in and the view spans. */
     @SerialName(value = "workspaceCount")
     val workspaceCount: kotlin.Int,
+
+    /* The workspaces the account trains in and the view spans, in name order, each with the session types it runs. `workspaceCount` is their number. */
+    @SerialName(value = "workspaces")
+    val workspaces: kotlin.collections.List<PersonalWorkspaceSessionTypes>,
+
+    /* Whether a row names its kind (*Privésessie*, *Groepsles*): `true` when the workspaces in `workspaces` together run more than one session type. It does not depend on the items of the answer: a day with only private sessions still names the kind for a person whose workspace also runs classes. The apps and the web show the label by this and never work it out from the items. */
+    @SerialName(value = "showsKindLabel")
+    val showsKindLabel: kotlin.Boolean,
 
     /* The sessions from the start of `from` to the end of `to`, in time order. */
     @SerialName(value = "items")

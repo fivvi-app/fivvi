@@ -5,6 +5,7 @@ import {
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
+  groupClasses,
   locations,
   type SignedInAccount,
   sessionParticipants,
@@ -64,6 +65,8 @@ interface DayBody {
   date: string;
   timeZone: string;
   workspaceCount: number;
+  workspaces: { id: string; slug: string; name: string; sessionTypes: string[] }[];
+  showsKindLabel: boolean;
   items: Item[];
   summary: { count: number; done: number; firstStartsAt?: string; lastEndsAt?: string };
   freeGap?: { startsAt: string; endsAt: string };
@@ -79,6 +82,8 @@ interface RangeBody {
   to: string;
   timeZone: string;
   workspaceCount: number;
+  workspaces: { id: string; slug: string; name: string; sessionTypes: string[] }[];
+  showsKindLabel: boolean;
   items: Item[];
 }
 
@@ -867,6 +872,8 @@ describe('F013 the personal day and sessions through the API', () => {
           to: '2026-09-22',
           timeZone: 'Europe/Amsterdam',
           workspaceCount: 0,
+          workspaces: [],
+          showsKindLabel: false,
           items: [],
         });
         expect(today.status).toBe(200);
@@ -1109,6 +1116,109 @@ describe('F013 the personal day and sessions through the API', () => {
     });
   });
 
+  describe('which session types each workspace runs and the kind label (#1534)', () => {
+    /** Sarah's only workspace with classes is John's Gym: its Kracht. Her own workspace has none. */
+    it('AC1: Sarah, in a workspace with private sessions and classes, gets the label on a day with only private sessions', async () => {
+      const w = await world();
+      const sarahOwn = await profileOf(w.own.id, w.sarah.id);
+      const lonely = await addSession(admin.db, {
+        workspaceId: w.own.id,
+        clientId: w.anna.id,
+        trainerProfileId: sarahOwn,
+        startsAt: zonedTime('2026-09-24T10:00'),
+      });
+
+      const body = (await (await day('2026-09-24', w.sarah)).json()) as DayBody;
+
+      expect(body.items.map((item) => [item.sessionId, item.type])).toEqual([
+        [lonely.id, 'private'],
+      ]);
+      expect(body.showsKindLabel).toBe(true);
+    });
+
+    it('AC1: the label does not depend on the day: an empty day of the same person has it too', async () => {
+      const w = await world();
+
+      const body = (await (await day('2026-10-30', w.sarah)).json()) as DayBody;
+
+      expect(body.items).toEqual([]);
+      expect(body.showsKindLabel).toBe(true);
+    });
+
+    it('AC1: a person whose workspaces run only private sessions never gets it, with or without a day of sessions', async () => {
+      const w = await world();
+
+      const busy = (await (await day('2026-09-22', w.mike)).json()) as DayBody;
+      const empty = (await (await day('2026-10-30', w.mike)).json()) as DayBody;
+
+      expect(busy.items).toHaveLength(1);
+      expect(busy.showsKindLabel).toBe(false);
+      expect(empty.showsKindLabel).toBe(false);
+    });
+
+    it('AC1: says per workspace which session types it runs, in name order: private sessions, and group classes once it has a class', async () => {
+      const w = await world();
+
+      const body = (await (await day('2026-09-22', w.sarah)).json()) as DayBody;
+
+      expect(body.workspaces).toEqual([
+        {
+          id: w.gym.id,
+          slug: w.gym.marker,
+          name: w.gym.marker,
+          sessionTypes: ['private', 'group'],
+        },
+        { id: w.own.id, slug: w.own.marker, name: w.own.marker, sessionTypes: ['private'] },
+      ]);
+      expect(body.workspaces).toHaveLength(body.workspaceCount);
+    });
+
+    it('AC1: a class that is archived does not make a workspace run classes', async () => {
+      const w = await world();
+      await admin.db
+        .update(groupClasses)
+        .set({ archivedAt: new Date('2026-09-01T00:00:00Z') })
+        .where(eq(groupClasses.organizationId, w.gym.id));
+
+      const body = (await (await day('2026-09-22', w.sarah)).json()) as DayBody;
+
+      expect(body.workspaces.map((workspace) => workspace.sessionTypes)).toEqual([
+        ['private'],
+        ['private'],
+      ]);
+      expect(body.showsKindLabel).toBe(false);
+    });
+
+    it('AC1: an account that trains nowhere gets no workspace and no label', async () => {
+      const w = await world();
+
+      const body = (await (await day('2026-09-22', w.nina)).json()) as DayBody;
+
+      expect(body.workspaces).toEqual([]);
+      expect(body.showsKindLabel).toBe(false);
+    });
+
+    it('AC1: GET /v1/me/sessions says the same, whatever range is asked for', async () => {
+      const w = await world();
+
+      const sarah = (await (
+        await sessionsOf('2026-10-26', '2026-10-30', w.sarah)
+      ).json()) as RangeBody;
+      const mike = (await (
+        await sessionsOf('2026-09-21', '2026-09-27', w.mike)
+      ).json()) as RangeBody;
+
+      expect(sarah.items).toEqual([]);
+      expect(sarah.showsKindLabel).toBe(true);
+      expect(sarah.workspaces.map((workspace) => workspace.sessionTypes)).toEqual([
+        ['private', 'group'],
+        ['private'],
+      ]);
+      expect(mike.showsKindLabel).toBe(false);
+      expect(mike.workspaces.map((workspace) => workspace.sessionTypes)).toEqual([['private']]);
+    });
+  });
+
   describe('the contract', () => {
     it('AC16: both routes are in the committed contract with their access, for any signed-in account', () => {
       for (const [path, operationId] of [
@@ -1123,6 +1233,22 @@ describe('F013 the personal day and sessions through the API', () => {
           ['200', '400', '401', '500'].toSorted(),
         );
       }
+    });
+
+    it('AC3: both answers carry which session types each workspace runs and whether the kind label shows', () => {
+      for (const name of ['MyDay', 'MySessions']) {
+        const schema = contract.components.schemas[name];
+
+        expect(schema.required).toEqual(expect.arrayContaining(['workspaces', 'showsKindLabel']));
+        expect(schema.properties.showsKindLabel.type).toBe('boolean');
+        expect(schema.properties.workspaces.items.$ref).toBe(
+          '#/components/schemas/PersonalWorkspaceSessionTypes',
+        );
+      }
+      expect(
+        contract.components.schemas.PersonalWorkspaceSessionTypes.properties.sessionTypes.items
+          .enum,
+      ).toEqual(['private', 'group']);
     });
   });
 });
