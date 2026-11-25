@@ -1,4 +1,5 @@
 import FivviAPI
+import FivviUI
 import XCTest
 
 @testable import FivviPro
@@ -41,15 +42,22 @@ final class ClassDateLevelTests: XCTestCase {
             model.eyebrowText, String(format: catalog["classes.date.typeAndLevel"], word(.advanced), type)
         )
         XCTAssertTrue(model.eyebrowText.hasSuffix(word(.advanced)), model.eyebrowText)
-        XCTAssertTrue(model.showsLevelIcon)
-        XCTAssertEqual(model.levelAccessibleName, String(format: catalog["classLevel.accessibleName"], word(.advanced)))
+        // The icon the eyebrow draws: the bars only (the word is beside them), named *Niveau: Gevorderd*.
+        let icon = model.levelIcon
+        XCTAssertEqual(icon?.level, .advanced)
+        XCTAssertEqual(icon?.form, .bars)
+        XCTAssertEqual(icon?.identifier, "classDate.level")
+        XCTAssertEqual(
+            icon.map { $0.catalog.levelAccessibleName($0.level) },
+            String(format: catalog["classLevel.accessibleName"], word(.advanced))
+        )
     }
 
     func test_F067_AC7_everyLevelButGeenShowsInTheEyebrowWithTheIcon() async {
         for level in Components.Schemas.ClassLevel.allCases {
             let model = await screen(SessionFixtures.api(), level: level)
             XCTAssertTrue(model.eyebrowText.hasSuffix(word(level)), "\(level): \(model.eyebrowText)")
-            XCTAssertTrue(model.showsLevelIcon, "\(level) shows the bars, Alle niveaus too")
+            XCTAssertEqual(model.levelIcon?.level, level, "\(level) shows the bars, Alle niveaus too")
         }
     }
 
@@ -58,8 +66,7 @@ final class ClassDateLevelTests: XCTestCase {
         XCTAssertNil(model.level)
         XCTAssertEqual(model.eyebrowText, catalog["workspaceNav.newGroupClass"])
         XCTAssertFalse(model.eyebrowText.contains("·"), "no stray separator")
-        XCTAssertFalse(model.showsLevelIcon)
-        XCTAssertNil(model.levelAccessibleName)
+        XCTAssertNil(model.levelIcon, "Geen draws no icon")
     }
 
     func test_F067_AC8_sarahTheTrainerSeesTheSameLevelAndHasNoControlToChangeIt() async {
@@ -67,7 +74,7 @@ final class ClassDateLevelTests: XCTestCase {
         let owner = await screen(api, level: .advanced)
         let trainer = await screen(api, level: .advanced, memberID: StubSessions.otherMemberID, canManage: false)
         XCTAssertEqual(trainer.eyebrowText, owner.eyebrowText)
-        XCTAssertTrue(trainer.showsLevelIcon)
+        XCTAssertEqual(trainer.levelIcon?.level, .advanced)
         XCTAssertFalse(trainer.hasMenu, "no ⋯ menu, so no edit of the level")
         XCTAssertNil(trainer.ownerNoteText)
     }

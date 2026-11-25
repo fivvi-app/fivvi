@@ -37,8 +37,7 @@ final class PersonalRowLevelTests: XCTestCase {
     func test_F067_AC5_aGevorderdRowHasThreeBarsAndTheLevelInItsOneLabelAfterTheClassName() {
         let advanced = row(.advanced)
         XCTAssertEqual(advanced.level, .advanced)
-        XCTAssertEqual(advanced.levelAccessibleName, accessibleName("advanced"))
-        let label = advanced.spokenLabel
+                let label = advanced.spokenLabel
         let name = label.range(of: "Reformer Power")
         let level = label.range(of: accessibleName("advanced"))
         XCTAssertNotNil(name)
@@ -51,8 +50,11 @@ final class PersonalRowLevelTests: XCTestCase {
     }
 
     func test_F067_AC5_beginnerAndGemiddeldAlsoShowTheIconWithTheirOwnName() {
-        XCTAssertEqual(row(.beginner).levelAccessibleName, accessibleName("beginner"))
-        XCTAssertEqual(row(.intermediate).levelAccessibleName, accessibleName("intermediate"))
+        XCTAssertEqual(row(.beginner).level?.filledBars, 1)
+        XCTAssertTrue(row(.beginner).spokenLabel.contains(accessibleName("beginner")), row(.beginner).spokenLabel)
+        XCTAssertTrue(
+            row(.intermediate).spokenLabel.contains(accessibleName("intermediate")), row(.intermediate).spokenLabel
+        )
         XCTAssertEqual(row(.intermediate).level?.filledBars, 2)
     }
 
@@ -61,7 +63,6 @@ final class PersonalRowLevelTests: XCTestCase {
         for level in [Components.Schemas.ClassLevel.allLevels] {
             let shown = row(level)
             XCTAssertNil(shown.level, "\(level)")
-            XCTAssertNil(shown.levelAccessibleName)
             XCTAssertEqual(shown.spokenLabel, without)
         }
         XCTAssertNil(row(nil).level)
@@ -146,7 +147,6 @@ final class StudioRowLevelTests: StudioDayTestCase {
 
         XCTAssertEqual(rows.map(\.level), [.advanced])
         let name = String(format: catalog["classLevel.accessibleName"], catalog["classLevel.advanced"])
-        XCTAssertEqual(rows.first?.levelAccessibleName, name)
         XCTAssertTrue(rows.first?.spokenLabel.contains(name) == true, rows.first?.spokenLabel ?? "")
     }
 }

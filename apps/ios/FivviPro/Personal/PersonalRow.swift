@@ -34,8 +34,6 @@ struct PersonalRow: Identifiable, Equatable {
     /// The class level whose bars show after the class name (F067): *Beginner*, *Gemiddeld* or *Gevorderd* of a class; nil
     /// for *Alle niveaus*, *Geen* and a private session, which show no icon in a list.
     let level: Components.Schemas.ClassLevel?
-    /// *Niveau: Gevorderd*: the icon's name, which the row's label has after the class name; nil without the icon.
-    let levelAccessibleName: String?
     /// "09:00 tot 10:00, Anna de Vries, privésessie, John's Gym, Sarah Personal Training": one VoiceOver element, and
     /// it always names the type; a class with a level names it right after the class name.
     let spokenLabel: String
@@ -131,7 +129,7 @@ struct PersonalRows {
             location: facts.isGroup ? nil : location,
             routeURL: facts.isGroup ? nil : LocationRoute.url(facts.location?.address),
             pill: pill, pillIsFull: pill == catalog[.todayFull], isCancelled: facts.isCancelled,
-            isPast: facts.endsAt <= now, level: level, levelAccessibleName: levelName,
+            isPast: facts.endsAt <= now, level: level,
             spokenLabel: spoken.dropFirst().reduce(spoken[0]) { catalog.string(.todaySpokenJoin, $0, $1) },
             trainerText: facts.trainerText
         )

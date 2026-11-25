@@ -82,7 +82,7 @@ struct ClassDateView: View {
 
     private var loaded: some View {
         LargeTitleScreen(
-            title: model.title, eyebrow: model.eyebrowText, eyebrowLevel: levelIcon, subtitle: model.whenText,
+            title: model.title, eyebrow: model.eyebrowText, eyebrowLevel: model.levelIcon, subtitle: model.whenText,
             titleIdentifier: "classDate.title"
         ) {
             if let added = model.addedText {
@@ -130,11 +130,6 @@ struct ClassDateView: View {
             }
         }
         .toolbar { if model.hasMenu { ToolbarItem(placement: .primaryAction) { menu } } }
-    }
-
-    /// The bars after the eyebrow, for every level but *Geen* (F067): the word is in the eyebrow already.
-    private var levelIcon: LevelIcon? {
-        model.level.map { LevelIcon(level: $0, catalog: catalog, form: .bars, identifier: "classDate.level") }
     }
 
     /// The description in the viewer's language, else Dutch (marked as Dutch), cut to three lines until *Meer*.
