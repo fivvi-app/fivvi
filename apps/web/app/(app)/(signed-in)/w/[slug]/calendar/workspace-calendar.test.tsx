@@ -100,6 +100,7 @@ const access = {
   canAssign: true,
   canCancelAny: true,
   canCancelOwn: true,
+  canCopyLink: true,
   teamMemberId: 'm-paula',
 };
 

@@ -228,13 +228,14 @@ Privésessie                                    Groepsles (les op datum)
 │ Schema: Upper A                          │   │ 7/8 geboekt · 1 plek vrij                │
 │ Aanwezigheid: Geboekt                    │   │ Elke dinsdag 10:00                       │
 │──────────────────────────────────────────│   │──────────────────────────────────────────│
-│ [ Openen ]  [ Verplaatsen ]  ⋯           │   │ [ Openen ]  [ Trainer vervangen ]  ⋯     │
+│ [ Openen ]  [ Verplaatsen ]  ⋯           │   │ [ Openen ] [🔗] [ Trainer vervangen ] ⋯  │
 │             ⋯ Annuleren                  │   │             ⋯ Les annuleren              │
-│               Klantprofiel               │   │               Boekingslink kopiëren      │
+│               Klantprofiel               │   │                                          │
 └──────────────────────────────────────────┘   └──────────────────────────────────────────┘
 ```
 
 - Closes with Esc or ✕; focus returns to the event.
+- **Boekingslink kopiëren** is an icon button (a link icon; its name and tooltip are *Boekingslink kopiëren* / *Copy booking link*) next to *Openen*, on a group class date that is not cancelled and has not started; the Owner and the Trainers have it, also on a colleague's class date. Never on a private session. It does what CO-01's action does and shows "Link gekopieerd" (owner, 25 Nov 2026, #970; `prototype-v2/DECISIONS.md`).
 - **Notes are not shown in the quick view.** They're sensitive, and a calendar is often on a shared screen. They're one click away on the session page.
 
 | Element | NL | EN |
@@ -242,7 +243,7 @@ Privésessie                                    Groepsles (les op datum)
 | Auto location (after go-live; at go-live the workspace's one location is shown without a reason) | {location} (automatisch) | {location} (automatic) |
 | Recurrence | Elke {weekday} {time} | Every {weekday} {time} |
 | Actions (private) | Openen · Verplaatsen · Annuleren · Klantprofiel | Open · Reschedule · Cancel · Client profile |
-| Actions (class) | Openen · Trainer vervangen · Les annuleren · Boekingslink kopiëren | Open · Substitute trainer · Cancel class · Copy booking link |
+| Actions (class) | Openen · 🔗 Boekingslink kopiëren (icon button) · Trainer vervangen · Les annuleren | Open · 🔗 Copy booking link (icon button) · Substitute trainer · Cancel class |
 | Actions (Open Gym) | Openen · Verplaatsen · Annuleren · Boekingslink kopiëren | Open · Reschedule · Cancel · Copy booking link |
 | Copied | Link gekopieerd | Link copied |
 

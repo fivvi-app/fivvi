@@ -13,8 +13,8 @@ import {
 } from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
-// F037 (spec #473, tickets #966 and #968): TW-07 *Boekingslinks* (the join-link card and the booking
-// links, *Nieuwe boekingslink*, *Deactiveren*) and *Boekingslink kopiëren* on CO-01. Copy comes from
+// F037 (spec #473, tickets #966, #968 and #970): TW-07 *Boekingslinks* (the join-link card and the booking
+// links, *Nieuwe boekingslink*, *Deactiveren*) and *Boekingslink kopiëren* on CO-01 and in the Agenda's quick view (WC-05). Copy comes from
 // the catalogs. Each spec has accounts and workspaces of its own: John is the Owner and Sarah a
 // Trainer of John's Gym; the class is Kracht (Strength in English) every Tuesday 18:00. The dates
 // are relative to the day the spec runs. *Eén les op een datum* lists the class's upcoming dates from the
@@ -623,5 +623,155 @@ test.describe('F037 booking links on the web', () => {
     await page.goto(`/w/${slug}/classes/${classId}/${pastId}`);
     await expect(page.getByRole('button', { name: copy.classes.date.edit })).toBeVisible();
     await expect(page.getByRole('button', { name: copy.bookingLinks.copyBooking })).toHaveCount(0);
+  });
+
+  /**
+   * Kracht, in whichever of its two names the Agenda writes.
+   *
+   * This regex is a workaround for bug #1595, not intended behaviour: the Agenda's server-side
+   * fetch forwards only the cookie, so the API answers in English for an account with no stored
+   * language. When #1595 is fixed, go back to `className(appLocale)` here.
+   */
+  const KRACHT = /Kracht|Strength/;
+
+  /** The Agenda's week of `date`, and the quick view of the block of that week that has `text`, starting at `time`. */
+  async function openQuickView(
+    page: Page,
+    slug: string,
+    date: string,
+    text: string | RegExp,
+    time = '',
+  ) {
+    await page.goto(`/w/${slug}/calendar?date=${date}&view=week`);
+    await page
+      .getByRole('main')
+      .locator(`button[aria-haspopup="dialog"][aria-label*=", ${time}"]`)
+      .filter({ hasText: text })
+      .click();
+    return page.getByRole('dialog');
+  }
+
+  test("AC8: copy a date's link from the quick view", async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const { john, sarah, slug } = await team();
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const { sessionId } = await seedClassDate(page.request, workspaceId);
+    const made = await page.request.post(`/api/v1/workspaces/${workspaceId}/clients`, {
+      data: { name: 'Mark Jansen', email: 'mark@example.com' },
+    });
+    expect(made.status()).toBe(201);
+    const { id: clientId } = (await made.json()) as { id: string };
+    const privateSession = await page.request.post(
+      `/api/v1/workspaces/${workspaceId}/sessions/private`,
+      {
+        data: {
+          clientId,
+          localDate: tuesday(),
+          localStart: '07:00',
+          durationMinutes: 60,
+          notify: false,
+        },
+      },
+    );
+    expect(privateSession.status()).toBe(201);
+    const name = copy.bookingLinks.copyBooking;
+    const week = copy.workspaceCalendar;
+
+    // John opens the quick view of Tuesday's Kracht: an icon button beside Openen, named and with
+    // its tooltip by Boekingslink kopiëren.
+    let dialog = await openQuickView(page, slug, tuesday(), KRACHT);
+    const open = dialog.getByRole('link', { name: week.open });
+    await expect(open).toBeVisible();
+    const copyButton = dialog.getByRole('button', { name });
+    await expect(copyButton).toBeVisible();
+    await expect(copyButton).toHaveText('');
+    await expect(copyButton).toHaveAttribute('title', name);
+    await expect(copyButton.locator('svg')).toHaveCount(1);
+    await expectNoAxeViolations(page, `WC-05 with Boekingslink kopiëren in ${appLocale}`);
+
+    await copyButton.click();
+    await expect(page.getByRole('status')).toHaveText(copy.bookingLinks.copied);
+    const first = await page.evaluate(() => navigator.clipboard.readText());
+    expect(first).toMatch(/^https?:\/\/.+\/l\/[a-z0-9]{8}$/);
+    await expectNoAxeViolations(page, `WC-05 after copying the link in ${appLocale}`);
+
+    // It is the link CO-01 copies: the same call gets or makes the date's one link.
+    const same = await page.request.post(`/api/v1/workspaces/${workspaceId}/booking-links`, {
+      data: { scope: 'session', language: 'visitor', sessionId },
+    });
+    expect(((await same.json()) as LinkBody).url).toBe(first);
+    expect(
+      (await links(page.request, workspaceId)).filter(({ scope }) => scope === 'session'),
+    ).toMatchObject([{ url: first, language: 'visitor' }]);
+
+    // A private session's quick view has no such action.
+    await page.keyboard.press('Escape');
+    dialog = await openQuickView(page, slug, tuesday(), 'Mark Jansen');
+    await expect(dialog.getByRole('link', { name: week.open })).toBeVisible();
+    await expect(dialog.getByRole('button', { name })).toHaveCount(0);
+
+    // Sarah copies it too, from a class date that is John's.
+    await context.clearCookies();
+    await signInWithSession(context, sarah);
+    await page.evaluate(() => navigator.clipboard.writeText(''));
+    dialog = await openQuickView(page, slug, tuesday(), KRACHT);
+    await expect(dialog.getByRole('link', { name: week.open })).toBeVisible();
+    await dialog.getByRole('button', { name }).click();
+    await expect(page.getByRole('status')).toHaveText(copy.bookingLinks.copied);
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(first);
+    await expectNoAxeViolations(page, `WC-05 of Sarah in ${appLocale}`);
+
+    // And none on John's private session, which she sees as Openen only.
+    await page.keyboard.press('Escape');
+    dialog = await openQuickView(page, slug, tuesday(), 'Mark Jansen');
+    await expect(dialog.getByRole('link', { name: week.open })).toBeVisible();
+    await expect(dialog.getByRole('button', { name })).toHaveCount(0);
+  });
+
+  test('AC8: the quick view of a cancelled or past class date has no Boekingslink kopiëren', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    test.slow();
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page.request);
+    const { classId, sessionId } = await seedClassDate(page.request, workspaceId);
+    const later = await page.request.post(
+      `/api/v1/workspaces/${workspaceId}/group-classes/${classId}/dates`,
+      { data: { localDate: tuesday(), localStart: '19:30' } },
+    );
+    expect(later.status()).toBe(201);
+    const { id: pastId } = (await later.json()) as { id: string };
+    const name = copy.bookingLinks.copyBooking;
+
+    // The open date has it.
+    let dialog = await openQuickView(page, slug, tuesday(), KRACHT, '18:00');
+    await expect(dialog.getByRole('link', { name: copy.workspaceCalendar.open })).toBeVisible();
+    await expect(dialog.getByRole('button', { name })).toBeVisible();
+
+    // Cancelled: the quick view still opens (Openen), without the button.
+    await cancelSession(sessionId);
+    dialog = await openQuickView(page, slug, tuesday(), KRACHT, '18:00');
+    await expect(dialog.getByRole('link', { name: copy.workspaceCalendar.open })).toBeVisible();
+    await expect(dialog.getByRole('button', { name })).toHaveCount(0);
+
+    // Past: the second date, moved 60 days back, in the week it is now in.
+    await passSession(pastId);
+    const past = new Date(`${tuesday()}T12:00:00Z`);
+    past.setUTCDate(past.getUTCDate() - 60);
+    dialog = await openQuickView(page, slug, past.toISOString().slice(0, 10), KRACHT);
+    await expect(dialog.getByRole('link', { name: copy.workspaceCalendar.open })).toBeVisible();
+    await expect(dialog.getByRole('button', { name })).toHaveCount(0);
   });
 });

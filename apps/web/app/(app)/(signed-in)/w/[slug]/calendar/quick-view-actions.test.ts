@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarAccess } from './quick-view';
-import { quickViewActions } from './quick-view-actions';
+import { quickViewActions as actionsAt } from './quick-view-actions';
 
 // F014 AC6 and AC12 (spec #458, ticket #529): what the quick view of a block offers each role. A
 // Trainer has `clients.view`, and still has *Openen* only on a colleague's session.
@@ -13,6 +13,7 @@ const owner: CalendarAccess = {
   canAssign: true,
   canCancelAny: true,
   canCancelOwn: true,
+  canCopyLink: true,
   teamMemberId: 'm-john',
 };
 const trainer: CalendarAccess = {
@@ -24,11 +25,17 @@ const trainer: CalendarAccess = {
   canAssign: false,
   canCancelAny: false,
   canCancelOwn: true,
+  canCopyLink: true,
   teamMemberId: 'm-sarah',
 };
+// The tests run "on" 20 November 2026; the dates they start lie ahead of that.
+const now = new Date('2026-11-20T09:00:00.000Z');
+const quickViewActions = (item: Parameters<typeof actionsAt>[0], access: CalendarAccess) =>
+  actionsAt(item, access, now);
 const session = (trainerId: string | undefined, overrides = {}) => ({
   type: 'private' as const,
   status: 'scheduled' as const,
+  startsAt: '2026-11-24T17:00:00.000Z',
   ...(trainerId ? { trainer: { id: trainerId, name: trainerId } } : {}),
   clients: [{ clientId: 'c1', name: 'Mark Jansen' }],
   ...overrides,
@@ -44,6 +51,7 @@ describe('F014 AC12: the quick view of a block', () => {
       assign: 'change',
       cancel: true,
       cancelClass: false,
+      copyLink: false,
     });
   });
 
@@ -56,6 +64,7 @@ describe('F014 AC12: the quick view of a block', () => {
       assign: null,
       cancel: true,
       cancelClass: false,
+      copyLink: false,
     });
   });
 
@@ -68,6 +77,7 @@ describe('F014 AC12: the quick view of a block', () => {
       assign: null,
       cancel: false,
       cancelClass: false,
+      copyLink: false,
     };
     expect(quickViewActions(session('m-tom'), trainer)).toEqual(only);
     expect(quickViewActions(session(undefined), trainer)).toEqual(only);
@@ -85,6 +95,7 @@ describe('F014 AC12: the quick view of a block', () => {
       assign: null,
       cancel: false,
       cancelClass: true,
+      copyLink: true,
     });
     expect(group(owner, 'cancelled').change).toBe(false);
     expect(group(trainer).change).toBe(false);
@@ -151,5 +162,38 @@ describe('F026 AC5: the quick view offers the cancel actions by role', () => {
     expect(quickViewActions(group('m-sarah', { status: 'cancelled' }), owner)).toMatchObject({
       cancelClass: false,
     });
+  });
+});
+
+describe('F037 AC8 (WC-05): the quick view offers Boekingslink kopiëren', () => {
+  const group = (trainerId: string | undefined, overrides = {}) =>
+    session(trainerId, { type: 'group', clients: undefined, ...overrides });
+
+  it('the Owner has it on a class date that lies ahead, and a Trainer too, also on a colleague’s', () => {
+    expect(quickViewActions(group('m-sarah'), owner).copyLink).toBe(true);
+    expect(quickViewActions(group('m-sarah'), trainer).copyLink).toBe(true);
+    expect(quickViewActions(group('m-tom'), trainer).copyLink).toBe(true);
+    expect(quickViewActions(group(undefined), trainer).copyLink).toBe(true);
+  });
+
+  it('never on a private session', () => {
+    expect(quickViewActions(session('m-sarah'), owner).copyLink).toBe(false);
+    expect(quickViewActions(session('m-sarah'), trainer).copyLink).toBe(false);
+  });
+
+  it('never on a cancelled class date, nor on one that has begun', () => {
+    expect(quickViewActions(group('m-sarah', { status: 'cancelled' }), owner).copyLink).toBe(false);
+    expect(
+      quickViewActions(group('m-sarah', { startsAt: '2026-11-20T09:00:00.000Z' }), owner).copyLink,
+    ).toBe(false);
+    expect(
+      quickViewActions(group('m-sarah', { startsAt: '2026-11-18T17:00:00.000Z' }), owner).copyLink,
+    ).toBe(false);
+  });
+
+  it('only for a person who has booking_link.copy', () => {
+    expect(quickViewActions(group('m-sarah'), { ...trainer, canCopyLink: false }).copyLink).toBe(
+      false,
+    );
   });
 });

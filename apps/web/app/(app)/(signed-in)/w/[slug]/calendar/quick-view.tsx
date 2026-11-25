@@ -15,6 +15,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { ClassLevelIcon } from '../classes/class-level';
+import { CopyBookingLink } from '../classes/copy-booking-link';
 import { useSessionFormat } from '../sessions/use-session-format';
 import { quickViewActions } from './quick-view-actions';
 
@@ -36,6 +37,8 @@ export interface CalendarAccess {
   /** `session.private.cancel.any` (the Owner), or `.own` for the sessions where they are the trainer: *Annuleren* (F026). */
   canCancelAny: boolean;
   canCancelOwn: boolean;
+  /** `booking_link.copy` (the Owner and the Trainers): *Boekingslink kopiëren* on a class date that lies ahead (F037). */
+  canCopyLink: boolean;
   /** The signed-in person's own team-member ID: *Jij* and *own session*, never decided by name. */
   teamMemberId: string;
 }
@@ -45,11 +48,13 @@ export interface CalendarAccess {
  * on the right (the dialog of the kit, anchored to the side as PS-01 is). Esc or *Sluiten* closes it
  * and focus goes back to the block. A class date shows its level (F067) as icon and word, nothing for *Geen*. A note is never here: the API does not send one. A Trainer's
  * own private session has the actions F020 gives them; another trainer's session has *Openen*
- * only (`quickViewActions`).
+ * only (`quickViewActions`). A class date that lies ahead also has *Boekingslink kopiëren* as an
+ * icon button next to *Openen* (F037, the same code as on CO-01).
  */
 export function QuickView({
   item,
   slug,
+  workspaceId,
   access,
   trainerWord,
   onClose,
@@ -57,6 +62,7 @@ export function QuickView({
 }: {
   item: CalendarItem | null;
   slug: string;
+  workspaceId: string;
   access: CalendarAccess;
   trainerWord: TrainerWordForms;
   onClose: () => void;
@@ -75,7 +81,13 @@ export function QuickView({
             returnFocus();
           }}
         >
-          <QuickViewBody item={item} slug={slug} access={access} trainerWord={trainerWord} />
+          <QuickViewBody
+            item={item}
+            slug={slug}
+            workspaceId={workspaceId}
+            access={access}
+            trainerWord={trainerWord}
+          />
         </DialogContent>
       ) : null}
     </Dialog>
@@ -85,11 +97,13 @@ export function QuickView({
 function QuickViewBody({
   item,
   slug,
+  workspaceId,
   access,
   trainerWord,
 }: {
   item: CalendarItem;
   slug: string;
+  workspaceId: string;
   access: CalendarAccess;
   trainerWord: TrainerWordForms;
 }) {
@@ -156,6 +170,9 @@ function QuickViewBody({
         <Button asChild>
           <Link href={href as Route}>{t('open')}</Link>
         </Button>
+        {actions.copyLink ? (
+          <CopyBookingLink workspaceId={workspaceId} sessionId={item.id} variant="icon" />
+        ) : null}
         {actions.move ? (
           <Button asChild variant="outline">
             <Link href={`${href}?move=1` as Route}>{t('move')}</Link>
