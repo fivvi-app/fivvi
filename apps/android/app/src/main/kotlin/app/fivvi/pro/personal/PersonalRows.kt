@@ -1,8 +1,10 @@
 package app.fivvi.pro.personal
 
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.MyDay
 import app.fivvi.api.models.MyDayNext
 import app.fivvi.api.models.PersonalSession
+import app.fivvi.core.kit.showsInList
 import app.fivvi.pro.sessions.SessionFormat
 import app.fivvi.pro.sessions.SessionRoute
 import java.text.NumberFormat
@@ -62,7 +64,15 @@ data class PersonalRow(
     val isPast: Boolean,
     /** Who trains it, on the rows of *Hele studio*; `null` on Mijn dag, where every row is the person's own. */
     val trainer: PersonalTrainer? = null,
+    /**
+     * The level whose bars show after the class name (F067): *Beginner*, *Gemiddeld* or *Gevorderd* of a class date. `null` for
+     * *Geen*, for *Alle niveaus* (a list shows no icon for it) and for a private session.
+     */
+    val level: ClassLevel? = null,
 )
+
+/** The level a list shows as bars after the class name: only a class has one, and *Alle niveaus* shows none (F067). */
+internal fun listLevel(isGroup: Boolean, level: ClassLevel?): ClassLevel? = level?.takeIf { isGroup && it.showsInList }
 
 /** Builds the rows of a list of items, in the language's formatting locale and Dutch time. */
 class PersonalRows(
@@ -107,6 +117,7 @@ class PersonalRows(
             },
             isCancelled = item.status == PersonalSession.Status.CANCELLED,
             isPast = !item.endsAt.toInstant().isAfter(now),
+            level = listLevel(isGroup, item.level),
         )
     }
 

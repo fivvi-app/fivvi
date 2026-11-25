@@ -3,6 +3,7 @@ package app.fivvi.pro.classes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.fivvi.api.infrastructure.Serializer
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.CreateGroupClassRequest
 import app.fivvi.api.models.CreatedGroupClass
 import app.fivvi.api.models.FirstGroupClassDate
@@ -54,6 +55,8 @@ data class NewGroupClassState(
     val capacity: Int = NewGroupClassViewModel.DEFAULT_CAPACITY,
     /** The trainer chosen (the team-member ID); `null` is *Trainer nodig*. */
     val trainerId: UUID? = null,
+    /** *Niveau* (F067): `null` is *Geen*, the starting value, and nothing is sent. */
+    val level: ClassLevel? = null,
     /** The date, the start and the length; the end is the start plus the length. */
     val time: SessionTime = SessionTime(LocalDateTime.MIN),
     val trainers: List<Trainer> = emptyList(),
@@ -87,7 +90,8 @@ data class NewGroupClassState(
     val isDirty: Boolean
         get() = (nameNl + nameEn + descriptionNl + descriptionEn).isNotEmpty() ||
             capacity != NewGroupClassViewModel.DEFAULT_CAPACITY || time.start != firstStart ||
-            time.durationMinutes != NewGroupClassViewModel.DEFAULT_MINUTES || trainerId != myTrainerId || repeatsWeekly
+            time.durationMinutes != NewGroupClassViewModel.DEFAULT_MINUTES || trainerId != myTrainerId ||
+            repeatsWeekly || level != null
 
     /** The date the refusal of the start is about: the one the API named, else the date of the start. */
     val refusedDate: LocalDate get() = skippedDate ?: time.start.toLocalDate()
@@ -195,6 +199,9 @@ class NewGroupClassViewModel(
     /** `null` is *Trainer nodig*. */
     fun setTrainer(id: UUID?) = _state.update { it.copy(trainerId = id) }
 
+    /** *Niveau* (F067); `null` is *Geen*. */
+    fun setLevel(level: ClassLevel?) = _state.update { it.copy(level = level) }
+
     fun setDate(date: LocalDate) = _state.update { it.copy(time = it.time.withDate(date)) }
 
     fun setStart(time: LocalTime) = _state.update { it.copy(time = it.time.withTime(time)) }
@@ -237,6 +244,7 @@ class NewGroupClassViewModel(
             descriptionNl = shown.descriptionNl.trimmedOrNull(),
             descriptionEn = shown.descriptionEn.trimmedOrNull(),
             trainerId = shown.trainerId,
+            level = shown.level?.let { CreateGroupClassRequest.Level.valueOf(it.name) },
             allowConflicts = true.takeIf { allowConflicts },
             firstDate = FirstGroupClassDate(
                 localDate = SessionClock.localDate(shown.time.start),

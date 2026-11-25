@@ -84,6 +84,7 @@ fun NewGroupClassFlow(
             onDescriptionEn = model::setDescriptionEn,
             onCapacity = model::setCapacity,
             onTrainer = model::setTrainer,
+            onLevel = model::setLevel,
             onDate = model::setDate,
             onStart = model::setStart,
             onEnd = model::setEnd,

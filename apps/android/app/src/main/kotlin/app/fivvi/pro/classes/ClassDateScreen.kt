@@ -40,14 +40,18 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.core.R
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.InsetGroupedList
+import app.fivvi.core.kit.LevelIcon
+import app.fivvi.core.kit.LevelIconForm
 import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStack
 import app.fivvi.core.kit.PillButtonStyle
 import app.fivvi.core.kit.ToastHost
 import app.fivvi.core.kit.ToastVisuals
+import app.fivvi.core.kit.classLevelWord
 import app.fivvi.core.ui.testTagsAsIds
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
@@ -67,6 +71,7 @@ object ClassDateTags {
     const val BACK = "classDate.back"
     const val TITLE = "classDate.title"
     const val EYEBROW = "classDate.eyebrow"
+    const val LEVEL = "classDate.level"
     const val WHEN = "classDate.when"
     const val ADDED = "classDate.added"
     const val SERIES = "classDate.series"
@@ -238,15 +243,30 @@ private fun CancelDialog(ask: CancelAsk, actions: ClassDateActions) {
     )
 }
 
+// The eyebrow is the type, with the level after it and the bars beside it (F067): "Groepsles · Gevorderd". With no level
+// (*Geen*) it is the type alone, with no separator left over and no icon.
 @Composable
-private fun Title(eyebrow: String, title: String?, subtitle: String?) {
+private fun Title(eyebrow: String, title: String?, subtitle: String?, level: ClassLevel? = null) {
+    val eyebrowText = if (level == null) {
+        eyebrow
+    } else {
+        // Placeholders in the order of their names: level, type.
+        stringResource(R.string.classes_date_type_and_level, classLevelWord(level), eyebrow)
+    }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.space1)) {
-        Text(
-            text = eyebrow,
-            modifier = Modifier.fillMaxWidth().testTag(ClassDateTags.EYEBROW),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.subhead,
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.space2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = eyebrowText,
+                // It wraps at a large font scale, so the bars stay on screen beside it.
+                modifier = Modifier.weight(1f, fill = false).testTag(ClassDateTags.EYEBROW),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.subhead,
+            )
+            if (level != null) LevelIcon(level, LevelIconForm.Bars, Modifier.testTag(ClassDateTags.LEVEL))
+        }
         Text(
             text = title.orEmpty(),
             modifier = Modifier.fillMaxWidth().testTag(ClassDateTags.TITLE).semantics { heading() },
@@ -278,6 +298,7 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
             format.time(session.endsAt),
             format.time(session.startsAt),
         ),
+        state.level,
     )
     state.added?.let { added ->
         val text = if (added > 1) {

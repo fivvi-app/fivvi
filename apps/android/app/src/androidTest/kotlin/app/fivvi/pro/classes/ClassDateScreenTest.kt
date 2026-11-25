@@ -3,12 +3,15 @@ package app.fivvi.pro.classes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.GroupClass
 import app.fivvi.api.models.SessionSeries
 import app.fivvi.core.AppLanguage
@@ -54,6 +57,7 @@ class ClassDateScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         booked: Int = 0,
         added: Int? = null,
         series: SessionSeries? = null,
+        level: ClassLevel? = null,
     ): ClassDateState {
         val shown = groupClass ?: groupClassOf("Mobility", "Mobility flow", "Rustig.", "Gentle.", sarah)
         return ClassDateState(
@@ -61,7 +65,7 @@ class ClassDateScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
             canManage = canManage,
             added = added,
             load = ClassDateLoad.Loaded,
-            session = classDateOf(UUID.randomUUID(), shown, trainer, booked = booked, series = series),
+            session = classDateOf(UUID.randomUUID(), shown, trainer, booked = booked, series = series, level = level),
             groupClass = shown,
         )
     }
@@ -249,6 +253,58 @@ class ClassDateScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         compose.onNodeWithTag(ClassDateTags.LOCATION).assertTextEquals("John's Gym")
         compose.onNodeWithTag(ClassDateTags.MENU).assertDoesNotExist()
         compose.onNodeWithTag(ClassDateTags.OWNER_NOTE).assertDoesNotExist()
+    }
+
+    // F067 AC1, AC7: the eyebrow reads "Groepsles · Gevorderd" with the icon, the same for each of the four levels.
+    @Test
+    fun test_F067_AC7_theEyebrowHasTheTypeTheLevelWordAndTheIconForEachLevel() {
+        val words = mapOf(
+            ClassLevel.ALL_LEVELS to (if (dutch) "Alle niveaus" else "All levels"),
+            ClassLevel.BEGINNER to "Beginner",
+            ClassLevel.INTERMEDIATE to (if (dutch) "Gemiddeld" else "Intermediate"),
+            ClassLevel.ADVANCED to (if (dutch) "Gevorderd" else "Advanced"),
+        )
+        val type = if (dutch) "Groepsles" else "Group class"
+        show(state(mobility))
+        for ((level, word) in words) {
+            current = state(mobility, level = level)
+            compose.waitForIdle()
+
+            compose.onNodeWithTag(ClassDateTags.EYEBROW).assertTextEquals("$type · $word")
+            compose.onNodeWithTag(ClassDateTags.LEVEL)
+                .assertContentDescriptionEquals(if (dutch) "Niveau: $word" else "Level: $word")
+                .assertIsDisplayed()
+        }
+    }
+
+    // F067 AC7: with Geen nothing about a level shows: the eyebrow is the type alone.
+    @Test
+    fun test_F067_AC7_aDateWithGeenShowsNothingAboutALevel() {
+        show(state(mobility, level = null))
+
+        compose.onNodeWithTag(ClassDateTags.EYEBROW).assertTextEquals(string(R.string.workspace_nav_new_group_class))
+        compose.onNodeWithTag(ClassDateTags.LEVEL).assertDoesNotExist()
+    }
+
+    // F067 AC8: Sarah (a Trainer) sees the same level and has no control that changes it.
+    @Test
+    fun test_F067_AC8_aTrainerSeesTheSameLevelAndHasNoControlToChangeIt() {
+        show(state(mobility, canManage = false, level = ClassLevel.ADVANCED))
+
+        compose.onNodeWithTag(ClassDateTags.EYEBROW)
+            .assertTextEquals(if (dutch) "Groepsles · Gevorderd" else "Group class · Advanced")
+        compose.onNodeWithTag(ClassDateTags.LEVEL).assertIsDisplayed()
+        compose.onNodeWithTag(ClassDateTags.MENU).assertDoesNotExist()
+        compose.onNodeWithTag(ClassDateTags.EDIT).assertDoesNotExist()
+        compose.onNodeWithTag(ClassDateTags.LEVEL).assertHasNoClickAction()
+    }
+
+    // F067 AC1: the Owner has the level read-only on TD-03 too: Les wijzigen is web-only.
+    @Test
+    fun test_F067_AC1_theOwnerReadsTheLevelWithoutAControlOfItsOwn() {
+        show(state(mobility, level = ClassLevel.BEGINNER))
+
+        compose.onNodeWithTag(ClassDateTags.LEVEL).assertIsDisplayed().assertHasNoClickAction()
     }
 
     @Test

@@ -110,6 +110,7 @@ class StudioContent(
             isCancelled = item.status == WorkspaceCalendarSession.Status.CANCELLED,
             isPast = !item.endsAt.toInstant().isAfter(now),
             trainer = trainerOf(item),
+            level = listLevel(isGroup, item.level),
         )
     }
 

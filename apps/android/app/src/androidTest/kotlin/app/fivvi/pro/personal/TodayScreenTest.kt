@@ -27,6 +27,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.MyDay
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
@@ -148,6 +149,62 @@ class TodayScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
         rowOf("kracht-late").assertNamed(string(R.string.my_day_cancelled))
         rowOf("mark").performClick()
         assertEquals(listOf(PersonalFixtures.sessionIdOf("mark")), opened)
+    }
+
+    // F067 AC5, AC6, AC8: Vandaag's row of a class with a level shows the bars after the name and names the level after the
+    // class name; *Alle niveaus*, *Geen* and the next card show no icon.
+    private val reformer = PersonalFixtures.session(
+        "reformer",
+        PersonalFixtures.johns,
+        "15:30",
+        "16:30",
+        className = "Reformer Power",
+        booked = 2,
+        capacity = 8,
+        level = ClassLevel.ADVANCED,
+    )
+
+    private fun levelTag(id: String) = "today.level.${PersonalFixtures.sessionIdOf(id)}"
+
+    @Test
+    fun test_F067_AC5_aClassRowShowsTheBarsAfterTheNameAndTalkBackReadsTheLevelAfterTheName() {
+        show(loaded(PersonalFixtures.sarah(items = listOf(PersonalFixtures.anna, reformer))))
+
+        tag(levelTag("reformer")).assertIsDisplayed()
+        val level = string(R.string.class_level_accessible_name, string(R.string.class_level_advanced))
+        rowOf("reformer").assertNamed(string(R.string.my_day_spoken_join, "Reformer Power", level))
+        // The bars have no word beside them in a row.
+        texts(string(R.string.class_level_advanced)).assertCountEquals(0)
+        rowOf("reformer").performClick()
+        assertEquals("the row only opens", listOf(PersonalFixtures.sessionIdOf("reformer")), opened)
+    }
+
+    @Test
+    fun test_F067_AC6_aDateWithAlleNiveausOrGeenShowsNoIconInTheRow() {
+        val alle = PersonalFixtures.session(
+            "alle",
+            PersonalFixtures.johns,
+            "17:00",
+            "18:00",
+            className = "Kracht",
+            booked = 0,
+            capacity = 8,
+            level = ClassLevel.ALL_LEVELS,
+        )
+        show(loaded(PersonalFixtures.sarah(items = listOf(PersonalFixtures.anna, alle, PersonalFixtures.kracht))))
+
+        tag(TodayTags.NEXT).assertIsDisplayed()
+        compose.onAllNodes(hasTestTag(levelTag("alle")), useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodes(hasTestTag(levelTag("kracht")), useUnmergedTree = true).assertCountEquals(0)
+        assertTrue(!rowOf("alle").names().contains(string(R.string.class_level_accessible_name, "").trim()))
+    }
+
+    @Test
+    fun test_F067_AC5_theNextCardShowsNoIcon() {
+        show(loaded(PersonalFixtures.sarah(items = listOf(reformer, PersonalFixtures.mark))))
+
+        tag(TodayTags.NEXT).assertIsDisplayed()
+        compose.onAllNodes(hasTestTag(levelTag("reformer")), useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test

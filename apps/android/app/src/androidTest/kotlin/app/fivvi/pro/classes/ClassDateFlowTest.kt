@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.AppLanguage
@@ -43,9 +44,9 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     private val classes = FakeGroupClassesApi(sessions)
     private val mobility = groupClassOf("Mobility", trainer = sarah)
 
-    private fun show(capabilities: List<MeWorkspace.Capabilities>, role: MeWorkspace.Role) {
+    private fun show(capabilities: List<MeWorkspace.Capabilities>, role: MeWorkspace.Role, level: ClassLevel? = null) {
         classes.classes[mobility.id] = mobility
-        val date = classDateOf(UUID.randomUUID(), mobility, sarah)
+        val date = classDateOf(UUID.randomUUID(), mobility, sarah, level = level)
         sessions.sessions[date.id] = date
         val apis =
             ClassApis(
@@ -102,6 +103,31 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
         compose.onNodeWithTag(ClassDateTags.MENU).assertIsDisplayed()
         compose.onNodeWithTag(ClassDateTags.OWNER_NOTE).assertIsDisplayed()
+    }
+
+    // F067 AC8: through the flow, a Trainer reads the same level as the Owner and has nothing that changes it.
+    @Test
+    fun test_F067_AC8_aTrainerReadsTheLevelInTheFlowAndHasNoControlToChangeIt() {
+        show(
+            listOf(MeWorkspace.Capabilities.CLASS_PERIOD_READ, MeWorkspace.Capabilities.TRAINERS_PERIOD_VIEW),
+            MeWorkspace.Role.TRAINER,
+            level = ClassLevel.ADVANCED,
+        )
+
+        compose.onNodeWithTag(ClassDateTags.EYEBROW)
+            .assertTextEquals(if (language == AppLanguage.DUTCH) "Groepsles · Gevorderd" else "Group class · Advanced")
+        compose.onNodeWithTag(ClassDateTags.LEVEL).assertIsDisplayed()
+        compose.onNodeWithTag(ClassDateTags.MENU).assertDoesNotExist()
+        compose.onNodeWithTag(ClassDateTags.EDIT).assertDoesNotExist()
+    }
+
+    @Test
+    fun test_F067_AC8_theOwnerSeesTheSameLevelInTheFlow() {
+        show(MeWorkspace.Capabilities.values().toList(), MeWorkspace.Role.OWNER, level = ClassLevel.ADVANCED)
+
+        compose.onNodeWithTag(ClassDateTags.EYEBROW)
+            .assertTextEquals(if (language == AppLanguage.DUTCH) "Groepsles · Gevorderd" else "Group class · Advanced")
+        compose.onNodeWithTag(ClassDateTags.LEVEL).assertIsDisplayed()
     }
 
     // F026 AC5: the cancel calls are guarded by class.manage, so a 403 on them takes *Les annuleren* away at once and

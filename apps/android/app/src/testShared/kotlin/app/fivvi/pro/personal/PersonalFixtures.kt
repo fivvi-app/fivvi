@@ -1,5 +1,6 @@
 package app.fivvi.pro.personal
 
+import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.LocationAddress
 import app.fivvi.api.models.LocationType
@@ -64,6 +65,7 @@ object PersonalFixtures {
         place: String? = null,
         day: String = DAY,
         type: PersonalSession.Type? = null,
+        level: ClassLevel? = null,
     ) = PersonalSession(
         sessionId = sessionIdOf(id),
         workspace = workspace,
@@ -75,6 +77,7 @@ object PersonalFixtures {
         capacity = capacity,
         booked = booked,
         className = className,
+        level = level,
         location = place?.let { place(it) },
         clientName = client,
     )
