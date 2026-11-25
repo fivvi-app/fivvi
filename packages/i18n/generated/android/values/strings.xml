@@ -164,6 +164,8 @@
     <string name="classes_date_series_line">Onderdeel van: %1$s, elke %3$s %2$s</string>
     <string name="classes_date_time_range">%1$s, %3$s–%2$s</string>
     <string name="classes_date_trainer_label">%1$s</string>
+    <!-- The eyebrow of the class-on-a-date screen (TD-03, F067): the kind of session and the level word, e.g. 'Groepsles · Gevorderd'. {type} is the session type, {level} one of classLevel.allLevels … classLevel.advanced. Not used for Geen: the eyebrow is then the type alone. -->
+    <string name="classes_date_type_and_level">%2$s · %1$s</string>
     <string name="classes_date_when_label">Wanneer</string>
     <string name="classes_date_where_label">Locatie</string>
     <string name="classes_duration_column">Duur</string>

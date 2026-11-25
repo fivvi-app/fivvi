@@ -59,6 +59,8 @@ final class NewGroupClassViewModel: Identifiable {
     var capacity = NewGroupClassViewModel.defaultCapacity
     /// The trainer chosen (the team-member ID); empty is *Trainer nodig*.
     var trainerID = ""
+    /// *Niveau* (F067): nil is *Geen*, the starting value; the API stores the level on the class and on every date.
+    var level: Components.Schemas.ClassLevel?
     /// The date, the start and the length; the end is the start plus the length.
     let time: SessionTimeFields
     private(set) var trainers: [Trainer] = []
@@ -189,7 +191,7 @@ final class NewGroupClassViewModel: Identifiable {
     var isDirty: Bool {
         !(nameNl + nameEn + descriptionNl + descriptionEn).isEmpty || capacity != Self.defaultCapacity
             || time.start != firstStart || time.durationMinutes != Self.defaultMinutes
-            || trainerID != (myTrainerID ?? "") || repeatsWeekly
+            || trainerID != (myTrainerID ?? "") || repeatsWeekly || level != nil
     }
 
     // MARK: The end
@@ -260,7 +262,8 @@ final class NewGroupClassViewModel: Identifiable {
         let body = Components.Schemas.CreateGroupClassRequest(
             nameNl: nameNl.trimmed, nameEn: nameEn.trimmedOrNil, descriptionNl: descriptionNl.trimmedOrNil,
             descriptionEn: descriptionEn.trimmedOrNil, trainerId: trainerID.isEmpty ? nil : trainerID,
-            capacity: capacity, durationMinutes: time.durationMinutes, allowConflicts: allowConflicts ? true : nil,
+            capacity: capacity, durationMinutes: time.durationMinutes,
+            level: level.flatMap { .init(rawValue: $0.rawValue) }, allowConflicts: allowConflicts ? true : nil,
             firstDate: .init(
                 localDate: time.localDate, localStart: time.localStart, _repeat: repeatsWeekly ? .weekly : nil
             ),

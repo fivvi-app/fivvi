@@ -5,7 +5,8 @@ import FivviStrings
 import FivviLanguage
 import FivviUI
 
-/// TD-03 *Groepsles* (F021): the class's name with the date and time under it, the description cut to a few lines with
+/// TD-03 *Groepsles* (F021): the class's name with the date and time under it and the level in the eyebrow (F067:
+/// "Groepsles · Gevorderd" with the bars), the description cut to a few lines with
 /// *Meer* / *Minder*, a group with the location and the trainer (*Trainer nodig* without one), *{booked}/{capacity}
 /// geboekt* with *Nog geen boekingen.*, and for the Owner the footnote that editing, a fixed series and the trainers are
 /// managed on the web. The Owner's ⋯ menu starts with *Boekingslink delen* (F037, "Boekingslink gekopieerd" in a toast; also a button below the booked card,
@@ -81,7 +82,7 @@ struct ClassDateView: View {
 
     private var loaded: some View {
         LargeTitleScreen(
-            title: model.title, eyebrow: catalog[.newGroupClass], subtitle: model.whenText,
+            title: model.title, eyebrow: model.eyebrowText, eyebrowLevel: levelIcon, subtitle: model.whenText,
             titleIdentifier: "classDate.title"
         ) {
             if let added = model.addedText {
@@ -129,6 +130,11 @@ struct ClassDateView: View {
             }
         }
         .toolbar { if model.hasMenu { ToolbarItem(placement: .primaryAction) { menu } } }
+    }
+
+    /// The bars after the eyebrow, for every level but *Geen* (F067): the word is in the eyebrow already.
+    private var levelIcon: LevelIcon? {
+        model.level.map { LevelIcon(level: $0, catalog: catalog, form: .bars, identifier: "classDate.level") }
     }
 
     /// The description in the viewer's language, else Dutch (marked as Dutch), cut to three lines until *Meer*.

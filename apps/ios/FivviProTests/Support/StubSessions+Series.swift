@@ -24,7 +24,8 @@ extension StubSessions {
                         id: "5e1c2d3e-0000-4000-8000-000000000001", weekday: weekday,
                         localStartTime: Self.local(start, "HH:mm"), occurrenceDate: Self.local(date, "yyyy-MM-dd"),
                         changedFields: []
-                    ) : nil
+                    ) : nil,
+                    level: made.level
                 )
             }
         }

@@ -126,6 +126,11 @@ final class StubServer: Sendable {
         responder.sessionRoutes.bookOnSeededClassDate(count)
     }
 
+    /// The seeded class date (*Kracht*) has this level, or none (*Geen*), as the API sends it (F067).
+    func setSeededClassLevel(_ level: String?) {
+        responder.sessionRoutes.setSeededLevel(level)
+    }
+
     /// The seeded private session is a colleague's: its trainer is not the signed-in person (F026 AC5).
     func bookSeededSessionWithAnotherTrainer() {
         responder.sessionRoutes.giveSeededSessionToAnotherTrainer()
