@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
@@ -75,6 +76,7 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         role: MeWorkspace.Role = MeWorkspace.Role.OWNER,
         account: app.fivvi.api.models.Trainer = john,
         team: List<app.fivvi.api.models.Trainer> = StudioFixtures.team,
+        trainerWord: TrainerWord = TrainerWord.TRAINER,
     ) {
         val capabilities = MeWorkspace.Capabilities.values().toList().filter {
             role == MeWorkspace.Role.OWNER || it != MeWorkspace.Capabilities.CALENDAR_PERIOD_MANAGE
@@ -87,6 +89,7 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
                 role = role,
                 capabilities = capabilities,
                 teamMemberId = account.id,
+                trainerWords = mapOf(JOHNS_GYM to trainerWord),
             )
         }
         me.day = PersonalFixtures.sarah(
@@ -179,6 +182,22 @@ class StudioDayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.onNodeWithTag(StudioTags.SCOPE_MINE).performClick()
         compose.waitUntil(UI_TIMEOUT_MILLIS) { noNode(StudioTags.HEAD) }
         compose.onNodeWithTag(TodayTags.row(PersonalFixtures.sessionIdOf("kracht"))).assertExists()
+    }
+
+    // F068 AC1: John's Gym uses *instructeur*, so the studio's day talks about its *instructeurs* (*instructors*).
+    @Test
+    fun test_F068_AC1_theStudioDaySaysTheWorkspacesWord() {
+        launch(trainerWord = TrainerWord.INSTRUCTEUR)
+        compose.waitUntilTagExists(StudioTags.SCOPE)
+        compose.onNodeWithTag(StudioTags.SCOPE_STUDIO).performClick()
+        compose.waitUntilTagExists(StudioTags.HEAD)
+
+        val plural = string(R.string.trainer_word_instructeur_words)
+        compose.onNodeWithTag(StudioTags.SCOPE_LINE)
+            .assertTextEquals(string(R.string.my_day_app_studio_line, plural, JOHNS_GYM))
+        compose.onNodeWithTag(StudioTags.HEAD)
+            .assertTextEquals(string(R.string.my_day_app_studio_trainers_many, "3", plural))
+        assertEquals(if (language == AppLanguage.DUTCH) "instructeurs" else "instructors", plural)
     }
 
     // F067 AC8: John sees the level on the rows of Hele studio, named after the class; *Alle niveaus* shows none; no control.

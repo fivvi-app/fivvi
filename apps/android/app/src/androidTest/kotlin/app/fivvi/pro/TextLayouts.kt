@@ -1,6 +1,7 @@
 package app.fivvi.pro
 
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.LocaleList as PlatformLocaleList
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
@@ -31,14 +32,18 @@ import org.junit.Assert.assertTrue
 
 // Checks for AC15 (spec #168): at the largest font scale text wraps instead of being cut off, and buttons keep 48 dp.
 
-/** The generated catalog's text for [id] in [language], with [formatArgs]: what a screen in that language shows. */
-fun localizedString(language: AppLanguage, @StringRes id: Int, vararg formatArgs: Any): String {
+/** The resources of the app in [language]: what a screen in that language reads its strings from. */
+fun localizedResources(language: AppLanguage): Resources {
     val app = ApplicationProvider.getApplicationContext<FivviApplication>()
     val configuration = Configuration(app.resources.configuration).apply {
         setLocales(PlatformLocaleList(language.locale))
     }
-    return app.createConfigurationContext(configuration).getString(id, *formatArgs)
+    return app.createConfigurationContext(configuration).resources
 }
+
+/** The generated catalog's text for [id] in [language], with [formatArgs]: what a screen in that language shows. */
+fun localizedString(language: AppLanguage, @StringRes id: Int, vararg formatArgs: Any): String =
+    localizedResources(language).getString(id, *formatArgs)
 
 /**
  * Shows [content] in the app theme, in [language], at Android's largest font scale (200%), on a [width] dp wide screen

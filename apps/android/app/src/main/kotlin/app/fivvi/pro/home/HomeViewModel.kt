@@ -7,6 +7,7 @@ import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.auth.Session
 import app.fivvi.core.auth.SignOut
 import app.fivvi.pro.workspace.CurrentWorkspace
@@ -49,7 +50,13 @@ sealed interface MeState {
  */
 sealed interface HomeDestination {
     /** The account has a workspace: the app's home (a placeholder until Vandaag) with the workspace's name. */
-    data class Workspace(val name: String, val id: UUID, val teamMemberId: UUID) : HomeDestination
+    data class Workspace(
+        val name: String,
+        val id: UUID,
+        val teamMemberId: UUID,
+        /** The word this workspace uses for the people who teach (F068), from the same answer as the rest. */
+        val trainerWord: TrainerWord,
+    ) : HomeDestination
 
     /** No workspace, and the API says the account may create one: set it up on the web. */
     data object SetUpOnWeb : HomeDestination
@@ -207,7 +214,7 @@ class HomeViewModel(
         // Every workspace the app opens is the one reopened next time, also the one it fell back to after a removal (AC7).
         if (start != null && current.remembered.value != start.id) current.remember(start.id)
         return when {
-            start != null -> HomeDestination.Workspace(start.name, start.id, start.teamMemberId)
+            start != null -> HomeDestination.Workspace(start.name, start.id, start.teamMemberId, start.trainerWord)
             account.canCreateWorkspace -> HomeDestination.SetUpOnWeb
             else -> HomeDestination.NoAccess
         }

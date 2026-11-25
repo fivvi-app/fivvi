@@ -2,6 +2,7 @@ package app.fivvi.pro.home
 
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.MyWorkspace.Role
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.core.quarantine.Permission
@@ -43,7 +44,16 @@ class ProfileViewModelTest {
         role: ProfileRole,
         trainsHere: Boolean = false,
         canSwitchTrainsHere: Boolean = role == ProfileRole.Owner,
-    ) = ProfileWorkspace(workspaceIdOf(name), slug, name, role, trainsHere, canSwitchTrainsHere)
+        trainerWord: TrainerWord = TrainerWord.TRAINER,
+    ) = ProfileWorkspace(
+        workspaceIdOf(name),
+        slug,
+        name,
+        role,
+        trainsHere,
+        canSwitchTrainsHere,
+        trainerWord = trainerWord,
+    )
 
     // F003 AC9: Sarah is Trainer of John's Gym and Owner of Sarah Personal Training; both are listed, each with its role.
     // The label of each role, in both locales, is checked in ProfileScreenTest.
@@ -65,6 +75,42 @@ class ProfileViewModelTest {
             ),
             viewModel.state.value,
         )
+    }
+
+    // F068 AC4: Sarah is a Trainer in John's Gym (instructeur) and in Yoga Loft (docent): each row carries its own
+    // workspace's word, from the list the app already gets, and her role is Trainer in both.
+    @Test
+    fun test_F068_AC4_eachWorkspaceKeepsItsOwnWordAndTheRoleStaysTrainer() {
+        api.answerAccount(name = "Sarah", email = "trainer@example.com")
+        api.answerWorkspaces(
+            trainingOwners = emptySet(),
+            Triple("John's Gym", "johns-gym", Role.TRAINER),
+            Triple("Yoga Loft", "yoga-loft", Role.TRAINER),
+            trainerWords = mapOf("John's Gym" to TrainerWord.INSTRUCTEUR, "Yoga Loft" to TrainerWord.DOCENT),
+        )
+
+        val workspaces = (viewModel().state.value as ProfileState.Loaded).workspaces
+
+        assertEquals(
+            listOf(
+                workspace(
+                    "John's Gym",
+                    "johns-gym",
+                    ProfileRole.Trainer,
+                    trainsHere = true,
+                    trainerWord = TrainerWord.INSTRUCTEUR,
+                ),
+                workspace(
+                    "Yoga Loft",
+                    "yoga-loft",
+                    ProfileRole.Trainer,
+                    trainsHere = true,
+                    trainerWord = TrainerWord.DOCENT,
+                ),
+            ),
+            workspaces,
+        )
+        assertEquals(listOf(ProfileRole.Trainer, ProfileRole.Trainer), workspaces.map { it.role })
     }
 
     @Test

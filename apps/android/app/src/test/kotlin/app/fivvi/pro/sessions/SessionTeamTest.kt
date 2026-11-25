@@ -1,8 +1,6 @@
 package app.fivvi.pro.sessions
 
 import app.fivvi.api.models.Trainer
-import app.fivvi.api.models.TrainerWord
-import app.fivvi.core.R
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -29,20 +27,5 @@ class SessionTeamTest {
     @Test
     fun test_F020_AC2_aPersonWithoutATrainerProfileIsNoTrainer() {
         assertNull(SessionTeam.myTrainerId(listOf(sarah), john.id))
-    }
-
-    @Test
-    fun test_F020_AC2_theWordFormsAreTheOnesTheCatalogHasForTheWorkspacesWord() {
-        val forms = TrainerWordForms.of(TrainerWord.COACH) { "$it" }
-
-        assertEquals(
-            TrainerWordForms(
-                "${R.string.trainer_word_coach_word}",
-                "${R.string.trainer_word_coach_word_cap}",
-                "${R.string.trainer_word_coach_a_word}",
-                "${R.string.trainer_word_coach_words}",
-            ),
-            forms,
-        )
     }
 }

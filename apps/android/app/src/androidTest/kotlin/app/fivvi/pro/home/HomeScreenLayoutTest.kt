@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
@@ -32,8 +33,10 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     @get:Rule
     val compose = createComposeRule()
 
-    private fun inWorkspace(email: String, name: String = "John's Gym") =
-        MeState.Loaded(email, HomeDestination.Workspace(name, workspaceIdOf(name), teamMemberIdOf(name)))
+    private fun inWorkspace(email: String, name: String = "John's Gym") = MeState.Loaded(
+        email,
+        HomeDestination.Workspace(name, workspaceIdOf(name), teamMemberIdOf(name), TrainerWord.TRAINER),
+    )
 
     private fun show(me: MeState, signingOut: Boolean = false, height: Dp = 640.dp) =
         compose.showAtLargestFontScale(language, height = height) {
