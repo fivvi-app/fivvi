@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
@@ -44,13 +45,14 @@ class ScreenLookTest(
         role = ProfileRole.Owner,
         trainsHere = false,
         canSwitchTrainsHere = true,
+        trainerWord = TrainerWord.TRAINER,
     )
 
     private fun showHome() = compose.showKit(mode, language) {
         HomeScreen(
             MeState.Loaded(
                 "john@example.com",
-                HomeDestination.Workspace("John's Gym", workspace.id, UUID.randomUUID()),
+                HomeDestination.Workspace("John's Gym", workspace.id, UUID.randomUUID(), TrainerWord.TRAINER),
             ),
             signingOut = false,
             onRetryMe = {},
