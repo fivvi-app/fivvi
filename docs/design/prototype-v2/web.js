@@ -598,19 +598,19 @@
   function pickRow(a, d, t, on, off) {
     return "<li><button data-a=\"" + a + "\"" + dat(d) + (off ? " disabled" : "") + "><span translate=\"no\">" + esc(t) + '</span><span class="w-muted">' + F.tplCount(D.tpl[t].length) + "</span>" + (off ? '<span class="w-muted">Op de lijst</span>' : "") + (on ? ic("check") : "") + "</button></li>";
   }
-  /* WC-05: Boekingslink kopiëren as an icon button beside Les openen, on a group class date that is not cancelled and has not started (owner, 25 Nov 2026, #970) */
+  /* WC-05: Boekingslink kopiëren as a share icon button right after the class name (proposal on the owner's comment of 25 Nov 2026; was a link icon beside Les openen, #970), on a group class date that is not cancelled and has not started (owner, 25 Nov 2026, #970) */
   function copyLinkBtn(it, k) {
     if (it.type !== "group" || it.cancelled || k < F.TODAY || (k === F.TODAY && F.mins(it.s) <= F.mins(F.NOWT))) return "";
-    return '<button class="w-icon" data-a="w-toast" data-m="Link gekopieerd" aria-label="Boekingslink kopiëren" title="Boekingslink kopiëren">' + ic("link") + "</button>";
+    return '<button class="w-icon" data-a="w-toast" data-m="Link gekopieerd" aria-label="Boekingslink kopiëren" title="Boekingslink kopiëren">' + ic("share") + "</button>";
   }
   function sheet() {
     var f = F.findItem(W().sheet), it = f.it, k = f.day, h = "";
-    h += '<div class="w-sheet-h"><div>' + badge(it.duo ? "Duosessie" : F.TYPE[it.type], F.CV[it.type]) + F.lvlTag(it) + "<h3>" + esc(itemTitle(it)) + "</h3><p>" + F.longDate(F.parse(k)) + " · " + it.s + "–" + it.e + "</p></div>" + '<button class="w-icon" data-a="w-close" aria-label="Sluiten">' + ic("x") + "</button></div>";
+    h += '<div class="w-sheet-h"><div>' + badge(it.duo ? "Duosessie" : F.TYPE[it.type], F.CV[it.type]) + F.lvlTag(it) + '<div class="w-sheet-ttl"><h3>' + esc(itemTitle(it)) + "</h3>" + copyLinkBtn(it, k) + "</div><p>" + F.longDate(F.parse(k)) + " · " + it.s + "–" + it.e + "</p></div>" + '<button class="w-icon" data-a="w-close" aria-label="Sluiten">' + ic("x") + "</button></div>";
     h += '<dl class="w-dl">' + "<dt>Locatie</dt><dd>" + esc(it.loc) + "</dd>" + (it.type !== "gym" ? "<dt>Trainer</dt><dd>" + esc(who(it) === ME() ? "Jij" : who(it)) + "</dd>" : "") + (it.cap ? "<dt>Geboekt</dt><dd>" + it.people.length + "/" + it.cap + (it.waitlist ? " · " + it.waitlist + " op de wachtlijst" : "") + "</dd>" : "") + (it.duo ? "<dt>Klanten</dt><dd>" + [it.client, it.duo].map(function (x) { return esc(F.CLIENT[x].name); }).join(", ") + "</dd>" : "") + (it.type === "priv" ? "<dt>Aanwezigheid</dt><dd>" + (it.att === "yes" ? "Aanwezig" : it.att === "no" ? "Niet verschenen" : "Nog niet ingevuld") + "</dd>" + sessTplRows(it) : "") + "</dl>";
     var ds = it.type === "group" ? desc(it.title) : null;
     if (ds) h += '<p class="w-desc" translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p>";
     if (it.type === "priv") (it.duo ? [it.client, it.duo] : [it.client]).forEach(function (x) { h += '<div class="w-sheet-sec"><h4>Vorige keer' + (it.duo ? " · " + esc(F.CLIENT[x].name.split(" ")[0]) : "") + "</h4>" + lastCard(x, true) + "</div>"; });
-    h += '<div class="w-sheet-f">' + (it.type === "priv" ? btn("Klantprofiel", "w-client", { k: "outline", d: { id: it.client } }) + btn("Training bijhouden", "w-toast", { k: "outline", d: { m: "Opent het bijhouden van de training (WL-06)" } }) : btn("Les openen", "w-open-class", { k: "outline", d: { id: it.id } }) + copyLinkBtn(it, k)) +
+    h += '<div class="w-sheet-f">' + (it.type === "priv" ? btn("Klantprofiel", "w-client", { k: "outline", d: { id: it.client } }) + btn("Training bijhouden", "w-toast", { k: "outline", d: { m: "Opent het bijhouden van de training (WL-06)" } }) : btn("Les openen", "w-open-class", { k: "outline", d: { id: it.id } })) +
       (it.cancelled ? "" : btn("Verplaatsen", "w-dlg", { k: "outline", d: { n: "move" } }) + btn(it.type === "priv" ? "Sessie annuleren" : "Les annuleren", "w-dlg", { k: "dng", d: { n: it.type === "priv" ? "cancelpriv" : "cancelclass" } })) + "</div>";
     return '<div class="w-scrim" data-a="w-close"></div><aside class="w-sheet" role="dialog" aria-label="' + esc(itemTitle(it)) + '">' + h + "</aside>";
   }
