@@ -247,6 +247,44 @@ describe('F067 the class level through the API', () => {
       expect(day.items.map((item) => item.sessionId)).toContain(priv.id);
       expect(day.items.every((item) => !('level' in item))).toBe(true);
     });
+
+    it('AC1: the workspace calendar returns the level of the date, and leaves it out for Geen and a private session', async () => {
+      const w = await aClassWithADate('advanced');
+      const withoutLevel = (await (
+        await createClass(w.server, w.gym.id, w.john, {
+          ...reformer(w.sarahRole.id),
+          nameNl: 'Kracht',
+          nameEn: 'Strength',
+        })
+      ).json()) as CreatedClassBody;
+      const geen = (await (
+        await scheduleClass(w.server, w.gym.id, withoutLevel.groupClass.id, w.john, {
+          localDate: '2026-10-07',
+          localStart: '18:00',
+        })
+      ).json()) as SessionBody;
+      const priv = await addSession(admin.db, {
+        workspaceId: w.gym.id,
+        clientId: (await addClient(admin.db, { workspaceId: w.gym.id })).id,
+        startsAt: new Date('2026-10-08T14:00:00.000Z'),
+      });
+
+      const response = await call(
+        w.server,
+        'GET',
+        `/v1/workspaces/${w.gym.id}/calendar?from=2026-10-05&to=2026-10-11`,
+        w.john,
+      );
+
+      expect(response.status).toBe(200);
+      const { items } = (await response.json()) as { items: { id: string; level?: string }[] };
+      const byId = (id: string) => items.find((item) => item.id === id);
+      expect(byId(w.date.id)?.level).toBe('advanced');
+      expect(byId(geen.id)).toBeDefined();
+      expect(byId(geen.id)).not.toHaveProperty('level');
+      expect(byId(priv.id)).toBeDefined();
+      expect(byId(priv.id)).not.toHaveProperty('level');
+    });
   });
 
   describe('AC3: one date', () => {
@@ -576,7 +614,13 @@ describe('F067 the class level through the API', () => {
         expect(request(name).enum).toEqual([...LEVELS, null]);
         expect(schemas[name].required ?? []).not.toContain('level');
       }
-      for (const name of ['GroupClass', 'Session', 'PersonalSession', 'ClassSeries']) {
+      for (const name of [
+        'GroupClass',
+        'Session',
+        'PersonalSession',
+        'ClassSeries',
+        'WorkspaceCalendarSession',
+      ]) {
         expect(JSON.stringify(schemas[name].properties.level)).toContain(
           '#/components/schemas/ClassLevel',
         );
@@ -884,7 +928,9 @@ describe('F067 the class level through the API', () => {
       expect(JSON.stringify(contract.components.schemas.ClassSeries.properties.level)).toContain(
         '#/components/schemas/ClassLevel',
       );
-      expect(contract.components.schemas.UpdatedClassSeries.allOf?.[0]?.$ref ?? '').toBeDefined();
+      expect(contract.components.schemas.UpdatedClassSeries.allOf?.[0]?.$ref).toBe(
+        '#/components/schemas/ClassSeries',
+      );
     });
   });
 });
