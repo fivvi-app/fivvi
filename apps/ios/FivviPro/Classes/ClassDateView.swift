@@ -13,8 +13,8 @@ import FivviUI
 /// for the Owner and the Trainers, not on a cancelled or past date), has *Les wijzigen*, which says the same, and below
 /// a divider the destructive *Les annuleren* (F026): a native confirmation that says how many booked clients get an
 /// email; a Trainer has no menu.
-/// A cancelled date shows "Geannuleerd op … door …" and no actions. The sections of later features (participants,
-/// attendance) are not shown yet.
+/// A cancelled date shows "Geannuleerd op … door …" and no actions. *Aanwezigheid invullen* opens CO-05 (F025); the
+/// participants list (*Deelnemers*, #1616) is not shown yet.
 struct ClassDateView: View {
     let model: ClassDateViewModel
     let language: AppLanguage

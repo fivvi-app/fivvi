@@ -250,6 +250,8 @@
   }
 
   /* An agenda item as a row: Calendar-style time + bar on iOS, a shaped avatar on Android. */
+  /* participants of a class still waiting for attendance (F025): the API's attendanceOpen, here counted from the marks */
+  function attOpenCount(it) { var am = it.attMap || {}; return (it.people || []).filter(function (p, i) { return !am[i] && !(S.attMode === "cxpart" && i === it.people.length - 1); }).length; }
   function itemRow(it, k, opt) {
     opt = opt || {};
     var c = CV[it.type], past = isPast(it, k), booked = (it.people || []).length;
@@ -272,6 +274,9 @@
           '<div class="att">' + btn("Aanwezig", { k: "sec", a: "att", d: { id: it.id, v: "yes" } }) + btn("Niet verschenen", { k: "sec", a: "att", d: { id: it.id, v: "no" } }) + "</div>";
         swipe = PREF.plat === "ios" && !opt.noSwipe;
       }
+    } else if (it.type === "group" && past && !it.cancelled && !opt.noNudge && attOpenCount(it) > 0) {
+      /* an ended class with open participants: the line alone, no buttons; it opens CO-05 (F025, TD-01) */
+      extra = '<small class="nudge" role="button" tabindex="0" data-a="open-att" data-id="' + it.id + '">' + ic("warn") + "Aanwezigheid nog invullen</small>";
     }
     var pill = it.cancelled ? '<span class="pill">Geannuleerd</span>' : full ? '<span class="pill strong">Vol</span>' : it.cap ? '<span class="pill">' + booked + "/" + it.cap + "</span>" : "";
     var o = { a: it.type === "priv" ? "open-session" : "open-class", d: { id: it.id }, title: esc(title(it)) + lvlTag(it, true), sub: sub, small: smalls.join(" · "), extra: extra,
@@ -283,8 +288,8 @@
       o.lead = shape(SHAPE[it.type], c, it.type === "priv" ? initials(CLIENT[it.client].name) : it.type === "gym" ? "OG" : it.title[0]);
       o.tr = '<div class="tm">' + it.s + "<br>" + it.e + "</div>";
     }
-    /* iOS: the trailing swipe of a row with a nudge shows the same two actions (F025, AC2) */
-    if (swipe) return '<div class="sw-row sw-att can' + (S.swipe === it.id ? " open" : "") + '"><div class="sw-acts">' + '<button class="ok" data-a="att" data-id="' + it.id + '" data-v="yes">Aanwezig</button><button class="no" data-a="att" data-id="' + it.id + '" data-v="no">Niet verschenen</button></div><div class="set">' + row(o) + "</div></div>";
+    /* iOS: swiping a row with a nudge shows its actions: rightward (the leading side) Aanwezig, leftward (the trailing side) Niet verschenen (F025, TD-01) */
+    if (swipe) return '<div class="sw-row sw-att can' + (S.swipe === it.id ? " open " + (S.swipeSide || "trail") : "") + '"><div class="sw-acts lead"><button class="ok" data-a="att" data-id="' + it.id + '" data-v="yes">Aanwezig</button></div><div class="sw-acts trail"><button class="no" data-a="att" data-id="' + it.id + '" data-v="no">Niet verschenen</button></div><div class="set">' + row(o) + "</div></div>";
     return row(o);
   }
 
@@ -483,7 +488,7 @@
     act.forEach(function (i) {
       if (!isPast(i, TODAY)) return;
       var who_ = i.type === "priv" ? CLIENT[i.client].name.split(" ")[0] : i.title;
-      if (i.type === "priv" ? !i.att : !(i.attMap && Object.keys(i.attMap).length)) todo.push('<button class="chip" data-a="' + (i.type === "priv" ? "open-session" : "open-class") + '" data-id="' + i.id + '">Aanwezigheid · ' + esc(who_) + " " + i.s + "</button>");
+      if (i.type === "priv" ? !i.att : attOpenCount(i) > 0) todo.push('<button class="chip" data-a="' + (i.type === "priv" ? "open-session" : "open-class") + '" data-id="' + i.id + '">Aanwezigheid · ' + esc(who_) + " " + i.s + "</button>");
       if (i.type === "priv" && i.wstate === "done" && !itShared(i)) todo.push('<button class="chip" data-a="open-session" data-id="' + i.id + '">Training delen · ' + esc(who_) + "</button>");
     });
     rows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("check") + "</span>", title: todo.length ? "Te doen" : "Alles bijgewerkt", extra: todo.length ? '<div class="chips">' + todo.join("") + "</div>" : "", cls: "dc" }));
@@ -660,7 +665,8 @@
      a tap made offline says "Wacht op verbinding", a refused one reverts with the message. */
   SCREENS.attendance = function (r) {
     var it = findItem(r.id).it, am = it.attMap || (it.attMap = {}), mode = S.attMode || "", wait = S.attWait || {};
-    var cancelled = mode === "cancelled", early = mode === "early", off = cancelled || early;
+    /* a tap the API refused as cancelled: the app reads the class again, so it shows the cancelled banner and no buttons, with the message on the row */
+    var cancelled = mode === "cancelled" || mode === "refused", early = mode === "early", off = cancelled || early;
     var y = 0, n = 0, o = 0; it.people.forEach(function (p, i) { if (attCx(it, i)) return; if (am[i] === "yes") y++; else if (am[i] === "no") n++; else o++; });
     var body = lt("", "Aanwezigheid", esc(it.title) + " · " + it.s + "–" + it.e);
     body += '<div class="pad stack">';
@@ -1213,7 +1219,7 @@
     "open-workout": function (d) { push({ n: "workout", id: d.id, h: d.h }); },
     "open-att": function (d) { var it = findItem(d.id).it; it.attDraft = null; push({ n: "attendance", id: d.id }); },
     push: function (d) { push({ n: d.n }); },
-    att: function (d) { var it = findItem(d.id).it; it.att = d.v; it.attMsg = null; it.attWait = !!S.attOffline; S.swipe = null; render(); },
+    att: function (d) { var it = findItem(d.id).it; it.att = d.v; it.attMsg = null; it.attWait = !!S.attOffline; S.swipe = null; S.swipeSide = null; render(); },
     satt: function (d) { var it = findItem(d.id).it; if (S.attOffline) it.attWait = true; if (it.duo) { it.attD = it.attD || {}; it.attD[d.c] = d.v || null; it.att = it.attD[it.client] && it.attD[it.duo] ? it.attD[it.client] : null; } else it.att = d.v || null; render(); },
     "att-one": function (d) { var it = findItem(d.id).it; it.attMap = it.attMap || {}; it.attMap[d.i] = it.attMap[d.i] === d.v ? undefined : d.v; if (S.attOffline) (S.attWait = S.attWait || {})[d.i] = true; render(); },
     "att-all": function (d) { var it = findItem(d.id).it; it.attMap = it.attMap || {}; it.people.forEach(function (p, i) { if (!it.attMap[i] && !attCx(it, i)) { it.attMap[i] = "yes"; if (S.attOffline) (S.attWait = S.attWait || {})[i] = true; } }); render(); },
@@ -1448,12 +1454,12 @@
   }
   var sw = null, swDragged = false, SW_OPEN = 104;
   /* how far a row opens: a set shows one Verwijderen; Vandaag's nudge row shows its two actions (F025) */
-  function swOpen(r) { return r.classList.contains("sw-att") ? 192 : SW_OPEN; }
-  function swClose(except) { dev.querySelectorAll(".sw-row.open").forEach(function (o) { if (o !== except) { o.classList.remove("open"); o.querySelector(".set").style.transform = ""; } }); }
+  function swOpen(r) { return r.classList.contains("sw-att") ? 96 : SW_OPEN; }
+  function swClose(except) { dev.querySelectorAll(".sw-row.open").forEach(function (o) { if (o !== except) { o.classList.remove("open", "lead", "trail"); o.querySelector(".set").style.transform = ""; } }); }
   function onSwDown(e) {
     var r = e.target.closest(".sw-row"); swClose(r);
     if (!r || !r.classList.contains("can") || e.target.closest(".sw-del,.sw-acts,[data-drag]")) return;
-    sw = { r: r, x: e.clientX, y: e.clientY, base: r.classList.contains("open") ? -swOpen(r) : 0, dx: 0, on: false, id: e.pointerId };
+    sw = { r: r, x: e.clientX, y: e.clientY, base: r.classList.contains("open") ? (r.classList.contains("lead") ? swOpen(r) : -swOpen(r)) : 0, dx: 0, on: false, id: e.pointerId };
   }
   function onSwMove(e) {
     if (!sw) return;
@@ -1462,8 +1468,7 @@
       if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) { sw.on = true; sw.r.classList.add("dragging"); try { sw.r.setPointerCapture(sw.id); } catch (x) { /* not capturable */ } }
       else if (Math.abs(dy) > 8) { sw = null; return; } else return;
     }
-    sw.dx = Math.min(0, sw.base + dx);
-    if (sw.r.classList.contains("sw-att")) sw.dx = Math.max(sw.dx, -swOpen(sw.r) - 24);
+    sw.dx = sw.r.classList.contains("sw-att") ? Math.max(-swOpen(sw.r) - 24, Math.min(swOpen(sw.r) + 24, sw.base + dx)) : Math.min(0, sw.base + dx);
     sw.r.querySelector(".set").style.transform = "translateX(" + sw.dx + "px)";
     if (!sw.r.classList.contains("sw-att")) sw.r.classList.toggle("full-swipe", sw.dx < -sw.r.offsetWidth * 0.6);
     e.preventDefault();
@@ -1474,7 +1479,11 @@
     r.classList.remove("dragging", "full-swipe");
     if (sw.on) {
       swDragged = true; setTimeout(function () { swDragged = false; }, 60);
-      if (r.classList.contains("sw-att")) { if (sw.dx < -swOpen(r) / 2) { r.classList.add("open"); row.style.transform = "translateX(" + -swOpen(r) + "px)"; } else { r.classList.remove("open"); row.style.transform = ""; } }
+      if (r.classList.contains("sw-att")) {
+        var side = sw.dx > swOpen(r) / 2 ? "lead" : sw.dx < -swOpen(r) / 2 ? "trail" : "";
+        r.classList.remove("open", "lead", "trail");
+        if (side) { r.classList.add("open", side); row.style.transform = "translateX(" + (side === "lead" ? swOpen(r) : -swOpen(r)) + "px)"; } else row.style.transform = "";
+      }
       else if (sw.dx < -r.offsetWidth * 0.6) { row.style.transform = ""; r.classList.remove("open"); S.alert = { n: "removeSet", e: r.dataset.e, s: r.dataset.s }; render(); }
       else if (sw.dx < -48) { r.classList.add("open"); row.style.transform = "translateX(" + -SW_OPEN + "px)"; }
       else { r.classList.remove("open"); row.style.transform = ""; }
@@ -1576,9 +1585,11 @@
       ["Schema verwijderen", "TM-09", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }, { n: "template", id: "Core & conditie" }]; S.alert = { n: "tplDel", t: "Core & conditie" }; }],
       ["Schema verwijderen: in gebruik", "F042", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }, { n: "template", id: "Upper A" }]; S.alert = { n: "tplDel", t: "Upper A" }; }],
       ["Taal", "F010", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "language" }]; }],
-      ["Vandaag: swipe op een rij", "F025", function () { fresh(); S.swipe = "s1"; }],
+      ["Vandaag: swipe naar rechts (Aanwezig)", "F025", function () { fresh(); S.swipe = "s1"; S.swipeSide = "lead"; }],
+      ["Vandaag: swipe naar links (Niet verschenen)", "F025", function () { fresh(); S.swipe = "s1"; S.swipeSide = "trail"; }],
+      ["Vandaag: les met aanwezigheid nog in te vullen", "F025", function () { fresh(); PREF.setup = "team"; findItem("s2").it.attMap = { 0: "yes", 1: "yes", 2: "yes", 3: "no" }; }, true],
       ["Vandaag: aanwezigheid wacht op verbinding", "F025", function () { fresh(); S.attOffline = true; var it = findItem("s1").it; it.att = "yes"; it.attWait = true; }],
-      ["Vandaag: aanwezigheid geweigerd", "F025", function () { fresh(); findItem("s1").it.attMsg = "Deze sessie is geannuleerd. Aanwezigheid is niet nodig."; }],
+      ["Vandaag: aanwezigheid geweigerd", "F025", function () { fresh(); findItem("s1").it.attMsg = "Er ging iets mis. Probeer het opnieuw."; }],
       ["Sessie: aanwezigheid wacht op verbinding", "F025", function () { fresh(); S.attOffline = true; S.stacks.today = [{ n: "session", id: "s1" }]; var it = findItem("s1").it; it.att = "no"; it.attWait = true; S.scrollTo = "sess"; }, true],
       ["Aanwezigheid les: te vroeg", "F025", function () { fresh(); PREF.setup = "team"; S.attMode = "early"; var it = findItem("s2").it; it.attMap = {}; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
       ["Aanwezigheid les: geannuleerd", "F025", function () { fresh(); PREF.setup = "team"; S.attMode = "cancelled"; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],

@@ -44,6 +44,9 @@ struct PersonalRow: Identifiable, Equatable {
     /// *Aanwezig* and *Niet verschenen* under the row. Only Vandaag and *Hele studio* set it; Agenda's rows show nothing
     /// extra.
     var nudge: Nudge?
+    /// An ended class (or a duo) waits for attendance (F025): the line *Aanwezigheid nog invullen* alone, no buttons; it opens
+    /// CO-05 (TD-02 for a duo), where each participant is filled in.
+    var attendanceLine = false
 
     /// The client a nudge's buttons mark.
     struct Nudge: Equatable {

@@ -16,7 +16,12 @@ struct TodayView: View {
     let canPlan: Bool
     let onPlan: (Date) -> Void
     let onOpen: (PersonalRow) -> Void
+    /// The line *Aanwezigheid nog invullen* of an ended class opens CO-05 (F025).
+    let onOpenAttendance: (PersonalRow) -> Void
     let onOpenTomorrow: (String) -> Void
+
+    /// The one row whose swipe actions are open: another opening, or a scroll, closes it.
+    @State private var swipes = SwipeCoordinator()
 
     private var catalog: Catalog { model.catalog }
 
@@ -28,7 +33,7 @@ struct TodayView: View {
             banners
             if studio.showsToggle { scopeControl }
             if studio.isStudio {
-                StudioDayView(model: studio, onOpen: onOpen)
+                StudioDayView(model: studio, onOpen: onOpen, onOpenAttendance: onOpenAttendance)
             } else {
                 switch model.state {
                 case .loading:
@@ -40,6 +45,8 @@ struct TodayView: View {
                 }
             }
         }
+        .environment(swipes)
+        .onScrollPhaseChange { _, phase in if phase == .interacting { swipes.closeAll() } }
         .refreshable {
             await model.refresh()
             await studio.refresh()
@@ -117,7 +124,8 @@ struct TodayView: View {
             InsetGroup {
                 ForEach(model.rows) { row in
                     PersonalRowView(
-                        row: row, catalog: catalog, onOpen: { onOpen(row) }, onMark: { model.mark($0, row: row) }
+                        row: row, catalog: catalog, onOpen: { onOpen(row) }, onMark: { model.mark($0, row: row) },
+                        onOpenAttendance: { onOpenAttendance(row) }
                     )
                 }
             }
@@ -199,7 +207,9 @@ struct TodayView: View {
                                 Text(chip.text)
                                     .font(.system(Tokens.TextStyle.subhead, weight: .semibold))
                                     .foregroundStyle(Tokens.Colors.textLink)
+                                    .multilineTextAlignment(.leading)
                                     .padding(.horizontal, Tokens.Spacing.space3)
+                                    .padding(.vertical, Tokens.Spacing.space2)
                                     .frame(minHeight: 44)
                                     .background(Tokens.Colors.actionTonalBg, in: Capsule(style: .continuous))
                             }

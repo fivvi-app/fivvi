@@ -55,6 +55,7 @@ extension HomeView {
                     || account.capabilities.allows(.session_private_manage_any),
                 onPlan: { openNewSession(from: .today, start: $0) },
                 onOpen: { todayPath.append(PersonalRoute($0)) },
+                onOpenAttendance: { todayPath.append(.attendance(AttendanceRoute(row: $0))) },
                 onOpenTomorrow: { date in
                     agenda.open(day: date)
                     calendarPath = []

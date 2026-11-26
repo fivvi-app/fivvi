@@ -1,32 +1,11 @@
 import XCTest
 
-/// The nudge on TD-01 *Vandaag*, its *Mijn dag* card's *Te doen* row, and attendance on the Owner's *Hele studio* (F025 AC2,
-/// AC7 and the design, iOS), in nl and en, against the stub server: Tuesday 22 September 2026 at 10:05 (the app's clock is
-/// fixed with `-UITestNow`), Anna's 09:00 session still *Geboekt* once the test says it has ended (synthetic).
+/// The nudge on TD-01 *Vandaag*, the line of an ended class, its *Mijn dag* card's *Te doen* row, and attendance on the Owner's *Hele studio* (F025 AC2, AC7 and the design, iOS), in
+/// nl and en, against the stub server: Tuesday 22 September 2026 at 10:05 (the app's clock is fixed with `-UITestNow`),
+/// Anna's 09:00 session still *Geboekt* once the test says it has ended (synthetic), and so is "Kracht" with its seven
+/// participants.
 @MainActor
 final class AttendanceNudgeUITests: AttendanceUITestCase {
-    private let anna = StubPersonalRoutes.anna
-
-    /// Vandaag at `now` for Sarah (a Trainer on two teams), or for John, the Owner of a team.
-    private func launchToday(
-        ended: Bool, owner: Bool = false, now: String = "2026-09-22T10:05:00+02:00", offline: Bool = false
-    ) throws -> (XCUIApplication, StubServer) {
-        let server = try StubServer(signIn: StubServer.SignIn(
-            email: owner ? "john@example.com" : "trainer@example.com", workspaceName: "John's Gym",
-            role: owner ? "owner" : "trainer",
-            otherWorkspaces: owner ? [] : [.init(name: "Sarah Personal Training", role: "owner")],
-            name: owner ? "John Visser" : "Sarah Visser", hasTeam: owner
-        ))
-        self.server = server
-        server.setAttendanceOpens(anna, at: StubSessionRoutes.date("2026-09-22", "08:30") ?? Date())
-        if ended { server.setEnded(anna) }
-        return (
-            AppLaunch.launch(
-                against: server, session: .signedIn, startTab: nil, now: now, connectivity: offline ? "offline" : nil
-            ),
-            server
-        )
-    }
 
     func test_F025_AC2_todayNudgeMarksNoShow() throws {
         let (app, server) = try launchToday(ended: true)
@@ -54,58 +33,6 @@ final class AttendanceNudgeUITests: AttendanceUITestCase {
         XCTAssertEqual(sent["status"], "no_show")
         XCTAssertEqual(sent["clientId"], StubSessionRoutes.annaID)
         XCTAssertEqual(sent["surface"], "ios")
-    }
-
-    /// The trailing swipe of a row with a nudge shows *Aanwezig* and *Niet verschenen* behind it.
-    private func swipeOpen(_ row: XCUIElement, _ app: XCUIApplication, _ action: String) -> XCUIElement {
-        let button = app.buttons[action]
-        XCTAssertTrue(row.waitUntilExists(timeout: timeout), requestLog)
-        for _ in 0..<6 where !row.isHittable { app.swipeUp() }
-        XCTAssertFalse(button.isHittable, "the actions are behind the row until it is swiped")
-        let opened = Polling.acting(
-            timeout: timeout, action: { row.swipeLeft() }, canRepeat: { row.exists }, report: { _, _ in },
-            until: { button.exists && button.isHittable }
-        )
-        XCTAssertTrue(opened, "the swipe shows the actions: \(requestLog)")
-        return button
-    }
-
-    func test_F025_AC2_trailingSwipeOnTheRowMarksNoShow() throws {
-        let (app, server) = try launchToday(ended: true)
-        let nudge = any("today.nudge.\(anna)", in: app)
-        XCTAssertTrue(nudge.waitUntilExists(timeout: timeout), requestLog)
-        let attended = swipeOpen(any("today.row.\(anna)", in: app), app, "today.swipe.attended.\(anna)")
-        XCTAssertEqual(
-            attended.label,
-            String(
-                format: catalog["attendance.nudgeButtonLabel"], "Anna de Vries", catalog["attendance.status.attended"]
-            )
-        )
-        let noShow = app.buttons["today.swipe.noShow.\(anna)"]
-        XCTAssertTrue(noShow.isHittable)
-        XCTAssertEqual(noShow.label, String(
-            format: catalog["attendance.nudgeButtonLabel"], "Anna de Vries", catalog["attendance.status.noShow"]
-        ))
-
-        noShow.tap()
-        XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) { !nudge.exists }, "the nudge goes: \(requestLog)")
-        waitForRequests(server, 1)
-        XCTAssertEqual(server.attendanceRequests.first?["status"], "no_show")
-        XCTAssertEqual(server.attendanceRequests.first?["clientId"], StubSessionRoutes.annaID)
-    }
-
-    func test_F025_AC7_trailingSwipeOnTheWorkspaceDayMarksAttended() throws {
-        let (app, server) = try launchToday(ended: true, owner: true)
-        let control = app.segmentedControls["today.scope"]
-        XCTAssertTrue(control.waitUntilExists(timeout: timeout), requestLog)
-        control.buttons[catalog["myDay.app.scopeStudio"]].tap()
-        let nudge = any("today.nudge.\(anna)", in: app)
-        XCTAssertTrue(nudge.waitUntilExists(timeout: timeout), requestLog)
-
-        swipeOpen(any("today.row.\(anna)", in: app), app, "today.swipe.attended.\(anna)").tap()
-        XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) { !nudge.exists }, requestLog)
-        waitForRequests(server, 1)
-        XCTAssertEqual(server.attendanceRequests.first?["status"], "attended")
     }
 
     func test_F025_AC8_aTapFromTheNudgeWhileOfflineKeepsTheRowWaitingForTheConnection() throws {
@@ -185,6 +112,33 @@ final class AttendanceNudgeUITests: AttendanceUITestCase {
             "once marked, the card says all caught up: \(todo.label)"
         )
         XCTAssertFalse(app.buttons["today.card.todo.\(anna)"].exists)
+    }
+
+    /// An ended class with open participants has the line alone (the same words, no buttons); a tap on it opens CO-05.
+    func test_F025_aClassThatEndedWithOpenParticipantsShowsTheLineAndItOpensCO05() throws {
+        let (app, _) = try launchToday(ended: false, classEnded: true)
+        let line = any("today.nudge.\(kracht)", in: app)
+        XCTAssertTrue(line.waitUntilExists(timeout: timeout), requestLog)
+        XCTAssertEqual(line.label, catalog["attendance.nudge"])
+        XCTAssertFalse(
+            app.buttons["today.nudge.attended.\(kracht)"].exists, "no buttons: the class is filled in on CO-05"
+        )
+        XCTAssertFalse(any("today.nudge.\(anna)", in: app).exists, "Anna's session has not ended")
+
+        for _ in 0..<6 where !line.isHittable { app.swipeUp() }
+        XCTAssertTrue(line.tap(until: app.staticTexts["attendance.title"], timeout: timeout), requestLog)
+        waitForSummary(app, summaryLabel(0, 0, 7))
+    }
+
+    /// The chip "Aanwezigheid · Anna 09:00" at the largest text size wraps its text and stays within the screen.
+    func test_F025_theTeDoenChipAtTheLargestTextSizeStaysWithinTheScreen() throws {
+        let (app, _) = try launchToday(ended: true, textSize: AppLaunch.largestTextSize)
+        let chip = app.buttons["today.card.todo.\(anna)"]
+        XCTAssertTrue(chip.waitUntilExists(timeout: timeout), requestLog)
+        let width = app.windows.firstMatch.frame.width
+        XCTAssertGreaterThanOrEqual(chip.frame.minX, 0, "the chip starts on screen")
+        XCTAssertLessThanOrEqual(chip.frame.maxX, width, "the chip ends on screen: \(chip.frame)")
+        XCTAssertGreaterThan(chip.frame.height, 60, "its text wraps onto more lines: \(chip.frame)")
     }
 
     func test_F025_AC7_johnTakesAttendanceFromTheWorkspaceDay() throws {

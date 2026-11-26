@@ -16,6 +16,8 @@ struct AttendanceView: View {
     let subtitle: String
 
     @Environment(\.dynamicTypeSize) private var textSize
+    /// The two round buttons of a row: 44 pt at the standard size, growing with the symbol in them.
+    @ScaledMetric(relativeTo: .body) private var markSize: CGFloat = 44
     /// What the summary said when it was last announced (F025: announced politely when it changes).
     @State private var announcer = SummaryAnnouncer()
 
@@ -211,7 +213,7 @@ struct AttendanceView: View {
             Image(systemName: symbol)
                 .font(.system(Tokens.TextStyle.body, weight: .semibold))
                 .foregroundStyle(isOn ? Tokens.Colors.textPrimary : Tokens.Colors.textSecondary)
-                .frame(width: 44, height: 44)
+                .frame(width: markSize, height: markSize)
                 .background(isOn ? selected : Tokens.Colors.bgSubtle, in: Circle())
         }
         .buttonStyle(.plain)
@@ -243,10 +245,17 @@ struct AttendanceScreen: View {
     }
 }
 
-/// CO-05 of one class date: the name and the time come from TD-03, which opens it.
+/// CO-05 of one class date: the name and the time come from TD-03, which opens it, or from the row of Vandaag.
 struct AttendanceRoute: Hashable {
     let workspaceID: String
     let sessionID: String
     /// "Kracht · 18:00–19:00"
     let subtitle: String
+}
+
+extension AttendanceRoute {
+    /// The line of a class on Vandaag opens CO-05 at once, worded as TD-03 words it.
+    init(row: PersonalRow) {
+        self.init(workspaceID: row.workspaceID, sessionID: row.id, subtitle: "\(row.title) · \(row.timeText)")
+    }
 }

@@ -702,9 +702,12 @@ input:focus,select:focus,textarea:focus{outline:none}
 .att-row .m small{white-space:normal}
 .att-row .m small span{display:inline;white-space:normal;overflow:visible;font-size:inherit;color:inherit}
 .att-row .m small span.att-msg{color:color-mix(in oklab,var(--danger) 58%,var(--ev-ink))}
-.sw-att .sw-acts{position:absolute;top:0;bottom:0;right:0;display:flex}
+.sw-att .sw-acts{position:absolute;top:0;bottom:0;display:flex}
+.sw-att .sw-acts.lead{left:0}
+.sw-att .sw-acts.trail{right:0}
 .sw-att .sw-acts button{width:96px;border:0;font-weight:600;font-size:14px;padding:0 8px;line-height:1.2}
 .sw-att .sw-acts .ok{background:var(--accent);color:var(--on-accent)}
 .sw-att .sw-acts .no{background:color-mix(in srgb,var(--danger) 85%,#000);color:#fff}
-.sw-att.open .set{transform:translateX(-192px)}
+.sw-att.open.lead .set{transform:translateX(96px)}
+.sw-att.open.trail .set{transform:translateX(-96px)}
 .ios .grp>.row+.sw-att .row::before,.ios .grp>.sw-att+.row::before,.ios .grp>.sw-att+.sw-att .row::before{content:"";position:absolute;top:0;left:var(--inset,16px);right:0;height:.5px;background:var(--sep)}

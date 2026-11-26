@@ -119,11 +119,12 @@ final class StubPersonalRoutes: @unchecked Sendable {
         return (200, answer)
     }
 
-    /// What the API adds for attendance (F025) to a private session: its client, and whether it waits for attendance.
+    /// What the API adds for attendance (F025): to a private session its client, and to it and to the class "Kracht"
+    /// whether it waits for attendance.
     private func withAttendance(_ item: [String: Any]) -> [String: Any] {
-        guard let id = item["sessionId"] as? String, id == Self.anna else { return item }
+        guard let id = item["sessionId"] as? String, id == Self.anna || id == Self.kracht else { return item }
         var next = item
-        next["clients"] = [["clientId": StubSessionRoutes.annaID, "name": "Anna de Vries"]]
+        if id == Self.anna { next["clients"] = [["clientId": StubSessionRoutes.annaID, "name": "Anna de Vries"]] }
         if attendanceOpen(id) { next["attendanceOpen"] = true }
         return next
     }

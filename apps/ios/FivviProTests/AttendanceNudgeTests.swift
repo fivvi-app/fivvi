@@ -158,9 +158,10 @@ final class AttendanceNudgeTests: XCTestCase {
         XCTAssertEqual(annaRow(run.today)?.nudge?.message, catalog["attendance.errors.generic"])
     }
 
-    func test_F025_aDuoHasNoInlineButtonsButItsChip() async {
+    func test_F025_aDuoHasNoInlineButtonsButTheLineAndItsChip() async {
         let run = await setup(day(annaOpen: true, duo: true))
         XCTAssertNil(annaRow(run.today)?.nudge)
+        XCTAssertEqual(annaRow(run.today)?.attendanceLine, true, "the line alone, which opens TD-02")
         XCTAssertEqual(run.today.card?.todo.chips.map(\.id), ["anna"])
     }
 
@@ -186,6 +187,53 @@ final class AttendanceNudgeTests: XCTestCase {
         XCTAssertEqual(chip.text, String(format: catalog["attendance.app.chip"], "Kracht", "15:00"))
         XCTAssertEqual(PersonalRoute(chip.row), .classDate(workspaceID: PersonalFixtures.johns.id, id: "kracht"))
         XCTAssertNil(run.today.rows.first { $0.id == "kracht" }?.nudge, "a class has no inline buttons")
+    }
+
+    private func classDay(open: Bool?) -> PersonalDay {
+        var kracht = PersonalFixtures.kracht
+        kracht.attendanceOpen = open
+        var day = PersonalFixtures.sarah(items: [kracht], workspaceCount: 1, showsKindLabel: true)
+        day.next = nil
+        return day
+    }
+
+    func test_F025_aClassThatEndedWithOpenParticipantsShowsTheLineAndItOpensCO05() async throws {
+        let run = await setup(classDay(open: true), now: PersonalFixtures.at("16:05"))
+        let row = try XCTUnwrap(run.today.rows.first { $0.id == "kracht" })
+        XCTAssertTrue(row.attendanceLine, "an ended class with open participants has the line")
+        XCTAssertNil(row.nudge, "and no buttons: each participant is filled in on CO-05")
+        XCTAssertTrue(
+            row.spokenLabel.hasSuffix(catalog["attendance.nudge"]), "VoiceOver reads the line with the row"
+        )
+        // The placeholders of the catalog are in the order of their names: end, start.
+        XCTAssertEqual(
+            AttendanceRoute(row: row),
+            AttendanceRoute(
+                workspaceID: PersonalFixtures.johns.id, sessionID: "kracht",
+                subtitle: "Kracht · " + String(format: catalog["myDay.timeRange"], "16:00", "15:00")
+            )
+        )
+    }
+
+    func test_F025_aClassWithNobodyOpenOrStillRunningHasNoLine() async {
+        let ended = await setup(classDay(open: nil), now: PersonalFixtures.at("16:05"))
+        XCTAssertEqual(
+            ended.today.rows.first { $0.id == "kracht" }?.attendanceLine, false, "the API says nobody is open"
+        )
+        let running = await setup(classDay(open: nil), now: PersonalFixtures.at("15:30"))
+        XCTAssertEqual(running.today.rows.first { $0.id == "kracht" }?.attendanceLine, false)
+    }
+
+    func test_F025_theLineOfAClassGoesOnceATapOnCO05IsQueued() async throws {
+        let offline = Online()
+        offline.value = false
+        let run = await setup(classDay(open: true), now: PersonalFixtures.at("16:05"), online: offline)
+        XCTAssertEqual(run.today.rows.first { $0.id == "kracht" }?.attendanceLine, true)
+        run.queue.enqueue(
+            workspaceID: PersonalFixtures.johns.id, sessionID: "kracht",
+            .set(clientID: anna.clientId, status: AttendanceStatus.attended.request!)
+        )
+        XCTAssertEqual(run.today.rows.first { $0.id == "kracht" }?.attendanceLine, false)
     }
 
     func test_F025_AC7_johnTakesAttendanceFromTheWorkspaceDay() async throws {
@@ -223,5 +271,6 @@ final class AttendanceNudgeTests: XCTestCase {
             namesKinds: false, workspaceCount: 1, catalog: Catalog(locale: language), now: PersonalFixtures.at("10:05")
         ).row(anna)
         XCTAssertNil(row.nudge)
+        XCTAssertFalse(row.attendanceLine)
     }
 }

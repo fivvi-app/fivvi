@@ -3,9 +3,10 @@ import FivviAPI
 import FivviStrings
 
 /// What Vandaag and *Hele studio* show about attendance still to fill in (F025, Q18): the nudge under an ended private
-/// session whose client is still *Geboekt*, and the *Te doen* chips of the *Mijn dag* card. The API says which sessions
-/// wait (`attendanceOpen`: ended, takes place, a participant still *Geboekt*); this only leaves out what the phone has
-/// already answered: a tap waiting in the queue, or the queue's last answer saying nobody is open any more (`settled`).
+/// session whose client is still *Geboekt*, the line alone under an ended class or duo, and the *Te doen* chips of the
+/// *Mijn dag* card. The API says which sessions wait (`attendanceOpen`: ended, takes place, a participant still
+/// *Geboekt*); this only leaves out what the phone has already answered: a tap waiting in the queue, or the queue's last
+/// answer saying nobody is open any more (`settled`).
 @MainActor
 struct AttendanceNudges {
     let queue: AttendanceQueue
@@ -19,7 +20,7 @@ struct AttendanceNudges {
         return queue.settled[sessionID] != 0
     }
 
-    /// The nudge of a private session with one client; a duo, a class and Open Gym have none (their chip opens the screen).
+    /// The nudge of a private session with one client; a duo and a class have the line alone (`decorate`).
     /// A tap that waits for the connection keeps the row, saying so; a tap the API refused brings the buttons back with
     /// its message. A tap that is on its way, with the phone online, takes the nudge away at once.
     func nudge(
@@ -51,17 +52,22 @@ struct AttendanceNudges {
         return catalog.string(.todaySpokenJoin, nudged, extra)
     }
 
-    /// The row with its nudge, when the private session waits for attendance.
+    /// The row with its nudge, when the private session waits for attendance; a class or a duo that waits has the line
+    /// *Aanwezigheid nog invullen* alone, which opens CO-05 (TD-02).
     func decorate(
         _ row: PersonalRow, sessionID: String, attendanceOpen: Bool?, isPrivate: Bool,
         clients: [Components.Schemas.PersonalSessionClient]?
     ) -> PersonalRow {
-        guard let nudge = nudge(
-            sessionID: sessionID, attendanceOpen: attendanceOpen, isPrivate: isPrivate, clients: clients
-        ) else { return row }
         var row = row
-        row.nudge = nudge
-        row.spokenLabel = spoken(row.spokenLabel, nudge)
+        if let nudge = nudge(
+            sessionID: sessionID, attendanceOpen: attendanceOpen, isPrivate: isPrivate, clients: clients
+        ) {
+            row.nudge = nudge
+            row.spokenLabel = spoken(row.spokenLabel, nudge)
+        } else if isOpen(sessionID: sessionID, attendanceOpen: attendanceOpen) {
+            row.attendanceLine = true
+            row.spokenLabel = catalog.string(.todaySpokenJoin, row.spokenLabel, catalog[.attendanceNudge])
+        }
         return row
     }
 

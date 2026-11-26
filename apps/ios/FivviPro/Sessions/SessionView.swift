@@ -10,7 +10,8 @@ import FivviUI
 /// the client. The ⋯ menu has *Verplaatsen* (PS-05, for whoever may plan sessions, not for a cancelled session),
 /// *Klantprofiel* and, below a divider, the destructive *Annuleren* (PS-06, F026: the Owner for any session, a Trainer for
 /// their own; off while offline). A cancelled session shows "Geannuleerd op … door …" and offers *Klantprofiel* only. The
-/// sections of later features (workout, last time, notes, attendance) are not shown yet.
+/// sections of later features (workout, last time, notes) are not shown yet; *Aanwezigheid* is (F025: the segmented
+/// control per client, saved through the offline queue).
 struct SessionView: View {
     let model: SessionViewModel
     /// TD-02's *Aanwezigheid* section (F025).

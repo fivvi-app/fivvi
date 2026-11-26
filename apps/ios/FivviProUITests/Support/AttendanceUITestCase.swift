@@ -1,7 +1,8 @@
 import XCTest
 
 /// What the attendance UI tests share (F025): the stub server with "Kracht" tomorrow at 18:00 and its seven participants, John
-/// (the Owner) or Sarah (a Trainer) signed in, and the steps that open TD-03 and CO-05 (synthetic names).
+/// (the Owner) or Sarah (a Trainer) signed in, the steps that open TD-03 and CO-05, and Vandaag with Anna's session or the class
+/// ended (synthetic names).
 @MainActor
 class AttendanceUITestCase: PrivateSessionUITestCase {
     let krachtID = StubSessionRoutes.seededClassDateID
@@ -86,16 +87,28 @@ class AttendanceUITestCase: PrivateSessionUITestCase {
         )
     }
 
+    /// The size of a row's round buttons at the text size `stacked` stands for: 44 pt at the standard size, scaled with
+    /// the body text like the app's `@ScaledMetric(relativeTo: .body)`.
+    private func markSize(stacked: Bool) -> CGFloat {
+        guard stacked else { return 44 }
+        let category = UIContentSizeCategory(rawValue: AppLaunch.largestTextSize)
+        return UIFontMetrics(forTextStyle: .body).scaledValue(
+            for: 44, compatibleWith: UITraitCollection(preferredContentSizeCategory: category)
+        )
+    }
+
     /// Taps one of a row's two buttons where they are drawn (the row is the only element): at the trailing side, or under
-    /// the name at the accessibility text sizes (44 pt buttons, 8 pt apart, 16 pt and 11 pt inside the row).
+    /// the name at the accessibility text sizes (the buttons as large as `markSize`, 8 pt apart, 16 pt and 11 pt inside the
+    /// row).
     private func tapButton(_ name: String, noShow: Bool, _ app: XCUIApplication, stacked: Bool) {
         let row = row(name, app)
         XCTAssertTrue(row.waitUntilExists(timeout: timeout), requestLog)
         let frame = row.frame
-        let step: CGFloat = noShow ? 52 : 0
+        let size = markSize(stacked: stacked)
+        let step: CGFloat = noShow ? size + 8 : 0
         let offset = stacked
-            ? CGVector(dx: 16 + 22 + step, dy: frame.height - 11 - 22)
-            : CGVector(dx: frame.width - 16 - 22 - 52 + (noShow ? 52 : 0), dy: frame.height / 2)
+            ? CGVector(dx: 16 + size / 2 + step, dy: frame.height - 11 - size / 2)
+            : CGVector(dx: frame.width - 16 - size / 2 - (size + 8) + step, dy: frame.height / 2)
         row.coordinate(withNormalizedOffset: .zero).withOffset(offset).tap()
     }
 
@@ -119,5 +132,36 @@ class AttendanceUITestCase: PrivateSessionUITestCase {
         formatter.timeZone = TimeZone(identifier: "Europe/Amsterdam")
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
+    }
+
+    let anna = StubPersonalRoutes.anna
+    let kracht = StubPersonalRoutes.kracht
+
+    /// Vandaag at `now` for Sarah (a Trainer on two teams), or for John, the Owner of a team.
+    func launchToday(
+        ended: Bool, classEnded: Bool = false, owner: Bool = false, now: String = "2026-09-22T10:05:00+02:00",
+        offline: Bool = false, textSize: String? = nil
+    ) throws -> (XCUIApplication, StubServer) {
+        let server = try StubServer(signIn: StubServer.SignIn(
+            email: owner ? "john@example.com" : "trainer@example.com", workspaceName: "John's Gym",
+            role: owner ? "owner" : "trainer",
+            otherWorkspaces: owner ? [] : [.init(name: "Sarah Personal Training", role: "owner")],
+            name: owner ? "John Visser" : "Sarah Visser", hasTeam: owner
+        ))
+        self.server = server
+        server.setAttendanceOpens(anna, at: StubSessionRoutes.date("2026-09-22", "08:30") ?? Date())
+        if ended { server.setEnded(anna) }
+        if classEnded {
+            server.seedKrachtParticipants()
+            server.setAttendanceOpens(kracht, at: StubSessionRoutes.date("2026-09-22", "08:30") ?? Date())
+            server.setEnded(kracht)
+        }
+        return (
+            AppLaunch.launch(
+                against: server, session: .signedIn, textSize: textSize, startTab: nil, now: now,
+                connectivity: offline ? "offline" : nil
+            ),
+            server
+        )
     }
 }

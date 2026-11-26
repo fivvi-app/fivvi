@@ -12,6 +12,8 @@ struct PersonalRowView: View {
     let onOpen: () -> Void
     /// *Aanwezig* or *Niet verschenen* on the row's nudge (F025); nil where the list shows no nudges (Agenda).
     var onMark: ((AttendanceStatus) -> Void)?
+    /// The line *Aanwezigheid nog invullen* of an ended class opens CO-05 (F025); where it is nil, it opens the row.
+    var onOpenAttendance: (() -> Void)?
     /// The row's test ids are `<prefix>.row.<id>` and `<prefix>.route.<id>`: Vandaag's are `today`, Agenda's `calendar`.
     var identifierPrefix = "today"
     @Environment(\.openURL) private var openURL
@@ -20,10 +22,10 @@ struct PersonalRowView: View {
 
     var body: some View {
         let actions = swipeActions
-        if actions.isEmpty {
+        if actions.leading.isEmpty && actions.trailing.isEmpty {
             rowAndNudge
         } else {
-            TrailingSwipeActions(actions: actions) { rowAndNudge }
+            SwipeActionsRow(id: row.id, leading: actions.leading, trailing: actions.trailing) { rowAndNudge }
         }
     }
 
@@ -31,13 +33,14 @@ struct PersonalRowView: View {
         VStack(alignment: .leading, spacing: 0) {
             line
             if let nudge = row.nudge, let onMark { self.nudge(nudge, onMark) }
+            if row.attendanceLine { attendanceLine }
         }
     }
 
-    /// The trailing swipe of a row with a nudge (F025): *Aanwezig* and *Niet verschenen*, as the buttons under it. A tap that
-    /// waits for the connection has been made: nothing to swipe for.
-    private var swipeActions: [SwipeAction] {
-        guard let nudge = row.nudge, !nudge.isWaiting, let onMark else { return [] }
+    /// The swipes of a row with a nudge (F025, TD-01): rightward *Aanwezig* (the leading side), leftward *Niet verschenen*
+    /// (the trailing side), as the buttons under it. A tap that waits for the connection has been made: nothing to swipe for.
+    private var swipeActions: (leading: [SwipeAction], trailing: [SwipeAction]) {
+        guard let nudge = row.nudge, !nudge.isWaiting, let onMark else { return ([], []) }
         func action(_ status: AttendanceStatus, _ name: String, _ solid: Color, _ onSolid: Color) -> SwipeAction {
             let word = statusWord(status)
             return SwipeAction(
@@ -46,10 +49,10 @@ struct PersonalRowView: View {
                 perform: { onMark(status) }
             )
         }
-        return [
-            action(.attended, "attended", Tokens.Colors.actionPrimaryBg, Tokens.Colors.actionPrimaryFg),
-            action(.noShow, "noShow", Tokens.Colors.actionDangerBg, Tokens.Colors.actionDangerFg)
-        ]
+        return (
+            [action(.attended, "attended", Tokens.Colors.actionPrimaryBg, Tokens.Colors.actionPrimaryFg)],
+            [action(.noShow, "noShow", Tokens.Colors.actionDangerBg, Tokens.Colors.actionDangerFg)]
+        )
     }
 
     private func statusWord(_ status: AttendanceStatus) -> String {
@@ -132,6 +135,22 @@ struct PersonalRowView: View {
         .padding(.horizontal, Tokens.Spacing.space4)
         .padding(.bottom, Tokens.Spacing.space3)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// *Aanwezigheid nog invullen* of an ended class (or duo): the line alone, as a link to the screen where each person is
+    /// filled in (CO-05 for a class).
+    private var attendanceLine: some View {
+        Button { (onOpenAttendance ?? onOpen)() } label: {
+            Label(catalog[.attendanceNudge], systemImage: "exclamationmark.triangle")
+                .font(.system(Tokens.TextStyle.subhead, weight: .semibold))
+                .foregroundStyle(Tokens.Colors.statusWarningText)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, Tokens.Spacing.space4)
+        .accessibilityIdentifier("\(identifierPrefix).nudge.\(row.id)")
     }
 
     private func nudgeButton(
