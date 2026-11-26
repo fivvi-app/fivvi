@@ -16,6 +16,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.models.CreateBookingLinkRequest
@@ -122,11 +123,11 @@ class ClassDateShareLinkFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, priv
     @Test
     fun test_F037_AC8_theOwnerTapsBoekingslinkDelenAndSeesItCopiedAndASecondTapGivesTheSameLink() {
         show(owner, MeWorkspace.Role.OWNER)
-        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).assertIsDisplayed()
+        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performScrollTo().assertIsDisplayed()
             .assertTextEquals(string(R.string.classes_app_share_link))
         compose.onAllNodesWithText(string(R.string.classes_app_share_link_copied)).assertCountEquals(0)
 
-        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performClick()
+        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performScrollTo().performClick()
         waitForToast()
 
         val sent = links.requests.single().second
@@ -142,7 +143,12 @@ class ClassDateShareLinkFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, priv
                 hasAnyDescendant(hasText(string(R.string.classes_app_share_link_copied))),
         ).assertExists()
 
-        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performClick()
+        // The toast sits over the lower edge of the screen, where the button now is (below *Aanwezigheid invullen*): the second tap
+        // comes once it has gone.
+        compose.waitUntil(TOAST_GONE_MILLIS) {
+            compose.onAllNodesWithText(string(R.string.classes_app_share_link_copied)).fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performScrollTo().performClick()
         compose.waitUntil(UI_TIMEOUT_MILLIS) { clipboard.size == 2 }
 
         assertEquals("get-or-create: one link for the date", 1, links.links.size)
@@ -183,9 +189,9 @@ class ClassDateShareLinkFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, priv
         val johns = runBlocking { links.createBookingLink(gym, request) }.body()!!
         links.requests.clear()
         compose.onNodeWithTag(ClassDateTags.MENU).assertDoesNotExist()
-        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).assertIsDisplayed()
+        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performScrollTo().assertIsDisplayed()
 
-        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performClick()
+        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performScrollTo().performClick()
         waitForToast()
 
         assertEquals("the same link as John's", listOf(johns.url.toString()), clipboard)
@@ -195,7 +201,7 @@ class ClassDateShareLinkFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, priv
     @Test
     fun test_F037_unavailable_aCancelledDateHasNoBoekingslinkDelen() {
         show(owner, MeWorkspace.Role.OWNER)
-        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).assertIsDisplayed()
+        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performScrollTo().assertIsDisplayed()
 
         compose.onNodeWithTag(ClassDateTags.MENU).performClick()
         compose.waitUntilTagExists(ClassDateTags.CANCEL)
@@ -257,7 +263,7 @@ class ClassDateShareLinkFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, priv
         links.status = 500
         show(owner, MeWorkspace.Role.OWNER)
 
-        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performClick()
+        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performScrollTo().performClick()
         compose.waitUntilTagExists(ClassDateTags.SHARE_FAILED)
 
         compose.onNodeWithTag(
@@ -271,7 +277,7 @@ class ClassDateShareLinkFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, priv
         links.status = 403
         show(owner, MeWorkspace.Role.OWNER)
 
-        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performClick()
+        compose.onNodeWithTag(ClassDateTags.SHARE_LINK).performScrollTo().performClick()
         compose.waitUntilTagExists(ClassDateTags.SHARE_FAILED)
 
         compose.onNodeWithTag(ClassDateTags.SHARE_FAILED)
@@ -285,3 +291,5 @@ class ClassDateShareLinkFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, priv
         fun languages() = appLanguageParameters()
     }
 }
+
+private const val TOAST_GONE_MILLIS = 15_000L
