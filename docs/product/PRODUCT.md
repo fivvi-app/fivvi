@@ -820,6 +820,7 @@ Trainer
 Location
 Capacity
 Duration
+Level (Niveau)
 Schedule
 ```
 
@@ -839,6 +840,8 @@ Capacity:
 ```
 
 The owner types the name and description in Dutch and, optionally, in English. Each viewer sees their language, else the Dutch text (§3).
+
+**The level (owner, 6 November 2026, F067).** A class has a **level** (*Niveau* / *Level*) from a fixed list: *Alle niveaus*, *Beginner*, *Gemiddeld* and *Gevorderd* (*All levels*, *Beginner*, *Intermediate*, *Advanced*). *Geen* (*None*) is the starting value, so a studio that doesn't use levels sees nothing. The owner sets it on the class and on its series (§20), and can change it for one date, as with capacity and trainer (each date has its own values, [ADR-012](../decisions/ADR-012-time-and-recurrence.md)). The level is **information only**: there is no filter, and it never limits who can book.
 
 ---
 
