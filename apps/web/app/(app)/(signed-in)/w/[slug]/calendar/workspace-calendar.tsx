@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import { type DateTimeFormatOptions, useFormatter, useTranslations } from 'next-intl';
 import { type KeyboardEvent, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { TimeZoneHint } from '../../../me/(personal)/time-zone-hint';
+import { AttendanceLine } from '../attendance/attendance-line';
 import { useClassDialogs } from '../classes/classes-provider';
 import { useOpenNewSession } from '../sessions/new-private-session';
 import { useSessionFormat } from '../sessions/use-session-format';
@@ -746,14 +747,18 @@ export function WorkspaceCalendarView({
                               </td>
                               <td className="px-3 py-2">{item.location.name}</td>
                               <td className="px-3 py-2">
-                                {cancelled
-                                  ? shared('cancelled')
-                                  : item.type === 'group'
-                                    ? shared('blockBooked', {
-                                        booked: item.booked ?? 0,
-                                        capacity: item.capacity,
-                                      })
-                                    : null}
+                                <div className="grid gap-0.5">
+                                  {cancelled
+                                    ? shared('cancelled')
+                                    : item.type === 'group'
+                                      ? shared('blockBooked', {
+                                          booked: item.booked ?? 0,
+                                          capacity: item.capacity,
+                                        })
+                                      : null}
+                                  {/* F025: "Aanwezigheid: {status}" */}
+                                  <AttendanceLine item={item} workspaceId={workspaceId} as="span" />
+                                </div>
                               </td>
                             </tr>
                           );

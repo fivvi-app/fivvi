@@ -15,6 +15,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type RefObject, useRef } from 'react';
+import { AttendanceLine } from '../attendance/attendance-line';
 import { ClassLevelIcon } from '../classes/class-level';
 import { CopyBookingLink } from '../classes/copy-booking-link';
 import { useSessionFormat } from '../sessions/use-session-format';
@@ -176,6 +177,8 @@ function QuickViewBody({
           <li>{t('bookedLine', { booked: item.booked ?? 0, capacity: item.capacity, free })}</li>
         )}
         <li>{item.location.name}</li>
+        {/* F025: "Aanwezigheid: {status}" for a private session, the summary for a class date. */}
+        <AttendanceLine item={item} workspaceId={workspaceId} as="li" />
         {item.series && weekday >= 0 ? (
           <li>
             {t('seriesLine', {
