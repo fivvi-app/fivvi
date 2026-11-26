@@ -1,5 +1,6 @@
 package app.fivvi.pro.classes
 
+import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionSeries
 import app.fivvi.api.models.Trainer
 import app.fivvi.core.me.workspaceIdOf
@@ -450,6 +451,77 @@ class ClassDateViewModelTest {
         assertFalse(viewModel.state.value.isCancelling)
         assertEquals(listOf(403), cancelNotAllowed)
         assertTrue(notAllowed.isEmpty())
+    }
+
+    // F025 #1617: the participants of the date, with the status the API has for each, on TD-03.
+    private fun dateWithParticipants(vararg people: Pair<String, SessionParticipant.AttendanceStatus>): UUID {
+        val id = date()
+        sessions.sessions[id] = sessions.sessions.getValue(id).copy(
+            participants = people.map { (name, status) ->
+                SessionParticipant(UUID.nameUUIDFromBytes("client:$name".toByteArray()), name, status)
+            },
+        )
+        return id
+    }
+
+    private val sevenParticipants = arrayOf(
+        "Anna de Vries" to SessionParticipant.AttendanceStatus.ATTENDED,
+        "Bram Jansen" to SessionParticipant.AttendanceStatus.NO_SHOW,
+        "Chris Bakker" to SessionParticipant.AttendanceStatus.BOOKED,
+        "Dana Smit" to SessionParticipant.AttendanceStatus.BOOKED,
+        "Eva Bos" to SessionParticipant.AttendanceStatus.BOOKED,
+        "Fenna Kok" to SessionParticipant.AttendanceStatus.BOOKED,
+        "Gijs Mol" to SessionParticipant.AttendanceStatus.BOOKED,
+    )
+
+    @Test
+    fun test_F025_1617_theFirstFiveParticipantsShowWithTheirStatusAndShowAllListsTheRest() {
+        val model = viewModel(dateWithParticipants(*sevenParticipants))
+        val state = model.state.value
+
+        assertEquals(7, state.participants.size)
+        assertEquals(
+            listOf("Anna de Vries", "Bram Jansen", "Chris Bakker", "Dana Smit", "Eva Bos"),
+            state.shownParticipants.map { it.name },
+        )
+        assertEquals(
+            listOf(
+                SessionParticipant.AttendanceStatus.ATTENDED,
+                SessionParticipant.AttendanceStatus.NO_SHOW,
+                SessionParticipant.AttendanceStatus.BOOKED,
+            ),
+            state.shownParticipants.take(3).map { it.attendanceStatus },
+        )
+        assertTrue(state.showsAllButton)
+
+        model.showAllParticipants()
+
+        assertEquals(7, model.state.value.shownParticipants.size)
+        assertFalse(model.state.value.showsAllButton)
+    }
+
+    @Test
+    fun test_F025_1617_fiveOrFewerParticipantsHaveNoShowAllAndACancelledPlaceIsNotListed() {
+        val state = viewModel(
+            dateWithParticipants(
+                "Anna de Vries" to SessionParticipant.AttendanceStatus.BOOKED,
+                "Bram Jansen" to SessionParticipant.AttendanceStatus.BOOKED,
+                "Kees Smit" to SessionParticipant.AttendanceStatus.CANCELLED,
+            ),
+        ).state.value
+
+        assertEquals(listOf("Anna de Vries", "Bram Jansen"), state.participants.map { it.name })
+        assertFalse(state.showsAllButton)
+        assertEquals(2, state.booked)
+    }
+
+    @Test
+    fun test_F025_1617_aDateWithoutParticipantsListsNoOne() {
+        val state = viewModel(date()).state.value
+
+        assertTrue(state.participants.isEmpty())
+        assertFalse(state.showsAllButton)
+        assertTrue(state.showsNoBookings)
     }
 
     @Test

@@ -93,6 +93,7 @@ fun ClassDateFlow(
             onDismissCancel = model::dismissCancel,
             onShareLink = model::shareLink,
             onTakeAttendance = { onTakeAttendance?.invoke(sessionId) },
+            onShowAllParticipants = model::showAllParticipants,
         ),
     )
 }

@@ -104,6 +104,8 @@ data class ClassDateState(
     /** A *Boekingslink delen* request is on its way. */
     val isSharing: Boolean = false,
     val shareFailure: ShareFailure? = null,
+    /** *Toon alle {n}* was tapped: every participant is listed, not the first few. */
+    val participantsOpen: Boolean = false,
     /** How many times the link was put on the clipboard: "Boekingslink gekopieerd" shows each time it goes up. */
     val copied: Int = 0,
 ) {
@@ -111,6 +113,17 @@ data class ClassDateState(
     val booked: Int
         get() = session?.participants?.count { it.attendanceStatus != SessionParticipant.AttendanceStatus.CANCELLED }
             ?: 0
+
+    /** The clients who hold a place, with the status the API has for each (F025): who the *Deelnemers* list names. */
+    val participants: List<SessionParticipant>
+        get() = session?.participants?.filter { it.attendanceStatus != SessionParticipant.AttendanceStatus.CANCELLED }
+            .orEmpty()
+
+    /** The first few participants, or all of them once *Toon alle* was tapped. */
+    val shownParticipants: List<SessionParticipant>
+        get() = if (participantsOpen) participants else participants.take(SHOWN_PARTICIPANTS)
+
+    val showsAllButton: Boolean get() = !participantsOpen && participants.size > SHOWN_PARTICIPANTS
 
     /** *Aanwezigheid invullen* (CO-05) shows on a date that takes place; it is off until someone has a place on it. */
     val showsAttendance: Boolean get() = session != null && !isCancelled
@@ -171,6 +184,9 @@ data class ClassDateState(
         groupClass?.let { pick(english, it.descriptionNl, it.descriptionEn) }
 
     companion object {
+        /** How many participants TD-03 lists before *Toon alle {n}* (the prototype's *Les (TD-03)*). */
+        const val SHOWN_PARTICIPANTS = 5
+
         /**
          * The text of a class in the viewer's language, else Dutch (`pickContentLanguage`); never translated. A blank text
          * is none.
@@ -228,6 +244,9 @@ class ClassDateViewModel(
 
     /** The screen is shown again: read the date again and leave what is on screen until the answer is there. */
     fun refresh() = load()
+
+    /** *Toon alle {n}* of the *Deelnemers* list. */
+    fun showAllParticipants() = _state.update { it.copy(participantsOpen = true) }
 
     fun toggleDescription() = _state.update { it.copy(descriptionOpen = !it.descriptionOpen) }
 

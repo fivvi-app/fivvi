@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -36,19 +37,26 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import app.fivvi.api.models.ClassLevel
+import app.fivvi.api.models.SessionParticipant
 import app.fivvi.core.R
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.InsetGroupedList
 import app.fivvi.core.kit.LevelIcon
 import app.fivvi.core.kit.LevelIconForm
+import app.fivvi.core.kit.ListRowMinHeight
+import app.fivvi.core.kit.PersonAvatar
 import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStack
 import app.fivvi.core.kit.PillButtonStyle
+import app.fivvi.core.kit.PillTone
+import app.fivvi.core.kit.StatusPill
 import app.fivvi.core.kit.ToastHost
 import app.fivvi.core.kit.ToastVisuals
 import app.fivvi.core.kit.classLevelWord
@@ -59,6 +67,8 @@ import app.fivvi.designtokens.body
 import app.fivvi.designtokens.footnote
 import app.fivvi.designtokens.subhead
 import app.fivvi.designtokens.title1
+import app.fivvi.pro.attendance.AttendanceStatus
+import app.fivvi.pro.attendance.statusLabel
 import app.fivvi.pro.clients.BackButton
 import app.fivvi.pro.sessions.Loading
 import app.fivvi.pro.sessions.Notice
@@ -84,6 +94,11 @@ object ClassDateTags {
     const val BOOKED = "classDate.booked"
     const val NO_BOOKINGS = "classDate.noBookings"
     const val TAKE_ATTENDANCE = "classDate.takeAttendance"
+    const val PARTICIPANTS_TITLE = "classDate.participantsTitle"
+    const val SHOW_ALL = "classDate.participants.showAll"
+
+    /** A participant of the *Deelnemers* list: `classDate.participant.<clientId>`. */
+    fun participant(clientId: java.util.UUID) = "classDate.participant.$clientId"
     const val OWNER_NOTE = "classDate.ownerNote"
     const val MENU = "classDate.menu"
     const val EDIT = "classDate.edit"
@@ -122,6 +137,8 @@ class ClassDateActions(
     val onShareLink: () -> Unit = {},
     /** *Aanwezigheid invullen* (F025) opens CO-05. */
     val onTakeAttendance: () -> Unit = {},
+    /** *Toon alle {n}* of the *Deelnemers* list (#1617). */
+    val onShowAllParticipants: () -> Unit = {},
 )
 
 // Until *Meer*, the description is cut to this many lines.
@@ -135,7 +152,7 @@ private const val CUT_LINES = 3
  * button below the booked card, for the Owner and the Trainers, not on a cancelled or past date), has *Les wijzigen*, which
  * says the same, and below a divider the destructive *Les annuleren* (F026): a native confirmation that says how many
  * booked clients get an email; a Trainer has no menu. A cancelled date shows "Geannuleerd op … door …" and no actions.
- * *Aanwezigheid invullen* opens CO-05 (F025). [workspaceName] is named when the person has no access.
+ * *Aanwezigheid invullen* opens CO-05 (F025); below it *Deelnemers · 7* lists the clients with their status (#1617). [workspaceName] is named when the person has no access.
  */
 @Composable
 fun ClassDateScreen(
@@ -408,6 +425,7 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
             )
         }
     }
+    Participants(state, actions)
     if (state.showsShareLink) {
         PillButtonStack {
             PillButton(
@@ -425,6 +443,74 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space4).testTag(ClassDateTags.OWNER_NOTE),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.footnote,
+        )
+    }
+}
+
+// *Deelnemers · 7*: the clients who hold a place, with their status from the API, the first few and *Toon alle 7* for the
+// rest (#1617); nothing for a date with no bookings, which the booked card says. Each row is one element for TalkBack: the
+// name and the status.
+@Composable
+private fun Participants(state: ClassDateState, actions: ClassDateActions) {
+    val all = state.participants
+    if (all.isEmpty()) return
+    // Placeholders in the order of their names: participants, title.
+    val title = stringResource(
+        R.string.attendance_participants_title,
+        stringResource(R.string.attendance_participants),
+        all.size.toString(),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.space2)) {
+        Row(Modifier.fillMaxWidth().padding(start = Spacing.space4), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = title,
+                modifier = Modifier.weight(1f).testTag(ClassDateTags.PARTICIPANTS_TITLE).semantics { heading() },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.subhead,
+            )
+            if (state.showsAllButton) {
+                PillButton(
+                    text = stringResource(R.string.attendance_app_show_all, all.size.toString()),
+                    onClick = actions.onShowAllParticipants,
+                    modifier = Modifier.testTag(ClassDateTags.SHOW_ALL),
+                    style = PillButtonStyle.Text,
+                )
+            }
+        }
+        InsetGroupedList {
+            state.shownParticipants.forEach { participant ->
+                row { ParticipantRow(participant) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ParticipantRow(participant: SessionParticipant) {
+    val status = AttendanceStatus.of(participant.attendanceStatus)
+    val label = statusLabel(status)
+    val spoken = stringResource(R.string.attendance_app_row_label, participant.name, label.lowercase())
+    Row(
+        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = ListRowMinHeight)
+            .padding(horizontal = Spacing.space4, vertical = Spacing.space2)
+            .testTag(ClassDateTags.participant(participant.clientId))
+            .clearAndSetSemantics { contentDescription = spoken },
+        horizontalArrangement = Arrangement.spacedBy(Spacing.space3),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PersonAvatar(participant.name)
+        Text(
+            text = participant.name,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.body.copy(fontWeight = FontWeight.SemiBold),
+        )
+        StatusPill(
+            label,
+            when (status) {
+                AttendanceStatus.ATTENDED -> PillTone.Success
+                AttendanceStatus.NO_SHOW -> PillTone.Danger
+                else -> PillTone.Neutral
+            },
         )
     }
 }
