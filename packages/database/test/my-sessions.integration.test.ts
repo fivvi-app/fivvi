@@ -323,6 +323,7 @@ describe('F013 the personal read model', () => {
         classNameNl: null,
         classNameEn: null,
         booked: 1,
+        attendanceStatuses: ['booked'],
       });
     });
 
@@ -426,6 +427,12 @@ describe('F013 the personal read model', () => {
         { id: cancelled.id, status: 'cancelled', clientName: 'Anna de Vries' },
         // A class names no client; a cancelled place does not count as booked.
         { id: kracht.id, type: 'group', capacity: 8, booked: 2, clientName: null },
+      ]);
+      // F025 (#545): the status of every place, a cancelled one too (one insert: no order to assert).
+      expect([...(rows?.[1]?.attendanceStatuses ?? [])].sort()).toEqual([
+        'attended',
+        'booked',
+        'cancelled',
       ]);
     });
 

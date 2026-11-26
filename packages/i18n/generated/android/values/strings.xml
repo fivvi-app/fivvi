@@ -15,6 +15,35 @@
     <string name="app_link_open_in_browser">Openen in de browser</string>
     <!-- Client app (Fivvi): the screen a join link (/j/...) or an invitation link (/i/...) opens until the join and invitation screens exist (F029, F032). Says the app will open the link itself soon. -->
     <string name="app_link_soon">Deze link openen we binnenkort in de app.</string>
+    <string name="attendance_cancelled_class">Deze les is geannuleerd. Aanwezigheid is niet nodig.</string>
+    <string name="attendance_cancelled_session">Deze sessie is geannuleerd. Aanwezigheid is niet nodig.</string>
+    <string name="attendance_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="attendance_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="attendance_errors_participant_cancelled">Deze deelnemer heeft geannuleerd. De status is niet meer te wijzigen.</string>
+    <string name="attendance_everyone">Iedereen aanwezig</string>
+    <string name="attendance_fill_in">Invullen</string>
+    <string name="attendance_group_label">Aanwezigheid van %1$s</string>
+    <string name="attendance_line">Aanwezigheid: %1$s</string>
+    <plurals name="attendance_needs">
+        <item quantity="one">%1$d sessie van gisteren zonder aanwezigheid</item>
+        <item quantity="other">%1$d sessies van gisteren zonder aanwezigheid</item>
+    </plurals>
+    <string name="attendance_needs_item">%2$s, %1$s %3$s</string>
+    <string name="attendance_needs_list">Sessies van gisteren zonder aanwezigheid</string>
+    <string name="attendance_not_filled_in">Nog niet ingevuld</string>
+    <string name="attendance_nudge">Aanwezigheid nog invullen</string>
+    <string name="attendance_nudge_button_label">%2$s: %1$s</string>
+    <string name="attendance_nudge_for">Aanwezigheid nog invullen: %1$s</string>
+    <string name="attendance_participants">Deelnemers</string>
+    <string name="attendance_participants_title">%1$s · %2$s</string>
+    <string name="attendance_saved">Opgeslagen</string>
+    <string name="attendance_status_attended">Aanwezig</string>
+    <string name="attendance_status_booked">Geboekt</string>
+    <string name="attendance_status_cancelled">Geannuleerd</string>
+    <string name="attendance_status_no_show">Niet verschenen</string>
+    <string name="attendance_summary">%1$s aanwezig · %2$s niet verschenen · %3$s open</string>
+    <string name="attendance_title">Aanwezigheid</string>
+    <string name="attendance_too_early">Aanwezigheid kun je invullen vanaf %1$s.</string>
     <string name="booking_links_body">Werken alleen voor klanten die je hebt goedgekeurd.</string>
     <string name="booking_links_columns_actions">Acties</string>
     <string name="booking_links_columns_language">Taal van de pagina</string>

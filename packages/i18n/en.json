@@ -19,6 +19,38 @@
     "openInBrowser": "Open in the browser",
     "soon": "We'll open this link in the app soon."
   },
+  "attendance": {
+    "cancelledClass": "This class is cancelled. No attendance needed.",
+    "cancelledSession": "This session is cancelled. No attendance needed.",
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "participantCancelled": "This participant cancelled. The status can no longer be changed."
+    },
+    "everyone": "Everyone attended",
+    "fillIn": "Fill in",
+    "groupLabel": "Attendance of {name}",
+    "line": "Attendance: {status}",
+    "needs": "{count, plural, one {# session} other {# sessions}} from yesterday without attendance",
+    "needsItem": "{name}, {date} {time}",
+    "needsList": "Sessions from yesterday without attendance",
+    "notFilledIn": "Not filled in yet",
+    "nudge": "Attendance not recorded yet",
+    "nudgeButtonLabel": "{status}: {name}",
+    "nudgeFor": "Attendance not recorded yet: {name}",
+    "participants": "Participants",
+    "participantsTitle": "{participants} · {title}",
+    "saved": "Saved",
+    "status": {
+      "attended": "Attended",
+      "booked": "Booked",
+      "cancelled": "Cancelled",
+      "noShow": "No-show"
+    },
+    "summary": "{attended} attended · {noShow} no-show · {open} open",
+    "title": "Attendance",
+    "tooEarly": "You can take attendance from {time}."
+  },
   "bookingLinks": {
     "body": "Only work for clients you have approved.",
     "columns": {

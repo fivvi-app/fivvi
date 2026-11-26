@@ -877,7 +877,7 @@ export interface paths {
         };
         /**
          * The workspace today: the rows of one day and what needs attention
-         * @description The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).
+         * @description The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer, and `needsAttendance`: the sessions that ended yesterday and still wait for attendance. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).
          */
         get: operations["getWorkspaceDay"];
         put?: never;
@@ -1519,7 +1519,7 @@ export interface components {
             /** @description The session types the workspace runs, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later). */
             sessionTypes: ("private" | "group")[];
         };
-        /** @description A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. */
+        /** @description A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s or a private session’s participants and is left out for Open Gym. */
         PersonalSession: {
             /**
              * Format: uuid
@@ -1561,6 +1561,9 @@ export interface components {
             clientName?: string;
             /** @description The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds. */
             clients?: components["schemas"]["PersonalSessionClient"][];
+            /** @description `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym. */
+            attendanceOpen?: boolean;
+            attendance?: components["schemas"]["AttendanceSummary"];
         };
         /** @description The workspace an item of the personal view is in. */
         PersonalWorkspace: {
@@ -1618,6 +1621,17 @@ export interface components {
             clientId: string;
             /** @description The client’s display name. */
             name: string;
+        };
+        /** @description The counts behind “5 aanwezig · 1 niet verschenen · 1 open” (CO-05, CO-06). */
+        AttendanceSummary: {
+            /** @description Participants with `attended`. */
+            attended: number;
+            /** @description Participants with `no_show`. */
+            noShow: number;
+            /** @description Participants still `booked`. */
+            open: number;
+            /** @description Participants with `cancelled`. */
+            cancelled: number;
         };
         /** @description *4 sessies · 09:00–19:00*, and how many of them are done. */
         MyDaySummary: {
@@ -2437,17 +2451,6 @@ export interface components {
              */
             status: "booked" | "attended" | "cancelled" | "no_show";
         };
-        /** @description The counts behind “5 aanwezig · 1 niet verschenen · 1 open” (CO-05, CO-06). */
-        AttendanceSummary: {
-            /** @description Participants with `attended`. */
-            attended: number;
-            /** @description Participants with `no_show`. */
-            noShow: number;
-            /** @description Participants still `booked`. */
-            open: number;
-            /** @description Participants with `cancelled`. */
-            cancelled: number;
-        };
         /** @description Why the attendance was refused; nothing was stored. Contains no user-facing text. */
         AttendanceRefusal: {
             /**
@@ -2615,7 +2618,7 @@ export interface components {
             /** @description The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order (with no `to`, every one from `from` on). Never a session of another workspace. */
             items: components["schemas"]["WorkspaceCalendarSession"][];
         };
-        /** @description A session of the workspace as a block of its calendar. It holds no note, email address or other contact detail of a client. */
+        /** @description A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class date’s or a private session’s participants and is left out for Open Gym. It holds no note, email address or other contact detail of a client. */
         WorkspaceCalendarSession: {
             /**
              * Format: uuid
@@ -2659,6 +2662,9 @@ export interface components {
             clientName?: string;
             /** @description The clients of a private session in the order they were added: one, or two for a duo. A client who cancelled is left out, a cancelled session keeps its clients. Left out for the other kinds. */
             clients?: components["schemas"]["PersonalSessionClient"][];
+            /** @description `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym. */
+            attendanceOpen?: boolean;
+            attendance?: components["schemas"]["AttendanceSummary"];
             series?: components["schemas"]["SessionSeries"] & unknown;
         };
         /** @description Today in the workspace and what needs attention: the Owner’s dashboard. */
@@ -2672,6 +2678,8 @@ export interface components {
             busiest?: components["schemas"]["WorkspaceBusiestMoment"];
             /** @description *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: "{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items. */
             attention: components["schemas"]["WorkspaceCalendarSession"][];
+            /** @description *Aandacht nodig*, F025: the sessions that ended yesterday (on the workspace’s wall clock, counted from now, whatever `date` is shown; one that ends at midnight ended yesterday, one that crosses midnight is of the day it ended) that took place and still have a participant *Geboekt*, in time order: "{n} sessies van gisteren zonder aanwezigheid · Invullen". Each item links to its session page and says what it is as data (`type`, `className` or `clientName`). A session leaves the list once every participant is filled in. Left out when there is none. */
+            needsAttendance?: components["schemas"]["WorkspaceCalendarSession"][];
             /** @description Whether the workspace has any session at all, past or planned, cancelled or not, whatever day is shown: it tells a new workspace (*Welkom bij Fivvi. …*) from one with nothing planned today. Decided on the server and only for this workspace. */
             hasSessions: boolean;
         };

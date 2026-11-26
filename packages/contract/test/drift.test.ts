@@ -26,7 +26,9 @@ afterEach(async () => {
   await rm(fresh, { recursive: true, force: true });
 });
 
-describe('E018 contract drift', () => {
+// #1589: the first generation loads the OpenAPI and TypeScript generators inside the test, which took over vitest's 5 s
+// default on a slow CI runner (a timeout, no drift). 30 s covers that; a real drift still fails the comparison.
+describe('E018 contract drift', { timeout: 30_000 }, () => {
   it('committed openapi.json and TypeScript client match the API routes', async () => {
     const spec = await generateSpec(fresh);
     await generateTypeScript(spec, fresh);

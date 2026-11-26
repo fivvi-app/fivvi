@@ -22,7 +22,8 @@ export async function generateMetadata(): Promise<Metadata> {
  * `?move=1` (the calendar's *Verplaatsen*) opens PS-05 at once; `?edit=1` (*Wijzigen*) opens CO-04;
  * `?cancel=1` (the quick view's *Annuleren*, F026) opens PS-06 for a person who may cancel the session;
  * `?assign=1` (the quick view's and *Aandacht nodig*'s *Trainer toewijzen*, F023) opens the trainer dialog for the Owner. The session is read from
- * `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`, so the page shows what the API holds.
+ * `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`, so the page shows what the API holds; its
+ * attendance (F025) comes from `GET …/participants`.
  */
 export default async function SessionPage({
   params,
@@ -71,6 +72,10 @@ export default async function SessionPage({
     headers: authorization,
   });
   if (!workspace) throw new Error('GET /v1/workspaces/{workspaceId} did not answer.');
+  const { data: attendance } = await apiClient.GET(
+    '/v1/workspaces/{workspaceId}/sessions/{sessionId}/participants',
+    { params: { path: { workspaceId: id, sessionId } }, headers: authorization },
+  );
   return (
     <SessionView
       workspaceId={id}
@@ -94,6 +99,7 @@ export default async function SessionPage({
         ? { assign: { workspaceName: name, startOpen: assign === '1' } }
         : {})}
       trainerWord={trainerWordForms(trainerWord, catalogLocale(await getLocale()))}
+      {...(attendance ? { attendance, now: new Date().toISOString() } : {})}
     />
   );
 }

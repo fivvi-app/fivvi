@@ -7,6 +7,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { TimeZoneHint } from '../../../me/(personal)/time-zone-hint';
+import { NeedsAttendance } from '../attendance/needs-attendance';
 import { ScopeToggle } from '../scope-toggle';
 import { useSessionFormat } from '../sessions/use-session-format';
 import {
@@ -118,6 +119,10 @@ export function OwnerDashboard({
   }
 
   const attention = day.attention.filter((item): item is Shown => item.type !== 'open_gym');
+  // F025: the sessions of yesterday that still wait for attendance, one row with *Invullen*.
+  const needsAttendance = (day.needsAttendance ?? []).filter(
+    (item): item is Shown => item.type !== 'open_gym',
+  );
   const attentionText = (item: Shown) =>
     t('attentionNoTrainer', {
       ...trainerWord,
@@ -288,10 +293,24 @@ export function OwnerDashboard({
               </CardTitle>
             </CardHeader>
             <div className="px-(--card-spacing)">
-              {attention.length === 0 ? (
+              {attention.length === 0 && needsAttendance.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t('attentionNone')}</p>
               ) : (
                 <ul className="grid gap-2">
+                  {needsAttendance.length > 0 ? (
+                    <NeedsAttendance
+                      sessions={needsAttendance.map((item) => ({
+                        id: item.id,
+                        startsAt: item.startsAt,
+                        name:
+                          item.type === 'private'
+                            ? shared('block', { type: typeOf(item), name: nameOf(item) })
+                            : nameOf(item),
+                      }))}
+                      slug={slug}
+                      timeZone={day.timeZone}
+                    />
+                  ) : null}
                   {attention.map((item) => (
                     <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
                       <span className="min-w-0 text-sm">{attentionText(item)}</span>

@@ -39,6 +39,8 @@ export interface WorkspaceCalendarRow {
   readonly trainer: { readonly id: string; readonly name: string } | null;
   readonly clients: PersonalSessionRow['clients'];
   readonly clientName: string | null;
+  /** The status of every place, cancelled ones included, in the order they were added (F025). */
+  readonly attendanceStatuses: PersonalSessionRow['attendanceStatuses'];
   /** The class of a group session (F037 lists a class's dates); `null` for any other kind. */
   readonly groupClassId: string | null;
   /** The names of the class of a group session; `null` for any other kind. */

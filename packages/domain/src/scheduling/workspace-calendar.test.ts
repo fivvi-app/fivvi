@@ -2,9 +2,11 @@ import { zonedTime } from '@fivvi/testing/clock';
 import { describe, expect, it } from 'vitest';
 import {
   ATTENTION_DAYS,
+  attendanceWindow,
   attentionWindow,
   busiestMoment,
   filterWorkspaceCalendar,
+  sessionsNeedingAttendance,
   sessionsOfDay,
   sessionsWithoutTrainer,
   type WorkspaceCalendarSession,
@@ -376,5 +378,126 @@ describe('F014 #1538: the busiest moment of a day', () => {
         session('empty', '2026-09-22T18:00', { minutes: 0 }),
       ]),
     ).toBeUndefined();
+  });
+});
+
+describe('F025 AC11 (API): the sessions of yesterday without attendance', () => {
+  const ids = (list: readonly WorkspaceCalendarSession[]) => list.map((item) => item.sessionId);
+  const now = zonedTime('2026-09-23T08:00');
+
+  it('AC11: lists the sessions that ended yesterday with a participant still booked, in time order', () => {
+    const items = [
+      session('anna-late', '2026-09-22T16:00', { participantStatuses: ['booked'] }),
+      session('anna', '2026-09-22T09:00', { participantStatuses: ['booked'] }),
+      session('kracht', '2026-09-22T18:00', {
+        type: 'group',
+        participantStatuses: ['attended', 'booked', 'no_show'],
+      }),
+    ];
+    expect(ids(sessionsNeedingAttendance(items, now, ZONE))).toEqual([
+      'anna',
+      'anna-late',
+      'kracht',
+    ]);
+  });
+
+  it('AC11: leaves a session out once every participant is filled in', () => {
+    const items = [
+      session('anna', '2026-09-22T09:00', { participantStatuses: ['attended'] }),
+      session('bram', '2026-09-22T10:00', { participantStatuses: ['no_show'] }),
+    ];
+    expect(sessionsNeedingAttendance(items, now, ZONE)).toEqual([]);
+  });
+
+  it('leaves out cancelled sessions, sessions without participants and Open Gym', () => {
+    const items = [
+      session('cancelled', '2026-09-22T09:00', {
+        status: 'cancelled',
+        participantStatuses: ['booked'],
+      }),
+      session('empty-class', '2026-09-22T18:00', { type: 'group', participantStatuses: [] }),
+      session('unknown', '2026-09-22T19:00'),
+      session('open-gym', '2026-09-22T12:00', {
+        type: 'open_gym',
+        participantStatuses: ['booked'],
+      }),
+      session('cancelled-place', '2026-09-22T13:00', { participantStatuses: ['cancelled'] }),
+    ];
+    expect(sessionsNeedingAttendance(items, now, ZONE)).toEqual([]);
+  });
+
+  it('is only yesterday on the workspace wall clock: not today, not the day before', () => {
+    const items = [
+      session('two-days', '2026-09-21T09:00', { participantStatuses: ['booked'] }),
+      session('today-ended', '2026-09-23T07:00', {
+        minutes: 30,
+        participantStatuses: ['booked'],
+      }),
+    ];
+    expect(sessionsNeedingAttendance(items, now, ZONE)).toEqual([]);
+  });
+
+  it('counts the day a session ended: one that crosses midnight is of the day it ended', () => {
+    const items = [
+      // Started the day before yesterday, ended 00:30 yesterday: it ended yesterday.
+      session('into-yesterday', '2026-09-21T23:30', { participantStatuses: ['booked'] }),
+      // Started yesterday, ended 00:30 today: it ended today, so it is not yesterday's.
+      session('into-today', '2026-09-22T23:30', { participantStatuses: ['booked'] }),
+      // Ended at midnight sharp: the last instant of yesterday.
+      session('at-midnight', '2026-09-22T23:00', { participantStatuses: ['booked'] }),
+    ];
+    expect(ids(sessionsNeedingAttendance(items, now, ZONE))).toEqual([
+      'into-yesterday',
+      'at-midnight',
+    ]);
+  });
+
+  it('counts yesterday on the wall clock across the clock change back (25 hours)', () => {
+    // 25 October 2026 has 25 hours. A window of 24 hours from its first instant ends at 23:00 on
+    // the wall and misses 'late'; one of 24 hours back from 26 October 00:00 begins at 01:00 and
+    // misses 'early'. 'day-before' ended 23:30 on the 24th.
+    const items = [
+      session('early', '2026-10-25T00:00', { minutes: 30, participantStatuses: ['booked'] }),
+      session('late', '2026-10-25T23:00', { minutes: 30, participantStatuses: ['booked'] }),
+      session('day-before', '2026-10-24T22:30', { participantStatuses: ['booked'] }),
+    ];
+    expect(ids(sessionsNeedingAttendance(items, zonedTime('2026-10-26T08:00'), ZONE))).toEqual([
+      'early',
+      'late',
+    ]);
+  });
+
+  it('counts yesterday on the wall clock across the clock change forward (23 hours)', () => {
+    // 28 March 2027 has 23 hours. A window of 24 hours back from 29 March 00:00 begins at 23:00
+    // on the 27th and takes 'saturday-night' (ends 23:30) in; one of 24 hours from the first
+    // instant of the 28th ends at 01:00 on the 29th and takes 'monday-night' (ends 00:30) in.
+    const items = [
+      session('saturday-night', '2027-03-27T22:30', { participantStatuses: ['booked'] }),
+      session('sunday-night', '2027-03-28T00:30', { participantStatuses: ['booked'] }),
+      session('monday-night', '2027-03-28T23:30', { participantStatuses: ['booked'] }),
+    ];
+    expect(ids(sessionsNeedingAttendance(items, zonedTime('2027-03-29T08:00'), ZONE))).toEqual([
+      'sunday-night',
+    ]);
+  });
+});
+
+describe('F025 attendanceWindow', () => {
+  it('reads from the start of the day before yesterday to the end of yesterday, on the wall clock', () => {
+    const window = attendanceWindow(zonedTime('2026-09-23T08:00'), ZONE);
+    expect(window?.from).toEqual(zonedTime('2026-09-21T00:00'));
+    expect(window?.to).toEqual(zonedTime('2026-09-23T00:00'));
+  });
+
+  it('is 23 and 25 hours long on the days the clocks change', () => {
+    const spring = attendanceWindow(zonedTime('2027-03-29T08:00'), ZONE);
+    expect(spring?.to.getTime()).toBe(zonedTime('2027-03-29T00:00').getTime());
+    expect(zonedTime('2027-03-29T00:00').getTime() - (spring?.yesterday.start.getTime() ?? 0)).toBe(
+      23 * 3_600_000,
+    );
+    const autumn = attendanceWindow(zonedTime('2026-10-26T08:00'), ZONE);
+    expect(zonedTime('2026-10-26T00:00').getTime() - (autumn?.yesterday.start.getTime() ?? 0)).toBe(
+      25 * 3_600_000,
+    );
   });
 });

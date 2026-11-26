@@ -187,13 +187,18 @@
     h += '<div class="w-kpis" style="--n:' + Math.min(5, k.length) + '">' + k.join("") + "</div>";
     /* lanes: one per trainer, wide enough on the web to name every session */
     h += '<div class="w-grid2">' + card(mine ? "Je dag" : "Vandaag bij " + esc(wsName()), lanes(items, mine), { desc: mine ? "Al je sessies, ook bij andere werkruimtes." : "Eén rij per trainer. Sessies tegelijk staan naast elkaar." , cls: "span2" }) + "</div>";
-    var attn = [];
-    openAtt.forEach(function (i) { attn.push(['<b>Aanwezigheid invullen</b> · ' + esc(itemTitle(i)) + " " + i.s, openA(i), i.id]); });
+    var attn = [], nudge = [];
+    /* Mijn dag: a private session that has ended has the nudge with the answer inline (F025); the rest is a row of Aandacht nodig */
+    openAtt.forEach(function (i) { if (mine) nudge.push(i); });
+    if (nudge.length) h += card("Aanwezigheid nog invullen", '<ul class="w-list">' + nudge.map(function (i) { return i.type === "priv" ? "<li><span>" + ic("warn") + " <b>" + esc(itemTitle(i)) + "</b> · " + i.s + "–" + i.e + '</span><div class="w-hgroup">' + btn("Aanwezig", "w-att-priv", { k: "outline sm", d: { id: i.id, v: "yes" } }) + btn("Niet verschenen", "w-att-priv", { k: "outline sm", d: { id: i.id, v: "no" } }) + "</div></li>" : '<li><button data-a="w-open-class" data-id="' + i.id + '">' + ic("warn") + "<span><b>" + esc(itemTitle(i)) + "</b> · " + i.s + "–" + i.e + "</span>" + ic("chevR") + "</button></li>"; }).join("") + "</ul>");
+    /* Dashboard: the sessions of yesterday without attendance are one row that expands into links to them (F025 AC11) */
+    var yday = F.key(F.add(F.parse(F.TODAY), -1)), needs = mine ? [] : studioItems(yday).filter(function (i) { return !i.cancelled && i.type !== "gym" && (i.type === "priv" ? !i.att : i.people.length && !(i.attMap && Object.keys(i.attMap).length)); });
+    var needsRow = needs.length ? '<li class="w-needs"><div class="w-row-between"><span>' + ic("warn") + " <b>" + needs.length + (needs.length === 1 ? " sessie" : " sessies") + " van gisteren zonder aanwezigheid</b></span>" + '<button class="w-btn outline sm" data-a="w-needs" aria-expanded="' + (!!w.needsOpen) + '">Invullen</button></div>' + (w.needsOpen ? '<ul class="w-list" aria-label="Sessies van gisteren zonder aanwezigheid">' + needs.map(function (i) { return '<li><button data-a="' + openA(i) + '" data-id="' + i.id + '"><span>' + esc(itemTitle(i)) + " · " + F.shortDate(F.parse(yday)) + " " + i.s + "</span>" + ic("chevR") + "</button></li>"; }).join("") + "</ul>" : "") + "</li>" : "";
     act.forEach(function (i) { if (i.type === "group" && i.people.length >= i.cap && i.waitlist) attn.push(["<b>Vol</b> · " + esc(i.title) + " " + i.s + " · " + i.waitlist + " op de wachtlijst", "w-open-class", i.id]); });
     if (!mine && F.OWNER()) D.clients.forEach(function (c) { if (c.ws !== "sf") return; D.bsum(c.id).flags.forEach(function (f) { if (f[0] === "danger" || f[0] === "warn") attn.push(["<b>" + esc(c.name) + "</b> · <span>" + esc(f[1]) + "</span>", "w-client-bill", c.id]); }); });
     if (!mine && F.OWNER() && D.requests.length) attn.push(["<b>" + D.requests.length + " aanmeldverzoeken</b> wachten op goedkeuring", "w-requests", ""]);
     var up = act.filter(function (i) { return !F.isPast(i, F.TODAY); });
-    h += '<div class="w-grid2">' + card("Aandacht nodig", attn.length ? '<ul class="w-list">' + attn.map(function (x) { return '<li><button data-a="' + x[1] + '" data-id="' + x[2] + '">' + ic("warn") + "<span>" + x[0] + "</span>" + ic("chevR") + "</button></li>"; }).join("") + "</ul>" : '<p class="w-muted">Niets open. Alles is bijgewerkt.</p>') +
+    h += '<div class="w-grid2">' + card("Aandacht nodig", attn.length || needsRow ? '<ul class="w-list">' + needsRow + attn.map(function (x) { return '<li><button data-a="' + x[1] + '" data-id="' + x[2] + '">' + ic("warn") + "<span>" + x[0] + "</span>" + ic("chevR") + "</button></li>"; }).join("") + "</ul>" : '<p class="w-muted">Niets open. Alles is bijgewerkt.</p>') +
       card("Nog vandaag", up.length ? table(["Tijd", "Sessie", "Trainer", "Bezetting"], up.map(function (i) {
         return ['<span class="w-tnum">' + i.s + "–" + i.e + "</span>", '<button class="w-link" data-a="' + openA(i) + '" data-id="' + i.id + '"><i class="w-dot" style="--c:' + F.CV[i.type] + '"></i>' + esc(itemTitle(i)) + "</button>" + (F.MIXED() ? ' <span class="w-muted">' + F.TYPE[i.type] + "</span>" : ""), esc(who(i) === ME() ? "Jij" : who(i) || "—"), i.cap ? bar(i.people.length, i.cap, F.CV[i.type]) + ' <span class="w-tnum">' + i.people.length + "/" + i.cap + "</span>" : '<span class="w-muted">' + esc(shortLoc(i.loc)) + "</span>"];
       })) : '<p class="w-muted">Geen sessies meer vandaag.</p>') + "</div>";
@@ -264,7 +269,7 @@
         '<div class="w-wbody" style="--cols:' + res.length + ";height:" + ((H1d - H0d) * HHd) + 'px"><div class="w-hours">' + hrs + "</div>" + rcols + "</div></section>";
     } else {
       var rows = [];
-      [0, 1, 2, 3, 4, 5, 6].forEach(function (i) { var d = F.add(mon, i), k = F.key(d); weekItems(k, mine).forEach(function (it) { rows.push([F.shortDate(d), '<span class="w-tnum">' + it.s + "–" + it.e + "</span>", '<button class="w-link" data-a="w-ev" data-id="' + it.id + '"><i class="w-dot" style="--c:' + F.CV[it.type] + '"></i>' + esc(itemTitle(it)) + "</button>", F.MIXED() ? F.TYPE[it.type] : esc(shortLoc(it.loc)), esc(who(it) === ME() ? "Jij" : who(it) || "—"), it.cancelled ? badge("Geannuleerd", "", "outline") : it.cap ? '<span class="w-tnum">' + it.people.length + "/" + it.cap + "</span>" : badge(it.att === "yes" ? "Aanwezig" : it.att === "no" ? "Niet verschenen" : "Gepland", "", "secondary")]); }); });
+      [0, 1, 2, 3, 4, 5, 6].forEach(function (i) { var d = F.add(mon, i), k = F.key(d); weekItems(k, mine).forEach(function (it) { rows.push([F.shortDate(d), '<span class="w-tnum">' + it.s + "–" + it.e + "</span>", '<button class="w-link" data-a="w-ev" data-id="' + it.id + '"><i class="w-dot" style="--c:' + F.CV[it.type] + '"></i>' + esc(itemTitle(it)) + "</button>", F.MIXED() ? F.TYPE[it.type] : esc(shortLoc(it.loc)), esc(who(it) === ME() ? "Jij" : who(it) || "—"), it.cancelled ? badge("Geannuleerd", "", "outline") : (it.cap ? '<span class="w-tnum">' + it.people.length + "/" + it.cap + "</span>" : badge("Gepland", "", "secondary")) + (attLine(it, k) ? '<br><span class="w-muted">Aanwezigheid: ' + attLine(it, k) + "</span>" : "")]); }); });
       h += card("", table(["Dag", "Tijd", "Sessie", F.MIXED() ? "Soort" : "Locatie", "Trainer", "Status"], rows));
     }
     return h;
@@ -372,6 +377,13 @@
       })));
   };
   function waitNames(it) { var n = it.waitlist || 0, out = []; for (var i = 0; i < n; i++) out.push(["Kim de Graaf", "Ruben Vos", "Lotte Prins", "Sem Dekker"][i % 4]); return out; }
+  /* what the app says after "Aanwezigheid: " for a block (F025): a class date the counts once something is recorded or it waits, a private session its status; nothing for a cancelled one or one that has not started */
+  function attLine(it, k) {
+    if (it.cancelled || it.type === "gym") return "";
+    if (it.type === "group") { var am = it.attMap || {}, rec = Object.keys(am).length; return rec || (F.isPast(it, k) && it.people.length) ? attSummary(it, am) : ""; }
+    return it.att === "yes" ? "Aanwezig" : it.att === "no" ? "Niet verschenen" : F.isPast(it, k) ? "Nog niet ingevuld" : "";
+  }
+  function attSummary(it, am) { var n = function (v) { return Object.keys(am).filter(function (x) { return am[x] === v; }).length; }; return n("yes") + " aanwezig · " + n("no") + " niet verschenen · " + (it.people.length - n("yes") - n("no")) + " open"; }
   PAGES.klass = function () {
     var w = W(), f = F.findItem(w.kid); if (!f) { w.page = "classes"; return PAGES.classes(); }
     var it = f.it, k = f.day, am = it.attMap || (it.attMap = {}), h = "", free = it.cap - it.people.length, ds = desc(it.title);
@@ -379,7 +391,7 @@
       '<div class="w-hgroup end">' + (it.type !== "gym" ? btn("Trainer vervangen", "w-dlg", { k: "outline", d: { n: "sub" } }) : "") + btn("Wijzigen", "w-dlg", { k: "outline", d: { n: "editclass" } }) + btn("Les annuleren", "w-dlg", { k: "dng", d: { n: "cancelclass" }, dis: it.cancelled }) + "</div></div>";
     h += '<div class="w-kpis" style="--n:3">' + kpi("Geboekt", it.people.length + "<small>/" + it.cap + "</small>", free > 0 ? free + (free === 1 ? " plek vrij" : " plekken vrij") : "vol", F.CV[it.type], it.people.length, it.cap) +
       kpi("Aanwezig", String(Object.keys(am).filter(function (x) { return am[x] === "yes"; }).length), "van " + it.people.length, "var(--ok)") + kpi("Wachtlijst", String(it.waitlist || 0), it.waitlist ? "op volgorde" : "niemand", "var(--accent)") + "</div>";
-    h += '<div class="w-grid2">' + card("Deelnemers", it.people.length ? table(["Naam", "Aanwezigheid"], it.people.map(function (p, i) { return ['<span class="w-cell">' + av(personName(p), F.CLIENT[p] ? F.CLIENT[p].c : null) + "<b>" + esc(personName(p)) + "</b></span>", '<div class="w-seg">' + ["yes", "no"].map(function (v) { return '<button class="' + (am[i] === v ? "on " + v : "") + '" data-a="w-att" data-id="' + it.id + '" data-i="' + i + '" data-v="' + v + '">' + (v === "yes" ? "Aanwezig" : "Niet verschenen") + "</button>"; }).join("") + "</div>"]; })) : '<p class="w-muted">Nog niemand geboekt.</p>', { act: it.people.length ? btn("Iedereen aanwezig", "w-att-all", { k: "outline sm", d: { id: it.id } }) : "" }) +
+    h += '<div class="w-grid2">' + card("Deelnemers", it.people.length ? '<p class="w-muted">' + attSummary(it, am) + "</p>" + table(["Naam", "Aanwezigheid"], it.people.map(function (p, i) { return ['<span class="w-cell">' + av(personName(p), F.CLIENT[p] ? F.CLIENT[p].c : null) + "<b>" + esc(personName(p)) + "</b></span>", '<div class="w-seg" role="radiogroup">' + ["", "yes", "no"].map(function (v) { var on = (am[i] || "") === v; return '<button role="radio" aria-checked="' + on + '" class="' + (on && v ? "on " + v : on ? "on" : "") + '" data-a="w-att" data-id="' + it.id + '" data-i="' + i + '" data-v="' + v + '">' + (v === "yes" ? "Aanwezig" : v === "no" ? "Niet verschenen" : "Geboekt") + "</button>"; }).join("") + "</div>"]; })) : '<p class="w-muted">Nog niemand geboekt.</p>', { act: it.people.length ? btn("Iedereen aanwezig", "w-att-all", { k: "outline sm", d: { id: it.id } }) : "" }) +
       '<div class="w-stack">' + (it.type === "group" ? card("Wachtlijst", it.waitlist ? '<ol class="w-list plain num">' + waitNames(it).map(function (n, i) { return "<li><div><b>" + (i + 1) + ". " + esc(n) + '</b></div><button class="w-icon" data-a="w-dlg" data-n="wlremove" data-i="' + i + '" aria-label="' + esc(n) + ' van de wachtlijst halen">' + ic("x") + "</button></li>"; }).join("") + "</ol>" : '<p class="w-muted">Niemand op de wachtlijst.</p>', { desc: "Komt er een plek vrij, dan krijgt de eerste die plek en een e-mail." }) : "") +
       (ds ? card("Omschrijving", '<p translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p>", { desc: "Zo zien klanten deze les." }) : "") + "</div></div>";
     return h;
@@ -606,7 +618,7 @@
   function sheet() {
     var f = F.findItem(W().sheet), it = f.it, k = f.day, h = "";
     h += '<div class="w-sheet-h"><div>' + badge(it.duo ? "Duosessie" : F.TYPE[it.type], F.CV[it.type]) + F.lvlTag(it) + '<div class="w-sheet-ttl"><h3>' + esc(itemTitle(it)) + "</h3>" + copyLinkBtn(it, k) + "</div><p>" + F.longDate(F.parse(k)) + " · " + it.s + "–" + it.e + "</p></div>" + '<button class="w-icon" data-a="w-close" aria-label="Sluiten">' + ic("x") + "</button></div>";
-    h += '<dl class="w-dl">' + "<dt>Locatie</dt><dd>" + esc(it.loc) + "</dd>" + (it.type !== "gym" ? "<dt>Trainer</dt><dd>" + esc(who(it) === ME() ? "Jij" : who(it)) + "</dd>" : "") + (it.cap ? "<dt>Geboekt</dt><dd>" + it.people.length + "/" + it.cap + (it.waitlist ? " · " + it.waitlist + " op de wachtlijst" : "") + "</dd>" : "") + (it.duo ? "<dt>Klanten</dt><dd>" + [it.client, it.duo].map(function (x) { return esc(F.CLIENT[x].name); }).join(", ") + "</dd>" : "") + (it.type === "priv" ? "<dt>Aanwezigheid</dt><dd>" + (it.att === "yes" ? "Aanwezig" : it.att === "no" ? "Niet verschenen" : "Nog niet ingevuld") + "</dd>" + sessTplRows(it) : "") + "</dl>";
+    h += '<dl class="w-dl">' + "<dt>Locatie</dt><dd>" + esc(it.loc) + "</dd>" + (it.type !== "gym" ? "<dt>Trainer</dt><dd>" + esc(who(it) === ME() ? "Jij" : who(it)) + "</dd>" : "") + (it.cap ? "<dt>Geboekt</dt><dd>" + it.people.length + "/" + it.cap + (it.waitlist ? " · " + it.waitlist + " op de wachtlijst" : "") + "</dd>" : "") + (it.duo ? "<dt>Klanten</dt><dd>" + [it.client, it.duo].map(function (x) { return esc(F.CLIENT[x].name); }).join(", ") + "</dd>" : "") + (attLine(it, k) ? "<dt>Aanwezigheid</dt><dd>" + attLine(it, k) + "</dd>" : "") + (it.type === "priv" ? sessTplRows(it) : "") + "</dl>";
     var ds = it.type === "group" ? desc(it.title) : null;
     if (ds) h += '<p class="w-desc" translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p>";
     if (it.type === "priv") (it.duo ? [it.client, it.duo] : [it.client]).forEach(function (x) { h += '<div class="w-sheet-sec"><h4>Vorige keer' + (it.duo ? " · " + esc(F.CLIENT[x].name.split(" ")[0]) : "") + "</h4>" + lastCard(x, true) + "</div>"; });
@@ -772,7 +784,9 @@
     F.addClient({ id: "c" + Date.now(), ws: "sf", name: r.name, email: r.email, lang: "Nederlands", last: "Nog geen sessie", c: "#6155F5" });
     F.toast(r.name + " is goedgekeurd en kan nu boeken");
   };
-  A["w-att"] = function (d) { var it = F.findItem(d.id).it, am = it.attMap || (it.attMap = {}); am[d.i] = am[d.i] === d.v ? undefined : d.v; R(); };
+  A["w-att"] = function (d) { var it = F.findItem(d.id).it, am = it.attMap || (it.attMap = {}); am[d.i] = d.v || undefined; R(); };
+  A["w-needs"] = function () { var w = W(); w.needsOpen = !w.needsOpen; R(); };
+  A["w-att-priv"] = function (d) { F.findItem(d.id).it.att = d.v; R(); };
   A["w-att-all"] = function (d) { var it = F.findItem(d.id).it; it.attMap = it.attMap || {}; it.people.forEach(function (p, i) { if (!it.attMap[i]) it.attMap[i] = "yes"; }); F.toast("Iedereen staat op aanwezig"); };
   A["w-note"] = function (d) { var t = (W().form.note || "").trim(); if (!t) { F.toast("Schrijf eerst een notitie"); return; } (D.notes[d.id] = D.notes[d.id] || []).unshift({ t: t, d: "5 nov", by: "Sarah" }); W().form.note = ""; F.toast("Notitie opgeslagen"); };
   A["w-dok"] = function () {

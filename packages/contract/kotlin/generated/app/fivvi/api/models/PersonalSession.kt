@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.AttendanceSummary
 import app.fivvi.api.models.ClassLevel
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.PersonalSessionClient
@@ -33,7 +34,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds.
+ * A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s or a private session’s participants and is left out for Open Gym.
  *
  * @param sessionId The session ID. It opens in its own workspace: `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}` with the item’s `workspace.id`.
  * @param workspace 
@@ -49,6 +50,8 @@ import kotlinx.serialization.Contextual
  * @param location 
  * @param clientName The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart.
  * @param clients The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds.
+ * @param attendanceOpen `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym.
+ * @param attendance 
  */
 @Serializable
 
@@ -105,7 +108,14 @@ data class PersonalSession (
 
     /* The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds. */
     @SerialName(value = "clients")
-    val clients: kotlin.collections.List<PersonalSessionClient>? = null
+    val clients: kotlin.collections.List<PersonalSessionClient>? = null,
+
+    /* `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym. */
+    @SerialName(value = "attendanceOpen")
+    val attendanceOpen: kotlin.Boolean? = null,
+
+    @SerialName(value = "attendance")
+    val attendance: AttendanceSummary? = null
 
 ) {
 

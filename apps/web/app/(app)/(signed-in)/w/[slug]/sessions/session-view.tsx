@@ -4,6 +4,8 @@ import { Card, CardContent } from '@fivvi/ui/components/card';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { Attendance } from '../attendance/attendance-client';
+import { AttendanceSection } from '../attendance/attendance-section';
 import { AssignTrainer } from './assign-trainer';
 import { SessionActions } from './session-actions';
 import type { Session } from './sessions-client';
@@ -15,8 +17,9 @@ import { useSessionFormat } from './use-session-format';
  * with a link to their profile. The actions are *Verplaatsen* (PS-05, for a person who may plan
  * sessions; a cancelled session is not moved), *Annuleren* (PS-06, F026) and *Klantprofiel*. A
  * cancelled session shows "Geannuleerd op {date} om {time} door {name} · op verzoek van de klant"
- * and offers *Klantprofiel* only. The sections that belong to other
- * features (workout, attendance, notes) are not shown until those land.
+ * and offers *Klantprofiel* only. *Aanwezigheid* (F025) is the radio group *Geboekt · Aanwezig · Niet
+ * verschenen* of each participant, saved as it changes. The sections that belong to other
+ * features (workout, notes) are not shown until those land.
  */
 export function SessionView({
   workspaceId,
@@ -31,6 +34,8 @@ export function SessionView({
   startCancelling = false,
   assign,
   trainerWord,
+  attendance,
+  now,
 }: {
   workspaceId: string;
   slug: string;
@@ -57,6 +62,10 @@ export function SessionView({
    */
   assign?: { workspaceName: string; startOpen: boolean };
   trainerWord: TrainerWordForms;
+  /** The session's participants with their status (`GET …/participants`); left out, the page shows no attendance. */
+  attendance?: Attendance;
+  /** The moment the page was drawn, an ISO instant: before or after attendance opens. */
+  now?: string;
 }) {
   const t = useTranslations('sessions.page');
   const { day, longDay, time } = useSessionFormat(session.timeZone);
@@ -122,6 +131,16 @@ export function SessionView({
             </dl>
           </CardContent>
         </Card>
+        {attendance && now ? (
+          <AttendanceSection
+            workspaceId={workspaceId}
+            sessionId={session.id}
+            kind="private"
+            timeZone={session.timeZone}
+            initial={attendance}
+            now={now}
+          />
+        ) : null}
         <div className="flex flex-wrap items-center gap-2">
           <SessionActions
             workspaceId={workspaceId}

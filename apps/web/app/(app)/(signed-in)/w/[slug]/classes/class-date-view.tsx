@@ -4,6 +4,8 @@ import { PageShell } from '@fivvi/ui/kit/page-shell';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import type { Attendance } from '../attendance/attendance-client';
+import { AttendanceSection } from '../attendance/attendance-section';
 import { AssignTrainer } from '../sessions/assign-trainer';
 import { useSessionFormat } from '../sessions/use-session-format';
 import { CancelClass } from './cancel-class';
@@ -21,7 +23,8 @@ import { orderedFields, referenceDay } from './series';
  * Trainer sees the page without those. The Owner also has **Les annuleren** (CO-03, F026); a
  * cancelled date shows "Geannuleerd op {date} om {time} door {name}", its cancelled participants
  * under *Geannuleerd* and no actions. Both have **Boekingslink kopiëren** on a class date that is
- * scheduled and has not started (F037).
+ * scheduled and has not started (F037). With participants it also shows CO-06 (F025): each one's
+ * *Geboekt · Aanwezig · Niet verschenen*, the summary and **Iedereen aanwezig**.
  */
 export function ClassDateView({
   workspaceId,
@@ -34,6 +37,8 @@ export function ClassDateView({
   startCancelling = false,
   assign,
   trainerWord,
+  attendance,
+  now,
 }: {
   workspaceId: string;
   slug: string;
@@ -55,6 +60,10 @@ export function ClassDateView({
    */
   assign?: { workspaceName: string; teamMemberId: string; startOpen: boolean };
   trainerWord: TrainerWordForms;
+  /** The date's participants with their status (`GET …/participants`); left out, CO-01 shows no attendance. */
+  attendance?: Attendance;
+  /** The moment the page was drawn, an ISO instant. */
+  now?: string;
 }) {
   const t = useTranslations('classes');
   const levelCopy = useTranslations('classLevel');
@@ -219,6 +228,16 @@ export function ClassDateView({
           ) : null}
         </CardContent>
       </Card>
+      {attendance && now && attendance.participants.length > 0 ? (
+        <AttendanceSection
+          workspaceId={workspaceId}
+          sessionId={session.id}
+          kind="group"
+          timeZone={session.timeZone}
+          initial={attendance}
+          now={now}
+        />
+      ) : null}
     </PageShell>
   );
 }

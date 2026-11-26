@@ -239,6 +239,32 @@ describe.each(locales)('F014 Agenda in %s', (locale) => {
     expect(html).toContain(t.typeGroupClass);
   });
 
+  it('F025 AC3: the status column of the list says "Aanwezigheid: …" for a class with attendance and a private session still to fill in', () => {
+    const attendance = copy.attendance;
+    const html = view('list', {
+      items: [
+        { ...base, attendanceOpen: true },
+        { ...kracht, attendance: { attended: 5, noShow: 1, open: 1, cancelled: 0 } },
+        boxing,
+      ],
+    });
+
+    expect(html).toContain(escapeHtml(attendance.line.replace('{status}', attendance.notFilledIn)));
+    expect(html).toContain(
+      escapeHtml(
+        attendance.line.replace(
+          '{status}',
+          attendance.summary
+            .replace('{attended}', '5')
+            .replace('{noShow}', '1')
+            .replace('{open}', '1'),
+        ),
+      ),
+    );
+    // Boxing has nothing recorded: no line.
+    expect(html.split(escapeHtml(attendance.line.replace('{status}', ''))).length - 1).toBe(2);
+  });
+
   it('AC13: the day the clocks go back carries ◐ with its note, and 02:00 is a row twice when a block starts before it', () => {
     const clocks = { from: '2026-10-19', to: '2026-10-25' };
     const html = view(
