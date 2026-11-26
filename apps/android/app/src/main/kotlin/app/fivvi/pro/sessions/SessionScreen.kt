@@ -92,11 +92,18 @@ class SessionActions(
  * and its *Route* button (which opens the maps app with the address) and the workspace with the trainer, and the client.
  * The ⋯ menu has *Verplaatsen* (PS-05, for whoever may plan sessions, not for a cancelled session), *Klantprofiel* and,
  * below a divider, the destructive *Annuleren* (PS-06, F026: the Owner for any session, a Trainer for their own; off
- * while offline). A cancelled session shows "Geannuleerd op … door …" and offers *Klantprofiel* only. The sections of
- * later features (workout, last time, notes, attendance) are not shown yet.
+ * while offline). A cancelled session shows "Geannuleerd op … door …" and offers *Klantprofiel* only. [attendance] is the
+ * *Aanwezigheid* section of F025 below the client; the sections of later features (workout, last time, notes) are not shown yet.
  */
 @Composable
-fun SessionScreen(state: SessionState, workspaceName: String, actions: SessionActions, modifier: Modifier = Modifier) {
+fun SessionScreen(
+    state: SessionState,
+    workspaceName: String,
+    actions: SessionActions,
+    modifier: Modifier = Modifier,
+    /** TD-02's *Aanwezigheid* section (F025), below the client; `null` where there is none. */
+    attendance: (@Composable () -> Unit)? = null,
+) {
     Column(modifier.fillMaxSize().safeDrawingPadding()) {
         val session = state.session
         Row(Modifier.fillMaxWidth().padding(end = Spacing.space2), verticalAlignment = Alignment.CenterVertically) {
@@ -147,7 +154,7 @@ fun SessionScreen(state: SessionState, workspaceName: String, actions: SessionAc
                     }
                 }
 
-                SessionLoad.Loaded -> if (session != null) Loaded(session, state, workspaceName, actions)
+                SessionLoad.Loaded -> if (session != null) Loaded(session, state, workspaceName, actions, attendance)
             }
         }
     }
@@ -173,7 +180,13 @@ private fun Title(title: String, subtitle: String?) {
 }
 
 @Composable
-private fun Loaded(session: Session, state: SessionState, workspaceName: String, actions: SessionActions) {
+private fun Loaded(
+    session: Session,
+    state: SessionState,
+    workspaceName: String,
+    actions: SessionActions,
+    attendance: (@Composable () -> Unit)?,
+) {
     val zone = ZoneId.of(session.timeZone)
     val format = rememberSessionFormat(zone)
     val client = state.client
@@ -221,6 +234,7 @@ private fun Loaded(session: Session, state: SessionState, workspaceName: String,
             }
         }
     }
+    attendance?.invoke()
 }
 
 // "Geannuleerd op do 24 sep om 10:12 door Sarah · op verzoek van de klant"; the plain line when the API sent no record of the

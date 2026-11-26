@@ -42,6 +42,8 @@ import app.fivvi.core.theme.FivviTheme
 import app.fivvi.core.ui.Localized
 import app.fivvi.core.ui.OnForeground
 import app.fivvi.core.web.SiteLinks
+import app.fivvi.pro.attendance.AttendanceFlow
+import app.fivvi.pro.attendance.AttendanceQueue
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.classes.ClassApis
 import app.fivvi.pro.classes.ClassDateFlow
@@ -207,6 +209,16 @@ class MainActivity : ComponentActivity() {
         val languages = viewModel(key = "language-$key") {
             LanguageViewModel(dependencies.meApi, dependencies.languagePreference, capabilities::replace)
         }
+        // The offline queue of attendance (F025): every tap of TD-02, CO-05 and Vandaag goes through it. It belongs to this
+        // sign-in: an answer that comes after the sign-out changes nothing.
+        val attendance = viewModel(key = "attendance-$key") {
+            AttendanceQueue(
+                dependencies.sessionsApi,
+                dependencies.attendanceStore,
+                dependencies.connectivity,
+                stillSignedIn = { dependencies.session.state.value.let { it.signedIn && "${it.generation}" == key } },
+            )
+        }
         val me = viewModel(key = "home-$key") {
             HomeViewModel(
                 dependencies.meApi,
@@ -214,7 +226,11 @@ class MainActivity : ComponentActivity() {
                 dependencies.session,
                 dependencies.currentWorkspace,
                 dependencies::signOutApi,
-                onAccount = Observability::setUser,
+                onAccount = {
+                    Observability.setUser(it)
+                    // The queue is read for this account: what another one left is not sent, and is deleted.
+                    attendance.adopt(it)
+                },
                 onPreferredLocale = languages::onStored,
                 onWorkspaces = capabilities::replace,
             )
@@ -254,6 +270,7 @@ class MainActivity : ComponentActivity() {
                 onForbidden = { capabilities.forbidden(it, MeWorkspace.Capabilities.CALENDAR_PERIOD_MANAGE) },
             )
         }
+        val queued by attendance.state.collectAsStateWithLifecycle()
         val meState by me.state.collectAsStateWithLifecycle()
         val accountName by me.accountName.collectAsStateWithLifecycle()
         val signingOut by me.signingOut.collectAsStateWithLifecycle()
@@ -294,6 +311,8 @@ class MainActivity : ComponentActivity() {
         var classDateOpenings by rememberSaveable { mutableIntStateOf(0) }
         // Each opening of a session's screen reads the session again and shows no "moved" message of an earlier one.
         var sessionOpenings by rememberSaveable { mutableIntStateOf(0) }
+        // And each opening of CO-05 reads the participants again.
+        var attendanceOpenings by rememberSaveable { mutableIntStateOf(0) }
         val route = routes.lastOrNull()
         // A screen Vandaag opened is in the workspace of its item, and so is every screen it opens (F013 AC4).
         val scope = route?.let(Routes::workspaceOf)
@@ -309,6 +328,8 @@ class MainActivity : ComponentActivity() {
         OnForeground(me::refresh)
         // On foreground the stored language is read again: a change made elsewhere is adopted (F010 AC2).
         OnForeground(languages::refresh)
+        // On foreground what waits in the attendance queue is sent.
+        OnForeground(attendance::flush)
 
         // A session or class date was cancelled on TD-02 or TD-03: Vandaag and the days of Agenda read again, so they show it
         // (F026 AC3).
@@ -316,6 +337,17 @@ class MainActivity : ComponentActivity() {
             today.load()
             agenda.load()
             if (studio.state.value.isStudio) studio.load()
+        }
+
+        // The lists read again each time a request of the attendance queue left it, sent or refused (F025).
+        LaunchedEffect(queued.revision) { if (queued.revision > 0) personalChanged() }
+
+        // CO-05 of a class date: from TD-03, in the workspace of the screen it is opened from (scoped), and from the line of an
+        // ended class on Vandaag or *Hele studio*, in the workspace of its item.
+        fun openAttendance(id: UUID, workspace: UUID? = null) {
+            attendanceOpenings++
+            val next = Routes.attendance(id)
+            stack = Routes.push(stack, workspace?.let { Routes.inWorkspace(it, next) } ?: scoped(next))
         }
 
         fun openClassDate(id: UUID, added: Int?, replacing: Boolean = false) {
@@ -365,6 +397,7 @@ class MainActivity : ComponentActivity() {
                 plain == Routes.NEW_CLASS -> "$route-$newClassOpenings"
                 Routes.classDateOf(plain) != null -> "$route-$classDateOpenings"
                 Routes.sessionId(plain) != null -> "$route-$sessionOpenings"
+                Routes.attendanceOf(plain) != null -> "$route-$attendanceOpenings"
                 else -> route
             }
             screens.SaveableStateProvider(screenKey) {
@@ -433,6 +466,20 @@ class MainActivity : ComponentActivity() {
                         connectivity = dependencies.connectivity,
                         onCancelled = ::personalChanged,
                         now = dependencies.clock::instant,
+                        onTakeAttendance = ::openAttendance,
+                    )
+
+                    Routes.attendanceOf(plain) != null -> AttendanceFlow(
+                        dependencies.sessionsApi,
+                        attendance,
+                        capabilities,
+                        target.id,
+                        target.name,
+                        Routes.attendanceOf(plain)!!,
+                        sessionKey = key,
+                        opening = attendanceOpenings,
+                        onBack = { stack = Routes.pop(stack) },
+                        now = dependencies.clock::instant,
                     )
 
                     Routes.sessionId(plain) != null -> SessionFlow(
@@ -450,6 +497,7 @@ class MainActivity : ComponentActivity() {
                         connectivity = dependencies.connectivity,
                         onCancelled = ::personalChanged,
                         now = dependencies.clock::instant,
+                        attendanceQueue = attendance,
                     )
 
                     Routes.clientId(plain) != null -> ClientsFlow(
@@ -556,7 +604,11 @@ class MainActivity : ComponentActivity() {
                     meState,
                     signingOut,
                     onRetryMe = me::retry,
-                    onSignOut = me::signOut,
+                    // What waits in the attendance queue is lost at the sign-out: the button warned first, so it goes now.
+                    onSignOut = {
+                        attendance.clear()
+                        me.signOut()
+                    },
                     onOpenWeb = ::openWelcomeOnTheWeb,
                     onOpenProfile = {
                         profileOpenings++
@@ -566,6 +618,7 @@ class MainActivity : ComponentActivity() {
                     onNewPrivateSession = onNewPrivateSession,
                     onNewGroupClass = onNewGroupClass,
                     groupClassNoteWorkspace = groupClassNoteWorkspace,
+                    waitingAttendance = queued.entries.size,
                 )
             }
         }
@@ -574,7 +627,7 @@ class MainActivity : ComponentActivity() {
 
 /**
  * The screens above the tabs, as one string kept across a rotation: the routes joined by a comma, the last one shown. A
- * route is `clients`, `newSession`, `session/<id>` or `client/<id>` (F020), `newClass`, `classDate/<id>` or, for the date
+ * route is `clients`, `newSession`, `session/<id>` or `client/<id>` (F020), `attendance/<id>` (CO-05, F025), `newClass`, `classDate/<id>` or, for the date
  * TD-05 has just created, `classDateNew/<dates added>/<id>` (F021, F022). A route Vandaag opens is written
  * `@<workspace ID>:<route>` (F013): the screen is in the workspace of the item, whichever is the current one.
  */
@@ -586,6 +639,7 @@ internal object Routes {
     private const val CLIENT = "client/"
     private const val CLASS_DATE = "classDate/"
     private const val CLASS_DATE_ADDED = "classDateNew/"
+    private const val ATTENDANCE = "attendance/"
     private const val IN_WORKSPACE = "@"
     private const val IN_WORKSPACE_END = ":"
 
@@ -631,6 +685,13 @@ internal object Routes {
 
         else -> null
     }
+
+    /** CO-05, the attendance of a class date (F025): opened from TD-03, or from the line of an ended class on Vandaag. */
+    fun attendance(id: UUID) = "$ATTENDANCE$id"
+
+    fun attendanceOf(route: String): UUID? = route.removePrefix(ATTENDANCE).takeIf {
+        route.startsWith(ATTENDANCE)
+    }?.let(UUID::fromString)
 
     fun sessionId(route: String): UUID? = route.removePrefix(SESSION).takeIf {
         route.startsWith(SESSION)

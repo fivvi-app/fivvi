@@ -451,4 +451,20 @@ class ClassDateViewModelTest {
         assertEquals(listOf(403), cancelNotAllowed)
         assertTrue(notAllowed.isEmpty())
     }
+
+    @Test
+    fun test_F025_AC4_takeAttendanceIsOfferedOnADateThatTakesPlaceAndOffUntilSomeoneHasAPlace() {
+        val empty = viewModel(date()).state.value
+        assertTrue(empty.showsAttendance)
+        assertFalse(empty.canTakeAttendance)
+
+        val booked = viewModel(date(booked = 2)).state.value
+        assertTrue(booked.showsAttendance)
+        assertTrue(booked.canTakeAttendance)
+
+        val cancelledId = date(booked = 2)
+        sessions.sessions[cancelledId] =
+            sessions.sessions.getValue(cancelledId).copy(status = app.fivvi.api.models.Session.Status.CANCELLED)
+        assertFalse("hidden on a cancelled date", viewModel(cancelledId).state.value.showsAttendance)
+    }
 }

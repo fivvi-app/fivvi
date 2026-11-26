@@ -56,7 +56,8 @@ import org.junit.rules.ExternalResource
  * for an app that starts signed out. [lastWorkspace] is the device's memory of the workspace used last; pass the same one
  * to a second launch to keep it across a restart. The app opens on [startTab]: the home, which most tests are about, unless
  * a test of Vandaag says so (the app itself opens on Vandaag, F013); [personal] is what Vandaag keeps for its offline view,
- * and [now] fixes the clock the personal screens read.
+ * and [now] fixes the clock the personal screens read. [attendance] is what the offline queue of attendance keeps (F025); pass the
+ * same one to a second launch to keep the waiting taps across a restart.
  */
 class AppRule : ExternalResource() {
     private val app = ApplicationProvider.getApplicationContext<FivviApplication>()
@@ -83,6 +84,7 @@ class AppRule : ExternalResource() {
         personal: PersonalStore = MemoryPersonalStore(),
         now: Instant? = null,
         connectivity: Connectivity = FakeConnectivity(),
+        attendance: PersonalStore = MemoryPersonalStore(),
     ) {
         // The account stores the language of the phone, so the stored preference changes nothing unless a test says so.
         (meApi as? FakeMeApi)?.defaultPreferredLocale = storedOf(perApp + device)
@@ -105,6 +107,7 @@ class AppRule : ExternalResource() {
             override val languagePreference = LanguagePreference(languageStore, languageSettings)
             override val currentWorkspace = CurrentWorkspace(lastWorkspace)
             override val personalStore = personal
+            override val attendanceStore = attendance
             override val initialTab = startTab
             override val clock: Clock = now?.let { Clock.fixed(it, ZoneOffset.UTC) } ?: Clock.systemUTC()
         }

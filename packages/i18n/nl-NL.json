@@ -27,9 +27,11 @@
       "from": "Vanaf {time}.",
       "open": "Open",
       "rowLabel": "{name}, {status}",
+      "showAll": "Toon alle {count}",
       "signOutConfirm": "Toch uitloggen",
       "signOutMessage": "{count, plural, one {# wijziging van de aanwezigheid is nog niet verstuurd en gaat verloren als je uitlogt.} other {# wijzigingen van de aanwezigheid zijn nog niet verstuurd en gaan verloren als je uitlogt.}}",
       "signOutTitle": "Aanwezigheid nog niet verstuurd",
+      "subtitle": "{class} · {start}–{end}",
       "take": "Aanwezigheid invullen",
       "todo": "Te doen",
       "waiting": "Wacht op verbinding"

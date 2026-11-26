@@ -11,6 +11,7 @@ import app.fivvi.api.models.MyDayPlace
 import app.fivvi.api.models.MyDaySummary
 import app.fivvi.api.models.MyDayTomorrow
 import app.fivvi.api.models.PersonalSession
+import app.fivvi.api.models.PersonalSessionClient
 import app.fivvi.api.models.PersonalWorkspace
 import app.fivvi.api.models.PersonalWorkspaceSessionTypes
 import app.fivvi.core.me.workspaceIdOf
@@ -66,6 +67,10 @@ object PersonalFixtures {
         day: String = DAY,
         type: PersonalSession.Type? = null,
         level: ClassLevel? = null,
+        /** F025: the session has ended with a participant still *Geboekt*. */
+        attendanceOpen: Boolean? = null,
+        /** F025: the client of a private session, as the API lists it. */
+        clientId: java.util.UUID? = null,
     ) = PersonalSession(
         sessionId = sessionIdOf(id),
         workspace = workspace,
@@ -80,6 +85,8 @@ object PersonalFixtures {
         level = level,
         location = place?.let { place(it) },
         clientName = client,
+        clients = clientId?.let { listOf(PersonalSessionClient(it, client.orEmpty())) },
+        attendanceOpen = attendanceOpen,
     )
 
     val anna = session("anna", sarahPT, "09:00", "10:00", client = "Anna de Vries", place = "TrainMore Zuid")

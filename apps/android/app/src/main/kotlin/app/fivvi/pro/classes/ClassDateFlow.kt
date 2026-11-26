@@ -2,6 +2,7 @@ package app.fivvi.pro.classes
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -40,6 +41,8 @@ fun ClassDateFlow(
     onCancelled: () -> Unit,
     now: () -> Instant,
     copy: ((String) -> Unit)? = null,
+    /** *Aanwezigheid invullen* opens CO-05 for this date (F025); `null` where the screen has none to open. */
+    onTakeAttendance: ((UUID) -> Unit)? = null,
 ) {
     val allowed by capabilities.capabilities.collectAsStateWithLifecycle()
     val canManage = allowed.mayShow(workspaceId, MeWorkspace.Capabilities.CLASS_PERIOD_MANAGE)
@@ -71,8 +74,10 @@ fun ClassDateFlow(
     val state by model.state.collectAsStateWithLifecycle()
     val online by connectivity.online.collectAsStateWithLifecycle()
 
-    // On foreground the date is read again: a change made elsewhere shows.
+    // On foreground the date is read again: a change made elsewhere shows. So is a date shown again after CO-05, where the
+    // attendance of its participants changed.
     OnForeground(model::refresh)
+    LaunchedEffect(model) { if (model.state.value.load == ClassDateLoad.Loaded) model.refresh() }
     BackHandler(onBack = onBack)
     // The menu and the share action follow what the API lists now: a 403 elsewhere takes them away.
     ClassDateScreen(
@@ -87,6 +92,7 @@ fun ClassDateFlow(
             onConfirmCancel = model::confirmCancel,
             onDismissCancel = model::dismissCancel,
             onShareLink = model::shareLink,
+            onTakeAttendance = { onTakeAttendance?.invoke(sessionId) },
         ),
     )
 }

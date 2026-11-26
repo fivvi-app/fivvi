@@ -83,6 +83,7 @@ object ClassDateTags {
     const val TRAINER = "classDate.trainer"
     const val BOOKED = "classDate.booked"
     const val NO_BOOKINGS = "classDate.noBookings"
+    const val TAKE_ATTENDANCE = "classDate.takeAttendance"
     const val OWNER_NOTE = "classDate.ownerNote"
     const val MENU = "classDate.menu"
     const val EDIT = "classDate.edit"
@@ -119,6 +120,8 @@ class ClassDateActions(
     val onDismissCancel: () -> Unit = {},
     /** *Boekingslink delen* (F037), the button below the booked card and the first item of the Owner's ⋯ menu. */
     val onShareLink: () -> Unit = {},
+    /** *Aanwezigheid invullen* (F025) opens CO-05. */
+    val onTakeAttendance: () -> Unit = {},
 )
 
 // Until *Meer*, the description is cut to this many lines.
@@ -131,8 +134,8 @@ private const val CUT_LINES = 3
  * managed on the web. The Owner's ⋯ menu starts with *Boekingslink delen* (F037, "Boekingslink gekopieerd" in a toast; also a
  * button below the booked card, for the Owner and the Trainers, not on a cancelled or past date), has *Les wijzigen*, which
  * says the same, and below a divider the destructive *Les annuleren* (F026): a native confirmation that says how many
- * booked clients get an email; a Trainer has no menu. A cancelled date shows "Geannuleerd op … door …" and no actions. The sections of later features (participants,
- * attendance) are not shown yet. [workspaceName] is named when the person has no access.
+ * booked clients get an email; a Trainer has no menu. A cancelled date shows "Geannuleerd op … door …" and no actions.
+ * *Aanwezigheid invullen* opens CO-05 (F025). [workspaceName] is named when the person has no access.
  */
 @Composable
 fun ClassDateScreen(
@@ -393,6 +396,16 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
                     style = MaterialTheme.typography.subhead,
                 )
             }
+        }
+    }
+    if (state.showsAttendance) {
+        PillButtonStack {
+            PillButton(
+                text = stringResource(R.string.attendance_app_take),
+                onClick = actions.onTakeAttendance,
+                modifier = Modifier.testTag(ClassDateTags.TAKE_ATTENDANCE),
+                enabled = state.canTakeAttendance,
+            )
         }
     }
     if (state.showsShareLink) {

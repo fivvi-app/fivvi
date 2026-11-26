@@ -112,6 +112,10 @@ data class ClassDateState(
         get() = session?.participants?.count { it.attendanceStatus != SessionParticipant.AttendanceStatus.CANCELLED }
             ?: 0
 
+    /** *Aanwezigheid invullen* (CO-05) shows on a date that takes place; it is off until someone has a place on it. */
+    val showsAttendance: Boolean get() = session != null && !isCancelled
+    val canTakeAttendance: Boolean get() = booked > 0
+
     val capacity: Int get() = session?.capacity ?: 0
     val free: Int get() = maxOf(0, capacity - booked)
     val showsNoBookings: Boolean get() = booked == 0

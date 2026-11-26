@@ -261,6 +261,23 @@
         }
       }
     },
+    "attendance.app.showAll" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show all %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toon alle %1$@"
+          }
+        }
+      }
+    },
     "attendance.app.signOutConfirm" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -352,6 +369,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aanwezigheid nog niet verstuurd"
+          }
+        }
+      }
+    },
+    "attendance.app.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %3$@–%2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %3$@–%2$@"
           }
         }
       }

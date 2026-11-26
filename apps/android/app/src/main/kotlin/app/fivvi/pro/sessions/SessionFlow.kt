@@ -13,8 +13,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.core.net.Connectivity
 import app.fivvi.core.ui.OnForeground
+import app.fivvi.pro.attendance.AttendanceLoad
+import app.fivvi.pro.attendance.AttendanceQueue
+import app.fivvi.pro.attendance.AttendanceSection
+import app.fivvi.pro.attendance.AttendanceViewModel
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
+import app.fivvi.pro.personal.PersonalRows
+import app.fivvi.pro.personal.rememberTicking
 import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 /**
@@ -43,6 +50,8 @@ fun SessionFlow(
     connectivity: Connectivity,
     onCancelled: () -> Unit,
     now: () -> Instant = Instant::now,
+    /** The offline queue of attendance (F025); `null` where the screen has none: TD-02 then shows no *Aanwezigheid* section. */
+    attendanceQueue: AttendanceQueue? = null,
 ) {
     val own = MeWorkspace.Capabilities.SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN
     val any = MeWorkspace.Capabilities.SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY
@@ -54,6 +63,20 @@ fun SessionFlow(
             teamMemberId,
             onNotAllowed = { capabilities.onResponse(it, workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW) },
         )
+    }
+    val attendance = attendanceQueue?.let { queue ->
+        viewModel(key = "session-attendance-$sessionKey-$workspaceId-$sessionId-$opening") {
+            AttendanceViewModel(
+                apis.sessions,
+                workspaceId,
+                sessionId,
+                queue,
+                now,
+                onForbidden = {
+                    capabilities.forbidden(workspaceId, MeWorkspace.Capabilities.ATTENDANCE_PERIOD_MARK_PERIOD_ANY)
+                },
+            )
+        }
     }
     val state by model.state.collectAsStateWithLifecycle()
     val allowed by capabilities.capabilities.collectAsStateWithLifecycle()
@@ -67,7 +90,12 @@ fun SessionFlow(
     var cancelOpenings by rememberSaveable { mutableIntStateOf(0) }
 
     // On foreground the session is read again: a change made elsewhere shows.
-    OnForeground(model::refresh)
+    OnForeground {
+        model.refresh()
+        attendance?.refresh()
+    }
+    // A cancelled session has no attendance to take: the section reads again and shows why.
+    LaunchedEffect(state.isCancelled) { if (state.isCancelled) attendance?.refresh() }
 
     // What the person may do and the phone's connection are the screen's own to show; the model holds what was read.
     val shown = state.copy(
@@ -96,6 +124,7 @@ fun SessionFlow(
             if (cancelState.isOffline) model.cancelWasOffline()
             cancelling = false
             model.refresh()
+            attendance?.refresh()
         }
         BackHandler(onBack = ::close)
         LaunchedEffect(cancelState.cancelled) {
@@ -169,6 +198,28 @@ fun SessionFlow(
         return
     }
     BackHandler(onBack = onBack)
+    val attended = attendance?.state?.collectAsStateWithLifecycle()?.value
+    val queued = attendanceQueue?.state?.collectAsStateWithLifecycle()?.value
+    val at = rememberTicking(now)
+    val attendanceView = if (attendance != null && attended != null &&
+        queued != null
+    ) {
+        attendance.view(queued, at)
+    } else {
+        null
+    }
+    // A request the API refused reverted its row: what it has now is read again.
+    LaunchedEffect(attendanceView?.refusals) { if ((attendanceView?.refusals ?: 0) > 0) attendance?.refresh() }
+    val section: (@Composable () -> Unit)? = attendanceView?.let { view ->
+        {
+            AttendanceSection(
+                view,
+                loaded = attended?.load == AttendanceLoad.Loaded,
+                zone = session?.let { runCatching { ZoneId.of(it.timeZone) }.getOrNull() } ?: PersonalRows.TIME_ZONE,
+                onSet = { clientId, status -> attendance?.set(status, clientId) },
+            )
+        }
+    }
     SessionScreen(
         shown,
         workspaceName,
@@ -190,5 +241,6 @@ fun SessionFlow(
                 cancelling = true
             },
         ),
+        attendance = section,
     )
 }

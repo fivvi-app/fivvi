@@ -55,6 +55,13 @@ interface AppDependencies {
     /** What Vandaag keeps on the phone for its offline view: an app-private file, kept out of backups, cleared on sign-out (F013 AC7). */
     val personalStore: PersonalStore
 
+    /**
+     * What the offline queue of attendance keeps on the phone (F025): an app-private file, kept out of backups. Not the
+     * personal store: a token the API rejects clears that one, and the taps still waiting stay for the same account's next
+     * sign-in; only a sign-out the person chose, after the warning, clears them.
+     */
+    val attendanceStore: PersonalStore
+
     /** The clock the personal screens read: the real one, fixed by a test. */
     val clock: Clock get() = Clock.systemUTC()
 
@@ -65,9 +72,16 @@ interface AppDependencies {
     fun signOutApi(token: String): SignInApi
 }
 
+/** The folder of the app's files that holds the attendance queue. */
+const val ATTENDANCE_DIRECTORY = "attendance"
+
 class DefaultAppDependencies(context: Context) : AppDependencies {
     override val personalStore: PersonalStore by lazy {
         FilePersonalStore(File(context.filesDir, PersonalStore.DIRECTORY))
+    }
+
+    override val attendanceStore: PersonalStore by lazy {
+        FilePersonalStore(File(context.filesDir, ATTENDANCE_DIRECTORY))
     }
 
     // Signing out, also after a rejected token, clears the error-reporting user (F001 AC3) and what Vandaag kept (F013 AC7).
