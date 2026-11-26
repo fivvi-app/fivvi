@@ -216,7 +216,14 @@
   function grp(rows, style) { return '<div class="grp"' + (style ? ' style="' + style + '"' : "") + ">" + rows.join("") + "</div>"; }
   function sh(t, link, cls) { return '<div class="sh ' + (cls || "") + '"><h2>' + t + "</h2>" + (link || "") + "</div>"; }
   function btn(label, o) { o = o || {}; return '<button class="btn ' + (o.k || "pri") + (o.blk ? " blk" : "") + (o.sm ? " sm" : "") + '"' + (o.a ? ' data-a="' + o.a + '"' : "") + dattrs(o.d) + (o.dis ? " disabled" : "") + ">" + (o.i ? ic(o.i) : "") + label + "</button>"; }
-  function seg(opts, val, a, extra) { return '<div class="seg" role="group">' + opts.map(function (o) { return '<button data-a="' + a + '" data-v="' + o[0] + '"' + dattrs(extra) + (o[2] ? " disabled" : "") + ' class="' + (o[0] === val ? "on" : "") + '" aria-pressed="' + (o[0] === val) + '">' + o[1] + "</button>"; }).join("") + "</div>"; }
+  function seg(opts, val, a, extra, cls) { return '<div class="seg ' + (cls || "") + '" role="group">' + opts.map(function (o) { return '<button data-a="' + a + '" data-v="' + o[0] + '"' + dattrs(extra) + (o[2] ? " disabled" : "") + ' class="' + (o[0] === val ? "on" : "") + '" aria-pressed="' + (o[0] === val) + '">' + o[1] + "</button>"; }).join("") + "</div>"; }
+  /* Android's inline attendance buttons (F025): Aanwezig | Niet verschenen as the M3 segmented button, at least 48 dp high, a check on the
+     selected one (none on the nudge), under the name; a = the action, d = what it needs, val = the selected answer */
+  function attSeg(a, d, val, it, off, label) {
+    return '<div class="seg txt" role="group" aria-label="' + esc(label || "Aanwezigheid") + '">' + [["yes", "Aanwezig"], ["no", "Niet verschenen"]].map(function (o) {
+      return '<button data-a="' + a + '"' + dattrs(d) + ' data-v="' + o[0] + '" class="' + (o[0] === val ? "on" : "") + '" aria-pressed="' + (o[0] === val) + '"' + (off ? " disabled" : "") + ">" + o[1] + "</button>";
+    }).join("") + "</div>";
+  }
   function lt(eb, h, sub) { return '<div class="lt">' + (eb ? '<p class="eb">' + eb + "</p>" : "") + "<h1>" + h + "</h1>" + (sub ? '<div class="sub">' + sub + "</div>" : "") + "</div>"; }
   function foot(t) { return '<div class="foot">' + t + "</div>"; }
   function fld(label, input, cls) {
@@ -271,7 +278,7 @@
       } else if (!it.att) {
         /* a tap the API refused brings the buttons back with its message */
         extra = '<small class="nudge">' + ic("warn") + "Aanwezigheid nog invullen</small>" + (it.attMsg ? '<small class="nudge-msg">' + it.attMsg + "</small>" : "") +
-          '<div class="att">' + btn("Aanwezig", { k: "sec", a: "att", d: { id: it.id, v: "yes" } }) + btn("Niet verschenen", { k: "sec", a: "att", d: { id: it.id, v: "no" } }) + "</div>";
+          (PREF.plat === "android" ? attSeg("att", { id: it.id }, "", it, false, "Aanwezigheid van " + esc(title(it))) : '<div class="att">' + btn("Aanwezig", { k: "sec", a: "att", d: { id: it.id, v: "yes" } }) + btn("Niet verschenen", { k: "sec", a: "att", d: { id: it.id, v: "no" } }) + "</div>");
         swipe = PREF.plat === "ios" && !opt.noSwipe;
       }
     } else if (it.type === "group" && past && !it.cancelled && !opt.noNudge && attOpenCount(it) > 0) {
@@ -625,7 +632,7 @@
     body += sh("Notities", '<button data-a="note" data-id="' + c.id + '">+ Notitie</button>', "small");
     body += '<div class="pad">' + (notes.length ? grp(notes.slice(0, 3).map(function (n) { return row({ title: '<span translate="no">' + esc(n.t) + "</span>", small: n.d + " · " + esc(n.by), cls: "wrap" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen notities.</span></div></div></div>') + "</div>" + foot("Alleen voor trainers. Notities zie je nooit in meldingen of widgets.");
     var can = attOpen(it, k) && !it.cancelled;
-    body += sh("Aanwezigheid", "", "small") + '<div class="pad">' + seg([["", "Geboekt", !can], ["yes", "Aanwezig", !can], ["no", "Niet verschenen", !can]], (it.duo ? (it.attD || {})[cid] : it.att) || "", "satt", { id: it.id, c: cid }) + "</div>" + (can ? (it.attWait ? foot("Wacht op verbinding") : "") : foot(it.cancelled ? "Geannuleerd." : "Vanaf " + hm(mins(it.s) - 30) + "."));
+    body += sh("Aanwezigheid", "", "small") + '<div class="pad">' + seg([["", "Geboekt", !can], ["yes", "Aanwezig", !can], ["no", "Niet verschenen", !can]], (it.duo ? (it.attD || {})[cid] : it.att) || "", "satt", { id: it.id, c: cid }, "txt") + "</div>" + (can ? (it.attWait ? foot("Wacht op verbinding") : "") : foot(it.cancelled ? "Geannuleerd." : "Vanaf " + hm(mins(it.s) - 30) + "."));
     return { title: title(it), body: body, trailing: [{ i: "more", a: "session-menu", label: "Meer", d: { id: it.id } }] };
   };
 
@@ -644,14 +651,15 @@
     if (it.sub) body += '<div class="banner" style="--c:var(--accent)">' + ic("swap") + "Je valt in voor " + esc(it.sub) + ".</div>";
     body += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><div><div class="stat-l ink" style="--c:' + CV[it.type] + '">Geboekt</div><div class="num" style="font-size:34px;line-height:38px">' + booked + '<small style="font-size:17px;color:var(--label2)">/' + it.cap + "</small></div></div>" +
       '<span class="pill ' + (free <= 0 ? "strong" : "") + '">' + (it.cancelled ? "Geannuleerd" : free <= 0 ? "Vol" : free + (free === 1 ? " plek vrij" : " plekken vrij")) + "</span></div>" +
+      (booked ? "" : '<div style="font-size:15px;color:var(--label2);margin-top:8px">Nog geen boekingen.</div>') +
       '<div style="height:10px;border-radius:5px;background:color-mix(in srgb,' + CV[it.type] + ' 18%,transparent);margin-top:12px;overflow:hidden"><div style="height:100%;width:' + Math.min(100, booked / it.cap * 100) + "%;border-radius:5px;background:linear-gradient(90deg,color-mix(in oklab," + CV[it.type] + " 65%,#fff)," + CV[it.type] + ')"></div></div>' +
       '<div style="font-size:15px;color:var(--label2);margin-top:10px">' + (it.loc.indexOf(D.workspaces[it.ws].name) === 0 ? '<i class="wsdot" style="--c:' + D.workspaces[it.ws].color + '"></i>' + esc(it.loc) : wsLine(it.ws) + " · " + esc(it.loc)) + "</div></div>";
     if (!it.cancelled) body += btn("Aanwezigheid invullen", { blk: true, a: "open-att", d: { id: it.id }, i: "check", dis: !booked });
     body += "</div>";
     var showAll = S.showAll[it.id], ppl = showAll ? it.people : it.people.slice(0, 5);
     var am = it.attMap || {};
-    body += sh("Deelnemers · " + booked, booked > 5 && !showAll ? '<button data-a="show-all" data-id="' + it.id + '">Toon alle ' + booked + "</button>" : "", "small");
-    body += '<div class="pad">' + (booked ? grp(ppl.map(function (p, i) { var nm = person(p); return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), tr: '<span class="pill">' + (am[i] === "yes" ? "Aanwezig" : am[i] === "no" ? "Niet verschenen" : "Geboekt") + "</span>" }); }), "--inset:68px") : '<div class="empty">Nog niemand geboekt.</div>') + "</div>";
+    if (booked) body += sh("Deelnemers · " + booked, booked > 5 && !showAll ? '<button data-a="show-all" data-id="' + it.id + '">Toon alle ' + booked + "</button>" : "", "small");
+    body += (booked ? '<div class="pad">' + grp(ppl.map(function (p, i) { var nm = person(p); return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), tr: '<span class="pill' + (am[i] === "yes" ? " tint\" style=\"--c:var(--ok)" : am[i] === "no" ? " tint\" style=\"--c:var(--danger)" : "") + '">' + (am[i] === "yes" ? "Aanwezig" : am[i] === "no" ? "Niet verschenen" : "Geboekt") + "</span>" }); }), "--inset:68px") + "</div>" : "");
     body += '<div class="pad" style="margin-top:14px">' + btn("Boekingslink delen", { k: "sec", blk: true, a: "toast", d: { m: "Boekingslink gekopieerd" }, i: "link" }) + "</div>";
     if (isOwner(it.ws) && !it.cancelled) body += foot("Les wijzigen, een vaste reeks en trainers beheer je op het web.");
     return { title: it.title, body: body, trailing: isOwner(it.ws) || it.sub ? [{ i: "more", a: "class-menu", label: "Meer", d: { id: it.id } }] : [] };
@@ -680,10 +688,11 @@
     body += sh("Deelnemers", "", "small");
     body += '<div class="pad">' + grp(it.people.map(function (p, i) {
       var nm = person(p), cx = attCx(it, i), line = cx ? "Geannuleerd" : mode === "refused" && i === 0 ? "Deze les is geannuleerd. Aanwezigheid is niet nodig." : wait[i] ? "Wacht op verbinding" : "";
-      var btns = cx || cancelled ? "" : '<span class="seg" style="width:auto">' +
+      var btns = cx || cancelled ? "" : PREF.plat === "android" ? "" : '<span class="seg" style="width:auto">' +
         '<button class="' + (am[i] === "yes" ? "on" : "") + '" data-a="att-one" data-id="' + it.id + '" data-i="' + i + '" data-v="yes" aria-label="' + esc(nm) + ' aanwezig"' + (early ? " disabled" : "") + ">" + ic("check") + "</button>" +
         '<button class="' + (am[i] === "no" ? "on" : "") + '" data-a="att-one" data-id="' + it.id + '" data-i="' + i + '" data-v="no" aria-label="' + esc(nm) + ' niet verschenen"' + (early ? " disabled" : "") + ">" + ic("x") + "</button></span>";
-      return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), small: line ? '<span class="' + (mode === "refused" && i === 0 ? "att-msg" : "") + '">' + line + "</span>" : "", tr: btns, cls: "att-row" });
+      var under = PREF.plat === "android" && !cx && !cancelled ? attSeg("att-one", { id: it.id, i: i }, am[i] || "", it, early, "Aanwezigheid van " + nm) : "";
+      return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), small: line ? '<span class="' + (mode === "refused" && i === 0 ? "att-msg" : "") + '">' + line + "</span>" : "", extra: under, tr: btns, cls: "att-row" });
     }), "--inset:68px") + "</div>";
     return { title: "Aanwezigheid", body: body };
   };

@@ -1,0 +1,109 @@
+# F025 native attendance (spec #460, AC1 and the design of TD-02), against the local stack: Sarah (the seeded trainer@example.com,
+# a Trainer of John's Gym, which opens first) plans a session with Anna from + (PS-04), lands on the session screen (TD-02), and
+# finds the *Aanwezigheid* section with its control, *Geboekt | Aanwezig | Niet verschenen*. The form's first start is the next
+# full hour, so the clock decides which half of the flow runs, and the flow takes both: while attendance is not open yet (it
+# opens 30 minutes before the start) the control is off and the note says "Vanaf 14:30." / "From 14:30."; once it is open the
+# flow marks Anna *Aanwezig*, sees the choice selected, and takes it back to *Geboekt*. The same flow runs on both apps
+# (the iOS segmented control and the Android segmented button, with a check on the selected one). The sign-in is the shared
+# sub-flow. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on both apps
+# (home.new*, newSession.*, clientPicker.*, session.*, session.attendance.*). The control is `session.attendance.<client ID>`;
+# its segments are found by their words, which differ by language (Aanwezig | Attended). The two platform tickets (iOS #548,
+# Android #549) and the class side, CO-05 (AC4), whose class dates with participants are the seeded Pilot Gym week of
+# September 2026 and so out of reach of a flow that reads no clock, are proven in the platforms' own UI tests
+# (`test_F025_AC4_classAttendanceSummaryUpdates`).
+appId: ${APP_ID}
+name: AC1 Attendance on the session screen
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # Sarah: seeded, a Trainer of John's Gym (packages/database/src/seed.ts).
+  EMAIL: trainer@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: home\.openClients
+    timeout: 20000
+# Plan a session with Anna: + → Privésessie → the client → Save.
+- tapOn:
+    id: home\.new
+- tapOn:
+    id: home\.newPrivateSession
+- extendedWaitUntil:
+    visible:
+      id: newSession\.save
+    timeout: 20000
+- tapOn:
+    id: newSession\.client
+- extendedWaitUntil:
+    visible:
+      id: clientPicker\.search
+    timeout: 20000
+- tapOn:
+    id: clientPicker\.search
+- inputText: Anna
+- extendedWaitUntil:
+    visible: .*Anna de Vries.*
+    timeout: 20000
+- tapOn: .*Anna de Vries.*
+- extendedWaitUntil:
+    visible:
+      id: newSession\.clientName
+      text: Anna de Vries
+    timeout: 20000
+- tapOn:
+    id: newSession\.save
+# PS-07: the same hour may hold the other language's session (the same database); keep it with *Toch opslaan*.
+- extendedWaitUntil:
+    visible:
+      id: (session\.title|newSession\.doubleBooking\.saveAnyway)
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: newSession\.doubleBooking\.saveAnyway
+    commands:
+      - tapOn:
+          id: newSession\.doubleBooking\.saveAnyway
+- extendedWaitUntil:
+    visible:
+      id: session\.title
+      text: .*Anna de Vries.*
+    timeout: 20000
+# TD-02 has the Aanwezigheid section with the control of Anna.
+- extendedWaitUntil:
+    visible:
+      id: session\.attendance\.title
+    timeout: 20000
+- assertVisible:
+    id: session\.attendance\.[0-9a-f-]{36}
+# Not open yet: the control is off and the note says from when.
+- runFlow:
+    when:
+      visible:
+        id: session\.attendance\.note
+    commands:
+      - assertVisible:
+          id: session\.attendance\.note
+          text: (Vanaf \d\d:\d\d\.|From \d\d:\d\d\.)
+# Open: Anna is marked *Aanwezig* (the choice shows selected), and the choice is taken back to *Geboekt*.
+- runFlow:
+    when:
+      notVisible:
+        id: session\.attendance\.note
+    commands:
+      - tapOn: (Aanwezig|Attended)
+      - extendedWaitUntil:
+          visible:
+            text: (Aanwezig|Attended)
+            selected: true
+          timeout: 20000
+      - tapOn: (Geboekt|Booked)
+      - extendedWaitUntil:
+          visible:
+            text: (Geboekt|Booked)
+            selected: true
+          timeout: 20000
