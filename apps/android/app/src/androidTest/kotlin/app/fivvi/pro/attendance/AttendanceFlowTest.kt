@@ -315,12 +315,27 @@ class AttendanceFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, language: Ap
             .assertTextEquals(string(R.string.attendance_app_waiting))
         compose.onNodeWithTag(AttendanceTags.button(id("Bram Jansen"), AttendanceStatus.NO_SHOW)).assertIsSelected()
 
+        // The app is closed and opened again, still offline: the three requests are still waiting, as they were.
+        app.close()
+        val restarted = FakeConnectivity(false)
+        launch(AttendanceFixtures.at("18:10"), restarted)
+        openCo05()
+        compose.waitForDescription(AttendanceTags.SUMMARY, summary(6, 1, 0))
+        compose.onNodeWithTag(AttendanceTags.line(id("Chris Bakker")), useUnmergedTree = true)
+            .assertTextEquals(string(R.string.attendance_app_waiting))
+        assertTrue("nothing is sent while offline", server.sent.isEmpty())
+
         server.sessions.getValue(AttendanceFixtures.kracht).cancelled = true
-        phone.setOnline(true)
+        restarted.setOnline(true)
 
         compose.waitForDescription(AttendanceTags.SUMMARY, summary(0, 0, 7))
         assertEquals("the two taps first, then one request for everyone", 3, server.sent.size)
         assertEquals(null, server.sent.last().clientId)
+        // Every row says why it reverted: the two taps and the rows of *Iedereen aanwezig* alike.
+        AttendanceFixtures.names.forEach {
+            compose.onNodeWithTag(AttendanceTags.line(id(it)), useUnmergedTree = true)
+                .assertTextEquals(string(R.string.attendance_cancelled_class))
+        }
     }
 
     @Test
