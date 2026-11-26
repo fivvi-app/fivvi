@@ -19,6 +19,38 @@
     "openInBrowser": "Openen in de browser",
     "soon": "Deze link openen we binnenkort in de app."
   },
+  "attendance": {
+    "cancelledClass": "Deze les is geannuleerd. Aanwezigheid is niet nodig.",
+    "cancelledSession": "Deze sessie is geannuleerd. Aanwezigheid is niet nodig.",
+    "errors": {
+      "generic": "Er ging iets mis. Probeer het opnieuw.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "participantCancelled": "Deze deelnemer heeft geannuleerd. De status is niet meer te wijzigen."
+    },
+    "everyone": "Iedereen aanwezig",
+    "fillIn": "Invullen",
+    "groupLabel": "Aanwezigheid van {name}",
+    "line": "Aanwezigheid: {status}",
+    "needs": "{count, plural, one {# sessie} other {# sessies}} van gisteren zonder aanwezigheid",
+    "needsItem": "{name}, {date} {time}",
+    "needsList": "Sessies van gisteren zonder aanwezigheid",
+    "notFilledIn": "Nog niet ingevuld",
+    "nudge": "Aanwezigheid nog invullen",
+    "nudgeButtonLabel": "{status}: {name}",
+    "nudgeFor": "Aanwezigheid nog invullen: {name}",
+    "participants": "Deelnemers",
+    "participantsTitle": "{participants} · {title}",
+    "saved": "Opgeslagen",
+    "status": {
+      "attended": "Aanwezig",
+      "booked": "Geboekt",
+      "cancelled": "Geannuleerd",
+      "noShow": "Niet verschenen"
+    },
+    "summary": "{attended} aanwezig · {noShow} niet verschenen · {open} open",
+    "title": "Aanwezigheid",
+    "tooEarly": "Aanwezigheid kun je invullen vanaf {time}."
+  },
   "bookingLinks": {
     "body": "Werken alleen voor klanten die je hebt goedgekeurd.",
     "columns": {

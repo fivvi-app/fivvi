@@ -1,8 +1,11 @@
 import type { Schemas } from '@fivvi/contract';
 import { locales, messages } from '@fivvi/i18n';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { escapeHtml, render } from '../../../../../../test/render';
 import { MyDayView } from './my-day';
+
+// The nudge refreshes the page through the router, which exists only in a running app.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
 // F013 AC1, AC2, AC4, AC5, AC9: *Mijn dag* as the API answers it. Tuesday 22 September 2026,
 // Sarah at 08:35 (06:35 UTC): Anna 09:00–10:00 (Sarah Personal Training), Mark 11:00–12:00
@@ -388,5 +391,46 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
 
     expect(html).toContain(escapeHtml(copy.emptyNever));
     expect(html).not.toContain(copy.emptyToday);
+  });
+
+  describe('F025 the nudge Aanwezigheid nog invullen', () => {
+    const attendance = messages[locale].attendance;
+    const buttons = (html: string) =>
+      [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)].map(([, text]) => text);
+    // Anna's session has ended with her still Geboekt: the API says so (`attendanceOpen`).
+    const ended = {
+      ...anna,
+      attendanceOpen: true,
+      clients: [{ clientId: 'c-anna', name: 'Anna de Vries' }],
+    };
+    const over = (items: Item[]) => view({ items });
+
+    it('AC2: a session the API says waits for attendance shows the nudge with Aanwezig and Niet verschenen', () => {
+      const html = over([ended, mark]);
+
+      expect(html).toContain(escapeHtml(attendance.nudge));
+      expect(buttons(html)).toEqual([attendance.status.attended, attendance.status.noShow]);
+      expect(html).toContain(escapeHtml(attendance.nudgeFor.replace('{name}', 'Anna de Vries')));
+    });
+
+    it('AC2: no nudge while the session runs, and the buttons are never inside the row link', () => {
+      expect(over([anna, mark])).not.toContain(escapeHtml(attendance.nudge));
+      expect(buttons(over([anna, mark]))).toEqual([]);
+      expect(over([ended])).not.toMatch(/<a[^>]*>(?:(?!<\/a>).)*<button/);
+    });
+
+    it('AC2: a class that has ended with open participants has the nudge as a link to the class, without buttons', () => {
+      const html = over([
+        {
+          ...kracht,
+          attendanceOpen: true,
+          attendance: { attended: 0, noShow: 0, open: 3, cancelled: 0 },
+        },
+      ]);
+
+      expect(html).toContain(escapeHtml(attendance.nudge));
+      expect(buttons(html)).toEqual([]);
+      expect(rows(html).map(([href]) => href)).toContain('/w/johns-gym/sessions/s-kracht');
+    });
   });
 });

@@ -24,7 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
  * that is no class date and one of another class are a 404. `?edit=1` (the calendar's *Wijzigen*)
  * opens CO-04 at once, for the person who has it; `?assign=1` (the calendar's *Trainer toewijzen*, *Aandacht
  * nodig*'s *Toewijzen*, F023) opens CO-02 for the Owner (`session.assign`); `?cancel=1` (the
- * calendar's *Les annuleren*, F026) opens CO-03 for the Owner.
+ * calendar's *Les annuleren*, F026) opens CO-03 for the Owner. Its participants' attendance (CO-06,
+ * F025) is read from `GET …/participants`.
  */
 export default async function ClassDatePage({
   params,
@@ -44,6 +45,10 @@ export default async function ClassDatePage({
     throw new Error('GET /v1/workspaces/{workspaceId}/sessions/{sessionId} did not answer.');
   }
   if (session.type !== 'group' || session.groupClass?.id !== classId) notFound();
+  const { data: attendance } = await apiClient.GET(
+    '/v1/workspaces/{workspaceId}/sessions/{sessionId}/participants',
+    { params: { path: { workspaceId: id, sessionId } }, headers: cookie ? { cookie } : {} },
+  );
   const canManage = capabilities.includes('class.manage');
   // PS-07 on CO-04 (only the Owner changes a date): the date of the person's own, as a trainer, is "Je hebt dan al iets".
   const ownDate = canManage && session.trainer !== undefined && teamMemberId === session.trainer.id;
@@ -63,6 +68,7 @@ export default async function ClassDatePage({
         ? { assign: { workspaceName: name, teamMemberId, startOpen: assign === '1' } }
         : {})}
       trainerWord={trainerWordForms(trainerWord, catalogLocale(await getLocale()))}
+      {...(attendance ? { attendance, now: new Date().toISOString() } : {})}
     />
   );
 }

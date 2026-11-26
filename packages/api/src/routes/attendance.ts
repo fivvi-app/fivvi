@@ -125,8 +125,9 @@ export const AttendanceOpenFieldSchema = z
 /**
  * What a session of the read models says of its attendance (F025, #545): `attendanceOpen` when the
  * domain's `attendanceOpen` says it waits for attendance (the same rule as *Aandacht nodig*) and,
- * for a class date, the counts of its participants' statuses. Nothing for Open Gym, which has no
- * attendance yet. The route only shapes the output; the rule is the domain's.
+ * for a class date and a private session, the counts of its participants' statuses (a private
+ * session has one, so the calendar can word "Aanwezigheid: Aanwezig" without a request per
+ * session). Nothing for Open Gym, which has no attendance yet. The route only shapes the output; the rule is the domain's.
  */
 export function attendanceShown(
   session: {
@@ -148,7 +149,7 @@ export function attendanceShown(
   );
   return {
     ...(open ? { attendanceOpen: true as const } : {}),
-    ...(session.type === 'group'
+    ...(session.type === 'group' || session.type === 'private'
       ? { attendance: attendanceSummary(session.attendanceStatuses) }
       : {}),
   };

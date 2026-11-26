@@ -264,6 +264,25 @@ export function sessionExpiries(email: string): Promise<Date[]> {
 }
 
 /**
+ * Sets when the session `sessionId` takes place, on the e2e app server's database: the API plans no
+ * date in the past and a spec of attendance needs sessions that run now, ended today or ended
+ * yesterday (attendance opens 30 minutes before the start, F025).
+ */
+export async function moveSessionTo(
+  sessionId: string,
+  startsAt: Date,
+  endsAt: Date,
+): Promise<void> {
+  await withPool((pool) =>
+    pool.query(`update sessions set starts_at = $2, ends_at = $3 where id = $1`, [
+      sessionId,
+      startsAt.toISOString(),
+      endsAt.toISOString(),
+    ]),
+  );
+}
+
+/**
  * Cancels the session `sessionId`, on the e2e app server's database, as cancelling will (F026): the
  * row stays and its status is `cancelled`. Until that feature exists, a spec that needs a cancelled
  * session sets the status itself.

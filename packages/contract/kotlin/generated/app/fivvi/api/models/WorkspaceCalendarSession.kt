@@ -35,7 +35,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class date’s participants and is left out for the other kinds. It holds no note, email address or other contact detail of a client.
+ * A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class date’s or a private session’s participants and is left out for Open Gym. It holds no note, email address or other contact detail of a client.
  *
  * @param id The session ID. It opens with `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
  * @param type The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).

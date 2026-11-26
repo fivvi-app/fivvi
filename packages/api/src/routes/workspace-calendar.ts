@@ -238,8 +238,8 @@ export const WorkspaceCalendarSessionSchema = z
   .openapi('WorkspaceCalendarSession', {
     description:
       'A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for ' +
-      'attendance (F025); `attendance` counts the statuses of a class date’s participants and is ' +
-      'left out for the other kinds. It holds no note, email address or other contact detail of a ' +
+      'attendance (F025); `attendance` counts the statuses of a class date’s or a private session’s ' +
+      'participants and is left out for Open Gym. It holds no note, email address or other contact detail of a ' +
       'client.',
   });
 

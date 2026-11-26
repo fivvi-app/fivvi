@@ -2,6 +2,7 @@ import type { Schemas } from '@fivvi/contract';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { type DateTimeFormatOptions, useFormatter, useTranslations } from 'next-intl';
+import { AttendanceNudge } from '../../../w/[slug]/attendance/attendance-nudge';
 import { ScopeToggle } from '../../../w/[slug]/scope-toggle';
 import { useSessionFormat } from '../../../w/[slug]/sessions/use-session-format';
 import { TimeZoneHint } from '../time-zone-hint';
@@ -22,7 +23,8 @@ const rowClass = 'flex min-h-11 items-start gap-3 rounded-lg px-3 py-2 hover:bg-
  * in time order, past ones dimmed, cancelled ones struck through with *Geannuleerd*. Each row is
  * one link that opens the session in its own workspace, with that workspace's permissions
  * (`/w/{slug}/sessions/{id}`), and the tomorrow line opens *Mijn agenda* on tomorrow
- * (`/me/calendar`). A row is at least 44 px high, and the page is one column at any width. Times
+ * (`/me/calendar`). A session that has ended and still waits for attendance (`attendanceOpen`)
+ * has the nudge *Aanwezigheid nog invullen* under its row (F025). A row is at least 44 px high, and the page is one column at any width. Times
  * are Dutch time, the only zone of the personal scope (`day.timeZone`); a browser in another zone
  * gets the hint that says so.
  */
@@ -70,9 +72,10 @@ export function MyDayView({
         ? t('typeWithDetail', { type: typeOf(item), detail })
         : typeOf(item)
       : detail;
-    return (
+    const sessionHref = `/w/${item.workspace.slug}/sessions/${item.sessionId}`;
+    const link = (
       <Link
-        href={`/w/${item.workspace.slug}/sessions/${item.sessionId}` as Route}
+        href={sessionHref as Route}
         className={`${rowClass} ${past || cancelled ? 'text-muted-foreground' : ''}`}
         // One screen-reader element per row, with a pause between its parts (`02-trainer-today.md`).
         aria-label={spoken(item, title, detail, cancelled)}
@@ -89,6 +92,20 @@ export function MyDayView({
           {cancelled ? <span className="text-sm font-medium">{t('cancelled')}</span> : null}
         </span>
       </Link>
+    );
+    // The nudge sits under the row, not in its link: the buttons are not part of a link.
+    if (!item.attendanceOpen) return link;
+    const client = isPrivate && item.clients?.length === 1 ? item.clients[0] : undefined;
+    return (
+      <div>
+        {link}
+        <AttendanceNudge
+          workspaceId={item.workspace.id}
+          sessionId={item.sessionId}
+          href={sessionHref}
+          {...(client ? { client } : {})}
+        />
+      </div>
     );
   }
 

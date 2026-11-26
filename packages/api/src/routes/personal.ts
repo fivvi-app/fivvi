@@ -225,7 +225,7 @@ export const PersonalSessionSchema = z
       'A session the signed-in account is the current trainer of, in one of its workspaces. ' +
       '`location` is where a private session takes place and is left out for the other kinds. ' +
       '`attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of ' +
-      'a class’s participants and is left out for the other kinds.',
+      'a class’s or a private session’s participants and is left out for Open Gym.',
   });
 
 const MyDayPlaceSchema = z
