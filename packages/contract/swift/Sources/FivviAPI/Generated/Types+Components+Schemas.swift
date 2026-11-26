@@ -907,7 +907,7 @@ extension Components {
                 case sessionTypes
             }
         }
-        /// A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds.
+        /// A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s participants and is left out for the other kinds.
         ///
         /// - Remark: Generated from `#/components/schemas/PersonalSession`.
         public struct PersonalSession: Codable, Hashable, Sendable {
@@ -976,6 +976,12 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/PersonalSession/clients`.
             public var clients: [Components.Schemas.PersonalSessionClient]?
+            /// `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/attendanceOpen`.
+            public var attendanceOpen: Swift.Bool?
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/attendance`.
+            public var attendance: Components.Schemas.AttendanceSummary?
             /// Creates a new `PersonalSession`.
             ///
             /// - Parameters:
@@ -993,6 +999,8 @@ extension Components {
             ///   - location:
             ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart.
             ///   - clients: The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds.
+            ///   - attendanceOpen: `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym.
+            ///   - attendance:
             public init(
                 sessionId: Swift.String,
                 workspace: Components.Schemas.PersonalWorkspace,
@@ -1007,7 +1015,9 @@ extension Components {
                 level: Components.Schemas.ClassLevel? = nil,
                 location: Components.Schemas.Location? = nil,
                 clientName: Swift.String? = nil,
-                clients: [Components.Schemas.PersonalSessionClient]? = nil
+                clients: [Components.Schemas.PersonalSessionClient]? = nil,
+                attendanceOpen: Swift.Bool? = nil,
+                attendance: Components.Schemas.AttendanceSummary? = nil
             ) {
                 self.sessionId = sessionId
                 self.workspace = workspace
@@ -1023,6 +1033,8 @@ extension Components {
                 self.location = location
                 self.clientName = clientName
                 self.clients = clients
+                self.attendanceOpen = attendanceOpen
+                self.attendance = attendance
             }
             public enum CodingKeys: String, CodingKey {
                 case sessionId
@@ -1039,6 +1051,8 @@ extension Components {
                 case location
                 case clientName
                 case clients
+                case attendanceOpen
+                case attendance
             }
         }
         /// The workspace an item of the personal view is in.
@@ -1223,6 +1237,51 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case clientId
                 case name
+            }
+        }
+        /// The counts behind “5 aanwezig · 1 niet verschenen · 1 open” (CO-05, CO-06).
+        ///
+        /// - Remark: Generated from `#/components/schemas/AttendanceSummary`.
+        public struct AttendanceSummary: Codable, Hashable, Sendable {
+            /// Participants with `attended`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/attended`.
+            public var attended: Swift.Int
+            /// Participants with `no_show`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/noShow`.
+            public var noShow: Swift.Int
+            /// Participants still `booked`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/open`.
+            public var open: Swift.Int
+            /// Participants with `cancelled`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/cancelled`.
+            public var cancelled: Swift.Int
+            /// Creates a new `AttendanceSummary`.
+            ///
+            /// - Parameters:
+            ///   - attended: Participants with `attended`.
+            ///   - noShow: Participants with `no_show`.
+            ///   - open: Participants still `booked`.
+            ///   - cancelled: Participants with `cancelled`.
+            public init(
+                attended: Swift.Int,
+                noShow: Swift.Int,
+                open: Swift.Int,
+                cancelled: Swift.Int
+            ) {
+                self.attended = attended
+                self.noShow = noShow
+                self.open = open
+                self.cancelled = cancelled
+            }
+            public enum CodingKeys: String, CodingKey {
+                case attended
+                case noShow
+                case open
+                case cancelled
             }
         }
         /// *4 sessies · 09:00–19:00*, and how many of them are done.
@@ -4140,51 +4199,6 @@ extension Components {
                 case status
             }
         }
-        /// The counts behind “5 aanwezig · 1 niet verschenen · 1 open” (CO-05, CO-06).
-        ///
-        /// - Remark: Generated from `#/components/schemas/AttendanceSummary`.
-        public struct AttendanceSummary: Codable, Hashable, Sendable {
-            /// Participants with `attended`.
-            ///
-            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/attended`.
-            public var attended: Swift.Int
-            /// Participants with `no_show`.
-            ///
-            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/noShow`.
-            public var noShow: Swift.Int
-            /// Participants still `booked`.
-            ///
-            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/open`.
-            public var open: Swift.Int
-            /// Participants with `cancelled`.
-            ///
-            /// - Remark: Generated from `#/components/schemas/AttendanceSummary/cancelled`.
-            public var cancelled: Swift.Int
-            /// Creates a new `AttendanceSummary`.
-            ///
-            /// - Parameters:
-            ///   - attended: Participants with `attended`.
-            ///   - noShow: Participants with `no_show`.
-            ///   - open: Participants still `booked`.
-            ///   - cancelled: Participants with `cancelled`.
-            public init(
-                attended: Swift.Int,
-                noShow: Swift.Int,
-                open: Swift.Int,
-                cancelled: Swift.Int
-            ) {
-                self.attended = attended
-                self.noShow = noShow
-                self.open = open
-                self.cancelled = cancelled
-            }
-            public enum CodingKeys: String, CodingKey {
-                case attended
-                case noShow
-                case open
-                case cancelled
-            }
-        }
         /// Why the attendance was refused; nothing was stored. Contains no user-facing text.
         ///
         /// - Remark: Generated from `#/components/schemas/AttendanceRefusal`.
@@ -4911,7 +4925,7 @@ extension Components {
                 case items
             }
         }
-        /// A session of the workspace as a block of its calendar. It holds no note, email address or other contact detail of a client.
+        /// A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class date’s participants and is left out for the other kinds. It holds no note, email address or other contact detail of a client.
         ///
         /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession`.
         public struct WorkspaceCalendarSession: Codable, Hashable, Sendable {
@@ -5013,6 +5027,12 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/clients`.
             public var clients: [Components.Schemas.PersonalSessionClient]?
+            /// `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/attendanceOpen`.
+            public var attendanceOpen: Swift.Bool?
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/attendance`.
+            public var attendance: Components.Schemas.AttendanceSummary?
             /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/series`.
             public struct SeriesPayload: Codable, Hashable, Sendable {
                 /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/series/value1`.
@@ -5062,6 +5082,8 @@ extension Components {
             ///   - level:
             ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `; `clients` has them apart.
             ///   - clients: The clients of a private session in the order they were added: one, or two for a duo. A client who cancelled is left out, a cancelled session keeps its clients. Left out for the other kinds.
+            ///   - attendanceOpen: `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym.
+            ///   - attendance:
             ///   - series:
             public init(
                 id: Swift.String,
@@ -5079,6 +5101,8 @@ extension Components {
                 level: Components.Schemas.ClassLevel? = nil,
                 clientName: Swift.String? = nil,
                 clients: [Components.Schemas.PersonalSessionClient]? = nil,
+                attendanceOpen: Swift.Bool? = nil,
+                attendance: Components.Schemas.AttendanceSummary? = nil,
                 series: Components.Schemas.WorkspaceCalendarSession.SeriesPayload? = nil
             ) {
                 self.id = id
@@ -5096,6 +5120,8 @@ extension Components {
                 self.level = level
                 self.clientName = clientName
                 self.clients = clients
+                self.attendanceOpen = attendanceOpen
+                self.attendance = attendance
                 self.series = series
             }
             public enum CodingKeys: String, CodingKey {
@@ -5114,6 +5140,8 @@ extension Components {
                 case level
                 case clientName
                 case clients
+                case attendanceOpen
+                case attendance
                 case series
             }
         }
@@ -5139,6 +5167,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceDay/attention`.
             public var attention: [Components.Schemas.WorkspaceCalendarSession]
+            /// *Aandacht nodig*, F025: the sessions of yesterday (on the workspace’s wall clock, counted from now, whatever `date` is shown) that took place, have ended and still have a participant *Geboekt*, in time order: "{n} sessies van gisteren zonder aanwezigheid · Invullen". Each item links to its session page and says what it is as data (`type`, `className` or `clientName`). A session leaves the list once every participant is filled in. Left out when there is none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceDay/needsAttendance`.
+            public var needsAttendance: [Components.Schemas.WorkspaceCalendarSession]?
             /// Whether the workspace has any session at all, past or planned, cancelled or not, whatever day is shown: it tells a new workspace (*Welkom bij Fivvi. …*) from one with nothing planned today. Decided on the server and only for this workspace.
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceDay/hasSessions`.
@@ -5151,6 +5183,7 @@ extension Components {
             ///   - items: The sessions that start on the day, in time order, cancelled ones included (struck through): the rows of the dashboard and of *Mijn dag | {workspace}*.
             ///   - busiest:
             ///   - attention: *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: "{class}, {date} {time}: nog geen trainer", "Privé · {client}, {date} {time}: nog geen trainer". Empty when nothing needs attention. Later features add their own open items.
+            ///   - needsAttendance: *Aandacht nodig*, F025: the sessions of yesterday (on the workspace’s wall clock, counted from now, whatever `date` is shown) that took place, have ended and still have a participant *Geboekt*, in time order: "{n} sessies van gisteren zonder aanwezigheid · Invullen". Each item links to its session page and says what it is as data (`type`, `className` or `clientName`). A session leaves the list once every participant is filled in. Left out when there is none.
             ///   - hasSessions: Whether the workspace has any session at all, past or planned, cancelled or not, whatever day is shown: it tells a new workspace (*Welkom bij Fivvi. …*) from one with nothing planned today. Decided on the server and only for this workspace.
             public init(
                 date: Swift.String,
@@ -5158,6 +5191,7 @@ extension Components {
                 items: [Components.Schemas.WorkspaceCalendarSession],
                 busiest: Components.Schemas.WorkspaceBusiestMoment? = nil,
                 attention: [Components.Schemas.WorkspaceCalendarSession],
+                needsAttendance: [Components.Schemas.WorkspaceCalendarSession]? = nil,
                 hasSessions: Swift.Bool
             ) {
                 self.date = date
@@ -5165,6 +5199,7 @@ extension Components {
                 self.items = items
                 self.busiest = busiest
                 self.attention = attention
+                self.needsAttendance = needsAttendance
                 self.hasSessions = hasSessions
             }
             public enum CodingKeys: String, CodingKey {
@@ -5173,6 +5208,7 @@ extension Components {
                 case items
                 case busiest
                 case attention
+                case needsAttendance
                 case hasSessions
             }
         }

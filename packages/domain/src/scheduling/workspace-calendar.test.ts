@@ -5,6 +5,7 @@ import {
   attentionWindow,
   busiestMoment,
   filterWorkspaceCalendar,
+  sessionsNeedingAttendance,
   sessionsOfDay,
   sessionsWithoutTrainer,
   type WorkspaceCalendarSession,
@@ -376,5 +377,73 @@ describe('F014 #1538: the busiest moment of a day', () => {
         session('empty', '2026-09-22T18:00', { minutes: 0 }),
       ]),
     ).toBeUndefined();
+  });
+});
+
+describe('F025 AC11 (API): the sessions of yesterday without attendance', () => {
+  const ids = (list: readonly WorkspaceCalendarSession[]) => list.map((item) => item.sessionId);
+  const now = zonedTime('2026-09-23T08:00');
+
+  it('AC11: lists the sessions of yesterday that ended with a participant still booked, in time order', () => {
+    const items = [
+      session('anna-late', '2026-09-22T16:00', { participantStatuses: ['booked'] }),
+      session('anna', '2026-09-22T09:00', { participantStatuses: ['booked'] }),
+      session('kracht', '2026-09-22T18:00', {
+        type: 'group',
+        participantStatuses: ['attended', 'booked', 'no_show'],
+      }),
+    ];
+    expect(ids(sessionsNeedingAttendance(items, now, ZONE))).toEqual([
+      'anna',
+      'anna-late',
+      'kracht',
+    ]);
+  });
+
+  it('AC11: leaves a session out once every participant is filled in', () => {
+    const items = [
+      session('anna', '2026-09-22T09:00', { participantStatuses: ['attended'] }),
+      session('bram', '2026-09-22T10:00', { participantStatuses: ['no_show'] }),
+    ];
+    expect(sessionsNeedingAttendance(items, now, ZONE)).toEqual([]);
+  });
+
+  it('leaves out cancelled sessions, sessions without participants and Open Gym', () => {
+    const items = [
+      session('cancelled', '2026-09-22T09:00', {
+        status: 'cancelled',
+        participantStatuses: ['booked'],
+      }),
+      session('empty-class', '2026-09-22T18:00', { type: 'group', participantStatuses: [] }),
+      session('unknown', '2026-09-22T19:00'),
+      session('open-gym', '2026-09-22T12:00', {
+        type: 'open_gym',
+        participantStatuses: ['booked'],
+      }),
+      session('cancelled-place', '2026-09-22T13:00', { participantStatuses: ['cancelled'] }),
+    ];
+    expect(sessionsNeedingAttendance(items, now, ZONE)).toEqual([]);
+  });
+
+  it('is only yesterday on the workspace wall clock: not today, not the day before', () => {
+    const items = [
+      session('two-days', '2026-09-21T09:00', { participantStatuses: ['booked'] }),
+      session('today-ended', '2026-09-23T07:00', {
+        minutes: 30,
+        participantStatuses: ['booked'],
+      }),
+      session('late-night', '2026-09-22T23:30', { participantStatuses: ['booked'] }),
+    ];
+    // 23:30 yesterday started yesterday, so it is a session of yesterday even though it ended after midnight.
+    expect(ids(sessionsNeedingAttendance(items, now, ZONE))).toEqual(['late-night']);
+  });
+
+  it('counts yesterday on the wall clock across the clock change', () => {
+    const items = [
+      session('before-change', '2026-10-25T09:00', { participantStatuses: ['booked'] }),
+    ];
+    expect(ids(sessionsNeedingAttendance(items, zonedTime('2026-10-26T08:00'), ZONE))).toEqual([
+      'before-change',
+    ]);
   });
 });

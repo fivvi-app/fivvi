@@ -481,6 +481,7 @@ export {
   type BusiestMoment,
   busiestMoment,
   filterWorkspaceCalendar,
+  sessionsNeedingAttendance,
   sessionsOfDay,
   sessionsWithoutTrainer,
   type WorkspaceCalendarFilters,

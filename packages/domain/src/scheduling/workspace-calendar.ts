@@ -1,6 +1,7 @@
-// Module: The rules of the workspace calendar: the filters of the week, the rows of one day and the open item "a session without a trainer".
-// Spec: F014
+// Module: The rules of the workspace calendar: the filters of the week, the rows of one day and the open items "a session without a trainer" and "a session of yesterday without attendance".
+// Spec: F014, F025
 
+import { needsAttendance, type ParticipantStatus } from './attendance.ts';
 import { orderPersonalSessions } from './personal-day.ts';
 import { addDays, localDateOf, localDayBounds } from './zoned-time.ts';
 
@@ -24,6 +25,11 @@ export interface WorkspaceCalendarSession {
   readonly trainerId: string | null;
   /** The class of a class date (F037: the dates of one class); left out or `null` for any other kind. */
   readonly groupClassId?: string | null;
+  /**
+   * The statuses of the session's participants, one each (F025: what *Aanwezigheid nog invullen*
+   * reads); left out by a caller that has none, which then needs no attendance.
+   */
+  readonly participantStatuses?: readonly ParticipantStatus[];
 }
 
 /** The filters of the calendar; a filter left out, or empty, narrows nothing. */
@@ -104,6 +110,38 @@ export function sessionsWithoutTrainer<T extends WorkspaceCalendarSession>(
         session.trainerId === null &&
         session.startsAt >= window.from &&
         session.startsAt < window.to,
+    ),
+  );
+}
+
+/**
+ * The sessions of yesterday that still wait for attendance (F025, *Aandacht nodig*: "2 sessies van
+ * gisteren zonder aanwezigheid"), in time order: a private session or a class date that took place
+ * (not cancelled), started yesterday on the wall clock of `timeZone` (a session that crosses
+ * midnight is the day it began), has ended and has a participant still `booked`
+ * (`needsAttendance`). Once every participant is filled in the session is gone from the list.
+ */
+export function sessionsNeedingAttendance<T extends WorkspaceCalendarSession>(
+  sessions: readonly T[],
+  now: Date,
+  timeZone: string,
+): T[] {
+  const yesterday = localDayBounds(addDays(localDateOf(now, timeZone), -1), timeZone);
+  if (!yesterday) return [];
+  return orderPersonalSessions(
+    sessions.filter(
+      (session) =>
+        (session.type === 'group' || session.type === 'private') &&
+        session.startsAt >= yesterday.start &&
+        session.startsAt < yesterday.end &&
+        needsAttendance(
+          {
+            status: session.status,
+            endsAt: session.endsAt,
+            participants: session.participantStatuses ?? [],
+          },
+          now,
+        ),
     ),
   );
 }

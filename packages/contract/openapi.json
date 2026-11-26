@@ -705,6 +705,13 @@
               "$ref": "#/components/schemas/PersonalSessionClient"
             },
             "description": "The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds."
+          },
+          "attendanceOpen": {
+            "type": "boolean",
+            "description": "`true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym."
+          },
+          "attendance": {
+            "$ref": "#/components/schemas/AttendanceSummary"
           }
         },
         "required": [
@@ -717,7 +724,7 @@
           "timeZone",
           "capacity"
         ],
-        "description": "A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds."
+        "description": "A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s participants and is left out for the other kinds."
       },
       "PersonalWorkspace": {
         "type": "object",
@@ -852,6 +859,34 @@
           "name"
         ],
         "description": "A client in a private session of the day."
+      },
+      "AttendanceSummary": {
+        "type": "object",
+        "properties": {
+          "attended": {
+            "type": "integer",
+            "description": "Participants with `attended`."
+          },
+          "noShow": {
+            "type": "integer",
+            "description": "Participants with `no_show`."
+          },
+          "open": {
+            "type": "integer",
+            "description": "Participants still `booked`."
+          },
+          "cancelled": {
+            "type": "integer",
+            "description": "Participants with `cancelled`."
+          }
+        },
+        "required": [
+          "attended",
+          "noShow",
+          "open",
+          "cancelled"
+        ],
+        "description": "The counts behind “5 aanwezig · 1 niet verschenen · 1 open” (CO-05, CO-06)."
       },
       "MyDaySummary": {
         "type": "object",
@@ -2704,34 +2739,6 @@
         ],
         "description": "A participant of a session: the client’s ID, name and status, and nothing else (no email address, phone number or notes)."
       },
-      "AttendanceSummary": {
-        "type": "object",
-        "properties": {
-          "attended": {
-            "type": "integer",
-            "description": "Participants with `attended`."
-          },
-          "noShow": {
-            "type": "integer",
-            "description": "Participants with `no_show`."
-          },
-          "open": {
-            "type": "integer",
-            "description": "Participants still `booked`."
-          },
-          "cancelled": {
-            "type": "integer",
-            "description": "Participants with `cancelled`."
-          }
-        },
-        "required": [
-          "attended",
-          "noShow",
-          "open",
-          "cancelled"
-        ],
-        "description": "The counts behind “5 aanwezig · 1 niet verschenen · 1 open” (CO-05, CO-06)."
-      },
       "AttendanceRefusal": {
         "type": "object",
         "properties": {
@@ -3216,6 +3223,13 @@
             },
             "description": "The clients of a private session in the order they were added: one, or two for a duo. A client who cancelled is left out, a cancelled session keeps its clients. Left out for the other kinds."
           },
+          "attendanceOpen": {
+            "type": "boolean",
+            "description": "`true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym."
+          },
+          "attendance": {
+            "$ref": "#/components/schemas/AttendanceSummary"
+          },
           "series": {
             "allOf": [
               {
@@ -3238,7 +3252,7 @@
           "version",
           "location"
         ],
-        "description": "A session of the workspace as a block of its calendar. It holds no note, email address or other contact detail of a client."
+        "description": "A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class date’s participants and is left out for the other kinds. It holds no note, email address or other contact detail of a client."
       },
       "WorkspaceDay": {
         "type": "object",
@@ -3267,6 +3281,13 @@
               "$ref": "#/components/schemas/WorkspaceCalendarSession"
             },
             "description": "*Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: \"{class}, {date} {time}: nog geen trainer\", \"Privé · {client}, {date} {time}: nog geen trainer\". Empty when nothing needs attention. Later features add their own open items."
+          },
+          "needsAttendance": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceCalendarSession"
+            },
+            "description": "*Aandacht nodig*, F025: the sessions of yesterday (on the workspace’s wall clock, counted from now, whatever `date` is shown) that took place, have ended and still have a participant *Geboekt*, in time order: \"{n} sessies van gisteren zonder aanwezigheid · Invullen\". Each item links to its session page and says what it is as data (`type`, `className` or `clientName`). A session leaves the list once every participant is filled in. Left out when there is none."
           },
           "hasSessions": {
             "type": "boolean",
@@ -10494,7 +10515,7 @@
           "workspaces"
         ],
         "summary": "The workspace today: the rows of one day and what needs attention",
-        "description": "The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).",
+        "description": "The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer, and `needsAttendance`: the sessions of yesterday that still wait for attendance. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).",
         "security": [
           {
             "cookieAuth": []

@@ -19,6 +19,8 @@ import {
   checkAttendanceOpen,
   type MarkableStatus,
   mayTakeAttendance,
+  needsAttendance,
+  type ParticipantStatus,
 } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
@@ -99,7 +101,7 @@ const AttendanceParticipantSchema = z
       'address, phone number or notes).',
   });
 
-const AttendanceSummarySchema = z
+export const AttendanceSummarySchema = z
   .object({
     attended: z.number().int().openapi({ description: 'Participants with `attended`.' }),
     noShow: z.number().int().openapi({ description: 'Participants with `no_show`.' }),
@@ -109,6 +111,47 @@ const AttendanceSummarySchema = z
   .openapi('AttendanceSummary', {
     description: 'The counts behind “5 aanwezig · 1 niet verschenen · 1 open” (CO-05, CO-06).',
   });
+
+/** The field of `attendanceOpen` on a session of the personal and the workspace read models. */
+export const AttendanceOpenFieldSchema = z
+  .boolean()
+  .optional()
+  .openapi({
+    description:
+      '`true` when the session has ended, takes place and a participant is still *Geboekt*: the ' +
+      'nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym.',
+  });
+
+/**
+ * What a session of the read models says of its attendance (F025, #545): `attendanceOpen` when it
+ * waits for attendance (`needsAttendance`, the same rule as *Aandacht nodig*) and, for a class date,
+ * the counts of its participants' statuses. Nothing for Open Gym, which has no attendance yet.
+ */
+export function attendanceShown(
+  session: {
+    readonly type: 'private' | 'group' | 'open_gym';
+    readonly status: 'scheduled' | 'cancelled';
+    readonly endsAt: Date;
+    readonly attendanceStatuses: readonly ParticipantStatus[];
+  },
+  now: Date,
+) {
+  if (session.type === 'open_gym') return {};
+  const open = needsAttendance(
+    {
+      status: session.status,
+      endsAt: session.endsAt,
+      participants: session.attendanceStatuses,
+    },
+    now,
+  );
+  return {
+    ...(open ? { attendanceOpen: true as const } : {}),
+    ...(session.type === 'group'
+      ? { attendance: attendanceSummary(session.attendanceStatuses) }
+      : {}),
+  };
+}
 
 const AttendanceSchema = z
   .object({
