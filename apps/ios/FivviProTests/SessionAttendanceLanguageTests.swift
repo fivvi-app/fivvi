@@ -10,15 +10,6 @@ import XCTest
 /// view's own wiring that is under test, not only the model's `use(_:)`.
 @MainActor
 final class SessionAttendanceLanguageTests: XCTestCase {
-    private func settle(_ seconds: TimeInterval = 1.5) {
-        RunLoop.main.run(until: Date(timeIntervalSinceNow: seconds))
-    }
-
-    /// Runs the main loop until `done` holds (up to 20 s), so a slow first layout of a run doesn't fail the test.
-    private func settle(until done: () -> Bool) {
-        for _ in 0 ..< 40 where !done() { settle(0.5) }
-    }
-
     func test_F025_1619_td02AttendanceReadsInTheNewLanguageAfterALanguageChange() throws {
         let api = SessionFixtures.api()
         let session = api.sessions.seed(
@@ -56,13 +47,12 @@ final class SessionAttendanceLanguageTests: XCTestCase {
         XCTAssertEqual(attendance.state, .loaded)
         XCTAssertEqual(attendance.summaryText, String(format: dutch["attendance.summary"], "0", "0", "7"))
 
-        language.choose(.en)
-        settle()
+        let englishSummary = String(format: english["attendance.summary"], "0", "0", "7")
 
-        XCTAssertEqual(
-            attendance.summaryText, String(format: english["attendance.summary"], "0", "0", "7"),
-            "the section reads in English"
-        )
+        language.choose(.en)
+        settle(until: { attendance.summaryText == englishSummary })
+
+        XCTAssertEqual(attendance.summaryText, englishSummary, "the section reads in English")
         XCTAssertEqual(model.title, String(format: english["sessions.page.heading"], "Anna de Vries"))
         withExtendedLifetime(window) {}
     }
