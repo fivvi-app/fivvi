@@ -94,7 +94,10 @@ sealed interface QueueAction {
 /** A request waiting in the queue; [id] is its client request ID, sent again with every retry. */
 data class QueueEntry(
     val id: UUID,
+    /** The account that tapped; empty while `GET /v1/me` had not answered yet. */
     val accountId: String,
+    /** The sign-in that tapped (an opaque ID, new with every sign-in): a tap is never read under another one's account. */
+    val signInId: String,
     val workspaceId: UUID,
     val sessionId: UUID,
     val action: QueueAction,
@@ -149,12 +152,15 @@ data class QueueState(
  * with [Reason.Other], so the queue never stalls on them; a 5xx and a lost connection are sent again. *Iedereen aanwezig* is one
  * request of its own, in order with the taps around it (owner, 9 November 2026).
  *
- * Every entry names the account that tapped, and the list is read for one account ([adopt]): what an earlier account left is
- * never sent and is deleted. The file is read when the queue is made, so what waited on the phone shows, counts for the
- * sign-out warning and is never overwritten while `GET /v1/me` has not answered yet (an app opened offline, a tap before the
- * answer); nothing is sent until [adopt] names the account. The sign-out clears the queue ([clear], in memory and on disk)
- * after the screens warned; a token the API rejects (a 401) does not: the taps stay on disk and are sent when the same
- * account signs in again.
+ * Every entry names the account that tapped and the sign-in it was tapped under ([signInId]), and the list is read for one
+ * account ([adopt]): what an earlier account left is never sent and is deleted. A tap made before `GET /v1/me` answered (an
+ * app opened offline, a tap before the answer) has no account yet: it is this account's only if it was made under this very
+ * sign-in; one of another sign-in could be anybody's (a 401 ended that one before the account was known), so it is deleted
+ * and never sent. The file is read when the queue is made and nothing is sent until [adopt] names the account; what another
+ * sign-in left shows nowhere (not in the sign-out warning, not on TD-02 and CO-05) and is kept in the file until [adopt]
+ * decides, so no write overwrites it. The sign-out clears the queue ([clear], in memory and on disk) after the screens
+ * warned; a token the API rejects (a 401) does not: the taps of an account stay on disk and are sent when the same account
+ * signs in again.
  *
  * The file is written and deleted on [io], in the order the changes were made (one writer), and what was handed to it still
  * is written when the screen that made the queue is gone.
@@ -163,6 +169,8 @@ class AttendanceQueue(
     private val api: SessionsApi,
     private val store: PersonalStore,
     connectivity: Connectivity,
+    /** The opaque ID of the sign-in this queue belongs to ([app.fivvi.core.auth.Session.signInId]). */
+    private val signInId: String,
     /** The sign-in this queue belongs to is still the current one: after the sign-out nothing is sent or written. */
     private val stillSignedIn: () -> Boolean = { true },
     private val makeId: () -> UUID = UUID::randomUUID,
@@ -170,9 +178,17 @@ class AttendanceQueue(
     private val retryAfter: Duration? = 5.seconds,
     io: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
-    // What the last sign-in left on the phone, read once: it is part of the list from the start, so no write drops it.
-    private val fromDisk = readFile()
-    private val _state = MutableStateFlow(QueueState(entries = fromDisk, online = connectivity.online.value))
+    // What the phone holds, read once. The taps of this sign-in show from the start (a restart keeps the sign-in); what another
+    // sign-in left is held back, out of sight, until [adopt] says whose it is: it stays in the file, so no write drops it.
+    private var held: List<QueueEntry>
+    private val _state: MutableStateFlow<QueueState>
+
+    init {
+        val (own, others) = readFile().partition { it.signInId == signInId }
+        held = others
+        _state = MutableStateFlow(QueueState(entries = own, online = connectivity.online.value))
+    }
+
     val state: StateFlow<QueueState> = _state.asStateFlow()
     private val lock = Any()
     private var accountId: String? = null
@@ -216,23 +232,22 @@ class AttendanceQueue(
 
     /**
      * Takes the list of this phone for [account] (`GET /v1/me` answered, the first time only): the requests of that account are
-     * sent from now on, those of any other account are deleted, and what was tapped before the account was known is this
-     * sign-in's. A tap of an earlier run that was made before its account was known is this account's too, unless the file
-     * also holds the taps of another one: then nobody can say whose it was, and it goes with them.
+     * sent from now on (also those an earlier sign-in of the same account left), those of any other account are deleted, and
+     * what this sign-in tapped before the account was known is this account's. A tap with no account that another sign-in
+     * made is deleted: nobody can say whose it was, and it is never sent under this account.
      */
     fun adopt(account: String) {
         synchronized(lock) {
             // A queue belongs to one sign-in, so one account: every later answer of `GET /v1/me` is the same person.
             if (closed || accountId != null) return
             accountId = account
-            val foreign = fromDisk.any { it.accountId != UNKNOWN && it.accountId != account }
-            val earlier = fromDisk.mapTo(mutableSetOf()) { it.id }
-            // The list is in the order it was tapped (the file's entries first): keep it, and make what has no account yet this one's.
-            val kept = _state.value.entries.filter {
-                it.accountId == account ||
-                    (it.accountId == UNKNOWN && !(foreign && it.id in earlier))
-            }.map { if (it.accountId == UNKNOWN) it.copy(accountId = account) else it }
-            _state.update { it.copy(entries = kept.distinctBy(QueueEntry::id)) }
+            // The list is in the order it was tapped (what an earlier sign-in left first): keep the account's, make what this
+            // sign-in tapped before the account was known the account's too, and drop the rest.
+            val earlier = held.filter { it.accountId == account }
+            val own = _state.value.entries.filter { it.accountId == account || it.accountId == UNKNOWN }
+                .map { if (it.accountId == UNKNOWN) it.copy(accountId = account) else it }
+            held = emptyList()
+            _state.update { it.copy(entries = (earlier + own).distinctBy(QueueEntry::id)) }
             save()
         }
         flush()
@@ -243,7 +258,7 @@ class AttendanceQueue(
     fun enqueue(workspaceId: UUID, sessionId: UUID, action: QueueAction) {
         synchronized(lock) {
             if (closed) return
-            val entry = QueueEntry(makeId(), accountId ?: UNKNOWN, workspaceId, sessionId, action)
+            val entry = QueueEntry(makeId(), accountId ?: UNKNOWN, signInId, workspaceId, sessionId, action)
             _state.update { state ->
                 state.copy(
                     entries = state.entries + entry,
@@ -276,6 +291,7 @@ class AttendanceQueue(
         synchronized(lock) {
             closed = true
             retry?.cancel()
+            held = emptyList()
             _state.value = QueueState(online = _state.value.online)
             disk.trySend(DiskChange.Clear)
         }
@@ -425,7 +441,7 @@ class AttendanceQueue(
     // Written under [lock], which [clear] takes too: a write that comes after the clear finds the queue closed.
     private fun save() {
         if (closed || !stillSignedIn()) return
-        val list = JsonArray(_state.value.entries.map(::encode))
+        val list = JsonArray((held + _state.value.entries).map(::encode))
         disk.trySend(DiskChange.Write(list.toString().encodeToByteArray()))
     }
 
@@ -446,6 +462,7 @@ class AttendanceQueue(
         val fields = mutableMapOf<String, kotlinx.serialization.json.JsonElement>(
             ID to JsonPrimitive(entry.id.toString()),
             ACCOUNT to JsonPrimitive(entry.accountId),
+            SIGN_IN to JsonPrimitive(entry.signInId),
             WORKSPACE to JsonPrimitive(entry.workspaceId.toString()),
             SESSION to JsonPrimitive(entry.sessionId.toString()),
         )
@@ -479,6 +496,8 @@ class AttendanceQueue(
         return QueueEntry(
             UUID.fromString(text(ID)),
             text(ACCOUNT),
+            // A file with no sign-in ID on an entry belongs to nobody's sign-in: it is held back and dropped by [adopt].
+            item[SIGN_IN]?.jsonPrimitive?.content ?: UNKNOWN,
             UUID.fromString(text(WORKSPACE)),
             UUID.fromString(text(SESSION)),
             action,
@@ -492,6 +511,7 @@ class AttendanceQueue(
         val json = Serializer.kotlinxSerializationJson
         const val ID = "id"
         const val ACCOUNT = "account"
+        const val SIGN_IN = "signIn"
         const val WORKSPACE = "workspace"
         const val SESSION = "session"
         const val KIND = "kind"

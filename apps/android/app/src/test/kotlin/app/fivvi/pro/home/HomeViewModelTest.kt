@@ -9,11 +9,21 @@ import app.fivvi.core.auth.Session
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.teamMemberIdOf
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.net.FakeConnectivity
 import app.fivvi.core.quarantine.Isolation
 import app.fivvi.core.signin.FakeSignInApi
+import app.fivvi.pro.attendance.AttendanceQueue
+import app.fivvi.pro.attendance.AttendanceStatus
+import app.fivvi.pro.attendance.FakeAttendance
+import app.fivvi.pro.attendance.FakeAttendanceServer
+import app.fivvi.pro.attendance.QueueAction
+import app.fivvi.pro.attendance.participantIdOf
+import app.fivvi.pro.personal.MemoryPersonalStore
+import app.fivvi.pro.sessions.FakeSessionsApi
 import app.fivvi.pro.workspace.CurrentWorkspace
 import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
 import java.io.IOException
+import java.time.Instant
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
@@ -63,6 +73,7 @@ class HomeViewModelTest {
     private val api = FakeMeApi()
     private val workspaces = FakeWorkspacesApi()
     private val signInApi = FakeSignInApi()
+    private val connectivity = FakeConnectivity()
     private val store = InMemorySessionStore("tok-1")
     private val lastWorkspace = InMemoryLastWorkspaceStore()
     private var current = CurrentWorkspace(lastWorkspace)
@@ -99,6 +110,7 @@ class HomeViewModelTest {
         workspaces,
         session,
         current,
+        connectivity,
         signOutApi = { token ->
             signOutTokens += token
             signInApi
@@ -709,11 +721,94 @@ class HomeViewModelTest {
     fun F001N_AC10_signOutWithoutATokenSkipsTheRequest() {
         val empty = Session(InMemorySessionStore())
         api.answerAccount()
-        val viewModel = HomeViewModel(api, workspaces, empty, current, { signInApi }, { identified += it }, dispatcher)
+        val viewModel =
+            HomeViewModel(api, workspaces, empty, current, connectivity, {
+                signInApi
+            }, { identified += it }, dispatcher)
 
         viewModel.signOut()
 
         assertEquals(0, signInApi.signOuts)
         assertEquals(false, empty.state.value.signedIn)
+    }
+
+    // F025 AC8, #1620: an app opened offline has no account yet, so what was tapped waits. The reconnection reads the account
+    // again, without a pull to refresh, and that sends what waits.
+    @Test
+    fun test_F025_AC8_aFailedAccountReadIsReadAgainWhenTheConnectionComesBack() {
+        connectivity.setOnline(false)
+        api.answers += { throw IOException("offline") }
+        val viewModel = viewModel()
+        assertEquals(MeState.Failed, viewModel.state.value)
+        assertEquals(emptyList<String>(), identified)
+
+        api.answerAccount(workspaces = listOf("John's Gym"))
+        connectivity.setOnline(true)
+
+        assertEquals(OWNER_IN_WORKSPACE, viewModel.state.value)
+        assertEquals("the account is known now", 1, identified.size)
+        assertEquals(2, api.calls)
+    }
+
+    @Test
+    fun test_F025_AC8_aReconnectionDoesNotReadAnAccountThatIsLoaded() {
+        api.answerAccount(workspaces = listOf("John's Gym"))
+        val viewModel = viewModel()
+        connectivity.setOnline(false)
+
+        connectivity.setOnline(true)
+
+        assertEquals(OWNER_IN_WORKSPACE, viewModel.state.value)
+        assertEquals(1, api.calls)
+    }
+
+    @Test
+    fun test_F025_AC8_tapsOfAnOfflineStartAreSentInOrderWhenTheConnectionComesBackWithoutAPull() {
+        val sessions = FakeSessionsApi()
+        val kracht = UUID.nameUUIDFromBytes("kracht".toByteArray())
+        val names = listOf("Anna de Vries", "Bram Jansen", "Chris Bakker")
+        sessions.attendance.add(
+            FakeAttendance(
+                kracht,
+                opensAt = FakeAttendanceServer.at(Instant.parse("2026-09-22T15:30:00Z")),
+                participants = names.map { FakeAttendanceServer.participant(it) }.toMutableList(),
+            ),
+        )
+        sessions.attendance.now = Instant.parse("2026-09-22T16:10:00Z")
+        connectivity.setOnline(false)
+        val queue = AttendanceQueue(
+            sessions,
+            MemoryPersonalStore(),
+            connectivity,
+            session.signInId(),
+            retryAfter = null,
+            io = dispatcher,
+        )
+        api.answers += { throw IOException("offline") }
+        val viewModel = HomeViewModel(
+            api,
+            workspaces,
+            session,
+            current,
+            connectivity,
+            { signInApi },
+            { queue.adopt(it) },
+            dispatcher,
+        )
+        assertEquals("no account: `GET /v1/me` failed", MeState.Failed, viewModel.state.value)
+        names.forEach {
+            queue.enqueue(
+                workspaceIdOf("John's Gym"),
+                kracht,
+                QueueAction.Set(participantIdOf(it), AttendanceStatus.ATTENDED),
+            )
+        }
+        assertEquals(emptyList<Any>(), sessions.attendance.sent)
+
+        api.answerAccount(workspaces = listOf("John's Gym"))
+        connectivity.setOnline(true)
+
+        assertEquals(names.map(::participantIdOf), sessions.attendance.sent.map { it.clientId })
+        assertEquals(true, queue.state.value.entries.isEmpty())
     }
 }

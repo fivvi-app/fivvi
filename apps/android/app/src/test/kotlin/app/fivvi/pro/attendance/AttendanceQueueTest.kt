@@ -35,6 +35,9 @@ class AttendanceQueueTest {
     private val names = listOf("Anna de Vries", "Bram Jansen", "Chris Bakker")
     private var signedIn = true
 
+    // The sign-in the next queue is made under: a restart of the app keeps it, another sign-in changes it.
+    private var signIn = "sign-in-1"
+
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -59,6 +62,7 @@ class AttendanceQueueTest {
         api,
         store,
         online,
+        signIn,
         stillSignedIn = { signedIn },
         retryAfter = null,
         io = Dispatchers.Unconfined,
@@ -312,6 +316,7 @@ class AttendanceQueueTest {
         assertTrue(queue.state.value.rejections.isEmpty())
 
         signedIn = true
+        signIn = "sign-in-2"
         val phone = FakeConnectivity(false)
         val sameAccount = queue(account = "sarah", online = phone)
         assertEquals("the tap is still there", 1, sameAccount.state.value.entries.size)
@@ -328,6 +333,7 @@ class AttendanceQueueTest {
         server.answers.add { FakeAttendanceServer.status(401) }
         queue.tap("Anna de Vries", AttendanceStatus.ATTENDED)
 
+        signIn = "sign-in-2"
         val other = queue(account = "john")
 
         assertTrue(other.state.value.entries.isEmpty())
@@ -412,6 +418,7 @@ class AttendanceQueueTest {
         queue(online = FakeConnectivity(false)).tap("Anna de Vries", AttendanceStatus.ATTENDED)
         queue(account = "sarah", online = FakeConnectivity(false)).tap("Bram Jansen", AttendanceStatus.NO_SHOW)
 
+        signIn = "sign-in-2"
         val john = queue(account = null)
         john.tap("Chris Bakker", AttendanceStatus.ATTENDED)
         assertEquals("nothing is sent before the account is known", 0, server.sent.size)
@@ -454,9 +461,10 @@ class AttendanceQueueTest {
         assertTrue(second.state.value.entries.isEmpty())
     }
 
-    // A tap made before the account was known, then the app was closed before it answered: the next run's account has it.
+    // A tap made before the account was known, then the app was closed before it answered: the same sign-in is still open, so the
+    // account it learns has the tap.
     @Test
-    fun test_F025_1620_aTapOfAnEarlierRunBeforeTheAccountWasKnownIsTheAccountsOfTheNextRun() {
+    fun test_F025_1620_aTapOfAnEarlierRunOfTheSameSignInBeforeTheAccountWasKnownIsTheAccountsOfTheNextRun() {
         queue(account = null, online = FakeConnectivity(false)).tap("Anna de Vries", AttendanceStatus.ATTENDED)
 
         val next = queue(account = "sarah")
@@ -465,15 +473,100 @@ class AttendanceQueueTest {
         assertTrue(next.state.value.entries.isEmpty())
     }
 
-    // ... unless the file also holds the taps of another account: whose it was cannot be said, so it goes with them (#1618).
+    // A tap with no account of another sign-in is nobody's to claim: the next account's sign-in sends nothing of it (#1618).
     @Test
-    fun test_F025_1620_aTapOfAnEarlierRunWithNoAccountGoesWithTheTapsOfAnotherAccount() {
+    fun test_F025_1620_aTapOfAnotherSignInWithNoAccountIsNeverSentUnderAnotherAccount() {
         queue(account = "sarah", online = FakeConnectivity(false)).tap("Anna de Vries", AttendanceStatus.ATTENDED)
         queue(account = null, online = FakeConnectivity(false)).tap("Bram Jansen", AttendanceStatus.NO_SHOW)
 
+        signIn = "sign-in-2"
         val john = queue(account = "john")
 
         assertEquals(emptyList<SentAttendance>(), server.sent)
         assertTrue(john.state.value.entries.isEmpty())
+    }
+
+    // #1618: Sarah taps offline before `GET /v1/me` answers, the token is then rejected (so no account is ever learned), and John
+    // signs in on the same phone: none of the three taps is sent with his token, and none is left on disk.
+    @Test
+    fun test_F025_1620_aNoAccountTapThenA401ThenAnotherAccountSignsInSendsNothingAndLeavesTheFileEmpty() {
+        val sarah = queue(account = null, online = FakeConnectivity(false))
+        sarah.tap("Anna de Vries", AttendanceStatus.ATTENDED)
+        sarah.tap("Bram Jansen", AttendanceStatus.NO_SHOW)
+        sarah.tap("Chris Bakker", AttendanceStatus.ATTENDED)
+        signedIn = false // `GET /v1/me` answers 401: the session ends before an account is known
+
+        signedIn = true
+        signIn = "sign-in-2"
+        val john = queue(account = "john")
+
+        assertEquals(emptyList<SentAttendance>(), server.sent)
+        assertTrue(john.state.value.entries.isEmpty())
+        assertTrue(
+            "nothing of Sarah's is left on disk",
+            queue(account = "john", online = FakeConnectivity(false)).state.value.entries.isEmpty(),
+        )
+        signIn = "sign-in-1"
+        assertTrue(
+            "not even for the sign-in that made the taps",
+            queue(account = null, online = FakeConnectivity(false)).state.value.entries.isEmpty(),
+        )
+    }
+
+    // The account was learned before the 401 stamped the tap: the same account signing in again sends it.
+    @Test
+    fun test_F025_1620_aNoAccountTapThenA401ThenTheSameAccountSignsInAgainSendsTheTap() {
+        val phone = FakeConnectivity(false)
+        val sarah = queue(account = null, online = phone)
+        sarah.tap("Anna de Vries", AttendanceStatus.ATTENDED)
+        sarah.adopt("sarah") // `GET /v1/me` answered while the phone was still offline
+        signedIn = false // then a send answers 401
+
+        signedIn = true
+        signIn = "sign-in-2"
+        val again = queue(account = "sarah")
+
+        assertEquals(listOf(participantIdOf("Anna de Vries")), server.sent.map { it.clientId })
+        assertTrue(again.state.value.entries.isEmpty())
+    }
+
+    // The taps another sign-in left stay on disk, out of sight, until the account is known; then those of the same account go
+    // first, in the order they were tapped.
+    @Test
+    fun test_F025_1620_anEarlierSignInsTapsOfTheSameAccountGoBeforeTheNewOnesAfterTheAnswer() {
+        queue(account = "sarah", online = FakeConnectivity(false)).tap("Anna de Vries", AttendanceStatus.ATTENDED)
+
+        signIn = "sign-in-2"
+        val phone = FakeConnectivity(false)
+        val again = queue(account = null, online = phone)
+        assertTrue("another sign-in's taps show nowhere", again.state.value.entries.isEmpty())
+        assertTrue(again.state.value.pending(kracht).isEmpty())
+        assertTrue(!again.state.value.hasPending(kracht))
+        again.tap("Bram Jansen", AttendanceStatus.NO_SHOW)
+        assertEquals(1, again.state.value.entries.size)
+        phone.setOnline(true)
+        again.adopt("sarah")
+
+        assertEquals(
+            listOf("Anna de Vries", "Bram Jansen").map(::participantIdOf),
+            server.sent.map { it.clientId },
+        )
+    }
+
+    // The sign-out warning counts what the screens count (`entries`): the taps of another sign-in are not this person's to be
+    // warned about, and they are deleted with the rest when the person signs out.
+    @Test
+    fun test_F025_1620_theSignOutWarningBeforeTheAccountIsKnownDoesNotCountAnotherSignInsTaps() {
+        queue(account = "sarah", online = FakeConnectivity(false)).tap("Anna de Vries", AttendanceStatus.ATTENDED)
+        queue(account = null, online = FakeConnectivity(false)).tap("Bram Jansen", AttendanceStatus.NO_SHOW)
+
+        signIn = "sign-in-2"
+        val john = queue(account = null, online = FakeConnectivity(false))
+        assertEquals("no tap of this sign-in yet", 0, john.state.value.entries.size)
+        assertTrue(!john.state.value.waitsForConnection)
+
+        john.clear()
+        signIn = "sign-in-1"
+        assertTrue(queue(account = "sarah", online = FakeConnectivity(false)).state.value.entries.isEmpty())
     }
 }

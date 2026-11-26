@@ -1,5 +1,6 @@
 package app.fivvi.core.auth
 
+import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,16 +19,25 @@ data class AuthState(val signedIn: Boolean, val generation: Int, val afterReject
  */
 class Session(private val store: SessionStore, private val onSignedOut: () -> Unit = {}) {
     private var token: String? = store.read()
+    private var signInId: String = store.signInId() ?: newSignInId()
     private val _state = MutableStateFlow(AuthState(signedIn = token != null, generation = 0))
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
     @Synchronized
     fun token(): String? = token
 
+    /**
+     * The opaque ID of the current sign-in: new with every [signIn], the same after a restart of the app that keeps the token
+     * (the store keeps it with the token). What a screen keeps for one sign-in, as F025's offline queue, is tied to it.
+     */
+    @Synchronized
+    fun signInId(): String = signInId
+
     @Synchronized
     fun signIn(newToken: String) {
         store.save(newToken)
         token = newToken
+        signInId = store.signInId() ?: newSignInId()
         publish(signedIn = true, afterRejection = false)
     }
 
@@ -72,4 +82,6 @@ class Session(private val store: SessionStore, private val onSignedOut: () -> Un
     private fun publish(signedIn: Boolean, afterRejection: Boolean) {
         _state.value = AuthState(signedIn, _state.value.generation + 1, afterRejection)
     }
+
+    private fun newSignInId() = UUID.randomUUID().toString()
 }

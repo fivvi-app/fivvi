@@ -216,6 +216,7 @@ class MainActivity : ComponentActivity() {
                 dependencies.sessionsApi,
                 dependencies.attendanceStore,
                 dependencies.connectivity,
+                dependencies.session.signInId(),
                 stillSignedIn = { dependencies.session.state.value.let { it.signedIn && "${it.generation}" == key } },
             )
         }
@@ -225,6 +226,7 @@ class MainActivity : ComponentActivity() {
                 dependencies.workspacesApi,
                 dependencies.session,
                 dependencies.currentWorkspace,
+                dependencies.connectivity,
                 dependencies::signOutApi,
                 onAccount = {
                     Observability.setUser(it)

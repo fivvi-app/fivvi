@@ -10,6 +10,7 @@ import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.auth.Session
 import app.fivvi.core.auth.SignOut
+import app.fivvi.core.net.Connectivity
 import app.fivvi.pro.workspace.CurrentWorkspace
 import app.fivvi.pro.workspace.StartWorkspace
 import java.io.IOException
@@ -90,6 +91,10 @@ sealed interface HomeDestination {
  * [onPreferredLocale] is told the account's stored language at the same time (F010 AC2, AC5), and [onWorkspaces] its
  * workspaces with their capabilities (F004 AC10: the app's one helper for which actions show).
  *
+ * When the phone gets its connection back and `GET /v1/me` has not answered (the app was opened offline), the account is read
+ * again by itself, without a pull to refresh: it names the account, which is what the requests waiting in F025's offline queue
+ * need before they are sent.
+ *
  * The workspace shown is the one used last on this device while the person is still on its team, otherwise the first the
  * API lists ([StartWorkspace], F012 AC5, AC7); whichever it opens, it remembers in [current]; [switchWorkspace] changes it (AC6).
  */
@@ -98,6 +103,7 @@ class HomeViewModel(
     private val workspaceApi: WorkspacesApi,
     private val session: Session,
     private val current: CurrentWorkspace,
+    connectivity: Connectivity,
     private val signOutApi: (token: String) -> SignInApi,
     private val onAccount: (id: String) -> Unit,
     private val io: CoroutineDispatcher = Dispatchers.IO,
@@ -131,6 +137,13 @@ class HomeViewModel(
 
     init {
         load()
+        viewModelScope.launch {
+            var wasOnline = connectivity.online.value
+            connectivity.online.collect { online ->
+                if (online && !wasOnline && _state.value == MeState.Failed) load()
+                wasOnline = online
+            }
+        }
     }
 
     fun retry() = load()
