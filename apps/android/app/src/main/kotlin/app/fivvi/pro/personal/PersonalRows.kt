@@ -5,6 +5,8 @@ import app.fivvi.api.models.MyDay
 import app.fivvi.api.models.MyDayNext
 import app.fivvi.api.models.PersonalSession
 import app.fivvi.core.kit.showsInList
+import app.fivvi.pro.attendance.AttendanceNudges
+import app.fivvi.pro.attendance.PersonalNudge
 import app.fivvi.pro.sessions.SessionFormat
 import app.fivvi.pro.sessions.SessionRoute
 import java.text.NumberFormat
@@ -69,6 +71,16 @@ data class PersonalRow(
      * *Geen*, for *Alle niveaus* (a list shows no icon for it) and for a private session.
      */
     val level: ClassLevel? = null,
+    /**
+     * The private session has ended and its client is still *Geboekt* (F025, Q18): *Aanwezigheid nog invullen* with *Aanwezig*
+     * and *Niet verschenen* under the row. Only Vandaag and *Hele studio* set it; Agenda's rows show nothing extra.
+     */
+    val nudge: PersonalNudge? = null,
+    /**
+     * An ended class (or a duo) waits for attendance (F025): the line *Aanwezigheid nog invullen* alone, no buttons; it opens
+     * CO-05 (TD-02 for a duo), where each participant is filled in.
+     */
+    val attendanceLine: Boolean = false,
 )
 
 /** The level a list shows as bars after the class name: only a class has one, and *Alle niveaus* shows none (F067). */
@@ -130,8 +142,18 @@ class PersonalRows(
 /** *Vrij 11:00–15:00* and *4 uur*, with the start *Plannen* hands PS-04. */
 data class PersonalFreeGap(val from: String, val to: String, val hours: String, val start: OffsetDateTime)
 
-/** The *Mijn dag* card: only what the list doesn't tell. *Te doen* of F025 will join it as its first row. */
+/** One chip of *Te doen*: [who] is the first name of a private session's client, or the class name, and [row] what it opens. */
+data class PersonalTodoChip(val who: String, val row: PersonalRow)
+
+/**
+ * The card's first row (F025): a chip *Aanwezigheid · Anna 09:00* for each ended item whose attendance is still open, in time
+ * order, or *Alles bijgewerkt* when there are none.
+ */
+data class PersonalTodo(val chips: List<PersonalTodoChip>)
+
+/** The *Mijn dag* card: *Te doen* as its first row, then only what the list doesn't tell. */
 data class PersonalCard(
+    val todo: PersonalTodo,
     /** `null` when no gap is left: the card says so. */
     val gap: PersonalFreeGap?,
     /** *Studio Fit → Park*, only with two places or more. */
@@ -170,7 +192,13 @@ data class PersonalNext(val row: PersonalRow, private val startsAt: Instant, pri
  * TD-01 *Vandaag* (F013, the design of `DECISIONS.md` §3) from `GET /v1/me/day`: the server decides the summary, *Straks*, the
  * free gap and the places ahead; this writes them down. Open Gym is left out (spec #457: nothing about it in the UI).
  */
-class TodayContent(private val day: MyDay, now: Instant, private val format: SessionFormat) {
+class TodayContent(
+    private val day: MyDay,
+    now: Instant,
+    private val format: SessionFormat,
+    /** What the offline queue of attendance has answered (F025): `null` where there is none, and the day has no nudges. */
+    private val nudges: AttendanceNudges? = null,
+) {
     private val items = day.items.filter { it.type != PersonalSession.Type.OPEN_GYM }
     private val builder = PersonalRows(day.showsKindLabel, day.workspaceCount, now, format)
 
@@ -190,6 +218,7 @@ class TodayContent(private val day: MyDay, now: Instant, private val format: Ses
     } else {
         val places = day.placesAhead.orEmpty().map { it.name }
         PersonalCard(
+            todo = todo(),
             gap = day.freeGap?.let {
                 val hours = Duration.between(it.startsAt, it.endsAt).toMinutes() / MINUTES_PER_HOUR
                 PersonalFreeGap(
@@ -203,13 +232,27 @@ class TodayContent(private val day: MyDay, now: Instant, private val format: Ses
         )
     }
 
+    // *Te doen*: a chip for each item that waits for attendance, in time order.
+    private fun todo() = PersonalTodo(
+        items.filter { nudges?.isOpen(it.sessionId, it.attendanceOpen) == true }.map {
+            val row = builder.row(it)
+            PersonalTodoChip(if (row.isGroup) row.title else row.title.substringBefore(' '), row)
+        },
+    )
+
+    private fun decorated(item: PersonalSession): PersonalRow {
+        val row = builder.row(item)
+        return nudges?.decorate(row, item.attendanceOpen, item.type == PersonalSession.Type.PRIVATE, item.clients)
+            ?: row
+    }
+
     val next: PersonalNext? = day.next?.let { next ->
         items.firstOrNull { it.sessionId == next.sessionId }
             ?.let { PersonalNext(builder.row(it), it.startsAt.toInstant(), next.state) }
     }
 
     /** Every other item of today in time order; the next one is not repeated. */
-    val rows: List<PersonalRow> = items.filter { it.sessionId != day.next?.sessionId }.map(builder::row)
+    val rows: List<PersonalRow> = items.filter { it.sessionId != day.next?.sessionId }.map(::decorated)
 
     /** The empty day's text; the API also sends `nextSessionDate` when tomorrow has sessions: the *Morgen* line says it then. */
     val empty: PersonalEmpty? = if (items.isNotEmpty()) {

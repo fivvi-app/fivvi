@@ -65,6 +65,8 @@ class StudioDayViewModel(
     private val trainers: TrainersApi,
     private val clock: () -> Instant = Instant::now,
     private val onForbidden: (UUID) -> Unit = {},
+    /** Told each time the day was read fresh: the answers the attendance queue kept for the nudges are in it now (F025). */
+    private val onDayRead: () -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow(StudioState())
     val state: StateFlow<StudioState> = _state.asStateFlow()
@@ -145,6 +147,7 @@ class StudioDayViewModel(
         _state.update {
             it.copy(load = TodayLoad.Loaded, day = day, isOffline = false, updateFailed = false)
         }
+        onDayRead()
     }
 
     private fun failed(id: UUID, offline: Boolean) {

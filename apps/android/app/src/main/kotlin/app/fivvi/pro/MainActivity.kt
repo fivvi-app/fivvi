@@ -248,6 +248,7 @@ class MainActivity : ComponentActivity() {
                     }
                 },
                 stillSignedIn = { dependencies.session.state.value.let { it.signedIn && "${it.generation}" == key } },
+                onDayRead = attendance::forgetSettled,
             )
         }
         // Agenda (F013, TD-04): the week and the month of the same personal scope, one request for the days on screen. It
@@ -268,6 +269,7 @@ class MainActivity : ComponentActivity() {
                 dependencies.trainersApi,
                 dependencies.clock::instant,
                 onForbidden = { capabilities.forbidden(it, MeWorkspace.Capabilities.CALENDAR_PERIOD_MANAGE) },
+                onDayRead = attendance::forgetSettled,
             )
         }
         val queued by attendance.state.collectAsStateWithLifecycle()
@@ -591,6 +593,9 @@ class MainActivity : ComponentActivity() {
                         tab = ProTab.CALENDAR
                     },
                     menu = newMenuContent,
+                    attendance = attendance,
+                    // The line of an ended class opens CO-05 at once, in the workspace of its item.
+                    onOpenAttendance = { openAttendance(it.id, it.workspaceId) },
                 )
 
                 ProTab.CALENDAR -> AgendaTab(

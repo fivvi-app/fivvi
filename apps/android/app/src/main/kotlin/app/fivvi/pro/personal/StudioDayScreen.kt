@@ -153,6 +153,8 @@ internal fun LazyListScope.studioDay(studio: StudioUi, content: StudioContent?, 
                                     onOpen = { actions.onOpen(row) },
                                     onRoute = actions.onRoute,
                                     nobody = nobody,
+                                    onMark = { actions.onMark(row, it) },
+                                    onOpenAttendance = { actions.onOpenAttendance(row) },
                                 )
                             }
                         }

@@ -24,6 +24,12 @@ import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.theme.FivviTheme
 import app.fivvi.pro.localizedString
+import app.fivvi.pro.personal.PersonalRows
+import app.fivvi.pro.personal.TodayActions
+import app.fivvi.pro.personal.TodayLoad
+import app.fivvi.pro.personal.TodayScreen
+import app.fivvi.pro.personal.TodayState
+import app.fivvi.pro.personal.TodayTags
 import app.fivvi.pro.showAtLargestFontScale
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -146,6 +152,42 @@ class AttendanceLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
             config.getOrNull(SemanticsProperties.ContentDescription),
         )
         assertEquals(LiveRegionMode.Polite, config.getOrNull(SemanticsProperties.LiveRegion))
+    }
+
+    // The *Te doen* chips of the *Mijn dag* card wrap onto more lines instead of running off the screen (F025, #551).
+    @Test
+    fun test_F025_design_theTodoChipsWrapAtTheLargestFontScale() {
+        val annaId = participantIdOf("Anna de Vries")
+        val day = AttendanceFixtures.day(
+            AttendanceFixtures.annaItem(open = true, annaId = annaId),
+            AttendanceFixtures.krachtItem(open = true),
+        )
+        compose.showAtLargestFontScale(language, width = 320.dp, height = 2400.dp) {
+            TodayScreen(
+                TodayState(TodayLoad.Loaded, day, now = AttendanceFixtures.at("19:30")),
+                TodayActions(
+                    onRefresh = {},
+                    onOpen = {},
+                    onRoute = {},
+                    onPlan = null,
+                    onOpenTomorrow = {},
+                    onDismissNotices = {},
+                ),
+                deviceZone = PersonalRows.TIME_ZONE,
+                now = AttendanceFixtures.at("19:30"),
+                queue = QueueState(),
+            )
+        }
+        compose.waitForIdle()
+
+        val anna = compose.onNodeWithTag(TodayTags.todoChip(AttendanceFixtures.annaSession))
+        val kracht = compose.onNodeWithTag(TodayTags.todoChip(AttendanceFixtures.kracht))
+        anna.assertHeightIsAtLeast(48.dp)
+        kracht.assertHeightIsAtLeast(48.dp)
+        val first = anna.getUnclippedBoundsInRoot()
+        val second = kracht.getUnclippedBoundsInRoot()
+        assertTrue("the chips stay on the screen: $first $second", first.right <= 320.dp && second.right <= 320.dp)
+        assertTrue("and wrap: $first $second", second.top >= first.bottom || second.left >= first.right)
     }
 
     companion object {

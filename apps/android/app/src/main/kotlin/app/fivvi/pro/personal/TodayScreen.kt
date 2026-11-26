@@ -5,14 +5,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -37,6 +44,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.fivvi.core.R
 import app.fivvi.core.kit.InsetGroupedList
@@ -51,6 +59,10 @@ import app.fivvi.designtokens.body
 import app.fivvi.designtokens.headline
 import app.fivvi.designtokens.subhead
 import app.fivvi.designtokens.title1
+import app.fivvi.pro.attendance.AttendanceButtonHeight
+import app.fivvi.pro.attendance.AttendanceNudges
+import app.fivvi.pro.attendance.AttendanceStatus
+import app.fivvi.pro.attendance.QueueState
 import app.fivvi.pro.home.NewMenu
 import app.fivvi.pro.sessions.rememberSessionFormat
 import java.time.Instant
@@ -78,6 +90,9 @@ object TodayTags {
     const val CARD_PLAN = "today.card.plan"
     const val CARD_NO_FREE_TIME = "today.card.noFreeTime"
     const val CARD_ROUTE = "today.card.route"
+
+    /** *Te doen* (F025): its title, and a chip for each session still owing attendance, `today.card.todo.<id>`. */
+    const val CARD_TODO = "today.card.todo"
     const val NEXT = "today.next"
     const val NEXT_OPEN = "today.next.open"
     const val EMPTY = "today.empty"
@@ -86,6 +101,8 @@ object TodayTags {
     fun row(id: java.util.UUID) = "today.row.$id"
 
     fun route(id: java.util.UUID) = "today.route.$id"
+
+    fun todoChip(id: java.util.UUID) = "today.card.todo.$id"
 }
 
 /**
@@ -100,6 +117,10 @@ class TodayActions(
     val onOpenTomorrow: (String) -> Unit,
     val onDismissNotices: () -> Unit,
     val menu: @Composable (offline: Boolean) -> Unit = {},
+    /** *Aanwezig* or *Niet verschenen* of a nudge: queued, so the nudge goes at once (F025). */
+    val onMark: (PersonalRow, AttendanceStatus) -> Unit = { _, _ -> },
+    /** The line *Aanwezigheid nog invullen* of an ended class opens CO-05 (F025). */
+    val onOpenAttendance: (PersonalRow) -> Unit = {},
 )
 
 /**
@@ -118,14 +139,18 @@ fun TodayScreen(
     now: Instant,
     modifier: Modifier = Modifier,
     studio: StudioUi? = null,
+    /** What the offline queue of attendance holds and has answered (F025): the nudges and the chips of *Te doen* follow it. */
+    queue: QueueState = QueueState(),
 ) {
     val format = rememberSessionFormat(PersonalRows.TIME_ZONE)
-    val content = remember(state.day, state.now, format) { state.day?.let { TodayContent(it, state.now, format) } }
+    val content = remember(state.day, state.now, format, queue) {
+        state.day?.let { TodayContent(it, state.now, format, AttendanceNudges(queue)) }
+    }
     val studioDay = studio?.state?.takeIf { it.isStudio }?.day
-    val studioContent = remember(studioDay, studio?.workspace, now, format.locale) {
+    val studioContent = remember(studioDay, studio?.workspace, now, format.locale, queue) {
         val workspace = studio?.workspace
         if (studioDay != null && workspace != null) {
-            StudioContent(studioDay, workspace.id, workspace.name, workspace.ownId, now, format.locale)
+            StudioContent(studioDay, workspace.id, workspace.name, workspace.ownId, now, format.locale, queue)
         } else {
             null
         }
@@ -345,7 +370,15 @@ private fun androidx.compose.foundation.lazy.LazyListScope.loaded(
         item {
             InsetGroupedList {
                 content.rows.forEach { row ->
-                    row { PersonalRowItem(row, onOpen = { actions.onOpen(row) }, onRoute = actions.onRoute) }
+                    row {
+                        PersonalRowItem(
+                            row,
+                            onOpen = { actions.onOpen(row) },
+                            onRoute = actions.onRoute,
+                            onMark = { actions.onMark(row, it) },
+                            onOpenAttendance = { actions.onOpenAttendance(row) },
+                        )
+                    }
                 }
             }
         }
@@ -365,6 +398,7 @@ private fun MijnDagCard(card: PersonalCard, state: TodayState, actions: TodayAct
             style = MaterialTheme.typography.subhead,
         )
         InsetGroupedList {
+            row { Todo(card.todo, actions) }
             val gap = card.gap
             if (gap != null) {
                 row {
@@ -419,6 +453,64 @@ private fun MijnDagCard(card: PersonalCard, state: TodayState, actions: TodayAct
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.subhead,
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The card's first row (F025): *Te doen* with a chip *Aanwezigheid · Anna 09:00* for each ended item whose attendance is still
+ * open, which opens TD-02 or TD-03; with nothing open it reads *Alles bijgewerkt*. The chips wrap onto more lines at large font
+ * sizes, and each is at least 48 dp high.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Todo(todo: PersonalTodo, actions: TodayActions) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.space4, vertical = Spacing.space3),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.space3),
+    ) {
+        Icon(
+            painterResource(R.drawable.ic_check),
+            contentDescription = null,
+            modifier = Modifier.size(Spacing.space6),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.space2)) {
+            Text(
+                stringResource(
+                    if (todo.chips.isEmpty()) R.string.attendance_app_caught_up else R.string.attendance_app_todo,
+                ),
+                modifier = Modifier.testTag(TodayTags.CARD_TODO),
+                style = MaterialTheme.typography.headline,
+            )
+            if (todo.chips.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.space2),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.space2),
+                ) {
+                    todo.chips.forEach { chip ->
+                        val text = stringResource(R.string.attendance_app_chip, chip.who, chip.row.startText)
+                        Surface(
+                            onClick = { actions.onOpen(chip.row) },
+                            modifier = Modifier.defaultMinSize(minHeight = AttendanceButtonHeight)
+                                .testTag(TodayTags.todoChip(chip.row.id)),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ) {
+                            Box(
+                                Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space2),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text,
+                                    style = MaterialTheme.typography.subhead.copy(fontWeight = FontWeight.SemiBold),
+                                )
+                            }
+                        }
                     }
                 }
             }

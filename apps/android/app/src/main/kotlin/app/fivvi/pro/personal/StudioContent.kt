@@ -3,6 +3,8 @@ package app.fivvi.pro.personal
 import app.fivvi.api.models.MyDayNext
 import app.fivvi.api.models.WorkspaceCalendarSession
 import app.fivvi.api.models.WorkspaceDay
+import app.fivvi.pro.attendance.AttendanceNudges
+import app.fivvi.pro.attendance.QueueState
 import app.fivvi.pro.sessions.SessionFormat
 import app.fivvi.pro.sessions.SessionRoute
 import java.time.Duration
@@ -72,9 +74,12 @@ class StudioContent(
     private val ownId: UUID?,
     private val now: Instant,
     private val locale: Locale,
+    /** What the offline queue of attendance has answered (F025): the Owner takes attendance from the workspace's day too. */
+    queue: QueueState? = null,
 ) {
     private val zone: ZoneId = runCatching { ZoneId.of(day.timeZone) }.getOrDefault(PersonalRows.TIME_ZONE)
     private val format = SessionFormat(locale, zone)
+    private val nudges = queue?.let { AttendanceNudges(it, zone) }
     private val items = day.items.filter { it.type != WorkspaceCalendarSession.Type.OPEN_GYM }
 
     /** The sessions that take place: the lanes and the next card leave a cancelled one out. */
@@ -146,7 +151,10 @@ class StudioContent(
     }
 
     /** Every other session of the day in time order, with its trainer; the next one is not repeated. */
-    val rows: List<PersonalRow> = items.filter { it.id != next?.row?.id }.map(::row)
+    val rows: List<PersonalRow> = items.filter { it.id != next?.row?.id }.map {
+        val row = row(it)
+        nudges?.decorate(row, it.attendanceOpen, it.type == WorkspaceCalendarSession.Type.PRIVATE, it.clients) ?: row
+    }
 
     /** A session on the axis: its start and end as minutes of the day. */
     private class Placed(val item: WorkspaceCalendarSession, val start: Int, val end: Int) {

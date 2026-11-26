@@ -52,6 +52,9 @@ import app.fivvi.designtokens.footnote
 import app.fivvi.designtokens.headline
 import app.fivvi.designtokens.subhead
 import app.fivvi.designtokens.workspaceColor
+import app.fivvi.pro.attendance.AttendanceStatus
+import app.fivvi.pro.attendance.reasonText
+import app.fivvi.pro.sessions.rememberSessionFormat
 
 /** How much of its colour a row of the past, or a cancelled one, keeps. */
 private const val DIMMED = 0.55f
@@ -85,6 +88,27 @@ internal fun spokenLabel(row: PersonalRow, trainer: String? = null): String {
     return parts.reduce { all, next -> join.format(all, next) }
 }
 
+/**
+ * The row's name for TalkBack with what attendance says of it: "…, Aanwezigheid nog invullen: Anna", and *Wacht op verbinding*
+ * or the API's reason after it (F025).
+ */
+@Composable
+private fun nudgedLabel(row: PersonalRow, label: String): String {
+    val join = stringResource(R.string.my_day_spoken_join)
+    val nudge = row.nudge
+    if (nudge == null) {
+        return if (row.attendanceLine) join.format(label, stringResource(R.string.attendance_nudge)) else label
+    }
+    val format = rememberSessionFormat(nudge.zone)
+    val extra = when {
+        nudge.isWaiting -> stringResource(R.string.attendance_app_waiting)
+        nudge.refusal != null -> reasonText(nudge.refusal, isClass = false, format)
+        else -> null
+    }
+    val nudged = join.format(label, stringResource(R.string.attendance_nudge_for, nudge.clientName))
+    return if (extra == null) nudged else join.format(nudged, extra)
+}
+
 /** *Jij*, the trainer's name or [nobody] (*Geen trainer*): who trains a row of *Hele studio*, or `null` on Mijn dag. */
 @Composable
 private fun trainerText(row: PersonalRow, nobody: String?): String? = when (val trainer = row.trainer) {
@@ -110,13 +134,34 @@ fun PersonalRowItem(
     modifier: Modifier = Modifier,
     nobody: String? = null,
     tagPrefix: String = TodayTags.PREFIX,
+    /** *Aanwezig* or *Niet verschenen* of the row's nudge (F025). */
+    onMark: (AttendanceStatus) -> Unit = {},
+    /** The line *Aanwezigheid nog invullen* of an ended class opens CO-05 (F025). */
+    onOpenAttendance: () -> Unit = {},
 ) {
     val trainer = trainerText(row, nobody)
-    val spoken = spokenLabel(row, trainer)
+    val spoken = nudgedLabel(row, spokenLabel(row, trainer))
     val routeLabel = stringResource(R.string.my_day_app_open_route)
     val route = row.routeUrl
+    Column(modifier.fillMaxWidth()) {
+        MainRow(row, trainer, spoken, route, routeLabel, tagPrefix, onOpen, onRoute)
+        AttendanceNudgeView(row, tagPrefix, onMark, if (row.isGroup) onOpenAttendance else onOpen)
+    }
+}
+
+@Composable
+private fun MainRow(
+    row: PersonalRow,
+    trainer: String?,
+    spoken: String,
+    route: String?,
+    routeLabel: String,
+    tagPrefix: String,
+    onOpen: () -> Unit,
+    onRoute: (String) -> Unit,
+) {
     Row(
-        modifier.fillMaxWidth().defaultMinSize(minHeight = ListRowMinHeight),
+        Modifier.fillMaxWidth().defaultMinSize(minHeight = ListRowMinHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(

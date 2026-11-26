@@ -235,4 +235,35 @@ class StudioContentTest {
         assertEquals(60.0 / 540, blocks[1].width, 1e-9)
         assertEquals("the now-line sits at 04:00", 120.0 / 540, requireNotNull(timeline.nowFraction), 1e-9)
     }
+
+    // F025 AC7: the Owner takes attendance from the workspace's day, with the same nudge as on Vandaag.
+    @Test
+    fun test_F025_AC7_aRowOfTheWorkspacesDayHasTheNudgeOfAnEndedPrivateSessionAndTheLineOfAClass() {
+        val clientId = UUID.nameUUIDFromBytes("client:mark".toByteArray())
+        val ended = StudioFixtures.mark.copy(
+            attendanceOpen = true,
+            clients = listOf(app.fivvi.api.models.PersonalSessionClient(clientId, "Mark Jansen")),
+        )
+        val klass = StudioFixtures.kracht.copy(attendanceOpen = true)
+        val day = StudioFixtures.johnsDay(items = listOf(ended, klass, StudioFixtures.lisa), busiest = null)
+        val queue = app.fivvi.pro.attendance.QueueState()
+
+        val rows = StudioContent(
+            day,
+            workspace,
+            "John's Gym",
+            StudioFixtures.john.id,
+            at("19:30").toInstant(),
+            dutch,
+            queue,
+        )
+            .rows
+
+        val mark = rows.first { it.id == ended.id }
+        assertEquals(clientId, mark.nudge?.clientId)
+        assertEquals("the zone of the workspace's own day", "Europe/Amsterdam", mark.nudge?.zone?.id)
+        assertTrue("an ended class has the line alone", rows.first { it.id == klass.id }.attendanceLine)
+        assertNull("a session with no open attendance has none", rows.first { it.id == StudioFixtures.lisa.id }.nudge)
+        assertTrue(content(day).rows.all { it.nudge == null && !it.attendanceLine })
+    }
 }
