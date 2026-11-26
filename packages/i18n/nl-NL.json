@@ -39,6 +39,7 @@
     "nudgeButtonLabel": "{status}: {name}",
     "nudgeFor": "Aanwezigheid nog invullen: {name}",
     "participants": "Deelnemers",
+    "participantsTitle": "{participants} · {title}",
     "saved": "Opgeslagen",
     "status": {
       "attended": "Aanwezig",

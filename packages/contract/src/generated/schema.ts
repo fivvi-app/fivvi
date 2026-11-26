@@ -1519,7 +1519,7 @@ export interface components {
             /** @description The session types the workspace runs, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later). */
             sessionTypes: ("private" | "group")[];
         };
-        /** @description A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s participants and is left out for the other kinds. */
+        /** @description A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s or a private session’s participants and is left out for Open Gym. */
         PersonalSession: {
             /**
              * Format: uuid
@@ -2618,7 +2618,7 @@ export interface components {
             /** @description The workspace’s sessions that start from the start of `from` to the end of `to`, after the filters, in time order (with no `to`, every one from `from` on). Never a session of another workspace. */
             items: components["schemas"]["WorkspaceCalendarSession"][];
         };
-        /** @description A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class date’s participants and is left out for the other kinds. It holds no note, email address or other contact detail of a client. */
+        /** @description A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class date’s or a private session’s participants and is left out for Open Gym. It holds no note, email address or other contact detail of a client. */
         WorkspaceCalendarSession: {
             /**
              * Format: uuid

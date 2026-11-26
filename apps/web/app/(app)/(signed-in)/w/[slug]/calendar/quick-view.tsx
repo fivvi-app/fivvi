@@ -178,7 +178,7 @@ function QuickViewBody({
         )}
         <li>{item.location.name}</li>
         {/* F025: "Aanwezigheid: {status}" for a private session, the summary for a class date. */}
-        <AttendanceLine item={item} workspaceId={workspaceId} as="li" />
+        <AttendanceLine item={item} as="li" />
         {item.series && weekday >= 0 ? (
           <li>
             {t('seriesLine', {

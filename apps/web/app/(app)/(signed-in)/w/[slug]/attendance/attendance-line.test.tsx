@@ -39,8 +39,7 @@ const kracht: Item = {
 // Expected copy is read from the catalogs, never hard-coded (TESTING.md §5.4).
 describe.each(locales)('F025 AC3: "Aanwezigheid: {status}" on the calendar in %s', (locale) => {
   const copy = messages[locale].attendance;
-  const line = (item: Item) =>
-    render(locale, <AttendanceLine item={item} workspaceId="w1" as="span" />);
+  const line = (item: Item) => render(locale, <AttendanceLine item={item} as="span" />);
 
   it('a class shows the summary of its participants once something is recorded', () => {
     const html = line({ ...kracht, attendance: { attended: 5, noShow: 1, open: 1, cancelled: 0 } });
@@ -85,6 +84,25 @@ describe.each(locales)('F025 AC3: "Aanwezigheid: {status}" on the calendar in %s
     expect(line({ ...base, attendanceOpen: true })).toContain(
       escapeHtml(copy.line.replace('{status}', copy.notFilledIn)),
     );
+  });
+
+  it('a private session says Aanwezig or Niet verschenen from its summary, with no request of its own', () => {
+    const attended = { attended: 1, noShow: 0, open: 0, cancelled: 0 };
+    const noShow = { attended: 0, noShow: 1, open: 0, cancelled: 0 };
+    const said = (word: string) => escapeHtml(copy.line.replace('{status}', word));
+
+    expect(line({ ...base, attendance: attended })).toContain(said(copy.status.attended));
+    expect(line({ ...base, attendance: noShow })).toContain(said(copy.status.noShow));
+  });
+
+  it('a private session still booked, or one whose place was cancelled, shows no status', () => {
+    expect(line({ ...base, attendance: { attended: 0, noShow: 0, open: 1, cancelled: 0 } })).toBe(
+      '',
+    );
+    expect(line({ ...base, attendance: { attended: 0, noShow: 0, open: 0, cancelled: 1 } })).toBe(
+      '',
+    );
+    expect(line(base)).toBe('');
   });
 
   it('a cancelled session shows no attendance', () => {

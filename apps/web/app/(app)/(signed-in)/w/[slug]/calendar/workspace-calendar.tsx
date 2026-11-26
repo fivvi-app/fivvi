@@ -757,7 +757,7 @@ export function WorkspaceCalendarView({
                                         })
                                       : null}
                                   {/* F025: "Aanwezigheid: {status}" */}
-                                  <AttendanceLine item={item} workspaceId={workspaceId} as="span" />
+                                  <AttendanceLine item={item} as="span" />
                                 </div>
                               </td>
                             </tr>

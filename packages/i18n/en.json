@@ -39,6 +39,7 @@
     "nudgeButtonLabel": "{status}: {name}",
     "nudgeFor": "Attendance not recorded yet: {name}",
     "participants": "Participants",
+    "participantsTitle": "{participants} · {title}",
     "saved": "Saved",
     "status": {
       "attended": "Attended",

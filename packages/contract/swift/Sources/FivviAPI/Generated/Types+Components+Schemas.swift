@@ -907,7 +907,7 @@ extension Components {
                 case sessionTypes
             }
         }
-        /// A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s participants and is left out for the other kinds.
+        /// A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s or a private session’s participants and is left out for Open Gym.
         ///
         /// - Remark: Generated from `#/components/schemas/PersonalSession`.
         public struct PersonalSession: Codable, Hashable, Sendable {
@@ -4925,7 +4925,7 @@ extension Components {
                 case items
             }
         }
-        /// A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class date’s participants and is left out for the other kinds. It holds no note, email address or other contact detail of a client.
+        /// A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class date’s or a private session’s participants and is left out for Open Gym. It holds no note, email address or other contact detail of a client.
         ///
         /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession`.
         public struct WorkspaceCalendarSession: Codable, Hashable, Sendable {

@@ -36,6 +36,24 @@ const text = (locale: Locale, copy: Messages) =>
 const amsterdamDay = (instant: Date) =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam' }).format(instant);
 
+/** The instant today began in Dutch time (the clock time since midnight; a clock change falls after 02:00). */
+const startOfDay = (instant: Date) => {
+  const part = (type: string) =>
+    Number(
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/Amsterdam',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      })
+        .formatToParts(instant)
+        .find((one) => one.type === type)?.value,
+    );
+  const sinceMidnight = ((part('hour') * 60 + part('minute')) * 60 + part('second')) * 1000;
+  return instant.getTime() - sinceMidnight - (instant.getTime() % 1000);
+};
+
 /** A session that began 30 minutes ago and ends in 30: attendance is open and it is not over. */
 const running = () =>
   [new Date(Date.now() - 30 * MINUTE), new Date(Date.now() + 30 * MINUTE)] as const;
@@ -130,8 +148,14 @@ test.describe('F025 attendance on the web', () => {
     // WC-05 (the quick view) and WC-04 (the list) then say "Aanwezigheid: Aanwezig".
     const line = t('line', { status: t('status.attended') });
     const day = amsterdamDay(new Date());
+    // The list says it from the read model's counts: it asks for no session's participants.
+    const participantRequests: string[] = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/participants')) participantRequests.push(request.url());
+    });
     await page.goto(`/w/${w.slug}/calendar?view=list&date=${day}`);
     await expect(page.getByRole('table').getByText(line)).toBeVisible();
+    expect(participantRequests).toEqual([]);
     await page.getByRole('button', { name: 'Anna de Vries' }).click();
     await expect(page.getByRole('dialog').getByText(line)).toBeVisible();
   });
@@ -217,7 +241,7 @@ test.describe('F025 attendance on the web', () => {
   }) => {
     test.slow();
     const t = text(appLocale, copy);
-    const { w, url } = await classDate(page, context);
+    const { url } = await classDate(page, context);
     await page.goto(url);
 
     // The date is Kracht at 18:00 in four days: from 17:30.
@@ -231,7 +255,6 @@ test.describe('F025 attendance on the web', () => {
     }
     await expect(page.getByRole('button', { name: t('everyone') })).toHaveCount(0);
     await expectNoAxeViolations(page, `CO-06 too early in ${appLocale}`);
-    expect(w.slug).toBeTruthy();
   });
 
   test('AC6: a cancelled class and a cancelled private session say no attendance is needed, without buttons', async ({
@@ -336,15 +359,6 @@ test.describe('F025 attendance on the web', () => {
     messages: copy,
   }) => {
     test.slow();
-    // A session that ended today needs a day that began more than two hours ago (Dutch time).
-    const hour = Number(
-      new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Europe/Amsterdam',
-        hour: '2-digit',
-        hourCycle: 'h23',
-      }).format(new Date()),
-    );
-    test.skip(hour < 2, 'a session of today that has ended needs the day to be two hours old');
     const t = text(appLocale, copy);
     const w = await team(page, context);
     const anna = await seedClient(page.request, w.base, 'Anna de Vries');
@@ -355,15 +369,22 @@ test.describe('F025 attendance on the web', () => {
       localDate: inDays(4),
       localStart: '09:00',
     });
+    // Mijn dag shows today in Dutch time, so what ended and what runs both begin no earlier than
+    // midnight, which keeps the test running just after it too.
     const now = Date.now();
-    await moveSessionTo(ended.id, new Date(now - 90 * MINUTE), new Date(now - 30 * MINUTE));
+    const begin = Math.max(startOfDay(new Date(now)), now - 90 * MINUTE);
+    await moveSessionTo(ended.id, new Date(begin), new Date(begin + (now - begin) / 2));
     const during = await seedPrivate(page.request, w.base, {
       clientId: bram.id,
       trainerId: w.trainer('Sarah'),
       localDate: inDays(5),
       localStart: '09:00',
     });
-    await moveSessionTo(during.id, ...running());
+    await moveSessionTo(
+      during.id,
+      new Date(Math.max(startOfDay(new Date(now)), now - 30 * MINUTE)),
+      new Date(now + 30 * MINUTE),
+    );
 
     await signInWithSession(context, w.sarah);
     await page.goto('/me/day');

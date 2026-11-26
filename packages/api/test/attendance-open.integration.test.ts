@@ -173,8 +173,9 @@ describe('F025 attendance in My day, the calendar and the dashboard', () => {
     const anna = byId(items, w.privateSession.id);
     const kracht = byId(items, w.kracht.id);
     expect(anna?.attendanceOpen).toBe(true);
-    // A private session has no summary; a class has one, and is open while a participant is booked.
-    expect(anna?.attendance).toBeUndefined();
+    // A private session carries its one participant's status as a summary too; a class has one, and
+    // is open while a participant is booked.
+    expect(anna?.attendance).toEqual({ attended: 0, noShow: 0, open: 1, cancelled: 0 });
     expect(kracht?.attendanceOpen).toBe(true);
     expect(kracht?.attendance).toEqual({ attended: 2, noShow: 1, open: 4, cancelled: 0 });
   });
@@ -271,6 +272,36 @@ describe('F025 attendance in My day, the calendar and the dashboard', () => {
     const shown = await day(w, w.john, TUESDAY);
     expect(byId(shown.items, w.kracht.id)?.attendanceOpen).toBe(true);
     expect(byId(shown.items, w.privateSession.id)?.attendanceOpen).not.toBe(true);
+  });
+
+  it('AC3: a private session carries a summary of its one participant in the week, the day and My day, so the calendar needs no request per session', async () => {
+    const w = await world();
+    w.at(WEDNESDAY, '08:00');
+    const open = { attended: 0, noShow: 0, open: 1, cancelled: 0 };
+    expect(byId((await calendar(w, w.john)).items, w.privateSession.id)?.attendance).toEqual(open);
+    expect(byId((await day(w, w.john, TUESDAY)).items, w.privateSession.id)?.attendance).toEqual(
+      open,
+    );
+
+    // John taps *Aanwezig*: every read says it, and the session no longer waits for attendance.
+    expect((await mark(w, w.privateSession.id, w.anna.id, w.john, 'attended')).status).toBe(200);
+    const done = { attended: 1, noShow: 0, open: 0, cancelled: 0 };
+    const shown = byId((await calendar(w, w.john)).items, w.privateSession.id);
+    expect(shown?.attendance).toEqual(done);
+    expect(shown?.attendanceOpen).not.toBe(true);
+    expect(byId((await day(w, w.john, TUESDAY)).items, w.privateSession.id)?.attendance).toEqual(
+      done,
+    );
+    expect(byId((await mine(w, TUESDAY)).items, w.privateSession.id)?.attendance).toEqual(done);
+
+    // *Niet verschenen* counts as no_show.
+    await mark(w, w.privateSession.id, w.anna.id, w.john, 'no_show');
+    expect(byId((await calendar(w, w.john)).items, w.privateSession.id)?.attendance).toEqual({
+      attended: 0,
+      noShow: 1,
+      open: 0,
+      cancelled: 0,
+    });
   });
 
   it('AC15: the contract names the new fields additively on the personal and workspace items and the day', () => {

@@ -93,6 +93,14 @@ describe.each(locales)('F025 attendance on the web in %s', (locale) => {
     expect(html).toContain(escapeHtml(copy.groupLabel.replace('{name}', 'Anna de Vries')));
     expect(html).toContain('Chris Bakker');
     expect(html).toContain(escapeHtml(copy.status.cancelled));
+    // The card's heading joins the two words from the catalog; a private session says just Aanwezigheid.
+    expect(html).toContain(
+      escapeHtml(
+        copy.participantsTitle
+          .replace('{participants}', copy.participants)
+          .replace('{title}', copy.title),
+      ),
+    );
   });
 
   it('AC3: a private session has the same group for its one client and no summary', () => {

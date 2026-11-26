@@ -126,7 +126,9 @@ export function AttendanceSection({
       <CardHeader className="flex flex-wrap items-center justify-between gap-2">
         <CardTitle>
           <h2 className="text-[15px] font-semibold">
-            {kind === 'group' ? `${t('participants')} · ${t('title')}` : t('title')}
+            {kind === 'group'
+              ? t('participantsTitle', { participants: t('participants'), title: t('title') })
+              : t('title')}
           </h2>
         </CardTitle>
         {kind === 'group' && open && places.length > 0 ? (

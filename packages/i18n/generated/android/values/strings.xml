@@ -35,6 +35,7 @@
     <string name="attendance_nudge_button_label">%2$s: %1$s</string>
     <string name="attendance_nudge_for">Aanwezigheid nog invullen: %1$s</string>
     <string name="attendance_participants">Deelnemers</string>
+    <string name="attendance_participants_title">%1$s · %2$s</string>
     <string name="attendance_saved">Opgeslagen</string>
     <string name="attendance_status_attended">Aanwezig</string>
     <string name="attendance_status_booked">Geboekt</string>

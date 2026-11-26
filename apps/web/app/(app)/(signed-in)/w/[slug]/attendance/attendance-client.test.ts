@@ -1,11 +1,6 @@
 import type { Schemas } from '@fivvi/contract';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  attendanceState,
-  getAttendance,
-  markEveryoneAttended,
-  setAttendance,
-} from './attendance-client';
+import { attendanceState, markEveryoneAttended, setAttendance } from './attendance-client';
 
 const attendance: Schemas['Attendance'] = {
   sessionId: 's1',
@@ -101,13 +96,6 @@ describe('F025 attendance on the web: the client of the routes', () => {
     expect(JSON.parse(String(init?.body))).toEqual({
       clientRequestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
     });
-  });
-
-  it('reads the participants of a session, or nothing when it cannot', async () => {
-    const fetchFn = reply(200, attendance);
-    expect(await getAttendance('w1', 's1', fetchFn)).toEqual(attendance);
-    expect(fetchFn.mock.calls[0]?.[0]).toBe('/api/v1/workspaces/w1/sessions/s1/participants');
-    expect(await getAttendance('w1', 's1', reply(404))).toBeUndefined();
   });
 
   it('AC5, AC6: the state of the section follows the session and the clock the page was drawn at', () => {

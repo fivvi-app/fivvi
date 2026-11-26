@@ -27,22 +27,6 @@ export function attendanceState(
   return now.getTime() < Date.parse(attendance.attendanceOpensAt) ? 'tooEarly' : 'open';
 }
 
-/** Reads a session's participants with their status (`GET …/participants`); nothing when it cannot. */
-export async function getAttendance(
-  workspaceId: string,
-  sessionId: string,
-  fetchFn: typeof fetch = fetch,
-): Promise<Attendance | undefined> {
-  try {
-    const response = await fetchFn(
-      `/api/v1/workspaces/${workspaceId}/sessions/${sessionId}/participants`,
-    );
-    return response.status === 200 ? ((await response.json()) as Attendance) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * Sets one participant's attendance (`PUT …/participants/{clientId}/attendance`, F025 AC3). Each
  * tap carries a request ID of its own, so the API stores a retried tap once. The answer is the
