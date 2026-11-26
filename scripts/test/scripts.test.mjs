@@ -1157,6 +1157,24 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.ok(waitNative > retriedChain, 'pr.sh wait outlasts the chain with both retries');
   });
 
+  it("E017 #1580: the iOS test enumeration's deadline is 240 s: twice the slowest enumeration measured on the CI runner, and a hang is still stopped", () => {
+    const script = readFileSync(join(SCRIPTS, 'test-ios.sh'), 'utf8');
+    const deadline = Number(script.match(/^ENUMERATE_DEADLINE=\$\{IOS_ENUMERATE_DEADLINE:-(\d+)\}$/m)[1]);
+    const grace = Number(
+      script.match(/^TEST_DEADLINE_GRACE=\$\{IOS_TEST_DEADLINE_GRACE:-(\d+)\}$/m)[1],
+    );
+    // Measured on the 7 nightly runs of 20-26 November 2026 (28 enumerations that chose a part, each the first try of
+    // `--shard`): 22 of the first tries were interrupted at the old deadline of 120 s, and the second try, on a runner that
+    // has run xcodebuild once, took 49 to 92 s. The slowest enumeration seen to end took 116 s, the others of the first
+    // tries that ended took 85 to 114 s. A first try that is cut off at 120 s says nothing about how long it needs, so the
+    // deadline is at least twice the slowest one seen to end.
+    const slowestSeen = 116;
+    assert.equal(deadline, 240, 'the enumeration deadline is 240 s (#1580)');
+    assert.ok(deadline >= 2 * slowestSeen, 'twice the slowest enumeration seen to end');
+    // A hang is still stopped, by the deadline and the grace, and tried once more: no more than ten minutes in all.
+    assert.ok(2 * (deadline + grace) <= 600, 'two tries, each with the grace, take ten minutes at most');
+  });
+
   it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
     for (const section of [iosBuild, iosTests]) {
       // ios-tests runs part 2 on Linux in a run without UI tests (ci-fast-pipeline.test.mjs); every other part on macos-15.

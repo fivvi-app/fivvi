@@ -988,6 +988,13 @@ jobs:
     # half of the test classes by their weight (scripts/test-ios.sh, `--shard`), about 1000 s on a slow runner, so the
     # deadline and the timeout stay as they are and a part has room to grow to 85 % of them. The matrix is the one in
     # scripts/ios-parts.sh (the names of the parts, which the gate and the retry read); a test keeps the three in step.
+    #
+    # The count of the part's tests before the run (`--shard`, IOS_ENUMERATE_DEADLINE) is in the 310 s as it took in a
+    # healthy run, not at its deadline: 240 s since #1580 (the first try took 85 s or more on this runner and went past
+    # the old 120 s in 22 of 28 jobs of 7 nightly runs), with its grace and a second try 600 s at worst, for a hang
+    # only. The release budgets that worst case on top (release.yml); here it is paid from the 2 minutes and from the
+    # share of the run's deadline the part does not use, as the 360 s of the old deadline were, because the chain of
+    # timeouts above leaves no room for more (a test pins it at 63 and 154 minutes).
     timeout-minutes: 44
     permissions:
       contents: read

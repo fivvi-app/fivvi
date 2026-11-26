@@ -946,8 +946,8 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     );
   });
 
-  it('E017 #1403: the release pins its iOS test timeout to the parts it runs: 80 minutes for build, one part, its count (two tries) and one retry', () => {
-    assert.equal(Number(jobs()['ios-tests'].match(/^ {4}timeout-minutes: (\d+)$/m)[1]), 80);
+  it('E017 #1403: the release pins its iOS test timeout to the parts it runs: 84 minutes for build, one part, its count (two tries) and one retry', () => {
+    assert.equal(Number(jobs()['ios-tests'].match(/^ {4}timeout-minutes: (\d+)$/m)[1]), 84);
   });
 
   it('E017 #1433: only the release retries failed UI tests: CI never passes --retry-failed', () => {
