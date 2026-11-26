@@ -205,22 +205,20 @@ final class StudioDayModel {
     }
 
     private func row(_ item: Item, with builder: PersonalRows) -> PersonalRow {
-        var row = plainRow(item, with: builder)
-        let nudges = attendance.map { AttendanceNudges(queue: $0, catalog: catalog) }
-        if let nudges, let nudge = nudges.nudge(
-            sessionID: item.id, attendanceOpen: item.attendanceOpen, isPrivate: item._type == ._private,
+        let row = plainRow(item, with: builder)
+        return nudges?.decorate(
+            row, sessionID: item.id, attendanceOpen: item.attendanceOpen, isPrivate: item._type == ._private,
             clients: item.clients
-        ) {
-            row.nudge = nudge
-            row.spokenLabel = catalog.string(.todaySpokenJoin, row.spokenLabel, nudges.spoken(nudge))
-        }
-        return row
+        ) ?? row
     }
 
-    /// *Aanwezig* or *Niet verschenen* on a nudge of the workspace's day: queued, and the nudge goes at once.
-    func mark(_ status: AttendanceStatus, row: PersonalRow) {
-        attendance.map { AttendanceNudges(queue: $0, catalog: catalog) }?.mark(status, row: row)
+    private var nudges: AttendanceNudges? {
+        attendance.map { AttendanceNudges(queue: $0, catalog: catalog, timeZone: zone) }
     }
+
+    /// *Aanwezig* or *Niet verschenen* on a nudge of the workspace's day: queued, and the nudge goes at once (offline it
+    /// waits, saying so).
+    func mark(_ status: AttendanceStatus, row: PersonalRow) { nudges?.mark(status, row: row) }
 
     private func plainRow(_ item: Item, with builder: PersonalRows) -> PersonalRow {
         let isGroup = item._type == .group

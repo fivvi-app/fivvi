@@ -11,6 +11,8 @@ final class StubAttendance: @unchecked Sendable {
         case offline
         /// The next requests are refused as the API refuses them (nothing is stored).
         case sessionCancelled, participantCancelled, tooEarly(Date)
+        /// An answer the contract does not list (a 4xx or a 5xx), and one whose body does not decode.
+        case undocumented(Int), malformed
     }
 
     /// One request to `PUT …/attendance` or `POST …/participants/attended`.
@@ -76,6 +78,25 @@ final class StubAttendance: @unchecked Sendable {
         )
     }
 
+    /// What the next request is answered with instead of being stored (called with the lock held): nil to store it.
+    private enum Answer {
+        case conflict(Components.Schemas.AttendanceRefusal.CodePayload)
+        case tooEarly(Date)
+        case undocumented(Int)
+    }
+
+    private func refusal() throws -> Answer? {
+        switch failure {
+        case .offline: throw URLError(.notConnectedToInternet)
+        case .malformed: throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "not JSON"))
+        case let .undocumented(code): return .undocumented(code)
+        case .sessionCancelled: return .conflict(.sessionCancelled)
+        case .participantCancelled: return .conflict(.participantCancelled)
+        case let .tooEarly(opens): return .tooEarly(opens)
+        case nil: return status == .cancelled ? .conflict(.sessionCancelled) : nil
+        }
+    }
+
     func list(_ input: Operations.ListSessionParticipants.Input) throws -> Operations.ListSessionParticipants.Output {
         try lock.withLock {
             reads += 1
@@ -91,15 +112,13 @@ final class StubAttendance: @unchecked Sendable {
                 clientID: input.path.clientId, status: body.status.rawValue, clientRequestID: body.clientRequestId,
                 surface: body.surface?.rawValue
             ))
-            switch failure {
-            case .offline: throw URLError(.notConnectedToInternet)
-            case .sessionCancelled: return .conflict(.init(body: .json(.init(code: .sessionCancelled))))
-            case .participantCancelled: return .conflict(.init(body: .json(.init(code: .participantCancelled))))
-            case let .tooEarly(opens):
+            switch try refusal() {
+            case let .conflict(code)?: return .conflict(.init(body: .json(.init(code: code))))
+            case let .tooEarly(opens)?:
                 return .unprocessableContent(.init(body: .json(.init(code: .attendanceTooEarly, opensAt: opens))))
+            case let .undocumented(code)?: return .undocumented(statusCode: code, .init())
             case nil: break
             }
-            if status == .cancelled { return .conflict(.init(body: .json(.init(code: .sessionCancelled)))) }
             if storedIDs.insert(body.clientRequestId).inserted,
                let index = participants.firstIndex(where: { $0.clientId == input.path.clientId }),
                let new = Participant.StatusPayload(rawValue: body.status.rawValue) {
@@ -115,15 +134,13 @@ final class StubAttendance: @unchecked Sendable {
             seen.append(Request(
                 clientID: nil, status: nil, clientRequestID: body.clientRequestId, surface: body.surface?.rawValue
             ))
-            switch failure {
-            case .offline: throw URLError(.notConnectedToInternet)
-            case .sessionCancelled: return .conflict(.init(body: .json(.init(code: .sessionCancelled))))
-            case .participantCancelled: return .conflict(.init(body: .json(.init(code: .participantCancelled))))
-            case let .tooEarly(opens):
+            switch try refusal() {
+            case let .conflict(code)?: return .conflict(.init(body: .json(.init(code: code))))
+            case let .tooEarly(opens)?:
                 return .unprocessableContent(.init(body: .json(.init(code: .attendanceTooEarly, opensAt: opens))))
+            case let .undocumented(code)?: return .undocumented(statusCode: code, .init())
             case nil: break
             }
-            if status == .cancelled { return .conflict(.init(body: .json(.init(code: .sessionCancelled)))) }
             if storedIDs.insert(body.clientRequestId).inserted {
                 for index in participants.indices where participants[index].status == .booked {
                     participants[index].status = .attended

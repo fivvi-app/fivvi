@@ -179,6 +179,9 @@
   ];
   var PREF = { setup: "team", lang: "nl", plat: "ios", mode: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light", accent: "pink", glass: "regular", role: "owner", app: "pro" };
   try { var saved = JSON.parse(localStorage.getItem("fivvi-proto-v2") || "{}"); for (var pk in saved) if (pk in PREF) PREF[pk] = saved[pk]; } catch (e) { /* storage unavailable */ }
+  /* attendance (F025) as the sample has it: Reset puts it back, so the demo states below start from the same day */
+  var ATT0 = {};
+  [D.today].concat(Object.keys(SETUPS).map(function (k) { return SETUPS[k].today || []; })).forEach(function (l) { l.forEach(function (it) { ATT0[it.id] = JSON.stringify({ att: it.att == null ? null : it.att, attMap: it.attMap, attD: it.attD }); }); });
   var S, TPL0 = JSON.stringify(D.tpl), TPLS0 = JSON.stringify(D.templates), HIST0 = JSON.stringify(D.history), WST0 = {};
   [D.today].concat(Object.keys(SETUPS).map(function (k) { return SETUPS[k].today || []; })).forEach(function (l) { l.forEach(function (it) { if (it.wstate) WST0[it.id] = it.wstate; }); });
   function fresh() {
@@ -191,6 +194,7 @@
     /* the logged workouts too (F045): corrected, shared, unshared and deleted ones come back as they were, and so does the state of their sessions */
     Object.keys(D.history).forEach(function (k) { delete D.history[k]; }); var h0 = JSON.parse(HIST0); Object.keys(h0).forEach(function (k) { D.history[k] = h0[k]; });
     Object.keys(DAYCACHE).forEach(function (k) { DAYCACHE[k].forEach(function (it) { if (WST0[it.id]) it.wstate = WST0[it.id]; }); });
+    Object.keys(DAYCACHE).forEach(function (k) { DAYCACHE[k].forEach(function (it) { var a = ATT0[it.id]; if (!a) return; var o = JSON.parse(a); it.att = o.att; if (o.attMap) it.attMap = o.attMap; else delete it.attMap; if (o.attD) it.attD = o.attD; else delete it.attD; delete it.attWait; delete it.attMsg; }); });
     var duoIt = findItem("s6"); if (duoIt) { duoIt.it.client = "lisa"; duoIt.it.duo = "eva"; duoIt.it.cancelled = false; }
     D.resetBilling();
     S = { signedIn: true, signStep: "email", email: "", code: "", tab: "today", stacks: { today: [], agenda: [], clients: [], profile: [] },
@@ -257,10 +261,17 @@
     if (opt.multi !== false && !opt.hideWs && !SOLO()) smalls.push(wsLine(it.ws));
     if (opt.who) smalls.push(it.trainer ? esc(it.trainer) : "Jij"); else if (it.trainer) smalls.push(esc(it.trainer));
     if (it.sub) smalls.push("Je valt in voor " + esc(it.sub));
-    if (it.type === "priv" && past && !it.cancelled && it.att) smalls.push(it.att === "yes" ? "Aanwezig" : "Niet verschenen");
-    var extra = "";
-    if (it.type === "priv" && past && !it.att && !it.cancelled && !opt.noNudge) {
-      extra = '<small class="nudge">' + ic("warn") + "Aanwezigheid nog invullen</small><div class=\"att\">" + btn("Aanwezig", { k: "sec", a: "att", d: { id: it.id, v: "yes" } }) + btn("Niet verschenen", { k: "sec", a: "att", d: { id: it.id, v: "no" } }) + "</div>";
+    var extra = "", swipe = false;
+    if (it.type === "priv" && past && !it.cancelled && !opt.noNudge) {
+      if (it.att && it.attWait) {
+        /* the tap is saved on the phone and waits for the connection: no buttons until it is sent */
+        extra = '<small class="nudge wait">' + ic("clock") + "Wacht op verbinding</small>";
+      } else if (!it.att) {
+        /* a tap the API refused brings the buttons back with its message */
+        extra = '<small class="nudge">' + ic("warn") + "Aanwezigheid nog invullen</small>" + (it.attMsg ? '<small class="nudge-msg">' + it.attMsg + "</small>" : "") +
+          '<div class="att">' + btn("Aanwezig", { k: "sec", a: "att", d: { id: it.id, v: "yes" } }) + btn("Niet verschenen", { k: "sec", a: "att", d: { id: it.id, v: "no" } }) + "</div>";
+        swipe = PREF.plat === "ios" && !opt.noSwipe;
+      }
     }
     var pill = it.cancelled ? '<span class="pill">Geannuleerd</span>' : full ? '<span class="pill strong">Vol</span>' : it.cap ? '<span class="pill">' + booked + "/" + it.cap + "</span>" : "";
     var o = { a: it.type === "priv" ? "open-session" : "open-class", d: { id: it.id }, title: esc(title(it)) + lvlTag(it, true), sub: sub, small: smalls.join(" · "), extra: extra,
@@ -272,6 +283,8 @@
       o.lead = shape(SHAPE[it.type], c, it.type === "priv" ? initials(CLIENT[it.client].name) : it.type === "gym" ? "OG" : it.title[0]);
       o.tr = '<div class="tm">' + it.s + "<br>" + it.e + "</div>";
     }
+    /* iOS: the trailing swipe of a row with a nudge shows the same two actions (F025, AC2) */
+    if (swipe) return '<div class="sw-row sw-att can' + (S.swipe === it.id ? " open" : "") + '"><div class="sw-acts">' + '<button class="ok" data-a="att" data-id="' + it.id + '" data-v="yes">Aanwezig</button><button class="no" data-a="att" data-id="' + it.id + '" data-v="no">Niet verschenen</button></div><div class="set">' + row(o) + "</div></div>";
     return row(o);
   }
 
@@ -607,7 +620,7 @@
     body += sh("Notities", '<button data-a="note" data-id="' + c.id + '">+ Notitie</button>', "small");
     body += '<div class="pad">' + (notes.length ? grp(notes.slice(0, 3).map(function (n) { return row({ title: '<span translate="no">' + esc(n.t) + "</span>", small: n.d + " · " + esc(n.by), cls: "wrap" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen notities.</span></div></div></div>') + "</div>" + foot("Alleen voor trainers. Notities zie je nooit in meldingen of widgets.");
     var can = attOpen(it, k) && !it.cancelled;
-    body += sh("Aanwezigheid", "", "small") + '<div class="pad">' + seg([["", "Geboekt", !can], ["yes", "Aanwezig", !can], ["no", "Niet verschenen", !can]], (it.duo ? (it.attD || {})[cid] : it.att) || "", "satt", { id: it.id, c: cid }) + "</div>" + (can ? "" : foot(it.cancelled ? "Geannuleerd." : "Vanaf " + hm(mins(it.s) - 30) + "."));
+    body += sh("Aanwezigheid", "", "small") + '<div class="pad">' + seg([["", "Geboekt", !can], ["yes", "Aanwezig", !can], ["no", "Niet verschenen", !can]], (it.duo ? (it.attD || {})[cid] : it.att) || "", "satt", { id: it.id, c: cid }) + "</div>" + (can ? (it.attWait ? foot("Wacht op verbinding") : "") : foot(it.cancelled ? "Geannuleerd." : "Vanaf " + hm(mins(it.s) - 30) + "."));
     return { title: title(it), body: body, trailing: [{ i: "more", a: "session-menu", label: "Meer", d: { id: it.id } }] };
   };
 
@@ -628,7 +641,7 @@
       '<span class="pill ' + (free <= 0 ? "strong" : "") + '">' + (it.cancelled ? "Geannuleerd" : free <= 0 ? "Vol" : free + (free === 1 ? " plek vrij" : " plekken vrij")) + "</span></div>" +
       '<div style="height:10px;border-radius:5px;background:color-mix(in srgb,' + CV[it.type] + ' 18%,transparent);margin-top:12px;overflow:hidden"><div style="height:100%;width:' + Math.min(100, booked / it.cap * 100) + "%;border-radius:5px;background:linear-gradient(90deg,color-mix(in oklab," + CV[it.type] + " 65%,#fff)," + CV[it.type] + ')"></div></div>' +
       '<div style="font-size:15px;color:var(--label2);margin-top:10px">' + (it.loc.indexOf(D.workspaces[it.ws].name) === 0 ? '<i class="wsdot" style="--c:' + D.workspaces[it.ws].color + '"></i>' + esc(it.loc) : wsLine(it.ws) + " · " + esc(it.loc)) + "</div></div>";
-    body += btn("Aanwezigheid invullen", { blk: true, a: "open-att", d: { id: it.id }, i: "check", dis: it.cancelled || !booked });
+    if (!it.cancelled) body += btn("Aanwezigheid invullen", { blk: true, a: "open-att", d: { id: it.id }, i: "check", dis: !booked });
     body += "</div>";
     var showAll = S.showAll[it.id], ppl = showAll ? it.people : it.people.slice(0, 5);
     var am = it.attMap || {};
@@ -639,21 +652,32 @@
     return { title: it.title, body: body, trailing: isOwner(it.ws) || it.sub ? [{ i: "more", a: "class-menu", label: "Meer", d: { id: it.id } }] : [] };
   };
 
+  /* a participant who cancelled: read-only, "Geannuleerd" (the last one of the demo state) */
+  /* attendance taps still waiting to be sent: signing out asks first (F025) */
+  function attPending() { var c = Object.keys(S.attWait || {}).length; (DAYCACHE[TODAY] || []).forEach(function (it) { if (it.attWait) c++; }); return c; }
+  function attCx(it, i) { return S.attMode === "cxpart" && i === it.people.length - 1; }
+  /* CO-05 (F025): saves per tap, no Opslaan. Before the window the buttons are off with the time, a cancelled class has none,
+     a tap made offline says "Wacht op verbinding", a refused one reverts with the message. */
   SCREENS.attendance = function (r) {
-    var it = findItem(r.id).it, am = it.attMap || (it.attMap = {});
-    var y = 0, n = 0; it.people.forEach(function (p, i) { if (am[i] === "yes") y++; else if (am[i] === "no") n++; });
+    var it = findItem(r.id).it, am = it.attMap || (it.attMap = {}), mode = S.attMode || "", wait = S.attWait || {};
+    var cancelled = mode === "cancelled", early = mode === "early", off = cancelled || early;
+    var y = 0, n = 0, o = 0; it.people.forEach(function (p, i) { if (attCx(it, i)) return; if (am[i] === "yes") y++; else if (am[i] === "no") n++; else o++; });
     var body = lt("", "Aanwezigheid", esc(it.title) + " · " + it.s + "–" + it.e);
-    body += '<div class="pad stack"><div class="tiles">' +
+    body += '<div class="pad stack">';
+    if (cancelled) body += '<div class="banner" style="--c:var(--danger)">' + ic("info") + "Deze les is geannuleerd. Aanwezigheid is niet nodig.</div>";
+    else if (early) body += '<div class="banner" style="--c:var(--accent)">' + ic("info") + "Aanwezigheid kun je invullen vanaf " + hm(mins(it.s) - 30) + ".</div>";
+    body += '<div class="tiles">' +
       '<div class="tile"><span class="ink" style="--c:var(--ok)">Aanwezig</span><b class="num">' + y + "</b></div>" +
       '<div class="tile"><span class="ink" style="--c:var(--danger)">Niet verschenen</span><b class="num">' + n + "</b></div>" +
-      '<div class="tile"><span style="color:var(--label2)">Open</span><b class="num">' + (it.people.length - y - n) + "</b></div></div>" +
-      btn("Iedereen aanwezig", { k: "sec", blk: true, a: "att-all", d: { id: it.id } }) + "</div>";
+      '<div class="tile"><span style="color:var(--label2)">Open</span><b class="num">' + o + "</b></div></div>" +
+      (cancelled ? "" : btn("Iedereen aanwezig", { k: "sec", blk: true, a: "att-all", d: { id: it.id }, dis: early })) + "</div>";
     body += sh("Deelnemers", "", "small");
     body += '<div class="pad">' + grp(it.people.map(function (p, i) {
-      var nm = person(p);
-      return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), tr: '<span class="seg" style="width:auto">' +
-        '<button class="' + (am[i] === "yes" ? "on" : "") + '" data-a="att-one" data-id="' + it.id + '" data-i="' + i + '" data-v="yes" aria-label="' + esc(nm) + ' aanwezig">' + ic("check") + "</button>" +
-        '<button class="' + (am[i] === "no" ? "on" : "") + '" data-a="att-one" data-id="' + it.id + '" data-i="' + i + '" data-v="no" aria-label="' + esc(nm) + ' niet verschenen">' + ic("x") + "</button></span>" });
+      var nm = person(p), cx = attCx(it, i), line = cx ? "Geannuleerd" : mode === "refused" && i === 0 ? "Deze les is geannuleerd. Aanwezigheid is niet nodig." : wait[i] ? "Wacht op verbinding" : "";
+      var btns = cx || cancelled ? "" : '<span class="seg" style="width:auto">' +
+        '<button class="' + (am[i] === "yes" ? "on" : "") + '" data-a="att-one" data-id="' + it.id + '" data-i="' + i + '" data-v="yes" aria-label="' + esc(nm) + ' aanwezig"' + (early ? " disabled" : "") + ">" + ic("check") + "</button>" +
+        '<button class="' + (am[i] === "no" ? "on" : "") + '" data-a="att-one" data-id="' + it.id + '" data-i="' + i + '" data-v="no" aria-label="' + esc(nm) + ' niet verschenen"' + (early ? " disabled" : "") + ">" + ic("x") + "</button></span>";
+      return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), small: line ? '<span class="' + (mode === "refused" && i === 0 ? "att-msg" : "") + '">' + line + "</span>" : "", tr: btns, cls: "att-row" });
     }), "--inset:68px") + "</div>";
     return { title: "Aanwezigheid", body: body };
   };
@@ -1060,6 +1084,7 @@
   }
 
   var ALERTS = {
+    signoutAtt: function (d) { return { t: "Aanwezigheid nog niet verstuurd", p: d.c + (d.c === 1 ? " wijziging van de aanwezigheid is nog niet verstuurd en gaat verloren als je uitlogt." : " wijzigingen van de aanwezigheid zijn nog niet verstuurd en gaan verloren als je uitlogt."), b: [["Toch uitloggen", "do-signout", "dng"], ["Annuleren", "close-alert", "sec"]] }; },
     signout: function () { return { t: "Uitloggen?", p: "Je kunt altijd weer inloggen met je e-mailadres.", b: [["Uitloggen", "do-signout", "pri"], ["Annuleren", "close-alert", "sec"]] }; },
     cancelSession: function (d) { var it = findItem(d.id).it; if (it.duo) { var n1 = CLIENT[it.client].name.split(" ")[0], n2 = CLIENT[it.duo].name.split(" ")[0]; return { t: "Wie annuleer je?", p: "Annuleer je één klant, dan gaat de sessie door met de ander. Beiden krijgen een e-mail.", b: [["Alleen " + n1 + " annuleren", "do-cancel-first", "sec"], ["Alleen " + n2 + " annuleren", "do-cancel-second", "sec"], ["Hele sessie annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; } return { t: "Sessie annuleren?", p: CLIENT[it.client].name.split(" ")[0] + " krijgt een e-mail dat de sessie van " + it.s + " niet doorgaat.", b: [["Sessie annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; },
     cancelClass: function (d) { var it = findItem(d.id).it; return { t: "Les annuleren?", p: "De " + it.people.length + " geboekte klanten krijgen een e-mail. Je kunt er een bericht bij zetten op het web.", b: [["Les annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; },
@@ -1188,10 +1213,10 @@
     "open-workout": function (d) { push({ n: "workout", id: d.id, h: d.h }); },
     "open-att": function (d) { var it = findItem(d.id).it; it.attDraft = null; push({ n: "attendance", id: d.id }); },
     push: function (d) { push({ n: d.n }); },
-    att: function (d) { var it = findItem(d.id).it; it.att = d.v; toast(d.v === "yes" ? CLIENT[it.client].name.split(" ")[0] + " was aanwezig" : "Genoteerd als niet verschenen"); },
-    satt: function (d) { var it = findItem(d.id).it; if (it.duo) { it.attD = it.attD || {}; it.attD[d.c] = d.v || null; it.att = it.attD[it.client] && it.attD[it.duo] ? it.attD[it.client] : null; } else it.att = d.v || null; render(); },
-    "att-one": function (d) { var it = findItem(d.id).it; it.attMap = it.attMap || {}; it.attMap[d.i] = it.attMap[d.i] === d.v ? undefined : d.v; render(); },
-    "att-all": function (d) { var it = findItem(d.id).it; it.attMap = it.attMap || {}; it.people.forEach(function (p, i) { if (!it.attMap[i]) it.attMap[i] = "yes"; }); render(); },
+    att: function (d) { var it = findItem(d.id).it; it.att = d.v; it.attMsg = null; it.attWait = !!S.attOffline; S.swipe = null; render(); },
+    satt: function (d) { var it = findItem(d.id).it; if (S.attOffline) it.attWait = true; if (it.duo) { it.attD = it.attD || {}; it.attD[d.c] = d.v || null; it.att = it.attD[it.client] && it.attD[it.duo] ? it.attD[it.client] : null; } else it.att = d.v || null; render(); },
+    "att-one": function (d) { var it = findItem(d.id).it; it.attMap = it.attMap || {}; it.attMap[d.i] = it.attMap[d.i] === d.v ? undefined : d.v; if (S.attOffline) (S.attWait = S.attWait || {})[d.i] = true; render(); },
+    "att-all": function (d) { var it = findItem(d.id).it; it.attMap = it.attMap || {}; it.people.forEach(function (p, i) { if (!it.attMap[i] && !attCx(it, i)) { it.attMap[i] = "yes"; if (S.attOffline) (S.attWait = S.attWait || {})[i] = true; } }); render(); },
     "desc-toggle": function (d) { S.showDesc[d.id] = !S.showDesc[d.id]; render(); },
     "show-all": function (d) { S.showAll[d.id] = true; render(); },
     "agenda-day": function (d) { S.tab = "agenda"; S.stacks.agenda = []; S.aday = d.k; S.aview = "week"; render(); },
@@ -1273,7 +1298,7 @@
     "close-menu": function () { S.menu = null; render(); },
     move: function (d) { var x = findItem(d.id); S.menu = null; S.form = { id: d.id, date: x.day, start: x.it.s, dur: String(mins(x.it.e) - mins(x.it.s)) }; S.sheet = "reschedule"; S.anim = "up"; render(); },
     "menu-client": function (d) { S.menu = null; push({ n: "client", id: findItem(d.id).it.client }); },
-    alert: function (d) { S.menu = null; S.alert = Object.assign({}, d); render(); },
+    alert: function (d) { S.menu = null; S.alert = Object.assign({}, d); var w = d.n === "signout" ? attPending() : 0; if (w) S.alert = { n: "signoutAtt", c: w }; render(); },
     info: function (d) { S.alert = { n: d.n }; render(); },
     "plan-at": function (d) { S.form = Object.assign(today5(), { client: "anna", loc: D.locations[1], start: d.s }); S.sheet = "newSession"; S.anim = "up"; render(); },
     "share-item": function (d) { var it = findItem(d.id).it, cid = d.c || it.client, h = entryOf(it, cid); if (h) wkShare(h); else it.shared = true; toast("Gedeeld met " + fname(cid)); },
@@ -1422,11 +1447,13 @@
     if (t.dataset.f === "date" && S.sheet === "newClass") render();
   }
   var sw = null, swDragged = false, SW_OPEN = 104;
+  /* how far a row opens: a set shows one Verwijderen; Vandaag's nudge row shows its two actions (F025) */
+  function swOpen(r) { return r.classList.contains("sw-att") ? 192 : SW_OPEN; }
   function swClose(except) { dev.querySelectorAll(".sw-row.open").forEach(function (o) { if (o !== except) { o.classList.remove("open"); o.querySelector(".set").style.transform = ""; } }); }
   function onSwDown(e) {
     var r = e.target.closest(".sw-row"); swClose(r);
-    if (!r || !r.classList.contains("can") || e.target.closest(".sw-del,[data-drag]")) return;
-    sw = { r: r, x: e.clientX, y: e.clientY, base: r.classList.contains("open") ? -SW_OPEN : 0, dx: 0, on: false, id: e.pointerId };
+    if (!r || !r.classList.contains("can") || e.target.closest(".sw-del,.sw-acts,[data-drag]")) return;
+    sw = { r: r, x: e.clientX, y: e.clientY, base: r.classList.contains("open") ? -swOpen(r) : 0, dx: 0, on: false, id: e.pointerId };
   }
   function onSwMove(e) {
     if (!sw) return;
@@ -1436,8 +1463,9 @@
       else if (Math.abs(dy) > 8) { sw = null; return; } else return;
     }
     sw.dx = Math.min(0, sw.base + dx);
+    if (sw.r.classList.contains("sw-att")) sw.dx = Math.max(sw.dx, -swOpen(sw.r) - 24);
     sw.r.querySelector(".set").style.transform = "translateX(" + sw.dx + "px)";
-    sw.r.classList.toggle("full-swipe", sw.dx < -sw.r.offsetWidth * 0.6);
+    if (!sw.r.classList.contains("sw-att")) sw.r.classList.toggle("full-swipe", sw.dx < -sw.r.offsetWidth * 0.6);
     e.preventDefault();
   }
   function onSwUp() {
@@ -1446,7 +1474,8 @@
     r.classList.remove("dragging", "full-swipe");
     if (sw.on) {
       swDragged = true; setTimeout(function () { swDragged = false; }, 60);
-      if (sw.dx < -r.offsetWidth * 0.6) { row.style.transform = ""; r.classList.remove("open"); S.alert = { n: "removeSet", e: r.dataset.e, s: r.dataset.s }; render(); }
+      if (r.classList.contains("sw-att")) { if (sw.dx < -swOpen(r) / 2) { r.classList.add("open"); row.style.transform = "translateX(" + -swOpen(r) + "px)"; } else { r.classList.remove("open"); row.style.transform = ""; } }
+      else if (sw.dx < -r.offsetWidth * 0.6) { row.style.transform = ""; r.classList.remove("open"); S.alert = { n: "removeSet", e: r.dataset.e, s: r.dataset.s }; render(); }
       else if (sw.dx < -48) { r.classList.add("open"); row.style.transform = "translateX(" + -SW_OPEN + "px)"; }
       else { r.classList.remove("open"); row.style.transform = ""; }
     }
@@ -1546,7 +1575,17 @@
       ["Oefening toevoegen aan schema", "TM-08", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }, { n: "template", id: "Upper A" }]; A["tpl-edit"]({ t: "Upper A" }); S.tplPick = true; }],
       ["Schema verwijderen", "TM-09", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }, { n: "template", id: "Core & conditie" }]; S.alert = { n: "tplDel", t: "Core & conditie" }; }],
       ["Schema verwijderen: in gebruik", "F042", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }, { n: "template", id: "Upper A" }]; S.alert = { n: "tplDel", t: "Upper A" }; }],
-      ["Taal", "F010", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "language" }]; }]
+      ["Taal", "F010", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "language" }]; }],
+      ["Vandaag: swipe op een rij", "F025", function () { fresh(); S.swipe = "s1"; }],
+      ["Vandaag: aanwezigheid wacht op verbinding", "F025", function () { fresh(); S.attOffline = true; var it = findItem("s1").it; it.att = "yes"; it.attWait = true; }],
+      ["Vandaag: aanwezigheid geweigerd", "F025", function () { fresh(); findItem("s1").it.attMsg = "Deze sessie is geannuleerd. Aanwezigheid is niet nodig."; }],
+      ["Sessie: aanwezigheid wacht op verbinding", "F025", function () { fresh(); S.attOffline = true; S.stacks.today = [{ n: "session", id: "s1" }]; var it = findItem("s1").it; it.att = "no"; it.attWait = true; S.scrollTo = "sess"; }, true],
+      ["Aanwezigheid les: te vroeg", "F025", function () { fresh(); PREF.setup = "team"; S.attMode = "early"; var it = findItem("s2").it; it.attMap = {}; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
+      ["Aanwezigheid les: geannuleerd", "F025", function () { fresh(); PREF.setup = "team"; S.attMode = "cancelled"; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
+      ["Aanwezigheid les: deelnemer geannuleerd", "F025", function () { fresh(); PREF.setup = "team"; S.attMode = "cxpart"; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
+      ["Aanwezigheid les: wacht op verbinding", "F025", function () { fresh(); PREF.setup = "team"; S.attOffline = true; S.attMode = "offline"; var it = findItem("s2").it; it.attMap = { 0: "yes", 1: "yes", 2: "yes" }; S.attWait = { 0: true, 1: true, 2: true }; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
+      ["Aanwezigheid les: tik geweigerd", "F025", function () { fresh(); PREF.setup = "team"; S.attMode = "refused"; var it = findItem("s2").it; it.attMap = {}; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
+      ["Uitloggen met wachtende aanwezigheid", "F025", function () { fresh(); S.attOffline = true; var it = findItem("s1").it; it.att = "yes"; it.attWait = true; S.tab = "profile"; S.alert = { n: "signoutAtt", c: 1 }; }]
     ]]
   ];
   function buildPanel() {

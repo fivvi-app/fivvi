@@ -7,7 +7,7 @@ import XCTest
 final class SessionAttendanceUITests: AttendanceUITestCase {
     private var annaControl: String { "session.attendance.\(StubSessionRoutes.annaID)" }
 
-    func test_F025_AC1_sarahMarksAnnaAttendedOnTD02AndBack() throws {
+    func test_F025_AC1_markPrivateSessionAttended() throws {
         let (screen, server) = try launch()
         let app = screen.app
         openSeededSession(app)

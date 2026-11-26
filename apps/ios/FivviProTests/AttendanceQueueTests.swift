@@ -114,6 +114,50 @@ final class AttendanceQueueTests: XCTestCase {
         XCTAssertNil(queue.answers[session])
     }
 
+    func test_F025_AC9_aFourHundredTheContractDoesNotListIsARefusalAndTheQueueGoesOn() async {
+        let api = served()
+        api.attendance.fail(.undocumented(418))
+        let queue = queue(api)
+        tap(queue, "Anna de Vries", .attended)
+        await queue.flush()
+        XCTAssertTrue(queue.entries.isEmpty, "the queue is not stuck behind the bad request")
+        api.attendance.fail(nil)
+        tap(queue, "Bram Jansen", .attended)
+        await queue.flush()
+
+        XCTAssertTrue(queue.entries.isEmpty)
+        XCTAssertFalse(queue.isStalled)
+        XCTAssertEqual(queue.rejections(sessionID: session).first?.reason, .other)
+        XCTAssertEqual(queue.rejections(sessionID: session).first?.clientIDs, [AttendanceFixtures.id("Anna de Vries")])
+        XCTAssertEqual(api.attendance.requests.map(\.clientID).last, AttendanceFixtures.id("Bram Jansen"))
+    }
+
+    func test_F025_AC9_aBodyThatDoesNotDecodeIsARefusalAndTheQueueGoesOn() async {
+        let api = served()
+        api.attendance.fail(.malformed)
+        let queue = queue(api)
+        tap(queue, "Anna de Vries", .attended)
+        await queue.flush()
+        XCTAssertTrue(queue.entries.isEmpty)
+        XCTAssertEqual(queue.rejections(sessionID: session).map(\.reason), [.other])
+        api.attendance.fail(nil)
+        tap(queue, "Bram Jansen", .attended)
+        await queue.flush()
+        XCTAssertEqual(api.attendance.requests.count, 2, "later taps go on")
+        XCTAssertTrue(queue.entries.isEmpty)
+    }
+
+    func test_F025_AC8_aServerErrorStaysInTheQueueAndIsSentAgain() async {
+        let api = served()
+        api.attendance.fail(.undocumented(503))
+        let queue = queue(api)
+        tap(queue, "Anna de Vries", .attended)
+        await queue.flush()
+        XCTAssertEqual(queue.entries.count, 1)
+        XCTAssertTrue(queue.isStalled)
+        XCTAssertTrue(queue.rejections(sessionID: session).isEmpty)
+    }
+
     func test_F025_AC5_aRequestThatIsTooEarlyLeavesWithTheTimeTheWindowOpens() async {
         let api = served()
         api.attendance.fail(.tooEarly(AttendanceFixtures.opensAt))

@@ -167,12 +167,7 @@ final class AttendanceModel {
     var refusals: Int { queue.rejections(sessionID: sessionID).count }
 
     private func message(for reason: AttendanceQueue.Reason) -> String {
-        switch reason {
-        case .sessionCancelled: catalog[isClass ? .attendanceCancelledClass : .attendanceCancelledSession]
-        case .participantCancelled: catalog[.attendanceErrorParticipantCancelled]
-        case let .tooEarly(opensAt): catalog.string(.attendanceTooEarly, format.time(opensAt))
-        case .other: catalog[.attendanceErrorGeneric]
-        }
+        AttendanceMessage.text(for: reason, isClass: isClass, catalog: catalog, format: format)
     }
 
     /// The counts of the rows as the phone has them, requests still waiting included.
@@ -207,10 +202,13 @@ final class AttendanceModel {
         }
     }
 
-    /// "Anna de Vries, aanwezig, wacht op verbinding": one row for VoiceOver.
+    /// "Anna de Vries, aanwezig, Wacht op verbinding": one row for VoiceOver, with the API's message when it refused the
+    /// last tap.
     func spokenLabel(_ row: Row) -> String {
-        let base = catalog.string(.attendanceRowLabel, row.name, statusText(row.status).lowercased())
-        return row.isPending && rowsWaitForConnection ? "\(base), \(waitingText.lowercased())" : base
+        var label = catalog.string(.attendanceRowLabel, row.name, statusText(row.status).lowercased())
+        if row.isPending && rowsWaitForConnection { label = catalog.string(.todaySpokenJoin, label, waitingText) }
+        if let message = row.message { label = catalog.string(.todaySpokenJoin, label, message) }
+        return label
     }
 
     // MARK: Taps
@@ -234,5 +232,19 @@ final class AttendanceModel {
         guard canMarkEveryone else { return }
         let open = rows.filter { $0.status == .booked }.map(\.clientID)
         queue.enqueue(workspaceID: workspace.id, sessionID: sessionID, .everyone(clientIDs: open))
+    }
+}
+
+/// Says when CO-05's summary is to be announced (F025, flow 06: "updated live, announced politely"): when it changes after
+/// the screen showed it once. The first reading, and a screen that is not loaded, are not announced.
+struct SummaryAnnouncer: Equatable {
+    private var last: String?
+
+    /// The text to announce for the summary as it reads now, or nil.
+    mutating func announcement(for text: String, isLoaded: Bool) -> String? {
+        guard isLoaded else { return nil }
+        defer { last = text }
+        guard let last, last != text else { return nil }
+        return text
     }
 }

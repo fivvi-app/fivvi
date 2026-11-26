@@ -135,10 +135,13 @@ final class AttendanceModelTests: XCTestCase {
         XCTAssertEqual(
             run.model.spokenLabel(waiting[0]),
             String(
-                format: catalog["attendance.app.rowLabel"], "Anna de Vries",
-                catalog["attendance.status.attended"].lowercased()
+                format: catalog["myDay.spokenJoin"],
+                String(
+                    format: catalog["attendance.app.rowLabel"], "Anna de Vries",
+                    catalog["attendance.status.attended"].lowercased()
+                ),
+                catalog["attendance.app.waiting"]
             )
-                + ", " + catalog["attendance.app.waiting"].lowercased()
         )
 
         run.online.value = true
@@ -164,6 +167,43 @@ final class AttendanceModelTests: XCTestCase {
         // A cancelled session takes no more taps.
         run.model.toggle(.attended, for: anna)
         XCTAssertTrue(run.queue.entries.isEmpty)
+    }
+
+    func test_F025_theRowReadsAsOneElementWithItsStatusAndTheMessageOfARefusedTap() async {
+        let run = await setup()
+        let anna = AttendanceFixtures.id("Anna de Vries")
+        XCTAssertEqual(
+            run.model.spokenLabel(run.model.rows[0]),
+            String(
+                format: catalog["attendance.app.rowLabel"], "Anna de Vries",
+                catalog["attendance.status.booked"].lowercased()
+            )
+        )
+        run.api.attendance.fail(.participantCancelled)
+        run.model.toggle(.attended, for: anna)
+        await run.queue.flush()
+        XCTAssertEqual(
+            run.model.spokenLabel(run.model.rows[0]),
+            String(
+                format: catalog["myDay.spokenJoin"],
+                String(
+                    format: catalog["attendance.app.rowLabel"], "Anna de Vries",
+                    catalog["attendance.status.booked"].lowercased()
+                ),
+                catalog["attendance.errors.participantCancelled"]
+            ),
+            "VoiceOver reads the message after the name and the status"
+        )
+    }
+
+    func test_F025_AC4_theSummaryIsAnnouncedWhenItChangesAndNotWhenTheScreenOpens() {
+        var announcer = SummaryAnnouncer()
+        XCTAssertNil(announcer.announcement(for: summary(0, 0, 7), isLoaded: false), "not loaded: nothing to say")
+        XCTAssertNil(announcer.announcement(for: summary(0, 0, 7), isLoaded: true), "the first reading is on screen")
+        XCTAssertNil(announcer.announcement(for: summary(0, 0, 7), isLoaded: true), "unchanged")
+        XCTAssertEqual(announcer.announcement(for: summary(1, 0, 6), isLoaded: true), summary(1, 0, 6))
+        XCTAssertNil(announcer.announcement(for: summary(1, 0, 6), isLoaded: true))
+        XCTAssertEqual(announcer.announcement(for: summary(1, 1, 5), isLoaded: true), summary(1, 1, 5))
     }
 
     func test_F025_aRefusedTapOfAParticipantWhoCancelledMeanwhileSaysSo() async {

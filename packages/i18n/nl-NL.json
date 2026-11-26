@@ -24,7 +24,7 @@
       "cancelled": "Geannuleerd.",
       "caughtUp": "Alles bijgewerkt",
       "chip": "Aanwezigheid · {name} {start}",
-      "from": "Vanaf {start}.",
+      "from": "Vanaf {time}.",
       "open": "Open",
       "rowLabel": "{name}, {status}",
       "signOutConfirm": "Toch uitloggen",

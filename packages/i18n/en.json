@@ -24,7 +24,7 @@
       "cancelled": "Cancelled.",
       "caughtUp": "All caught up",
       "chip": "Attendance · {name} {start}",
-      "from": "From {start}.",
+      "from": "From {time}.",
       "open": "Open",
       "rowLabel": "{name}, {status}",
       "signOutConfirm": "Sign out anyway",

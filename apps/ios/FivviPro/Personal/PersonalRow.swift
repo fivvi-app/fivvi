@@ -49,6 +49,13 @@ struct PersonalRow: Identifiable, Equatable {
     struct Nudge: Equatable {
         let clientID: String
         let clientName: String
+        /// The tap waits for the connection (the phone is offline, or the last send did not get through): the row says so
+        /// and has no buttons until it is sent.
+        var isWaiting = false
+        /// *Wacht op verbinding*, with `isWaiting`.
+        var waitingText: String?
+        /// The API refused the last tap: the buttons are back, with its message.
+        var message: String?
     }
 }
 

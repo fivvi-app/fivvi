@@ -5,7 +5,7 @@ import XCTest
 /// stub drops the connection, so the offline queue is what the tests drive.
 @MainActor
 final class ClassAttendanceUITests: AttendanceUITestCase {
-    func test_F025_AC4_theSummaryReadsFiveAttendedOneNoShowOneOpenAndUpdatesAfterEachTap() throws {
+    func test_F025_AC4_classAttendanceSummaryUpdates() throws {
         let (app, server) = try launchKracht()
         openAttendance(app)
         waitForSummary(app, summaryLabel(0, 0, 7))
@@ -23,10 +23,28 @@ final class ClassAttendanceUITests: AttendanceUITestCase {
         XCTAssertEqual(server.attendanceRequests.map { $0["status"] }.suffix(1), ["no_show"])
         XCTAssertEqual(Set(server.attendanceRequests.compactMap { $0["surface"] }), ["ios"])
         XCTAssertEqual(Set(server.attendanceRequests.compactMap { $0["clientRequestId"] }).count, 6)
-        XCTAssertFalse(line("Anna de Vries", app).exists, "nothing waits: the requests were sent")
+        waitForRow("Anna de Vries", app, rowLabel("Anna de Vries", "attended"))
         // Tapping the selected one again takes it back.
         tapAttended("Anna de Vries", app)
         waitForSummary(app, summaryLabel(4, 1, 2))
+    }
+
+    func test_F025_CO05_atTheLargestTextSizeTheButtonsSitUnderTheName() throws {
+        let (app, server) = try launchKracht(textSize: AppLaunch.largestTextSize)
+        openAttendance(app)
+        let row = row("Anna de Vries", app)
+        XCTAssertTrue(row.waitUntilExists(timeout: timeout), requestLog)
+        // Scrolled until the whole row is on screen, above the tab bar.
+        let screenHeight = app.windows.firstMatch.frame.height
+        for _ in 0..<8 where !row.isHittable || row.frame.maxY > screenHeight * 0.8 { app.swipeUp() }
+        XCTAssertTrue(row.isHittable, "the row is on screen")
+        // The row is as high as a name and the buttons under it, not one line of 52 pt.
+        XCTAssertGreaterThan(row.frame.height, 100)
+        tapAttended("Anna de Vries", app, stacked: true)
+        waitForRequests(server, 1)
+        XCTAssertEqual(server.attendanceRequests.first?["status"], "attended")
+        XCTAssertEqual(server.attendanceRequests.first?["clientId"], participantID("Anna de Vries"))
+        waitForRow("Anna de Vries", app, rowLabel("Anna de Vries", "attended"))
     }
 
     func test_F025_AC5_beforeTheWindowTheButtonsAreOffWithTheTime() throws {
@@ -42,18 +60,20 @@ final class ClassAttendanceUITests: AttendanceUITestCase {
         let early = any("attendance.tooEarly", in: app)
         XCTAssertTrue(early.waitUntilExists(timeout: timeout), requestLog)
         XCTAssertEqual(early.label, String(format: catalog["attendance.tooEarly"], time(opens)))
-        let anna = app.buttons["attendance.attended.\(participantID("Anna de Vries"))"]
-        XCTAssertTrue(anna.waitUntilExists(timeout: timeout))
-        XCTAssertFalse(anna.isEnabled, "the buttons are disabled")
+        XCTAssertTrue(row("Anna de Vries", app).waitUntilExists(timeout: timeout), requestLog)
         XCTAssertFalse(app.buttons["attendance.everyone"].isEnabled)
-        XCTAssertTrue(server.attendanceRequests.isEmpty)
+        tapAttended("Anna de Vries", app)
+        XCTAssertFalse(
+            Polling.until(timeout: 1.5, interval: 0.2) { !server.attendanceRequests.isEmpty },
+            "the buttons are off: a tap sends nothing"
+        )
+        waitForSummary(app, summaryLabel(0, 0, 7))
     }
 
-    func test_F025_AC6_aCancelledClassSaysSoAndHasNoButtons() throws {
+    func test_F025_AC6_cancelledClassNeedsNoAttendance() throws {
         let (app, server) = try launchKracht()
         openAttendance(app)
-        let anna = app.buttons["attendance.attended.\(participantID("Anna de Vries"))"]
-        XCTAssertTrue(anna.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(row("Anna de Vries", app).waitUntilExists(timeout: timeout), requestLog)
 
         server.cancelSession(krachtID)
         XCUIDevice.shared.press(.home)
@@ -63,8 +83,14 @@ final class ClassAttendanceUITests: AttendanceUITestCase {
         let cancelled = any("attendance.cancelled", in: app)
         XCTAssertTrue(cancelled.waitUntilExists(timeout: timeout), requestLog)
         XCTAssertEqual(cancelled.label, catalog["attendance.cancelledClass"])
-        XCTAssertFalse(app.buttons["attendance.attended.\(participantID("Anna de Vries"))"].exists, "no buttons")
         XCTAssertFalse(app.buttons["attendance.everyone"].exists)
+        tapAttended("Anna de Vries", app)
+        XCTAssertFalse(
+            Polling.until(timeout: 1.5, interval: 0.2) { !server.attendanceRequests.isEmpty },
+            "a cancelled class has no buttons: a tap on where they were sends nothing"
+        )
+        XCTAssertEqual(row("Anna de Vries", app).label, rowLabel("Anna de Vries", "booked"))
+        waitForSummary(app, summaryLabel(0, 0, 7))
     }
 
     func test_F025_IedereenAanwezig_marksEveryOpenParticipantAndAnnaStaysNoShow() throws {
@@ -78,25 +104,22 @@ final class ClassAttendanceUITests: AttendanceUITestCase {
         everyone.tap()
 
         waitForSummary(app, summaryLabel(6, 1, 0))
-        let annaNoShow = app.buttons["attendance.noShow.\(participantID("Anna de Vries"))"]
-        XCTAssertTrue(annaNoShow.isSelected, "Anna stays no-show")
-        XCTAssertTrue(app.buttons["attendance.attended.\(participantID("Bram Jansen"))"].isSelected)
+        waitForRow("Anna de Vries", app, rowLabel("Anna de Vries", "noShow"))
+        waitForRow("Bram Jansen", app, rowLabel("Bram Jansen", "attended"))
         waitForRequests(server, 1)
         XCTAssertEqual(server.attendanceRequests.first?["kind"], "everyone")
         XCTAssertEqual(server.attendanceRequests.first?["surface"], "ios")
         XCTAssertFalse(everyone.isEnabled, "nobody is left open")
     }
 
-    func test_F025_AC8_threeOfflineTapsSurviveARestartAndSyncInOrder() throws {
+    func test_F025_AC8_offlineQueueSurvivesRestartAndSyncsInOrder() throws {
         let (app, server) = try launchKracht(offline: true)
         openAttendance(app)
         for name in ["Anna de Vries", "Bram Jansen", "Chris Bakker"] { tapAttended(name, app) }
 
         waitForSummary(app, summaryLabel(3, 0, 4))
         for name in ["Anna de Vries", "Bram Jansen", "Chris Bakker"] {
-            let waiting = line(name, app)
-            XCTAssertTrue(waiting.waitUntilExists(timeout: timeout), requestLog)
-            XCTAssertEqual(waiting.label, catalog["attendance.app.waiting"])
+            waitForRow(name, app, rowLabel(name, "attended", line: catalog["attendance.app.waiting"]))
         }
         XCTAssertTrue(server.attendanceRequests.isEmpty, "nothing is sent while the phone is offline")
 
@@ -111,28 +134,24 @@ final class ClassAttendanceUITests: AttendanceUITestCase {
         )
         XCTAssertEqual(Set(server.attendanceRequests.compactMap { $0["clientRequestId"] }).count, 3)
         waitForSummary(again, summaryLabel(3, 0, 4))
-        XCTAssertFalse(line("Anna de Vries", again).exists, "the labels are gone")
+        waitForRow("Anna de Vries", again, rowLabel("Anna de Vries", "attended"))
     }
 
-    func test_F025_AC9_aQueuedTapOnAClassCancelledMeanwhileRevertsWithTheMessage() throws {
+    func test_F025_AC9_refusedQueuedTapReverts() throws {
         let (app, server) = try launchKracht()
         openAttendance(app)
         waitForSummary(app, summaryLabel(0, 0, 7))
         // The connection is lost: the tap waits. Meanwhile John cancels the class.
         server.setOffline(true)
         tapAttended("Anna de Vries", app)
-        let waiting = line("Anna de Vries", app)
-        XCTAssertTrue(waiting.waitUntilExists(timeout: timeout), requestLog)
-        XCTAssertEqual(waiting.label, catalog["attendance.app.waiting"])
+        waitForRow("Anna de Vries", app, rowLabel("Anna de Vries", "attended", line: catalog["attendance.app.waiting"]))
         waitForSummary(app, summaryLabel(1, 0, 6))
         server.cancelSession(krachtID)
         server.setOffline(false)
 
+        let reverted = rowLabel("Anna de Vries", "booked", line: catalog["attendance.cancelledClass"])
         XCTAssertTrue(
-            Polling.until(timeout: timeout * 2, interval: 0.5) {
-                let row = self.line("Anna de Vries", app)
-                return row.exists && row.label == self.catalog["attendance.cancelledClass"]
-            },
+            Polling.until(timeout: timeout * 2, interval: 0.5) { self.row("Anna de Vries", app).label == reverted },
             "the row reverts and shows the cancelled message: \(requestLog)"
         )
         XCTAssertEqual(any("attendance.cancelled", in: app).label, catalog["attendance.cancelledClass"])
@@ -150,17 +169,17 @@ final class ClassAttendanceUITests: AttendanceUITestCase {
 
         waitForSummary(app, summaryLabel(5, 2, 0))
         for name in StubSessionRoutes.krachtNames.dropFirst(2) {
-            XCTAssertEqual(line(name, app).label, catalog["attendance.app.waiting"], name)
+            waitForRow(name, app, rowLabel(name, "attended", line: catalog["attendance.app.waiting"]))
         }
-        XCTAssertFalse(line("Anna de Vries", app).exists, "Anna stays no-show, nothing waits for her")
+        waitForRow("Anna de Vries", app, rowLabel("Anna de Vries", "noShow"))
         XCTAssertTrue(server.attendanceRequests.isEmpty)
 
         close(app)
         let (again, _) = try launchKracht(offline: true, server: server, session: .asLeft)
         openAttendance(again)
         waitForSummary(again, summaryLabel(5, 2, 0))
-        XCTAssertEqual(
-            line("Gijs de Boer", again).label, catalog["attendance.app.waiting"], "still queued after the restart"
+        waitForRow(
+            "Gijs de Boer", again, rowLabel("Gijs de Boer", "attended", line: catalog["attendance.app.waiting"])
         )
 
         close(again)
@@ -184,17 +203,18 @@ final class ClassAttendanceUITests: AttendanceUITestCase {
         server.cancelSession(krachtID)
         server.setOffline(false)
 
-        let gijs = line("Gijs de Boer", app)
+        let gijs = row("Gijs de Boer", app)
+        let reverted = rowLabel("Gijs de Boer", "booked", line: catalog["attendance.cancelledClass"])
         XCTAssertTrue(
-            Polling.until(timeout: timeout * 2, interval: 0.5) {
-                gijs.exists && gijs.label == self.catalog["attendance.cancelledClass"]
-            },
+            Polling.until(timeout: timeout * 2, interval: 0.5) { gijs.label == reverted },
             "the rows revert with the message: \(requestLog)"
         )
         for name in StubSessionRoutes.krachtNames.dropFirst() {
-            XCTAssertEqual(line(name, app).label, catalog["attendance.cancelledClass"], name)
+            XCTAssertEqual(
+                row(name, app).label, rowLabel(name, "booked", line: catalog["attendance.cancelledClass"]), name
+            )
         }
-        XCTAssertFalse(line("Anna de Vries", app).exists, "Anna was no-show before, and stays")
+        XCTAssertEqual(row("Anna de Vries", app).label, rowLabel("Anna de Vries", "noShow"), "Anna was no-show before")
         waitForSummary(app, summaryLabel(0, 1, 6))
     }
 

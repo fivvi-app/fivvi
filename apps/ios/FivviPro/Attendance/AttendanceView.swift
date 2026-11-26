@@ -15,6 +15,10 @@ struct AttendanceView: View {
     /// "Kracht · 18:00–19:00", from the class date's screen that opened this one.
     let subtitle: String
 
+    @Environment(\.dynamicTypeSize) private var textSize
+    /// What the summary said when it was last announced (F025: announced politely when it changes).
+    @State private var announcer = SummaryAnnouncer()
+
     private var catalog: Catalog { model.catalog }
 
     var body: some View {
@@ -40,8 +44,19 @@ struct AttendanceView: View {
         .onReturnToForeground { await model.refresh() }
         .onChange(of: model.refusals) { Task { await model.refresh() } }
         .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
+        .onChange(of: model.summaryText, initial: true) { announceSummary() }
+        .onChange(of: model.state) { announceSummary() }
         .sensoryFeedback(SensoryFeedback.selection, trigger: model.rows.map(\.status))
         .environment(\.locale, catalog.formattingLocale)
+    }
+
+    /// The summary, as a polite announcement (it does not interrupt what VoiceOver is saying).
+    private func announceSummary() {
+        let isLoaded = model.state == .loaded
+        guard let text = announcer.announcement(for: model.summaryText, isLoaded: isLoaded) else { return }
+        var announcement = AttributedString(text)
+        announcement.accessibilitySpeechAnnouncementPriority = .low
+        AccessibilityNotification.Announcement(announcement).post()
     }
 
     private func placeholder(@ViewBuilder _ content: () -> some View) -> some View {
@@ -135,34 +150,50 @@ struct AttendanceView: View {
         }
     }
 
+    /// One row: the person, with the two buttons at the trailing side, or under the name at the accessibility text sizes
+    /// (flow 06). For VoiceOver it is one element, "Anna de Vries, aanwezig", with *Aanwezig* and *Niet verschenen* as its
+    /// custom actions; the buttons are for the eye and the finger.
     private func participant(_ row: AttendanceModel.Row) -> some View {
-        HStack(spacing: Tokens.Spacing.space3) {
-            PersonAvatar(name: row.name)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(row.name)
-                    .font(.system(Tokens.TextStyle.body, weight: .semibold))
-                    .foregroundStyle(Tokens.Colors.textPrimary)
-                    .accessibilityLabel(model.spokenLabel(row))
-                    .accessibilityIdentifier("attendance.name.\(row.clientID)")
-                if let line = line(row) {
-                    Text(line)
-                        .font(.system(Tokens.TextStyle.footnote))
-                        .foregroundStyle(
-                            row.message == nil ? Tokens.Colors.textSecondary : Tokens.Colors.statusDangerText
-                        )
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("attendance.line.\(row.clientID)")
+        let showsButtons = row.status != .cancelled && !model.isCancelled
+        let layout = textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Tokens.Spacing.space2))
+            : AnyLayout(HStackLayout(spacing: Tokens.Spacing.space3))
+        return layout {
+            HStack(spacing: Tokens.Spacing.space3) {
+                PersonAvatar(name: row.name)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(row.name)
+                        .font(.system(Tokens.TextStyle.body, weight: .semibold))
+                        .foregroundStyle(Tokens.Colors.textPrimary)
+                    if let line = line(row) {
+                        Text(line)
+                            .font(.system(Tokens.TextStyle.footnote))
+                            .foregroundStyle(
+                                row.message == nil ? Tokens.Colors.textSecondary : Tokens.Colors.statusDangerText
+                            )
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
+                Spacer(minLength: Tokens.Spacing.space2)
             }
-            Spacer(minLength: Tokens.Spacing.space2)
-            if row.status != .cancelled, !model.isCancelled {
-                mark(row, .attended, symbol: "checkmark", selected: Tokens.Colors.statusSuccessBg)
-                mark(row, .noShow, symbol: "xmark", selected: Tokens.Colors.statusDangerBg)
+            if showsButtons {
+                HStack(spacing: Tokens.Spacing.space2) {
+                    mark(row, .attended, symbol: "checkmark", selected: Tokens.Colors.statusSuccessBg)
+                    mark(row, .noShow, symbol: "xmark", selected: Tokens.Colors.statusDangerBg)
+                }
             }
         }
         .multilineTextAlignment(.leading)
         .insetRowLayout()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(model.spokenLabel(row))
+        .accessibilityActions {
+            if showsButtons && model.canMark {
+                Button(model.statusText(.attended)) { model.toggle(.attended, for: row.clientID) }
+                Button(model.statusText(.noShow)) { model.toggle(.noShow, for: row.clientID) }
+            }
+        }
+        .accessibilityIdentifier("attendance.row.\(row.clientID)")
     }
 
     /// "Geannuleerd" for a participant who cancelled, "Wacht op verbinding" while a tap waits, or the API's message.
@@ -176,7 +207,6 @@ struct AttendanceView: View {
         _ row: AttendanceModel.Row, _ status: AttendanceStatus, symbol: String, selected: Color
     ) -> some View {
         let isOn = row.status == status
-        let word = model.statusText(status)
         return Button { model.toggle(status, for: row.clientID) } label: {
             Image(systemName: symbol)
                 .font(.system(Tokens.TextStyle.body, weight: .semibold))
@@ -186,9 +216,6 @@ struct AttendanceView: View {
         }
         .buttonStyle(.plain)
         .disabled(!model.canMark)
-        .accessibilityLabel(catalog.string(.attendanceNudgeButtonLabel, row.name, word))
-        .accessibilityAddTraits(isOn ? .isSelected : [])
-        .accessibilityIdentifier("attendance.\(status == .attended ? "attended" : "noShow").\(row.clientID)")
     }
 }
 

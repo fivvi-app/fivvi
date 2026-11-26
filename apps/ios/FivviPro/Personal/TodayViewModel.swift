@@ -217,18 +217,14 @@ final class TodayViewModel {
 
     /// A row of the list with its nudge (F025), when its private session waits for attendance.
     private func decorated(_ item: PersonalItem) -> PersonalRow {
-        var row = rowBuilder.row(item)
-        if let nudges, let nudge = nudges.nudge(
-            sessionID: item.sessionId, attendanceOpen: item.attendanceOpen, isPrivate: item._type == ._private,
+        let row = rowBuilder.row(item)
+        return nudges?.decorate(
+            row, sessionID: item.sessionId, attendanceOpen: item.attendanceOpen, isPrivate: item._type == ._private,
             clients: item.clients
-        ) {
-            row.nudge = nudge
-            row.spokenLabel = catalog.string(.todaySpokenJoin, row.spokenLabel, nudges.spoken(nudge))
-        }
-        return row
+        ) ?? row
     }
 
-    /// *Aanwezig* or *Niet verschenen* on a nudge: queued, and the nudge goes at once.
+    /// *Aanwezig* or *Niet verschenen* on a nudge: queued, and the nudge goes at once (offline it waits, saying so).
     func mark(_ status: AttendanceStatus, row: PersonalRow) { nudges?.mark(status, row: row) }
 
     /// *1,5*, *2*: hours with at most one decimal.

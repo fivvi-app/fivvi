@@ -27,20 +27,28 @@ final class AttendanceNudgeTests: XCTestCase {
         return day
     }
 
+    private final class Online: @unchecked Sendable {
+        var value = true
+    }
+
     private struct Setup {
         let api: StubAPI
         let queue: AttendanceQueue
         let today: TodayViewModel
     }
 
-    private func setup(_ day: PersonalDay, now: Date = PersonalFixtures.at("10:05")) async -> Setup {
+    private func setup(
+        _ day: PersonalDay, now: Date = PersonalFixtures.at("10:05"), online: Online = Online()
+    ) async -> Setup {
         let api = StubAPI()
         api.myDay.serve(day)
         api.attendance.serve(
             [.init(id: self.anna.clientId, name: "Anna de Vries", status: .booked)], type: ._private,
             opensAt: PersonalFixtures.at("08:30")
         )
-        let queue = AttendanceQueue(api: api, store: MemoryPersonalStore(), retryAfter: nil)
+        let queue = AttendanceQueue(
+            api: api, store: MemoryPersonalStore(), isOnline: { online.value }, retryAfter: nil
+        )
         let today = TodayViewModel(
             api: api, catalog: Catalog(locale: language), store: MemoryPersonalStore(), now: { now }, attendance: queue
         )
@@ -87,6 +95,67 @@ final class AttendanceNudgeTests: XCTestCase {
         run.today.mark(.attended, row: try XCTUnwrap(annaRow(run.today)))
         await run.queue.flush()
         XCTAssertNotNil(annaRow(run.today)?.nudge, "a refused tap leaves the queue: Anna is still open")
+    }
+
+    func test_F025_AC8_aTapFromTheNudgeWhileOfflineKeepsTheRowWaitingForTheConnection() async throws {
+        let online = Online()
+        online.value = false
+        let run = await setup(day(annaOpen: true), online: online)
+        run.today.mark(.attended, row: try XCTUnwrap(annaRow(run.today)))
+        await run.queue.flush()
+
+        let waiting = try XCTUnwrap(annaRow(run.today)?.nudge)
+        XCTAssertTrue(waiting.isWaiting, "the row stays, waiting, instead of the nudge going")
+        XCTAssertEqual(waiting.waitingText, catalog["attendance.app.waiting"])
+        XCTAssertNil(waiting.message)
+        XCTAssertTrue(
+            annaRow(run.today)?.spokenLabel.hasSuffix(catalog["attendance.app.waiting"]) == true,
+            "VoiceOver says it waits"
+        )
+        XCTAssertTrue(run.api.attendance.requests.isEmpty)
+
+        online.value = true
+        await run.queue.flush()
+        XCTAssertNil(annaRow(run.today)?.nudge, "sent: the row has nothing left to show")
+        XCTAssertEqual(run.api.attendance.requests.map(\.status), ["attended"])
+    }
+
+    func test_F025_AC9_aTapTheSyncRefusesRevertsTheNudgeWithTheServersMessage() async throws {
+        let online = Online()
+        online.value = false
+        let run = await setup(day(annaOpen: true), online: online)
+        run.today.mark(.noShow, row: try XCTUnwrap(annaRow(run.today)))
+        XCTAssertEqual(annaRow(run.today)?.nudge?.isWaiting, true)
+
+        online.value = true
+        run.api.attendance.fail(.sessionCancelled)
+        await run.queue.flush()
+        let reverted = try XCTUnwrap(annaRow(run.today)?.nudge)
+        XCTAssertFalse(reverted.isWaiting, "the buttons are back")
+        XCTAssertEqual(reverted.message, catalog["attendance.cancelledSession"])
+
+        // A new tap takes the message away.
+        run.api.attendance.fail(nil)
+        run.today.mark(.attended, row: try XCTUnwrap(annaRow(run.today)))
+        XCTAssertNil(annaRow(run.today)?.nudge?.message)
+    }
+
+    func test_F025_AC9_aTapRefusedAsTooEarlyNamesTheTimeTheWindowOpens() async throws {
+        let run = await setup(day(annaOpen: true))
+        run.api.attendance.fail(.tooEarly(PersonalFixtures.at("08:30")))
+        run.today.mark(.attended, row: try XCTUnwrap(annaRow(run.today)))
+        await run.queue.flush()
+        XCTAssertEqual(
+            annaRow(run.today)?.nudge?.message, String(format: catalog["attendance.tooEarly"], "08:30")
+        )
+    }
+
+    func test_F025_AC9_aTapTheContractDoesNotListRevertsTheNudgeWithTheGenericMessage() async throws {
+        let run = await setup(day(annaOpen: true))
+        run.api.attendance.fail(.undocumented(418))
+        run.today.mark(.attended, row: try XCTUnwrap(annaRow(run.today)))
+        await run.queue.flush()
+        XCTAssertEqual(annaRow(run.today)?.nudge?.message, catalog["attendance.errors.generic"])
     }
 
     func test_F025_aDuoHasNoInlineButtonsButItsChip() async {

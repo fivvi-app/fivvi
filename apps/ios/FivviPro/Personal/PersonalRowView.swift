@@ -19,10 +19,41 @@ struct PersonalRowView: View {
     @ScaledMetric(relativeTo: .body) private var barsScale = 1
 
     var body: some View {
+        let actions = swipeActions
+        if actions.isEmpty {
+            rowAndNudge
+        } else {
+            TrailingSwipeActions(actions: actions) { rowAndNudge }
+        }
+    }
+
+    private var rowAndNudge: some View {
         VStack(alignment: .leading, spacing: 0) {
             line
-            if row.nudge != nil, let onMark { nudge(onMark) }
+            if let nudge = row.nudge, let onMark { self.nudge(nudge, onMark) }
         }
+    }
+
+    /// The trailing swipe of a row with a nudge (F025): *Aanwezig* and *Niet verschenen*, as the buttons under it. A tap that
+    /// waits for the connection has been made: nothing to swipe for.
+    private var swipeActions: [SwipeAction] {
+        guard let nudge = row.nudge, !nudge.isWaiting, let onMark else { return [] }
+        func action(_ status: AttendanceStatus, _ name: String, _ solid: Color, _ onSolid: Color) -> SwipeAction {
+            let word = statusWord(status)
+            return SwipeAction(
+                title: word, label: catalog.string(.attendanceNudgeButtonLabel, nudge.clientName, word), fill: solid,
+                foreground: onSolid, identifier: "\(identifierPrefix).swipe.\(name).\(row.id)",
+                perform: { onMark(status) }
+            )
+        }
+        return [
+            action(.attended, "attended", Tokens.Colors.actionPrimaryBg, Tokens.Colors.actionPrimaryFg),
+            action(.noShow, "noShow", Tokens.Colors.actionDangerBg, Tokens.Colors.actionDangerFg)
+        ]
+    }
+
+    private func statusWord(_ status: AttendanceStatus) -> String {
+        status == .attended ? catalog[.attendanceAttended] : catalog[.attendanceNoShow]
     }
 
     private var line: some View {
@@ -53,7 +84,7 @@ struct PersonalRowView: View {
             .accessibilityAddTraits(.isButton)
             .accessibilityActions {
                 if let url = row.routeURL { Button(catalog[.todayOpenRoute]) { openURL(url) } }
-                if row.nudge != nil, let onMark {
+                if row.nudge?.isWaiting == false, let onMark {
                     Button(catalog[.attendanceAttended]) { onMark(.attended) }
                     Button(catalog[.attendanceNoShow]) { onMark(.noShow) }
                 }
@@ -71,16 +102,31 @@ struct PersonalRowView: View {
         }
     }
 
-    /// *Aanwezigheid nog invullen* with *Aanwezig* and *Niet verschenen* under the row (F025).
-    private func nudge(_ onMark: @escaping (AttendanceStatus) -> Void) -> some View {
+    /// *Aanwezigheid nog invullen* with *Aanwezig* and *Niet verschenen* under the row (F025). A tap that waits for the
+    /// connection leaves *Wacht op verbinding* instead of the buttons; one the API refused leaves its message above them.
+    private func nudge(_ nudge: PersonalRow.Nudge, _ onMark: @escaping (AttendanceStatus) -> Void) -> some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
-            Label(catalog[.attendanceNudge], systemImage: "exclamationmark.triangle")
-                .font(.system(Tokens.TextStyle.subhead, weight: .semibold))
-                .foregroundStyle(Tokens.Colors.statusWarningText)
-                .accessibilityIdentifier("\(identifierPrefix).nudge.\(row.id)")
-            HStack(spacing: Tokens.Spacing.space2) {
-                nudgeButton(.attended, "attended", onMark)
-                nudgeButton(.noShow, "noShow", onMark)
+            if let waiting = nudge.waitingText, nudge.isWaiting {
+                Label(waiting, systemImage: "clock")
+                    .font(.system(Tokens.TextStyle.subhead, weight: .semibold))
+                    .foregroundStyle(Tokens.Colors.textSecondary)
+                    .accessibilityIdentifier("\(identifierPrefix).nudge.waiting.\(row.id)")
+            } else {
+                Label(catalog[.attendanceNudge], systemImage: "exclamationmark.triangle")
+                    .font(.system(Tokens.TextStyle.subhead, weight: .semibold))
+                    .foregroundStyle(Tokens.Colors.statusWarningText)
+                    .accessibilityIdentifier("\(identifierPrefix).nudge.\(row.id)")
+                if let message = nudge.message {
+                    Text(message)
+                        .font(.system(Tokens.TextStyle.footnote))
+                        .foregroundStyle(Tokens.Colors.statusDangerText)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("\(identifierPrefix).nudge.message.\(row.id)")
+                }
+                HStack(spacing: Tokens.Spacing.space2) {
+                    nudgeButton(.attended, "attended", onMark)
+                    nudgeButton(.noShow, "noShow", onMark)
+                }
             }
         }
         .padding(.horizontal, Tokens.Spacing.space4)
@@ -91,7 +137,7 @@ struct PersonalRowView: View {
     private func nudgeButton(
         _ status: AttendanceStatus, _ name: String, _ onMark: @escaping (AttendanceStatus) -> Void
     ) -> some View {
-        let word = status == .attended ? catalog[.attendanceAttended] : catalog[.attendanceNoShow]
+        let word = statusWord(status)
         return Button { onMark(status) } label: {
             Text(word)
                 .multilineTextAlignment(.center)

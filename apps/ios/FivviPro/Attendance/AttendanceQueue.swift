@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import FivviAPI
+import OpenAPIRuntime
 
 typealias Attendance = Components.Schemas.Attendance
 
@@ -217,8 +218,22 @@ final class AttendanceQueue {
             case .everyone: return try await sendEveryone(entry)
             }
         } catch {
-            return .retry
+            // An answer the app cannot read is a refusal, as a request the API does not list: resending it would not help,
+            // and the requests behind it would never go. A lost connection or a cancelled task is sent again.
+            return Self.isUnreadable(error) ? .rejected(.other) : .retry
         }
+    }
+
+    /// The API answered, but with a body the generated client could not read.
+    private static func isUnreadable(_ error: any Error) -> Bool {
+        let cause = (error as? ClientError)?.underlyingError ?? error
+        return cause is DecodingError
+    }
+
+    /// Whether an answer the contract does not list is the request's fault (4xx: refused, not sent again) or the API's
+    /// (anything else: sent again later).
+    private static func outcome(forUndocumented status: Int) -> Outcome {
+        (400..<500).contains(status) ? .rejected(.other) : .retry
     }
 
     private func sendSet(
@@ -233,7 +248,8 @@ final class AttendanceQueue {
         case let .conflict(refusal): return .rejected(Self.reason(try refusal.body.json))
         case let .unprocessableContent(early): return .rejected(.tooEarly(opensAt: try early.body.json.opensAt))
         case .forbidden, .notFound, .badRequest: return .rejected(.other)
-        case .unauthorized, .internalServerError, .undocumented: return .retry
+        case let .undocumented(status, _): return Self.outcome(forUndocumented: status)
+        case .unauthorized, .internalServerError: return .retry
         }
     }
 
@@ -247,7 +263,8 @@ final class AttendanceQueue {
         case let .conflict(refusal): return .rejected(Self.reason(try refusal.body.json))
         case let .unprocessableContent(early): return .rejected(.tooEarly(opensAt: try early.body.json.opensAt))
         case .forbidden, .notFound, .badRequest: return .rejected(.other)
-        case .unauthorized, .internalServerError, .undocumented: return .retry
+        case let .undocumented(status, _): return Self.outcome(forUndocumented: status)
+        case .unauthorized, .internalServerError: return .retry
         }
     }
 

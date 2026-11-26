@@ -238,7 +238,7 @@ struct ClassDateView: View {
         }
     }
 
-    /// *Boekingslink delen*, below the booked card (the participants come with F025).
+    /// *Boekingslink delen*, below the booked card.
     private var shareLinkButton: some View {
         PillButtonStack {
             Button {
