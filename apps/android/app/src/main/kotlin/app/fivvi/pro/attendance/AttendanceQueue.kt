@@ -24,7 +24,12 @@ import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -145,8 +150,14 @@ data class QueueState(
  * request of its own, in order with the taps around it (owner, 9 November 2026).
  *
  * Every entry names the account that tapped, and the list is read for one account ([adopt]): what an earlier account left is
- * never sent and is deleted. The sign-out clears the queue ([clear], in memory and on disk) after the screens warned; a token
- * the API rejects (a 401) does not: the taps stay on disk and are sent when the same account signs in again.
+ * never sent and is deleted. The file is read when the queue is made, so what waited on the phone shows, counts for the
+ * sign-out warning and is never overwritten while `GET /v1/me` has not answered yet (an app opened offline, a tap before the
+ * answer); nothing is sent until [adopt] names the account. The sign-out clears the queue ([clear], in memory and on disk)
+ * after the screens warned; a token the API rejects (a 401) does not: the taps stay on disk and are sent when the same
+ * account signs in again.
+ *
+ * The file is written and deleted on [io], in the order the changes were made (one writer), and what was handed to it still
+ * is written when the screen that made the queue is gone.
  */
 class AttendanceQueue(
     private val api: SessionsApi,
@@ -157,8 +168,11 @@ class AttendanceQueue(
     private val makeId: () -> UUID = UUID::randomUUID,
     /** How long after a failed attempt the queue tries again by itself; `null` leaves it to the next tap and the network. */
     private val retryAfter: Duration? = 5.seconds,
+    io: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(QueueState(online = connectivity.online.value))
+    // What the last sign-in left on the phone, read once: it is part of the list from the start, so no write drops it.
+    private val fromDisk = readFile()
+    private val _state = MutableStateFlow(QueueState(entries = fromDisk, online = connectivity.online.value))
     val state: StateFlow<QueueState> = _state.asStateFlow()
     private val lock = Any()
     private var accountId: String? = null
@@ -166,7 +180,20 @@ class AttendanceQueue(
     private var running: Job? = null
     private var retry: Job? = null
 
+    // The writer: one coroutine takes the changes of the file one after the other. It outlives the view model's own scope, so
+    // the last tap before the screen is closed still reaches the disk; closing the channel ends it once it has written them.
+    private val disk = Channel<DiskChange>(Channel.UNLIMITED)
+    private val writer = CoroutineScope(SupervisorJob() + io)
+
     init {
+        writer.launch {
+            for (change in disk) {
+                when (change) {
+                    is DiskChange.Write -> store.write(FILE, change.bytes)
+                    DiskChange.Clear -> store.clear()
+                }
+            }
+        }
         viewModelScope.launch {
             connectivity.online.collect { online ->
                 _state.update { it.copy(online = online) }
@@ -175,24 +202,37 @@ class AttendanceQueue(
         }
     }
 
+    override fun onCleared() {
+        disk.close()
+    }
+
+    private sealed interface DiskChange {
+        class Write(val bytes: ByteArray) : DiskChange
+
+        data object Clear : DiskChange
+    }
+
     // MARK: Account
 
     /**
      * Takes the list of this phone for [account] (`GET /v1/me` answered, the first time only): the requests of that account are
      * sent from now on, those of any other account are deleted, and what was tapped before the account was known is this
-     * sign-in's.
+     * sign-in's. A tap of an earlier run that was made before its account was known is this account's too, unless the file
+     * also holds the taps of another one: then nobody can say whose it was, and it goes with them.
      */
     fun adopt(account: String) {
         synchronized(lock) {
             // A queue belongs to one sign-in, so one account: every later answer of `GET /v1/me` is the same person.
             if (closed || accountId != null) return
             accountId = account
-            val kept = readFile().filter { it.accountId == account }
-            val unclaimed = _state.value.entries.filter { it.accountId == UNKNOWN }.map { it.copy(accountId = account) }
-            val fromThisSession = _state.value.entries.filter { it.accountId == account }
-            // The file's entries first (they are older), then what was tapped here.
-            val merged = (kept + fromThisSession + unclaimed).distinctBy { it.id }
-            _state.update { it.copy(entries = merged) }
+            val foreign = fromDisk.any { it.accountId != UNKNOWN && it.accountId != account }
+            val earlier = fromDisk.mapTo(mutableSetOf()) { it.id }
+            // The list is in the order it was tapped (the file's entries first): keep it, and make what has no account yet this one's.
+            val kept = _state.value.entries.filter {
+                it.accountId == account ||
+                    (it.accountId == UNKNOWN && !(foreign && it.id in earlier))
+            }.map { if (it.accountId == UNKNOWN) it.copy(accountId = account) else it }
+            _state.update { it.copy(entries = kept.distinctBy(QueueEntry::id)) }
             save()
         }
         flush()
@@ -237,7 +277,7 @@ class AttendanceQueue(
             closed = true
             retry?.cancel()
             _state.value = QueueState(online = _state.value.online)
-            store.clear()
+            disk.trySend(DiskChange.Clear)
         }
     }
 
@@ -386,7 +426,7 @@ class AttendanceQueue(
     private fun save() {
         if (closed || !stillSignedIn()) return
         val list = JsonArray(_state.value.entries.map(::encode))
-        store.write(FILE, list.toString().encodeToByteArray())
+        disk.trySend(DiskChange.Write(list.toString().encodeToByteArray()))
     }
 
     private fun readFile(): List<QueueEntry> {

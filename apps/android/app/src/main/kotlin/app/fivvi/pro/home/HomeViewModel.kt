@@ -182,6 +182,8 @@ class HomeViewModel(
         val account = response.body()?.takeIf { response.isSuccessful } ?: return WorkspacesRead.Failed
         _workspaces.value = account.workspaces
         onWorkspaces(account.workspaces)
+        // The first read may have failed (offline): this one names the account too, so what waits for it can go. Idempotent.
+        if (stillSignedIn()) onAccount(account.id.toString())
         val shown = (_state.value as? MeState.Loaded)?.destination as? HomeDestination.Workspace
         if (shown != null && account.workspaces.none { it.id == shown.id }) load()
         return WorkspacesRead.Listed(account.workspaces)

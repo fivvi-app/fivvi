@@ -54,9 +54,9 @@ class AttendanceViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun queue() = AttendanceQueue(api, MemoryPersonalStore(), phone, retryAfter = null).also {
-        it.adopt("sarah")
-    }
+    private fun queue() =
+        AttendanceQueue(api, MemoryPersonalStore(), phone, retryAfter = null, io = Dispatchers.Unconfined)
+            .also { it.adopt("sarah") }
 
     private fun model(queue: AttendanceQueue, onForbidden: () -> Unit = {}) =
         AttendanceViewModel(api, workspace, kracht, queue, { clock }, onForbidden)

@@ -473,6 +473,33 @@ class HomeViewModelTest {
         assertEquals(listOf(ACCOUNT_ID.toString()), identified)
     }
 
+    // F025: the first `GET /v1/me` failed (offline): a later read of the account (Vandaag's pull, the foreground) names it too,
+    // so the attendance queue can take the account's taps.
+    @Test
+    fun test_F025_1620_refreshWorkspacesNamesTheAccountWhenTheFirstReadFailed() {
+        api.answers += { throw IOException("offline") }
+        api.answerAccount(id = ACCOUNT_ID)
+        val viewModel = viewModel()
+        assertEquals(emptyList<String>(), identified)
+
+        runBlocking { viewModel.refreshWorkspaces() }
+
+        assertEquals(listOf(ACCOUNT_ID.toString()), identified)
+    }
+
+    @Test
+    fun test_F025_1620_refreshWorkspacesAfterTheSignOutNamesNobody() {
+        api.answerAccount(id = ACCOUNT_ID)
+        val viewModel = viewModel()
+        identified.clear()
+        session.expire("tok-1")
+        api.answerAccount(id = ACCOUNT_ID)
+
+        runBlocking { viewModel.refreshWorkspaces() }
+
+        assertEquals(emptyList<String>(), identified)
+    }
+
     @Test
     fun F001N_266_AC2_passesNothingOnWhenTheApiDoesNotAnswerWithTheAccount() {
         api.answers += { throw IOException("offline") }

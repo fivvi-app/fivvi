@@ -55,7 +55,8 @@ class AttendanceNudgesTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun queue(online: FakeConnectivity = phone) =
-        AttendanceQueue(api, MemoryPersonalStore(), online, retryAfter = null).also { it.adopt("sarah") }
+        AttendanceQueue(api, MemoryPersonalStore(), online, retryAfter = null, io = Dispatchers.Unconfined)
+            .also { it.adopt("sarah") }
 
     private val clients = listOf(PersonalSessionClient(anna, "Anna de Vries"))
 
