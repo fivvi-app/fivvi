@@ -28,11 +28,12 @@ struct FivviProApp: App {
             FilePersonalStore.shared.clear()
             FilePersonalStore.attendance.clear()
         }
-        // What the personal screens keep for the offline view goes with the sign-in (F013 AC7).
+        // What the personal screens keep for the offline view goes with the sign-in (F013 AC7). The attendance taps do not:
+        // the sign-out the person chose clears them after its warning (`HomeView`), and a rejected token leaves them for
+        // the same account's next sign-in (#1618).
         let session = Session(store: store, onSignedOut: {
             ErrorReporting.clearUser()
             FilePersonalStore.shared.clear()
-            FilePersonalStore.attendance.clear()
         })
         let auth = AuthMiddleware(store: store) { await session.tokenRejected() }
         api = Client(

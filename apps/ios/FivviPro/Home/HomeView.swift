@@ -70,10 +70,13 @@ struct HomeView: View {
         personal: any PersonalStore = FilePersonalStore.shared,
         attendanceStore: any PersonalStore = FilePersonalStore.attendance
     ) {
-        let queue = AttendanceQueue(api: api, store: attendanceStore, isOnline: { connectivity.isOnline })
+        let queue = AttendanceQueue(api: api, store: attendanceStore, session: store) { connectivity.isOnline }
         _attendance = State(initialValue: queue)
+        // The account is known: what an earlier sign-in of it left goes on (#1618). The person chose to sign out (after
+        // the warning of the button): what waits is cleared; a rejected token signs out elsewhere and keeps it.
         let account = AccountViewModel(
-            api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
+            api: api, store: store, onAccount: { queue.learn(account: $0); onAccount($0) },
+            onSignedOut: { queue.clear(); onSignedOut($0) },
             onPreferredLocale: { language.startRead() }, workspaces: .persistent()
         )
         _today = State(initialValue: TodayViewModel(
