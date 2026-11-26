@@ -187,7 +187,7 @@ describe('F025 attendance in My day, the calendar and the dashboard', () => {
     expect(during?.attendance).toEqual({ attended: 0, noShow: 0, open: 7, cancelled: 0 });
   });
 
-  it('AC11: at 23 September 08:00 the day route lists the two sessions of 22 September; once both are filled in the row is gone', async () => {
+  it('AC11: yesterday’s sessions without attendance: at 23 September 08:00 the day route lists the two sessions of 22 September; once both are filled in the row is gone', async () => {
     const w = await world();
     w.at(WEDNESDAY, '08:00');
     const before = await day(w, w.john);
@@ -211,7 +211,7 @@ describe('F025 attendance in My day, the calendar and the dashboard', () => {
     expect((await day(w, w.john)).needsAttendance ?? []).toEqual([]);
   });
 
-  it('AC11: the row is about yesterday on the clock, whatever day is shown', async () => {
+  it('AC11: yesterday’s sessions without attendance are about yesterday on the clock, whatever day is shown', async () => {
     const w = await world();
     w.at(WEDNESDAY, '08:00');
     // Looking at another day does not move *yesterday*.
@@ -224,7 +224,34 @@ describe('F025 attendance in My day, the calendar and the dashboard', () => {
     expect((await day(w, w.john)).needsAttendance ?? []).toEqual([]);
   });
 
-  it('AC11: the calendar and the day items carry attendanceOpen, and a class its summary', async () => {
+  it('AC11: yesterday’s sessions without attendance are those that ended yesterday, also when they began the day before', async () => {
+    const w = await world();
+    const [profile] = await admin.db
+      .select({ id: trainerProfiles.id })
+      .from(trainerProfiles)
+      .where(eq(trainerProfiles.teamMemberId, w.sarahRole.id));
+    if (!profile) throw new Error('No trainer profile.');
+    // Monday 21 September 23:30 to 00:30 on the 22nd: began the day before yesterday, ended yesterday.
+    const overnight = await addSession(admin.db, {
+      workspaceId: w.workspaceId,
+      clientId: w.anna.id,
+      trainerProfileId: profile.id,
+      startsAt: amsterdam('2026-09-21T23:30'),
+    });
+    // Tuesday 22 September 23:30 to 00:30: began yesterday, ended today.
+    const crossing = await addSession(admin.db, {
+      workspaceId: w.workspaceId,
+      clientId: w.anna.id,
+      trainerProfileId: profile.id,
+      startsAt: amsterdam(`${TUESDAY}T23:30`),
+    });
+    w.at(WEDNESDAY, '08:00');
+    const ids = (await day(w, w.john)).needsAttendance?.map((item) => item.id);
+    expect(ids).toEqual([overnight.id, w.privateSession.id, w.kracht.id]);
+    expect(ids).not.toContain(crossing.id);
+  });
+
+  it('AC11: yesterday’s sessions without attendance show as attendanceOpen on the calendar and the day items, and a class has its summary', async () => {
     const w = await world();
     w.at(WEDNESDAY, '08:00');
     const week = await calendar(w, w.john);

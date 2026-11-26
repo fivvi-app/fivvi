@@ -39,7 +39,7 @@ import kotlinx.serialization.Contextual
  * @param attention *Aandacht nodig*: the sessions that take place without a trainer, class dates and private sessions alike (a private session whose trainer was removed), from now to the end of the 14th day counted from today, in time order. Each item says what it is as data: `type` (`group` or `private`), with `className` for a class date and `clientName` (and `clients`, two for a duo) for a private session; the app words it: \"{class}, {date} {time}: nog geen trainer\", \"Privé · {client}, {date} {time}: nog geen trainer\". Empty when nothing needs attention. Later features add their own open items.
  * @param hasSessions Whether the workspace has any session at all, past or planned, cancelled or not, whatever day is shown: it tells a new workspace (*Welkom bij Fivvi. …*) from one with nothing planned today. Decided on the server and only for this workspace.
  * @param busiest 
- * @param needsAttendance *Aandacht nodig*, F025: the sessions of yesterday (on the workspace’s wall clock, counted from now, whatever `date` is shown) that took place, have ended and still have a participant *Geboekt*, in time order: \"{n} sessies van gisteren zonder aanwezigheid · Invullen\". Each item links to its session page and says what it is as data (`type`, `className` or `clientName`). A session leaves the list once every participant is filled in. Left out when there is none.
+ * @param needsAttendance *Aandacht nodig*, F025: the sessions that ended yesterday (on the workspace’s wall clock, counted from now, whatever `date` is shown; one that ends at midnight ended yesterday, one that crosses midnight is of the day it ended) that took place and still have a participant *Geboekt*, in time order: \"{n} sessies van gisteren zonder aanwezigheid · Invullen\". Each item links to its session page and says what it is as data (`type`, `className` or `clientName`). A session leaves the list once every participant is filled in. Left out when there is none.
  */
 @Serializable
 
@@ -68,7 +68,7 @@ data class WorkspaceDay (
     @SerialName(value = "busiest")
     val busiest: WorkspaceBusiestMoment? = null,
 
-    /* *Aandacht nodig*, F025: the sessions of yesterday (on the workspace’s wall clock, counted from now, whatever `date` is shown) that took place, have ended and still have a participant *Geboekt*, in time order: \"{n} sessies van gisteren zonder aanwezigheid · Invullen\". Each item links to its session page and says what it is as data (`type`, `className` or `clientName`). A session leaves the list once every participant is filled in. Left out when there is none. */
+    /* *Aandacht nodig*, F025: the sessions that ended yesterday (on the workspace’s wall clock, counted from now, whatever `date` is shown; one that ends at midnight ended yesterday, one that crosses midnight is of the day it ended) that took place and still have a participant *Geboekt*, in time order: \"{n} sessies van gisteren zonder aanwezigheid · Invullen\". Each item links to its session page and says what it is as data (`type`, `className` or `clientName`). A session leaves the list once every participant is filled in. Left out when there is none. */
     @SerialName(value = "needsAttendance")
     val needsAttendance: kotlin.collections.List<WorkspaceCalendarSession>? = null
 

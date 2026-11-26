@@ -3287,7 +3287,7 @@
             "items": {
               "$ref": "#/components/schemas/WorkspaceCalendarSession"
             },
-            "description": "*Aandacht nodig*, F025: the sessions of yesterday (on the workspace’s wall clock, counted from now, whatever `date` is shown) that took place, have ended and still have a participant *Geboekt*, in time order: \"{n} sessies van gisteren zonder aanwezigheid · Invullen\". Each item links to its session page and says what it is as data (`type`, `className` or `clientName`). A session leaves the list once every participant is filled in. Left out when there is none."
+            "description": "*Aandacht nodig*, F025: the sessions that ended yesterday (on the workspace’s wall clock, counted from now, whatever `date` is shown; one that ends at midnight ended yesterday, one that crosses midnight is of the day it ended) that took place and still have a participant *Geboekt*, in time order: \"{n} sessies van gisteren zonder aanwezigheid · Invullen\". Each item links to its session page and says what it is as data (`type`, `className` or `clientName`). A session leaves the list once every participant is filled in. Left out when there is none."
           },
           "hasSessions": {
             "type": "boolean",
@@ -10515,7 +10515,7 @@
           "workspaces"
         ],
         "summary": "The workspace today: the rows of one day and what needs attention",
-        "description": "The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer, and `needsAttendance`: the sessions of yesterday that still wait for attendance. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).",
+        "description": "The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer, and `needsAttendance`: the sessions that ended yesterday and still wait for attendance. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).",
         "security": [
           {
             "cookieAuth": []

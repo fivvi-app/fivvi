@@ -6,7 +6,7 @@ import {
   type WorkspaceScope,
 } from '@fivvi/database';
 import {
-  addDays,
+  attendanceWindow,
   attentionWindow,
   busiestMoment,
   type DetachedField,
@@ -322,8 +322,9 @@ export const WorkspaceDaySchema = z
       .optional()
       .openapi({
         description:
-          '*Aandacht nodig*, F025: the sessions of yesterday (on the workspace’s wall clock, counted ' +
-          'from now, whatever `date` is shown) that took place, have ended and still have a ' +
+          '*Aandacht nodig*, F025: the sessions that ended yesterday (on the workspace’s wall clock, ' +
+          'counted from now, whatever `date` is shown; one that ends at midnight ended yesterday, ' +
+          'one that crosses midnight is of the day it ended) that took place and still have a ' +
           'participant *Geboekt*, in time order: "{n} sessies van gisteren zonder aanwezigheid · ' +
           'Invullen". Each item links to its session page and says what it is as data (`type`, ' +
           '`className` or `clientName`). A session leaves the list once every participant is filled ' +
@@ -389,7 +390,7 @@ const getWorkspaceDayRoute = defineRoute(
       'The sessions of the workspace on one day (today unless `date` says otherwise, on the ' +
       'workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the ' +
       'class dates and private sessions in the next 14 days that have no trainer, and `needsAttendance`: ' +
-      'the sessions of yesterday that still wait for attendance. `busiest` is the ' +
+      'the sessions that ended yesterday and still wait for attendance. `busiest` is the ' +
       'day’s busiest moment (the time with the most sessions at once, and how many), left out ' +
       'when no two sessions overlap. For the Owner’s dashboard and the ' +
       'apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).',
@@ -584,14 +585,12 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
     const ahead = window ? await readWindow(scope, window) : [];
     // Any row says the workspace has sessions; only an empty answer asks the database.
     const hasSessions = rows.length > 0 || ahead.length > 0 || (await hasWorkspaceSession(scope));
-    // Yesterday counted from now, whatever day is shown (F025): read on its own as well.
-    const yesterday = localDayBounds(
-      addDays(localDateOf(now, workspace.timeZone), -1),
-      workspace.timeZone,
-    );
-    const needAttendance = yesterday
+    // Yesterday counted from now, whatever day is shown (F025): read on its own as well. The
+    // domain says what to read (a session that ended yesterday may have begun the day before).
+    const attendance = attendanceWindow(now, workspace.timeZone);
+    const needAttendance = attendance
       ? sessionsNeedingAttendance(
-          await readWindow(scope, { from: yesterday.start, to: yesterday.end }),
+          await readWindow(scope, { from: attendance.from, to: attendance.to }),
           now,
           workspace.timeZone,
         )

@@ -13,13 +13,13 @@ import {
 import {
   type AttendanceActor,
   type AttendanceSession,
+  attendanceOpen,
   attendanceOpensAt,
   attendanceSummary,
   changeParticipantStatus,
   checkAttendanceOpen,
   type MarkableStatus,
   mayTakeAttendance,
-  needsAttendance,
   type ParticipantStatus,
 } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
@@ -123,9 +123,10 @@ export const AttendanceOpenFieldSchema = z
   });
 
 /**
- * What a session of the read models says of its attendance (F025, #545): `attendanceOpen` when it
- * waits for attendance (`needsAttendance`, the same rule as *Aandacht nodig*) and, for a class date,
- * the counts of its participants' statuses. Nothing for Open Gym, which has no attendance yet.
+ * What a session of the read models says of its attendance (F025, #545): `attendanceOpen` when the
+ * domain's `attendanceOpen` says it waits for attendance (the same rule as *Aandacht nodig*) and,
+ * for a class date, the counts of its participants' statuses. Nothing for Open Gym, which has no
+ * attendance yet. The route only shapes the output; the rule is the domain's.
  */
 export function attendanceShown(
   session: {
@@ -136,12 +137,12 @@ export function attendanceShown(
   },
   now: Date,
 ) {
-  if (session.type === 'open_gym') return {};
-  const open = needsAttendance(
+  const open = attendanceOpen(
     {
+      type: session.type,
       status: session.status,
       endsAt: session.endsAt,
-      participants: session.attendanceStatuses,
+      participantStatuses: session.attendanceStatuses,
     },
     now,
   );

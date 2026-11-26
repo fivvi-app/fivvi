@@ -102,7 +102,7 @@ interface WorkspacesApi {
     /**
      * GET v1/workspaces/{workspaceId}/day
      * The workspace today: the rows of one day and what needs attention
-     * The sessions of the workspace on one day (today unless &#x60;date&#x60; says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer, and &#x60;needsAttendance&#x60;: the sessions of yesterday that still wait for attendance. &#x60;busiest&#x60; is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (&#x60;calendar.manage&#x60;).
+     * The sessions of the workspace on one day (today unless &#x60;date&#x60; says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer, and &#x60;needsAttendance&#x60;: the sessions that ended yesterday and still wait for attendance. &#x60;busiest&#x60; is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (&#x60;calendar.manage&#x60;).
      * Responses:
      *  - 200: The day.
      *  - 400: The request did not match the contract.
