@@ -299,17 +299,16 @@ export function OwnerDashboard({
                 <ul className="grid gap-2">
                   {needsAttendance.length > 0 ? (
                     <NeedsAttendance
-                      sessions={needsAttendance}
+                      sessions={needsAttendance.map((item) => ({
+                        id: item.id,
+                        startsAt: item.startsAt,
+                        name:
+                          item.type === 'private'
+                            ? shared('block', { type: typeOf(item), name: nameOf(item) })
+                            : nameOf(item),
+                      }))}
                       slug={slug}
                       timeZone={day.timeZone}
-                      kindLabel={(item) =>
-                        item.type === 'private'
-                          ? shared('block', {
-                              type: typeOf(item as Shown),
-                              name: nameOf(item as Shown),
-                            })
-                          : nameOf(item as Shown)
-                      }
                     />
                   ) : null}
                   {attention.map((item) => (

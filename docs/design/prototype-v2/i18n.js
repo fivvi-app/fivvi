@@ -177,6 +177,7 @@ window.FIVVI_I18N = (function () {
     [/^Sessie verplaatst naar (.+)$/, function (m, a) { return "Session moved to " + P(a); }],
     [/^Ingelogd als (.+)$/, "Signed in as $1"],
     [/^(\S+) was aanwezig$/, "$1 attended"],
+    [/^(\d+) aanwezig · (\d+) niet verschenen · (\d+) open$/, "$1 attended · $2 no-show · $3 open"],
     [/^Vanaf (\d\d:\d\d)\.$/, "From $1."],
     [/^Bezig · gestart om (.+)$/, "In progress · started at $1"],
     [/^Elke week op (\S+)$/, function (m, d) { return "Every week on " + P(d); }],

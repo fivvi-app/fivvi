@@ -175,7 +175,7 @@ export function AttendanceSection({
                         {CHOICES.map(({ status, key }) => (
                           <label
                             key={status}
-                            className="flex min-h-11 cursor-pointer items-center border-s px-3 text-sm first:border-s-0 has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:disabled]:cursor-default has-[:disabled]:opacity-60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50"
+                            className="relative flex min-h-11 cursor-pointer items-center border-s px-3 text-sm first:border-s-0 has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:disabled]:cursor-default has-[:disabled]:opacity-60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50"
                           >
                             <input
                               type="radio"

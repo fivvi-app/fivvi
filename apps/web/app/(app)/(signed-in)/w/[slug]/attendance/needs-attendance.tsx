@@ -1,6 +1,5 @@
 'use client';
 
-import type { Schemas } from '@fivvi/contract';
 import { Button } from '@fivvi/ui/components/button';
 import type { Route } from 'next';
 import Link from 'next/link';
@@ -18,13 +17,11 @@ export function NeedsAttendance({
   sessions,
   slug,
   timeZone,
-  kindLabel,
 }: {
-  sessions: Schemas['WorkspaceCalendarSession'][];
+  /** In the API's time order; `name` is the dashboard's wording of the block ("Privé · Anna", "Kracht"). */
+  sessions: { id: string; startsAt: string; name: string }[];
   slug: string;
   timeZone: string;
-  /** "Privé · Anna" for a private session: the dashboard's own wording of its blocks. */
-  kindLabel: (session: Schemas['WorkspaceCalendarSession']) => string;
 }) {
   const t = useTranslations('attendance');
   const when = useSessionFormat(timeZone);
@@ -51,7 +48,7 @@ export function NeedsAttendance({
               className="inline-flex min-h-11 items-center text-sm underline underline-offset-4 md:min-h-6"
             >
               {t('needsItem', {
-                name: kindLabel(session),
+                name: session.name,
                 date: when.day(session.startsAt),
                 time: when.time(session.startsAt),
               })}

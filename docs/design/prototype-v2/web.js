@@ -187,8 +187,10 @@
     h += '<div class="w-kpis" style="--n:' + Math.min(5, k.length) + '">' + k.join("") + "</div>";
     /* lanes: one per trainer, wide enough on the web to name every session */
     h += '<div class="w-grid2">' + card(mine ? "Je dag" : "Vandaag bij " + esc(wsName()), lanes(items, mine), { desc: mine ? "Al je sessies, ook bij andere werkruimtes." : "Eén rij per trainer. Sessies tegelijk staan naast elkaar." , cls: "span2" }) + "</div>";
-    var attn = [];
-    openAtt.forEach(function (i) { attn.push(['<b>Aanwezigheid invullen</b> · ' + esc(itemTitle(i)) + " " + i.s, openA(i), i.id]); });
+    var attn = [], nudge = [];
+    /* Mijn dag: a private session that has ended has the nudge with the answer inline (F025); the rest is a row of Aandacht nodig */
+    openAtt.forEach(function (i) { if (mine && i.type === "priv") nudge.push(i); else attn.push(['<b>Aanwezigheid nog invullen</b> · ' + esc(itemTitle(i)) + " " + i.s, openA(i), i.id]); });
+    if (nudge.length) h += card("Aanwezigheid nog invullen", '<ul class="w-list">' + nudge.map(function (i) { return "<li><span>" + ic("warn") + " <b>" + esc(itemTitle(i)) + "</b> · " + i.s + "–" + i.e + '</span><div class="w-hgroup">' + btn("Aanwezig", "w-att-priv", { k: "outline sm", d: { id: i.id, v: "yes" } }) + btn("Niet verschenen", "w-att-priv", { k: "outline sm", d: { id: i.id, v: "no" } }) + "</div></li>"; }).join("") + "</ul>");
     act.forEach(function (i) { if (i.type === "group" && i.people.length >= i.cap && i.waitlist) attn.push(["<b>Vol</b> · " + esc(i.title) + " " + i.s + " · " + i.waitlist + " op de wachtlijst", "w-open-class", i.id]); });
     if (!mine && F.OWNER()) D.clients.forEach(function (c) { if (c.ws !== "sf") return; D.bsum(c.id).flags.forEach(function (f) { if (f[0] === "danger" || f[0] === "warn") attn.push(["<b>" + esc(c.name) + "</b> · <span>" + esc(f[1]) + "</span>", "w-client-bill", c.id]); }); });
     if (!mine && F.OWNER() && D.requests.length) attn.push(["<b>" + D.requests.length + " aanmeldverzoeken</b> wachten op goedkeuring", "w-requests", ""]);
@@ -372,6 +374,7 @@
       })));
   };
   function waitNames(it) { var n = it.waitlist || 0, out = []; for (var i = 0; i < n; i++) out.push(["Kim de Graaf", "Ruben Vos", "Lotte Prins", "Sem Dekker"][i % 4]); return out; }
+  function attSummary(it, am) { var n = function (v) { return Object.keys(am).filter(function (x) { return am[x] === v; }).length; }; return n("yes") + " aanwezig · " + n("no") + " niet verschenen · " + (it.people.length - n("yes") - n("no")) + " open"; }
   PAGES.klass = function () {
     var w = W(), f = F.findItem(w.kid); if (!f) { w.page = "classes"; return PAGES.classes(); }
     var it = f.it, k = f.day, am = it.attMap || (it.attMap = {}), h = "", free = it.cap - it.people.length, ds = desc(it.title);
@@ -379,7 +382,7 @@
       '<div class="w-hgroup end">' + (it.type !== "gym" ? btn("Trainer vervangen", "w-dlg", { k: "outline", d: { n: "sub" } }) : "") + btn("Wijzigen", "w-dlg", { k: "outline", d: { n: "editclass" } }) + btn("Les annuleren", "w-dlg", { k: "dng", d: { n: "cancelclass" }, dis: it.cancelled }) + "</div></div>";
     h += '<div class="w-kpis" style="--n:3">' + kpi("Geboekt", it.people.length + "<small>/" + it.cap + "</small>", free > 0 ? free + (free === 1 ? " plek vrij" : " plekken vrij") : "vol", F.CV[it.type], it.people.length, it.cap) +
       kpi("Aanwezig", String(Object.keys(am).filter(function (x) { return am[x] === "yes"; }).length), "van " + it.people.length, "var(--ok)") + kpi("Wachtlijst", String(it.waitlist || 0), it.waitlist ? "op volgorde" : "niemand", "var(--accent)") + "</div>";
-    h += '<div class="w-grid2">' + card("Deelnemers", it.people.length ? table(["Naam", "Aanwezigheid"], it.people.map(function (p, i) { return ['<span class="w-cell">' + av(personName(p), F.CLIENT[p] ? F.CLIENT[p].c : null) + "<b>" + esc(personName(p)) + "</b></span>", '<div class="w-seg">' + ["yes", "no"].map(function (v) { return '<button class="' + (am[i] === v ? "on " + v : "") + '" data-a="w-att" data-id="' + it.id + '" data-i="' + i + '" data-v="' + v + '">' + (v === "yes" ? "Aanwezig" : "Niet verschenen") + "</button>"; }).join("") + "</div>"]; })) : '<p class="w-muted">Nog niemand geboekt.</p>', { act: it.people.length ? btn("Iedereen aanwezig", "w-att-all", { k: "outline sm", d: { id: it.id } }) : "" }) +
+    h += '<div class="w-grid2">' + card("Deelnemers", it.people.length ? '<p class="w-muted">' + attSummary(it, am) + "</p>" + table(["Naam", "Aanwezigheid"], it.people.map(function (p, i) { return ['<span class="w-cell">' + av(personName(p), F.CLIENT[p] ? F.CLIENT[p].c : null) + "<b>" + esc(personName(p)) + "</b></span>", '<div class="w-seg" role="radiogroup">' + ["", "yes", "no"].map(function (v) { var on = (am[i] || "") === v; return '<button role="radio" aria-checked="' + on + '" class="' + (on && v ? "on " + v : on ? "on" : "") + '" data-a="w-att" data-id="' + it.id + '" data-i="' + i + '" data-v="' + v + '">' + (v === "yes" ? "Aanwezig" : v === "no" ? "Niet verschenen" : "Geboekt") + "</button>"; }).join("") + "</div>"]; })) : '<p class="w-muted">Nog niemand geboekt.</p>', { act: it.people.length ? btn("Iedereen aanwezig", "w-att-all", { k: "outline sm", d: { id: it.id } }) : "" }) +
       '<div class="w-stack">' + (it.type === "group" ? card("Wachtlijst", it.waitlist ? '<ol class="w-list plain num">' + waitNames(it).map(function (n, i) { return "<li><div><b>" + (i + 1) + ". " + esc(n) + '</b></div><button class="w-icon" data-a="w-dlg" data-n="wlremove" data-i="' + i + '" aria-label="' + esc(n) + ' van de wachtlijst halen">' + ic("x") + "</button></li>"; }).join("") + "</ol>" : '<p class="w-muted">Niemand op de wachtlijst.</p>', { desc: "Komt er een plek vrij, dan krijgt de eerste die plek en een e-mail." }) : "") +
       (ds ? card("Omschrijving", '<p translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p>", { desc: "Zo zien klanten deze les." }) : "") + "</div></div>";
     return h;
@@ -772,7 +775,8 @@
     F.addClient({ id: "c" + Date.now(), ws: "sf", name: r.name, email: r.email, lang: "Nederlands", last: "Nog geen sessie", c: "#6155F5" });
     F.toast(r.name + " is goedgekeurd en kan nu boeken");
   };
-  A["w-att"] = function (d) { var it = F.findItem(d.id).it, am = it.attMap || (it.attMap = {}); am[d.i] = am[d.i] === d.v ? undefined : d.v; R(); };
+  A["w-att"] = function (d) { var it = F.findItem(d.id).it, am = it.attMap || (it.attMap = {}); am[d.i] = d.v || undefined; R(); };
+  A["w-att-priv"] = function (d) { F.findItem(d.id).it.att = d.v; R(); };
   A["w-att-all"] = function (d) { var it = F.findItem(d.id).it; it.attMap = it.attMap || {}; it.people.forEach(function (p, i) { if (!it.attMap[i]) it.attMap[i] = "yes"; }); F.toast("Iedereen staat op aanwezig"); };
   A["w-note"] = function (d) { var t = (W().form.note || "").trim(); if (!t) { F.toast("Schrijf eerst een notitie"); return; } (D.notes[d.id] = D.notes[d.id] || []).unshift({ t: t, d: "5 nov", by: "Sarah" }); W().form.note = ""; F.toast("Notitie opgeslagen"); };
   A["w-dok"] = function () {
