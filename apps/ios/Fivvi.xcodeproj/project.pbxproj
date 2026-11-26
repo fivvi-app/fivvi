@@ -34,6 +34,7 @@
 		E50300000000000000000317 /* StubSessionRoutes+Classes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000217 /* StubSessionRoutes+Classes.swift */; };
 		E50300000000000000000330 /* StubSessionRoutes+Cancel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000230 /* StubSessionRoutes+Cancel.swift */; };
 		E50300000000000000000331 /* StubSessionRoutes+BookingLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000231 /* StubSessionRoutes+BookingLinks.swift */; };
+		E50300000000000000000332 /* StubSessionRoutes+Attendance.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000232 /* StubSessionRoutes+Attendance.swift */; };
 		E50300000000000000000318 /* StubPersonalRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000218 /* StubPersonalRoutes.swift */; };
 		E50300000000000000000309 /* TestCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000209 /* TestCatalog.swift */; };
 		E50300000000000000000310 /* TouchTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000210 /* TouchTarget.swift */; };
@@ -87,6 +88,7 @@
 		E50300000000000000000217 /* StubSessionRoutes+Classes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubSessionRoutes+Classes.swift"; sourceTree = "<group>"; };
 		E50300000000000000000230 /* StubSessionRoutes+Cancel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubSessionRoutes+Cancel.swift"; sourceTree = "<group>"; };
 		E50300000000000000000231 /* StubSessionRoutes+BookingLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubSessionRoutes+BookingLinks.swift"; sourceTree = "<group>"; };
+		E50300000000000000000232 /* StubSessionRoutes+Attendance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubSessionRoutes+Attendance.swift"; sourceTree = "<group>"; };
 		E50300000000000000000218 /* StubPersonalRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubPersonalRoutes.swift"; sourceTree = "<group>"; };
 		E50300000000000000000209 /* TestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TestCatalog.swift"; sourceTree = "<group>"; };
 		E50300000000000000000210 /* TouchTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TouchTarget.swift"; sourceTree = "<group>"; };
@@ -230,6 +232,7 @@
 				E50300000000000000000217 /* StubSessionRoutes+Classes.swift */,
 				E50300000000000000000230 /* StubSessionRoutes+Cancel.swift */,
 				E50300000000000000000231 /* StubSessionRoutes+BookingLinks.swift */,
+				E50300000000000000000232 /* StubSessionRoutes+Attendance.swift */,
 				E50300000000000000000218 /* StubPersonalRoutes.swift */,
 				E50300000000000000000209 /* TestCatalog.swift */,
 				E50300000000000000000210 /* TouchTarget.swift */,
@@ -454,6 +457,7 @@
 				E50300000000000000000317 /* StubSessionRoutes+Classes.swift in Sources */,
 				E50300000000000000000330 /* StubSessionRoutes+Cancel.swift in Sources */,
 				E50300000000000000000331 /* StubSessionRoutes+BookingLinks.swift in Sources */,
+				E50300000000000000000332 /* StubSessionRoutes+Attendance.swift in Sources */,
 				E50300000000000000000318 /* StubPersonalRoutes.swift in Sources */,
 				E50300000000000000000309 /* TestCatalog.swift in Sources */,
 				E50300000000000000000310 /* TouchTarget.swift in Sources */,
