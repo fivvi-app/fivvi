@@ -130,7 +130,7 @@ final class ClassDateViewModel {
     }
 
     /// The places taken: the clients who have not cancelled.
-    private var booked: Int { session?.participants.filter { $0.attendanceStatus != .cancelled }.count ?? 0 }
+    var booked: Int { session?.participants.filter { $0.attendanceStatus != .cancelled }.count ?? 0 }
 
     /// *0/8 geboekt · 8 plekken vrij*
     var bookedText: String {

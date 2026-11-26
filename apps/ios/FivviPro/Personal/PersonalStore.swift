@@ -13,6 +13,11 @@ protocol PersonalStore: AnyObject, Sendable {
 
 final class FilePersonalStore: PersonalStore, Sendable {
     static let shared = FilePersonalStore()
+    /// The attendance taps waiting to be sent (F025): a store of its own, because what the personal screens keep is only a
+    /// copy to show offline, and this is what the person typed. It goes with the sign-in too, after the warning.
+    static let attendance = FilePersonalStore(
+        directory: URL.applicationSupportDirectory.appending(path: "attendance-queue", directoryHint: .isDirectory)
+    )
 
     private let directory: URL
 

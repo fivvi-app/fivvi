@@ -114,6 +114,8 @@
   function isPast(it, k) { return k < TODAY || (k === TODAY && mins(it.e) <= mins(NOWT)); }
   function isLive(it, k) { return k === TODAY && mins(it.s) <= mins(NOWT) && mins(it.e) > mins(NOWT); }
   function started(it, k) { return k < TODAY || (k === TODAY && mins(it.s) <= mins(NOWT)); }
+  /* attendance opens 30 minutes before the start (F025 Q38); "Vanaf 08:30." says when */
+  function attOpen(it, k) { return k < TODAY || (k === TODAY && mins(it.s) - 30 <= mins(NOWT)); }
   function initials(n) { return n.split(" ").filter(function (w) { return w[0] === w[0].toUpperCase(); }).map(function (w) { return w[0]; }).slice(0, 2).join(""); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function norm(s) { return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
@@ -604,8 +606,8 @@
     var notes = D.notes[cid] || [];
     body += sh("Notities", '<button data-a="note" data-id="' + c.id + '">+ Notitie</button>', "small");
     body += '<div class="pad">' + (notes.length ? grp(notes.slice(0, 3).map(function (n) { return row({ title: '<span translate="no">' + esc(n.t) + "</span>", small: n.d + " · " + esc(n.by), cls: "wrap" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen notities.</span></div></div></div>') + "</div>" + foot("Alleen voor trainers. Notities zie je nooit in meldingen of widgets.");
-    var can = started(it, k) && !it.cancelled;
-    body += sh("Aanwezigheid", "", "small") + '<div class="pad">' + seg([["", "Geboekt", !can], ["yes", "Aanwezig", !can], ["no", "Niet verschenen", !can]], (it.duo ? (it.attD || {})[cid] : it.att) || "", "satt", { id: it.id, c: cid }) + "</div>" + (can ? "" : foot(it.cancelled ? "Geannuleerd." : "Vanaf " + it.s + "."));
+    var can = attOpen(it, k) && !it.cancelled;
+    body += sh("Aanwezigheid", "", "small") + '<div class="pad">' + seg([["", "Geboekt", !can], ["yes", "Aanwezig", !can], ["no", "Niet verschenen", !can]], (it.duo ? (it.attD || {})[cid] : it.att) || "", "satt", { id: it.id, c: cid }) + "</div>" + (can ? "" : foot(it.cancelled ? "Geannuleerd." : "Vanaf " + hm(mins(it.s) - 30) + "."));
     return { title: title(it), body: body, trailing: [{ i: "more", a: "session-menu", label: "Meer", d: { id: it.id } }] };
   };
 
@@ -638,7 +640,7 @@
   };
 
   SCREENS.attendance = function (r) {
-    var it = findItem(r.id).it, am = it.attDraft || (it.attDraft = Object.assign({}, it.attMap || {}));
+    var it = findItem(r.id).it, am = it.attMap || (it.attMap = {});
     var y = 0, n = 0; it.people.forEach(function (p, i) { if (am[i] === "yes") y++; else if (am[i] === "no") n++; });
     var body = lt("", "Aanwezigheid", esc(it.title) + " · " + it.s + "–" + it.e);
     body += '<div class="pad stack"><div class="tiles">' +
@@ -653,7 +655,7 @@
         '<button class="' + (am[i] === "yes" ? "on" : "") + '" data-a="att-one" data-id="' + it.id + '" data-i="' + i + '" data-v="yes" aria-label="' + esc(nm) + ' aanwezig">' + ic("check") + "</button>" +
         '<button class="' + (am[i] === "no" ? "on" : "") + '" data-a="att-one" data-id="' + it.id + '" data-i="' + i + '" data-v="no" aria-label="' + esc(nm) + ' niet verschenen">' + ic("x") + "</button></span>" });
     }), "--inset:68px") + "</div>";
-    return { title: "Aanwezigheid", body: body, save: { a: "att-save", d: { id: it.id } } };
+    return { title: "Aanwezigheid", body: body };
   };
 
   SCREENS.profile = function () {
@@ -1188,9 +1190,8 @@
     push: function (d) { push({ n: d.n }); },
     att: function (d) { var it = findItem(d.id).it; it.att = d.v; toast(d.v === "yes" ? CLIENT[it.client].name.split(" ")[0] + " was aanwezig" : "Genoteerd als niet verschenen"); },
     satt: function (d) { var it = findItem(d.id).it; if (it.duo) { it.attD = it.attD || {}; it.attD[d.c] = d.v || null; it.att = it.attD[it.client] && it.attD[it.duo] ? it.attD[it.client] : null; } else it.att = d.v || null; render(); },
-    "att-one": function (d) { var it = findItem(d.id).it; it.attDraft[d.i] = it.attDraft[d.i] === d.v ? undefined : d.v; render(); },
-    "att-all": function (d) { var it = findItem(d.id).it; it.people.forEach(function (p, i) { if (!it.attDraft[i]) it.attDraft[i] = "yes"; }); render(); },
-    "att-save": function (d) { var it = findItem(d.id).it; it.attMap = it.attDraft; S.stacks[S.tab].pop(); S.anim = "pop"; toast("Aanwezigheid opgeslagen"); },
+    "att-one": function (d) { var it = findItem(d.id).it; it.attMap = it.attMap || {}; it.attMap[d.i] = it.attMap[d.i] === d.v ? undefined : d.v; render(); },
+    "att-all": function (d) { var it = findItem(d.id).it; it.attMap = it.attMap || {}; it.people.forEach(function (p, i) { if (!it.attMap[i]) it.attMap[i] = "yes"; }); render(); },
     "desc-toggle": function (d) { S.showDesc[d.id] = !S.showDesc[d.id]; render(); },
     "show-all": function (d) { S.showAll[d.id] = true; render(); },
     "agenda-day": function (d) { S.tab = "agenda"; S.stacks.agenda = []; S.aday = d.k; S.aview = "week"; render(); },

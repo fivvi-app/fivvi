@@ -89,7 +89,7 @@ extension HomeView {
             let capabilities = account.capabilities
             SessionScreen(
                 api: api, workspace: workspace, sessionID: id, language: language, capabilities: capabilities,
-                connectivity: connectivity, onCancelled: { Task { await personalChanged() } },
+                connectivity: connectivity, attendance: attendance, onCancelled: { Task { await personalChanged() } },
                 onOpenClient: { path.append(.client(ClientRoute(id: $0))) }
             )
             .id(id)
@@ -100,6 +100,7 @@ extension HomeView {
 /// Owns the model of one session screen for as long as the screen is pushed.
 struct SessionScreen: View {
     @State private var model: SessionViewModel
+    @State private var attendance: AttendanceModel
     let workspaceID: String
     let language: AppLanguage
     let capabilities: WorkspaceCapabilities
@@ -107,9 +108,14 @@ struct SessionScreen: View {
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, language: AppLanguage,
-        capabilities: WorkspaceCapabilities, connectivity: Connectivity, onCancelled: @escaping @MainActor () -> Void,
-        onOpenClient: ((String) -> Void)?
+        capabilities: WorkspaceCapabilities, connectivity: Connectivity, attendance: AttendanceQueue,
+        onCancelled: @escaping @MainActor () -> Void, onOpenClient: ((String) -> Void)?
     ) {
+        _attendance = State(initialValue: AttendanceModel(
+            api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog, queue: attendance,
+            now: UITestClock.provider(),
+            onForbidden: { await capabilities.forbidden(.attendance_mark_any, in: workspace.id) }
+        ))
         _model = State(initialValue: SessionViewModel(
             api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog,
             canCancelAny: capabilities.allows(.session_private_cancel_any, in: workspace.id),
@@ -125,7 +131,7 @@ struct SessionScreen: View {
 
     var body: some View {
         SessionView(
-            model: model, language: language,
+            model: model, attendance: attendance, language: language,
             canMove: capabilities.allows(.session_private_manage_own, in: workspaceID)
                 || capabilities.allows(.session_private_manage_any, in: workspaceID),
             onOpenClient: onOpenClient

@@ -24,6 +24,8 @@ struct HomeView: View {
         /// A class on a date (TD-03), by ID: after adding a class (`added`: "Groepsles toegevoegd" shows) and later from
         /// the calendars.
         case classDate(String, added: Int?)
+        /// CO-05 *Aanwezigheid* of a class date, from TD-03 (F025).
+        case attendance(AttendanceRoute)
     }
 
     @Environment(\.openURL) private var openURL
@@ -34,6 +36,8 @@ struct HomeView: View {
     @State var path: [Route] = []
     /// The tabs (F013): Vandaag first, then Agenda, then the home of the current workspace.
     @State var tab = ProTab.initial()
+    /// The attendance taps waiting to be sent (F025): every screen that takes attendance queues them here.
+    @State var attendance: AttendanceQueue
     @State var today: TodayViewModel
     /// The Owner's *Mijn dag | Hele studio* (F014): the workspace's day, for a workspace with a team.
     @State var studio: StudioDayModel
@@ -63,8 +67,11 @@ struct HomeView: View {
         api: any APIProtocol, store: any SessionStore, language: AppLanguage, connectivity: Connectivity,
         welcomeURL: URL, onAccount: @escaping (String) -> Void,
         onSignedOut: @escaping (Bool) -> Void,
-        personal: any PersonalStore = FilePersonalStore.shared
+        personal: any PersonalStore = FilePersonalStore.shared,
+        attendanceStore: any PersonalStore = FilePersonalStore.attendance
     ) {
+        let queue = AttendanceQueue(api: api, store: attendanceStore, isOnline: { connectivity.isOnline })
+        _attendance = State(initialValue: queue)
         let account = AccountViewModel(
             api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
             onPreferredLocale: { language.startRead() }, workspaces: .persistent()
@@ -98,6 +105,10 @@ struct HomeView: View {
                 .accessibilityIdentifier("tab.home")
         }
         .fivviTabBar()
+        .attendanceQueueLifecycle(queue: attendance, connectivity: connectivity) {
+            await personalChanged()
+            await studio.refresh()
+        }
         // A language chosen before signing in, or in iOS Settings, is saved first; then the account's stored language is
         // read, so an older stored one can't override it (F010).
         .task {
@@ -107,6 +118,7 @@ struct HomeView: View {
         // Coming back to the app asks again: a workspace the person lost access to meanwhile is noticed (F003 AC6), and
         // a language changed on the web is adopted (F010 AC2); Vandaag reads the day again.
         .onReturnToForeground {
+            await attendance.flush()
             await language.save()
             await account.refresh()
             await today.load()
@@ -139,6 +151,7 @@ struct HomeView: View {
                         case let .client(route): clientProfileScreen(route)
                         case let .session(id): sessionScreen(id)
                         case let .classDate(id, added): classDateScreen(id, added: added)
+                        case let .attendance(route): attendanceScreen(route)
                         }
                     }
                     // The screens below the home are second-level screens with forms and long lists: the glass bar would
@@ -268,23 +281,11 @@ struct HomeView: View {
         Task { await account.switchWorkspace(to: id) }
     }
 
-    @ViewBuilder private var signOut: some View {
-        if account.isSigningOut {
-            ProgressView()
-                .tint(Tokens.Colors.textSecondary)
-                .accessibilityLabel(catalog[.commonLoading])
-                .accessibilityIdentifier("home.signingOut")
-        } else {
-            PillButtonStack {
-                Button {
-                    Task { await account.signOut() }
-                } label: {
-                    pillLabel(catalog[.signOutLabel])
-                }
-                .buttonStyle(.pill(.tonal))
-                .accessibilityIdentifier("home.signOut")
-            }
-        }
+    private var signOut: some View {
+        SignOutButton(
+            catalog: catalog, isSigningOut: account.isSigningOut, waiting: attendance.entries.count,
+            onSignOut: { await account.signOut() }
+        )
     }
 
     @ViewBuilder private var accountState: some View {

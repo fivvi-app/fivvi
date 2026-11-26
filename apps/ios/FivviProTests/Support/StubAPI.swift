@@ -106,6 +106,8 @@ actor StubAPI: APIProtocol {
     let workspaceDay = StubWorkspaceDay()
     /// What `createBookingLink` answers (F037).
     let bookingLinks = StubBookingLinks()
+    /// The attendance routes and what they answer (F025).
+    let attendance = StubAttendance()
     private var goneWorkspaces: Set<String> = []
     /// The word of each workspace the test named (F068); `trainer` for any other.
     private var trainerWords: [String: Components.Schemas.TrainerWord] = [:]

@@ -72,6 +72,7 @@ extension HomeView {
             .navigationDestination(for: PersonalRoute.self) { route in
                 PersonalDestination(
                     route: route, api: api, language: language, account: account, connectivity: connectivity,
+                    attendance: attendance, onTakeAttendance: { todayPath.append(.attendance($0)) },
                     onCancelled: { Task { await personalChanged() } }
                 )
             }
@@ -93,9 +94,10 @@ extension HomeView {
                 .toolbar { newMenu(from: .calendar, enabled: !agenda.isOffline) }
                 .navigationDestination(for: PersonalRoute.self) { route in
                     PersonalDestination(
-                    route: route, api: api, language: language, account: account, connectivity: connectivity,
-                    onCancelled: { Task { await personalChanged() } }
-                )
+                        route: route, api: api, language: language, account: account, connectivity: connectivity,
+                        attendance: attendance, onTakeAttendance: { calendarPath.append(.attendance($0)) },
+                        onCancelled: { Task { await personalChanged() } }
+                    )
                 }
         }
     }

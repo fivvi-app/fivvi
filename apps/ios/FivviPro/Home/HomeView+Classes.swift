@@ -42,13 +42,25 @@ extension HomeView {
         .presentationDetents([.large])
     }
 
+    /// CO-05 *Aanwezigheid* of a class date (F025).
+    @ViewBuilder func attendanceScreen(_ route: AttendanceRoute) -> some View {
+        if let workspace = account.workspace, case .loaded = account.state {
+            AttendanceScreen(
+                api: api, workspace: workspace, route: route, language: language, capabilities: account.capabilities,
+                queue: attendance
+            )
+            .id(route)
+        }
+    }
+
     /// TD-03 for the class date `id`.
     @ViewBuilder func classDateScreen(_ id: String, added: Int?) -> some View {
         if let workspace = account.workspace, case .loaded = account.state {
             ClassDateScreen(
                 api: api, workspace: workspace, sessionID: id, added: added, language: language,
                 capabilities: account.capabilities, connectivity: connectivity,
-                onCancelled: { Task { await personalChanged() } }
+                onCancelled: { Task { await personalChanged() } },
+                onTakeAttendance: { path.append(.attendance($0)) }
             )
             .id(id)
         }
@@ -59,11 +71,14 @@ extension HomeView {
 struct ClassDateScreen: View {
     @State private var model: ClassDateViewModel
     let language: AppLanguage
+    let onTakeAttendance: (AttendanceRoute) -> Void
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, added: Int?, language: AppLanguage,
-        capabilities: WorkspaceCapabilities, connectivity: Connectivity, onCancelled: @escaping @MainActor () -> Void
+        capabilities: WorkspaceCapabilities, connectivity: Connectivity, onCancelled: @escaping @MainActor () -> Void,
+        onTakeAttendance: @escaping (AttendanceRoute) -> Void
     ) {
+        self.onTakeAttendance = onTakeAttendance
         _model = State(initialValue: ClassDateViewModel(
             api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog,
             canManage: capabilities.allows(.class_manage, in: workspace.id),
@@ -76,6 +91,6 @@ struct ClassDateScreen: View {
     }
 
     var body: some View {
-        ClassDateView(model: model, language: language)
+        ClassDateView(model: model, language: language, onTakeAttendance: onTakeAttendance)
     }
 }

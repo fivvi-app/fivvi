@@ -15,6 +15,21 @@
     <string name="app_link_open_in_browser">Openen in de browser</string>
     <!-- Client app (Fivvi): the screen a join link (/j/...) or an invitation link (/i/...) opens until the join and invitation screens exist (F029, F032). Says the app will open the link itself soon. -->
     <string name="app_link_soon">Deze link openen we binnenkort in de app.</string>
+    <string name="attendance_app_cancelled">Geannuleerd.</string>
+    <string name="attendance_app_caught_up">Alles bijgewerkt</string>
+    <string name="attendance_app_chip">Aanwezigheid · %1$s %2$s</string>
+    <string name="attendance_app_from">Vanaf %1$s.</string>
+    <string name="attendance_app_open">Open</string>
+    <string name="attendance_app_row_label">%1$s, %2$s</string>
+    <string name="attendance_app_sign_out_confirm">Toch uitloggen</string>
+    <plurals name="attendance_app_sign_out_message">
+        <item quantity="one">%1$d wijziging van de aanwezigheid is nog niet verstuurd en gaat verloren als je uitlogt.</item>
+        <item quantity="other">%1$d wijzigingen van de aanwezigheid zijn nog niet verstuurd en gaan verloren als je uitlogt.</item>
+    </plurals>
+    <string name="attendance_app_sign_out_title">Aanwezigheid nog niet verstuurd</string>
+    <string name="attendance_app_take">Aanwezigheid invullen</string>
+    <string name="attendance_app_todo">Te doen</string>
+    <string name="attendance_app_waiting">Wacht op verbinding</string>
     <string name="attendance_cancelled_class">Deze les is geannuleerd. Aanwezigheid is niet nodig.</string>
     <string name="attendance_cancelled_session">Deze sessie is geannuleerd. Aanwezigheid is niet nodig.</string>
     <string name="attendance_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>

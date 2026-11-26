@@ -18,6 +18,8 @@ import FivviUI
 struct ClassDateView: View {
     let model: ClassDateViewModel
     let language: AppLanguage
+    /// *Aanwezigheid invullen* opens CO-05 (F025); nil where the screen has no stack to push it on.
+    var onTakeAttendance: ((AttendanceRoute) -> Void)?
 
     private var catalog: Catalog { model.catalog }
 
@@ -120,6 +122,9 @@ struct ClassDateView: View {
                 trainerRow
             }
             bookedCard
+            if model.showsAttendance, let route = model.attendanceRoute, let onTakeAttendance {
+                takeAttendanceButton(route, onTakeAttendance)
+            }
             if model.showsShareLink { shareLinkButton }
             if let note = model.ownerNoteText {
                 Text(note)
@@ -213,6 +218,23 @@ struct ClassDateView: View {
                         .accessibilityIdentifier("classDate.noBookings")
                 }
             }
+        }
+    }
+
+    /// *Aanwezigheid invullen* (F025), the screen's main action: CO-05, off while nobody has a place on the date.
+    private func takeAttendanceButton(
+        _ route: AttendanceRoute, _ open: @escaping (AttendanceRoute) -> Void
+    ) -> some View {
+        PillButtonStack {
+            Button { open(route) } label: {
+                Label(model.attendanceTakeText, systemImage: "checkmark")
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.pill(.filled))
+            .disabled(!model.canTakeAttendance)
+            .accessibilityIdentifier("classDate.takeAttendance")
         }
     }
 

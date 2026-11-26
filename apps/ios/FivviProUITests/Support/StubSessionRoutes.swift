@@ -32,6 +32,12 @@ final class StubSessionRoutes: @unchecked Sendable {
     var classCancelled: [[String: String]] = []
     var bookingLinkBodies: [[String: String]] = []
     var bookingLinks: [String: [String: Any]] = [:]
+    /// F025: every attendance request so far, when attendance opens for a session (an hour ago unless a test says), the client
+    /// request IDs already stored (a request sent twice stores one change) and the sessions a test says have ended.
+    var attendanceLog: [[String: String]] = []
+    var attendanceOpens: [String: Date] = [:]
+    var attendanceStored: Set<String> = []
+    var endedSessions: Set<String> = []
 
     init(signIn: StubServer.SignIn, clients: StubClientRoutes) {
         self.signIn = signIn
