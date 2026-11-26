@@ -3247,14 +3247,15 @@ esac`,
       });
 
       // #1607: a simulator that is still installing the UI test runner ("Busy (installing or uninstalling)") fails the run
-      // without a failing test (nightly run 45598309235, 25 November: 1 of the 14 classes of the part ran). That alone is
+      // without a failing test (nightly run 45598309235, 25 November: the part had 14 tests in 1 class, and the only test counted was the runner's own error). That alone is
       // retried, once; a failing test never is.
-      describe('#1607: a run whose only failure is a Busy simulator that cannot launch the test runner is run once more', () => {
+      describe('#1607: a run whose only failure is a Busy simulator that cannot launch the test runner is run a second time', () => {
         const BUSY =
-          'FivviUITests-Runner encountered an error (Failed to install or launch the test runner. (Underlying Error: ' +
+          'FivviProUITests-Runner encountered an error (Failed to install or launch the test runner. (Underlying Error: ' +
           'Simulator device failed to launch app.fivvi.uitests.xctrunner. The request was denied by service delegate ' +
           '(SBMainWorkspace) for reason: Busy ("Application "app.fivvi.uitests.xctrunner" is installing or uninstalling, ' +
           'and cannot be launched")))';
+        const RUNNER = 'FivviProUITests-Runner encountered an error';
         const failure = (name, text) => ({
           testName: name,
           testIdentifierString: name,
@@ -3285,10 +3286,10 @@ esac`,
             ...env,
           });
 
-        it('runs the part once more, in its bundle and with its tests, and passes when the second run passes', async () => {
+        it('runs the part a second time, in its bundle and with its tests, and passes when the second run passes', async () => {
           const { fake, list } = await built();
 
-          const run = await busy(fake, list, firstRun(fake, [['FivviUITests-Runner', BUSY]]));
+          const run = await busy(fake, list, firstRun(fake, [[RUNNER, BUSY]]));
 
           assert.equal(run.status, 0, run.output);
           const lines = runs(fake);
@@ -3299,14 +3300,14 @@ esac`,
             'FivviProUITests/ZUITests',
           ]);
           assert.match(lines[1], /-resultBundlePath \.build\/TestResults-nl-1of2\.xcresult\b/);
-          assert.match(run.output, /::warning::.*Busy.*run once more/);
+          assert.match(run.output, /::warning::.*Busy.*run a second time/);
           assert.match(run.output, /✓ iOS tests in nl, part 1 of 2/);
         });
 
         it('retries once only: a second Busy run fails the part', async () => {
           const { fake, list } = await built();
 
-          const run = await busy(fake, list, firstRun(fake, [['FivviUITests-Runner', BUSY]]), {
+          const run = await busy(fake, list, firstRun(fake, [[RUNNER, BUSY]]), {
             FAKE_BUSY: '2',
           });
 
@@ -3323,15 +3324,25 @@ esac`,
 
           assert.equal(run.status, 1, run.output);
           assert.equal(runs(fake).length, 1, 'no second run');
-          assert.doesNotMatch(run.output, /run once more/);
+          assert.doesNotMatch(run.output, /second time/);
         });
 
         it('never retries a Busy run that also has a real test failure', async () => {
           const { fake, list } = await built();
           const summary = firstRun(fake, [
-            ['FivviUITests-Runner', BUSY],
+            [RUNNER, BUSY],
             ['AlphaTests/test1', 'XCTAssertEqual failed'],
           ]);
+
+          const run = await busy(fake, list, summary);
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(runs(fake).length, 1, 'no second run');
+        });
+
+        it('never retries a Busy text on an entry that is not the runner', async () => {
+          const { fake, list } = await built();
+          const summary = firstRun(fake, [['AlphaTests/test1', BUSY]]);
 
           const run = await busy(fake, list, summary);
 
@@ -3342,14 +3353,14 @@ esac`,
         it('does not retry when too little of the part deadline is left for a second run', async () => {
           const { fake, list } = await built();
 
-          const run = await busy(fake, list, firstRun(fake, [['FivviUITests-Runner', BUSY]]), {
+          const run = await busy(fake, list, firstRun(fake, [[RUNNER, BUSY]]), {
             IOS_TEST_DEADLINE: '4',
             FAKE_FIRST_RUN_SECONDS: '3',
           });
 
           assert.equal(run.status, 1, run.output);
           assert.equal(runs(fake).length, 1, 'no second run');
-          assert.match(run.output, /Not running the part once more: .*deadline/);
+          assert.match(run.output, /Not running the part a second time: .*deadline/);
         });
       });
 

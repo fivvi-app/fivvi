@@ -269,15 +269,17 @@ failed_test_rows() {
 }
 
 # Whether the only failures of the result bundle $1 are xcodebuild failing to install or launch the test runner because the
-# simulator was still installing or uninstalling it (#1607): at least one failure, and every one says "Failed to install or
-# launch the test runner" and "Busy ... installing or uninstalling" (SpringBoard's reason). A test that failed, or a bundle
-# that can't be read, is not one.
+# simulator was still installing or uninstalling it (#1607): at least one failure, and every one is the runner's own entry
+# (its test name ends in "-Runner encountered an error") and says "Failed to install or launch the test runner" and
+# "Busy ... installing or uninstalling" (SpringBoard's reason). A test that failed, a Busy text on any other entry, or a
+# bundle that can't be read, is not one.
 busy_runner_failures_only() {
   xcrun xcresulttool get test-results summary --path "$1" 2>/dev/null | jq -e '
     (.testFailures // []) as $failures
     | ($failures | length) > 0
       and all($failures[]; (.failureText // "") as $text
-        | ($text | contains("Failed to install or launch the test runner"))
+        | ((.testName // "") | endswith("-Runner encountered an error"))
+          and ($text | contains("Failed to install or launch the test runner"))
           and ($text | contains("Busy")) and ($text | contains("installing or uninstalling")))' >/dev/null 2>&1
 }
 
