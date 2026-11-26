@@ -244,6 +244,23 @@
         }
       }
     },
+    "attendance.app.participantsCount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participants · %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deelnemers · %1$@"
+          }
+        }
+      }
+    },
     "attendance.app.rowLabel" : {
       "extractionState" : "manual",
       "localizations" : {

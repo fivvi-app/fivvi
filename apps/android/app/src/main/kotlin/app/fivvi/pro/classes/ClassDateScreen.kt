@@ -454,12 +454,7 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
 private fun Participants(state: ClassDateState, actions: ClassDateActions) {
     val all = state.participants
     if (all.isEmpty()) return
-    // Placeholders in the order of their names: participants, title.
-    val title = stringResource(
-        R.string.attendance_participants_title,
-        stringResource(R.string.attendance_participants),
-        all.size.toString(),
-    )
+    val title = stringResource(R.string.attendance_app_participants_count, all.size.toString())
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.space2)) {
         Row(Modifier.fillMaxWidth().padding(start = Spacing.space4), verticalAlignment = Alignment.CenterVertically) {
             Text(

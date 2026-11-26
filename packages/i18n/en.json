@@ -26,6 +26,7 @@
       "chip": "Attendance · {name} {start}",
       "from": "From {time}.",
       "open": "Open",
+      "participantsCount": "Participants · {count}",
       "rowLabel": "{name}, {status}",
       "showAll": "Show all {count}",
       "signOutConfirm": "Sign out anyway",

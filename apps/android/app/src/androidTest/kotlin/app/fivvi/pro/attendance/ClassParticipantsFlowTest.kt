@@ -55,7 +55,7 @@ class ClassParticipantsFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, langu
 
         compose.waitUntilTagExists(ClassDateTags.PARTICIPANTS_TITLE)
         compose.onNodeWithTag(ClassDateTags.PARTICIPANTS_TITLE).assertTextEquals(
-            string(R.string.attendance_participants_title, string(R.string.attendance_participants), "7"),
+            string(R.string.attendance_app_participants_count, "7"),
         )
         names.take(5).forEach { compose.onNodeWithTag(participantTag(it)).performScrollTo() }
         assertTrue("the first five", names.drop(5).all { compose.noNode(participantTag(it)) })

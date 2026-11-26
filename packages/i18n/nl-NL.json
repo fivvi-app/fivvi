@@ -26,6 +26,7 @@
       "chip": "Aanwezigheid · {name} {start}",
       "from": "Vanaf {time}.",
       "open": "Open",
+      "participantsCount": "Deelnemers · {count}",
       "rowLabel": "{name}, {status}",
       "showAll": "Toon alle {count}",
       "signOutConfirm": "Toch uitloggen",
