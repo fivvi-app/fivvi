@@ -2,9 +2,9 @@ import { PERSONAL_TIME_ZONE } from '@fivvi/domain';
 import { weekDates } from '@fivvi/domain/calendar-grid';
 import { localDateOf } from '@fivvi/domain/zoned-time';
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { apiClient } from '../../../../../../server/api';
+import { currentPageApiHeaders } from '../../../../../../server/page-api-headers';
 import { currentMyWorkspaces } from '../../../../../../server/signed-in';
 import { type CalendarView, MyCalendarView } from './my-calendar';
 
@@ -32,11 +32,12 @@ export default async function MyCalendarPage({ searchParams }: PageProps<'/me/ca
     asked && localDateOf(new Date(`${asked}T12:00:00Z`), 'UTC') === asked ? asked : today;
   const days = weekDates(date);
   const view = VIEWS.find((option) => option === query.view);
-  const cookie = (await headers()).get('cookie');
+  // The page's language goes along: the API names the classes in it for an account with no stored one (#1595).
+  const authorization = await currentPageApiHeaders();
   const [{ data }, workspaces] = await Promise.all([
     apiClient.GET('/v1/me/sessions', {
       params: { query: { from: days[0] ?? date, to: days[6] ?? date } },
-      headers: cookie ? { cookie } : {},
+      headers: authorization,
     }),
     currentMyWorkspaces(),
   ]);

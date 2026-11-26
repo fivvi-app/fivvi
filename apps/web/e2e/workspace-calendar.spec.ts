@@ -350,6 +350,46 @@ test.describe('F014 Agenda on the web', () => {
     await expectNoAxeViolations(page, `Agenda day in ${appLocale}`);
   });
 
+  test('#1595: a class with a Dutch and an English name shows the name of the page’s language on the Agenda, for an account with no stored language', async ({
+    page,
+    context,
+    appLocale,
+  }) => {
+    test.slow();
+    const { slug, base } = await team(page, context);
+    const date = tuesday();
+    const name = (locale: Locale) => (locale === 'en' ? 'Strength' : 'Kracht');
+    const other = name(appLocale === 'en' ? 'nl-NL' : 'en');
+    const { groupClass } = (await created(page.request, `${base}/group-classes`, {
+      nameNl: 'Kracht',
+      nameEn: 'Strength',
+      capacity: 8,
+      durationMinutes: 60,
+    })) as { groupClass: { id: string } };
+    await created(page.request, `${base}/group-classes/${groupClass.id}/dates`, {
+      localDate: date,
+      localStart: '10:00',
+    });
+
+    // The list, the default view at 800 px.
+    await page.setViewportSize({ width: 800, height: 900 });
+    await page.goto(`/w/${slug}/calendar?date=${date}`);
+    const list = page.getByRole('table').first();
+    await expect(list.getByRole('rowheader', { name: name(appLocale) })).toBeVisible();
+    await expect(list).not.toContainText(other);
+
+    // The week, and the title of the quick view.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`/w/${slug}/calendar?date=${date}&view=week`);
+    const block = blocks(page).filter({ hasText: name(appLocale) });
+    await expect(block).toHaveCount(1);
+    await expect(blocks(page).filter({ hasText: other })).toHaveCount(0);
+    await block.click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: name(appLocale) })).toBeVisible();
+    await expect(dialog).not.toContainText(other);
+  });
+
   test('AC6: the quick view of a private session and of a class date, without a note; Esc returns focus to the block', async ({
     page,
     context,
