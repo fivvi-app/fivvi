@@ -59,6 +59,10 @@
 #                                when a test that failed is not a UI test (unit tests are never retried), when more than 3 UI
 #                                tests failed (a break, not a flake), when the run hit its deadline, or when the failed tests
 #                                can't be read from the result bundle
+#   `test <locale>`, whatever its options, runs the tests a second time when its only failure is xcodebuild failing to
+#   install or launch the test runner because the simulator was Busy (installing or uninstalling, #1607). The second run
+#   starts after IOS_BUSY_RETRY_WAIT seconds and gets what is left of the deadline; it does not happen when less than half
+#   of the deadline is left, and never for a test that failed
 #
 #   IOS_SIM_SETTLE  seconds the simulator of `test` is up before its first test, default 150, counted from the start of its
 #                   boot (the unpack of the bundle runs meanwhile). In the single job the simulator booted during the
@@ -67,6 +71,7 @@
 #   IOS_RETRY_DEADLINE  seconds the retry of `test --retry-failed` may run, default 600: up to 3 UI tests take about a
 #                   minute each (the slowest take 80 s on a runner), with the start of the run and a margin. It has its
 #                   own grace (IOS_TEST_DEADLINE_GRACE); release.yml's `ios-tests` timeout holds the first run and this
+#   IOS_BUSY_RETRY_WAIT  seconds before the run that follows a Busy simulator, default 20 (#1607)
 #   IOS_UI_LOCALES  the locales whose UI tests run, default "nl en" (what `pnpm test:ios` does). The unit tests always run
 #                   in both. CI does not set it any more (#293): its `iOS tests` parts (two per language, #1447) run every test in
 #                   both languages in a run with UI tests. With "nl", the nl run is everything in nl and a second run is the unit tests in en, one
@@ -578,6 +583,33 @@ run_xcodebuild() { # <simulator> <bundle> <deadline seconds> <what> [xcodebuild 
   return "$status"
 }
 
+# #1607: a simulator that is still installing the UI test runner ("Busy (installing or uninstalling)") fails the run
+# without a failing test: xcodebuild can't launch the runner, and only the tests before it ran. When its only failures are
+# that (busy_runner_failures_only) and at least half of the part's deadline is left, the part is run a second time. The
+# second run waits BUSY_RETRY_WAIT seconds for the installation to end and gets what is left of the deadline after that. A test that
+# failed is never run again this way (`--retry-failed` retries failed UI tests, and reports them as flaky).
+BUSY_RETRY_WAIT=${IOS_BUSY_RETRY_WAIT:-20}
+RUN_LIMIT=""
+
+# Whether the run of locale $1 into the bundle $2, which took $3 s, is to be made a second time; if so, removes its bundle
+# and sets RUN_LIMIT for the second run. Prints why not when it is not, for a Busy run only.
+busy_runner_retry() { # <locale> <bundle> <elapsed seconds>
+  local left=$((TEST_DEADLINE - $3))
+  ! $RUN_TIMED_OUT || return 1
+  busy_runner_failures_only "$2" || return 1
+  if [ $((left * 2)) -lt "$TEST_DEADLINE" ]; then
+    echo "Not running the part a second time: the simulator was busy, but $left s of the deadline of $TEST_DEADLINE s are left"
+    return 1
+  fi
+  echo "::warning::${APP_WORD# }${APP_WORD:+ }${RESULT_LABEL:-$1} tests: the simulator was Busy (installing or uninstalling) and could not launch the test runner, so the tests run a second time (#1607)"
+  summary "### iOS tests run a second time in ${RESULT_LABEL:-$1}$APP_NOTE" "" \
+    "The simulator was busy installing or uninstalling the test runner and could not launch it (#1607)." ""
+  sleep "$BUSY_RETRY_WAIT"
+  RUN_LIMIT=$((left - BUSY_RETRY_WAIT))
+  [ "$RUN_LIMIT" -gt 0 ] || RUN_LIMIT=1
+  rm -rf "$2"
+}
+
 # The arguments that select the tests of one locale's run: its test-plan configuration, and without the UI tests when the
 # locale isn't one of IOS_UI_LOCALES. Set in CONFIG_ARGS, for the run and for the count of the tests it runs.
 CONFIG_ARGS=()
@@ -601,7 +633,7 @@ run_tests() {
     [ "${#SHARD_ARGS[@]}" -eq 0 ] || only+=("${SHARD_ARGS[@]}")
     bundle="$(result_bundle "${RESULT_NAME:-$2}")"
   fi
-  run_xcodebuild "$1" "$bundle" "$TEST_DEADLINE" "${APP_WORD# }${APP_WORD:+ }${RESULT_LABEL:-${2:-nl and en}} tests" ${only[@]+"${only[@]}"}
+  run_xcodebuild "$1" "$bundle" "${RUN_LIMIT:-$TEST_DEADLINE}" "${APP_WORD# }${APP_WORD:+ }${RESULT_LABEL:-${2:-nl and en}} tests" ${only[@]+"${only[@]}"}
 }
 
 # E017 #1433: the retry of `test <locale> --retry-failed`. Only the failed UI tests (the target <app>UITests), once, and
@@ -910,7 +942,13 @@ test_one_locale() { # <simulator>
     step "$APP_UNIT and UI tests in $RESULT_LABEL (simulator $1)"
   fi
   tests_started=$SECONDS
+  RUN_LIMIT=""
   run_tests "$1" "$ONLY_LOCALE" || tests=1
+  if [ "$tests" != 0 ] && busy_runner_retry "$ONLY_LOCALE" "$bundle" $((SECONDS - tests_started)); then
+    tests=0
+    run_tests "$1" "$ONLY_LOCALE" || tests=1
+    RUN_LIMIT=""
+  fi
   TEST_ELAPSED=$((SECONDS - tests_started))
   report_slowest "$bundle" "$ONLY_LOCALE"
   report_budget "$RESULT_LABEL"
