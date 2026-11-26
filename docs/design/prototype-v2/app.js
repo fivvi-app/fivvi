@@ -644,14 +644,15 @@
     if (it.sub) body += '<div class="banner" style="--c:var(--accent)">' + ic("swap") + "Je valt in voor " + esc(it.sub) + ".</div>";
     body += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><div><div class="stat-l ink" style="--c:' + CV[it.type] + '">Geboekt</div><div class="num" style="font-size:34px;line-height:38px">' + booked + '<small style="font-size:17px;color:var(--label2)">/' + it.cap + "</small></div></div>" +
       '<span class="pill ' + (free <= 0 ? "strong" : "") + '">' + (it.cancelled ? "Geannuleerd" : free <= 0 ? "Vol" : free + (free === 1 ? " plek vrij" : " plekken vrij")) + "</span></div>" +
+      (booked ? "" : '<div style="font-size:15px;color:var(--label2);margin-top:8px">Nog geen boekingen.</div>') +
       '<div style="height:10px;border-radius:5px;background:color-mix(in srgb,' + CV[it.type] + ' 18%,transparent);margin-top:12px;overflow:hidden"><div style="height:100%;width:' + Math.min(100, booked / it.cap * 100) + "%;border-radius:5px;background:linear-gradient(90deg,color-mix(in oklab," + CV[it.type] + " 65%,#fff)," + CV[it.type] + ')"></div></div>' +
       '<div style="font-size:15px;color:var(--label2);margin-top:10px">' + (it.loc.indexOf(D.workspaces[it.ws].name) === 0 ? '<i class="wsdot" style="--c:' + D.workspaces[it.ws].color + '"></i>' + esc(it.loc) : wsLine(it.ws) + " · " + esc(it.loc)) + "</div></div>";
     if (!it.cancelled) body += btn("Aanwezigheid invullen", { blk: true, a: "open-att", d: { id: it.id }, i: "check", dis: !booked });
     body += "</div>";
     var showAll = S.showAll[it.id], ppl = showAll ? it.people : it.people.slice(0, 5);
     var am = it.attMap || {};
-    body += sh("Deelnemers · " + booked, booked > 5 && !showAll ? '<button data-a="show-all" data-id="' + it.id + '">Toon alle ' + booked + "</button>" : "", "small");
-    body += '<div class="pad">' + (booked ? grp(ppl.map(function (p, i) { var nm = person(p); return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), tr: '<span class="pill">' + (am[i] === "yes" ? "Aanwezig" : am[i] === "no" ? "Niet verschenen" : "Geboekt") + "</span>" }); }), "--inset:68px") : '<div class="empty">Nog niemand geboekt.</div>') + "</div>";
+    if (booked) body += sh("Deelnemers · " + booked, booked > 5 && !showAll ? '<button data-a="show-all" data-id="' + it.id + '">Toon alle ' + booked + "</button>" : "", "small");
+    body += (booked ? '<div class="pad">' + grp(ppl.map(function (p, i) { var nm = person(p); return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), tr: '<span class="pill' + (am[i] === "yes" ? " tint\" style=\"--c:var(--ok)" : am[i] === "no" ? " tint\" style=\"--c:var(--danger)" : "") + '">' + (am[i] === "yes" ? "Aanwezig" : am[i] === "no" ? "Niet verschenen" : "Geboekt") + "</span>" }); }), "--inset:68px") + "</div>" : "");
     body += '<div class="pad" style="margin-top:14px">' + btn("Boekingslink delen", { k: "sec", blk: true, a: "toast", d: { m: "Boekingslink gekopieerd" }, i: "link" }) + "</div>";
     if (isOwner(it.ws) && !it.cancelled) body += foot("Les wijzigen, een vaste reeks en trainers beheer je op het web.");
     return { title: it.title, body: body, trailing: isOwner(it.ws) || it.sub ? [{ i: "more", a: "class-menu", label: "Meer", d: { id: it.id } }] : [] };

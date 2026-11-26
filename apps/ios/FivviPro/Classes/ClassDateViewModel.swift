@@ -9,7 +9,7 @@ import FivviStrings
 /// Dutch, marked as Dutch) cut to a few lines with *Meer* / *Minder*. The Owner's ⋯ menu has *Les wijzigen*, which says
 /// the class is managed on the web. Read from `GET …/sessions/{id}` and, for the description, `GET …/group-classes/{id}`
 /// through the generated client; what is shown stays when a later read fails. A date in a weekly series (F022 AC6) says
-/// *Onderdeel van: {class}, elke {weekday} {time}*, from the series the API sends with the date. Bookings and attendance come with M5/F025.
+/// *Onderdeel van: {class}, elke {weekday} {time}*, from the series the API sends with the date. The participants and their attendance (F025) are in `ClassDateViewModel+Participants`.
 @MainActor
 @Observable
 final class ClassDateViewModel {
@@ -27,6 +27,8 @@ final class ClassDateViewModel {
     private(set) var session: Session?
     private(set) var groupClass: Components.Schemas.GroupClass?
     private(set) var descriptionOpen = false
+    /// *Toon alle {n}* was tapped (`ClassDateViewModel+Participants`).
+    private(set) var participantsOpen = false
     private(set) var manageOnWebText: String?
     /// The confirmation of *Les annuleren*, once the API said who would get the email; nil when it is not asked.
     private(set) var cancelAsk: CancelAsk?
@@ -178,6 +180,8 @@ final class ClassDateViewModel {
     }
 
     func toggleDescription() { descriptionOpen.toggle() }
+    /// *Toon alle {n}*.
+    func showAllParticipants() { participantsOpen = true }
 
     /// The text of a class in the viewer's language, else Dutch (`pickContentLanguage`); never translated. A blank text
     /// is none.
@@ -379,21 +383,6 @@ extension ClassDateViewModel {
             } else {
                 cancelFailure = .notSaved
             }
-        }
-    }
-}
-
-private extension Components.Schemas.SessionSeries.WeekdayPayload {
-    /// The number `Calendar` gives the weekday: 1 is Sunday, 2 Monday.
-    var number: Int {
-        switch self {
-        case .su: 1
-        case .mo: 2
-        case .tu: 3
-        case .we: 4
-        case .th: 5
-        case .fr: 6
-        case .sa: 7
         }
     }
 }
