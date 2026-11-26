@@ -58,10 +58,6 @@ final class ClientsListPagingTests: XCTestCase {
         return try XCTUnwrap(scrollView(in: view), "the list scrolls")
     }
 
-    private func settle(_ seconds: TimeInterval = 1.5) {
-        RunLoop.main.run(until: Date(timeIntervalSinceNow: seconds))
-    }
-
     func test_E020_AC14_openingTheListAsksForPageOneOnly() throws {
         let api = StubAPI()
         let (window, model) = try hostClients(api)

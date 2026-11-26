@@ -68,7 +68,10 @@ struct SessionView: View {
             await model.refresh()
             await attendance?.refresh()
         }
-        .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
+        .onChange(of: language.catalog) { _, catalog in
+            model.use(catalog)
+            attendance?.use(catalog)
+        }
         .sheet(item: $sheet, onDismiss: { Task { await model.refresh() } }, content: { sheet in
             switch sheet {
             case let .reschedule(form):
