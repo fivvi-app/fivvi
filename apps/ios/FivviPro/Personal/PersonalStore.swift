@@ -2,7 +2,7 @@ import Foundation
 
 /// What the personal screens keep on the phone for the offline view (F013 AC7, spec #457): the last `GET /api/v1/me/day`
 /// answer, the last `GET /api/v1/me/sessions` answers of Agenda and the workspaces the person was on, to notice one that
-/// is gone. Read only: nothing is queued. It holds
+/// is gone. Read only: the attendance taps waiting to be sent are in a store of their own (below). It holds
 /// client names, so it is a file with complete file protection, kept out of backups, and it goes with the sign-out.
 protocol PersonalStore: AnyObject, Sendable {
     func read(_ name: String) -> Data?
@@ -13,6 +13,11 @@ protocol PersonalStore: AnyObject, Sendable {
 
 final class FilePersonalStore: PersonalStore, Sendable {
     static let shared = FilePersonalStore()
+    /// The attendance taps waiting to be sent (F025): a store of its own, because what the personal screens keep is only a
+    /// copy to show offline, and this is what the person typed. It goes with the sign-in too, after the warning.
+    static let attendance = FilePersonalStore(
+        directory: URL.applicationSupportDirectory.appending(path: "attendance-queue", directoryHint: .isDirectory)
+    )
 
     private let directory: URL
 

@@ -12,6 +12,8 @@ import FivviUI
 enum PersonalRoute: Hashable {
     case session(workspaceID: String, id: String)
     case classDate(workspaceID: String, id: String)
+    /// CO-05 of a class date, opened from TD-03 (F025).
+    case attendance(AttendanceRoute)
 
     init(_ row: PersonalRow) {
         self = row.isGroup
@@ -21,6 +23,7 @@ enum PersonalRoute: Hashable {
     var workspaceID: String {
         switch self {
         case let .session(workspaceID, _), let .classDate(workspaceID, _): workspaceID
+        case let .attendance(route): route.workspaceID
         }
     }
 }
@@ -77,12 +80,19 @@ struct PersonalDestination: View {
     let connectivity: Connectivity
     /// A session or class date was cancelled: the tab's list reads again.
     let onCancelled: @MainActor () -> Void
+    /// The offline queue of attendance, which TD-02 and CO-05 take their taps to (F025).
+    let attendance: AttendanceQueue
+    /// *Aanwezigheid invullen* of TD-03 opens CO-05 on the stack this screen is in.
+    let onTakeAttendance: (AttendanceRoute) -> Void
     @State private var model: PersonalDestinationModel
 
     init(
         route: PersonalRoute, api: any APIProtocol, language: AppLanguage, account: AccountViewModel,
-        connectivity: Connectivity, onCancelled: @escaping @MainActor () -> Void
+        connectivity: Connectivity, attendance: AttendanceQueue, onTakeAttendance: @escaping (AttendanceRoute) -> Void,
+        onCancelled: @escaping @MainActor () -> Void
     ) {
+        self.attendance = attendance
+        self.onTakeAttendance = onTakeAttendance
         self.connectivity = connectivity
         self.onCancelled = onCancelled
         self.route = route
@@ -99,13 +109,19 @@ struct PersonalDestination: View {
                 case let .session(_, id):
                     SessionScreen(
                         api: api, workspace: workspace, sessionID: id, language: language,
-                        capabilities: account.capabilities, connectivity: connectivity,
+                        capabilities: account.capabilities, connectivity: connectivity, attendance: attendance,
                         onCancelled: onCancelled, onOpenClient: nil
                     )
                 case let .classDate(_, id):
                     ClassDateScreen(
                         api: api, workspace: workspace, sessionID: id, added: nil, language: language,
-                        capabilities: account.capabilities, connectivity: connectivity, onCancelled: onCancelled
+                        capabilities: account.capabilities, connectivity: connectivity,
+                        onCancelled: onCancelled, onTakeAttendance: onTakeAttendance
+                    )
+                case let .attendance(attendanceRoute):
+                    AttendanceScreen(
+                        api: api, workspace: workspace, route: attendanceRoute, language: language,
+                        capabilities: account.capabilities, queue: attendance
                     )
                 }
             } else if let message = model.message(language.catalog) {

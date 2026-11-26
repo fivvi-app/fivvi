@@ -9,6 +9,8 @@ import FivviUI
 struct StudioDayView: View {
     let model: StudioDayModel
     let onOpen: (PersonalRow) -> Void
+    /// The line of an ended class opens CO-05 (F025).
+    let onOpenAttendance: (PersonalRow) -> Void
 
     private var catalog: Catalog { model.catalog }
 
@@ -59,7 +61,10 @@ struct StudioDayView: View {
             if !rows.isEmpty {
                 InsetGroup {
                     ForEach(rows) { row in
-                        PersonalRowView(row: row, catalog: catalog, onOpen: { onOpen(row) })
+                        PersonalRowView(
+                            row: row, catalog: catalog, onOpen: { onOpen(row) }, onMark: { model.mark($0, row: row) },
+                            onOpenAttendance: { onOpenAttendance(row) }
+                        )
                     }
                 }
             }

@@ -6,7 +6,7 @@ import XCTest
 class PrivateSessionUITestCase: SignInUITestCase {
     var catalog: TestCatalog { TestCatalog.configured }
     /// The server of the test's launch, for the messages of a failed wait.
-    private(set) var server: StubServer?
+    var server: StubServer?
 
     /// Sarah (synthetic): a Trainer of John's Gym, or John, its Owner.
     func launch(

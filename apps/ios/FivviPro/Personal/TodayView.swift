@@ -16,7 +16,12 @@ struct TodayView: View {
     let canPlan: Bool
     let onPlan: (Date) -> Void
     let onOpen: (PersonalRow) -> Void
+    /// The line *Aanwezigheid nog invullen* of an ended class opens CO-05 (F025).
+    let onOpenAttendance: (PersonalRow) -> Void
     let onOpenTomorrow: (String) -> Void
+
+    /// The one row whose swipe actions are open: another opening, or a scroll, closes it.
+    @State private var swipes = SwipeCoordinator()
 
     private var catalog: Catalog { model.catalog }
 
@@ -28,7 +33,7 @@ struct TodayView: View {
             banners
             if studio.showsToggle { scopeControl }
             if studio.isStudio {
-                StudioDayView(model: studio, onOpen: onOpen)
+                StudioDayView(model: studio, onOpen: onOpen, onOpenAttendance: onOpenAttendance)
             } else {
                 switch model.state {
                 case .loading:
@@ -40,6 +45,8 @@ struct TodayView: View {
                 }
             }
         }
+        .environment(swipes)
+        .onScrollPhaseChange { _, phase in if phase == .interacting { swipes.closeAll() } }
         .refreshable {
             await model.refresh()
             await studio.refresh()
@@ -116,7 +123,10 @@ struct TodayView: View {
         if !model.rows.isEmpty {
             InsetGroup {
                 ForEach(model.rows) { row in
-                    PersonalRowView(row: row, catalog: catalog, onOpen: { onOpen(row) })
+                    PersonalRowView(
+                        row: row, catalog: catalog, onOpen: { onOpen(row) }, onMark: { model.mark($0, row: row) },
+                        onOpenAttendance: { onOpenAttendance(row) }
+                    )
                 }
             }
         }
@@ -142,6 +152,7 @@ struct TodayView: View {
     /// The card under the header: only what the list doesn't tell (`DECISIONS.md` §3).
     private func mijnDag(_ card: TodayViewModel.Card) -> some View {
         InsetGroup(header: catalog[.todayCardTitle]) {
+            todo(card.todo)
             if let gap = card.gap {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -176,6 +187,41 @@ struct TodayView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("today.card")
+    }
+
+    /// The card's first row (F025): *Te doen* with a chip for each ended item whose attendance is open, or *Alles bijgewerkt*.
+    private func todo(_ todo: TodayViewModel.Todo) -> some View {
+        HStack(alignment: .top, spacing: Tokens.Spacing.space3) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(Tokens.TextStyle.title2))
+                .foregroundStyle(Tokens.Colors.accentFill)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
+                Text(todo.title)
+                    .font(.system(Tokens.TextStyle.body, weight: .semibold))
+                    .accessibilityIdentifier("today.card.todo")
+                if !todo.chips.isEmpty {
+                    ChipFlow(spacing: Tokens.Spacing.space2) {
+                        ForEach(todo.chips) { chip in
+                            Button { onOpen(chip.row) } label: {
+                                Text(chip.text)
+                                    .font(.system(Tokens.TextStyle.subhead, weight: .semibold))
+                                    .foregroundStyle(Tokens.Colors.textLink)
+                                    .multilineTextAlignment(.leading)
+                                    .padding(.horizontal, Tokens.Spacing.space3)
+                                    .padding(.vertical, Tokens.Spacing.space2)
+                                    .frame(minHeight: 44)
+                                    .background(Tokens.Colors.actionTonalBg, in: Capsule(style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("today.card.todo.\(chip.id)")
+                        }
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .insetRowLayout()
     }
 
     private func nextCard(_ row: PersonalRow, tone: NextCardTone) -> some View {

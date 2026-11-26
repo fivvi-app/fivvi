@@ -39,11 +39,14 @@ final class StudioDayModel {
     private let clock: () -> Date
     /// The API answered `403` to the day: the capability helper is told, so it reads the account again.
     private let onForbidden: @MainActor () async -> Void
+    /// The offline queue of attendance (F025): the Owner takes attendance from the workspace's day too.
+    private let attendance: AttendanceQueue?
 
     init(
         api: any APIProtocol, catalog: Catalog, now: @escaping () -> Date = Date.init,
-        onForbidden: @escaping @MainActor () async -> Void = {}
+        attendance: AttendanceQueue? = nil, onForbidden: @escaping @MainActor () async -> Void = {}
     ) {
+        self.attendance = attendance
         self.api = api
         self.catalog = catalog
         clock = now
@@ -130,6 +133,7 @@ final class StudioDayModel {
             switch output {
             case let .ok(answer):
                 day = try answer.body.json
+                attendance?.forgetSettled()
                 state = .loaded
                 isOffline = false
                 updateFailed = false
@@ -201,6 +205,22 @@ final class StudioDayModel {
     }
 
     private func row(_ item: Item, with builder: PersonalRows) -> PersonalRow {
+        let row = plainRow(item, with: builder)
+        return nudges?.decorate(
+            row, sessionID: item.id, attendanceOpen: item.attendanceOpen, isPrivate: item._type == ._private,
+            clients: item.clients
+        ) ?? row
+    }
+
+    private var nudges: AttendanceNudges? {
+        attendance.map { AttendanceNudges(queue: $0, catalog: catalog, timeZone: zone) }
+    }
+
+    /// *Aanwezig* or *Niet verschenen* on a nudge of the workspace's day: queued, and the nudge goes at once (offline it
+    /// waits, saying so).
+    func mark(_ status: AttendanceStatus, row: PersonalRow) { nudges?.mark(status, row: row) }
+
+    private func plainRow(_ item: Item, with builder: PersonalRows) -> PersonalRow {
         let isGroup = item._type == .group
         return builder.row(.init(
             id: item.id, workspaceID: workspace?.id ?? "", workspaceName: workspace?.name ?? "", isGroup: isGroup,

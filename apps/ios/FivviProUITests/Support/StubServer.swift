@@ -125,6 +125,31 @@ final class StubServer: Sendable {
     /// The class-date cancel bodies the app sent so far (`POST …/cancel-class`), like `cancelledSessions` (F026).
     var cancelledClassDates: [[String: String]] { responder.sessionRoutes.classCancels }
 
+    /// The attendance requests the app sent so far, in order (F025): `kind` is `set` or `everyone`; a `set` has `clientId`
+    /// and `status`; every one `sessionId`, `clientRequestId` and `surface`.
+    var attendanceRequests: [[String: String]] { responder.sessionRoutes.attendanceRequests }
+
+    /// The seven participants of "Kracht" on the seeded class date (F025), *Geboekt* except the ones named by first name in
+    /// `statuses` (`no_show`, `attended`, `cancelled`).
+    func seedKrachtParticipants(_ statuses: [String: String] = [:]) {
+        responder.sessionRoutes.seedKrachtParticipants(statuses)
+    }
+
+    /// From when attendance can be taken for the session (F025); an hour ago unless a test says.
+    func setAttendanceOpens(_ id: String, at date: Date) {
+        responder.sessionRoutes.setAttendanceOpens(id, at: date)
+    }
+
+    /// The session has ended: the days say it waits for attendance while a participant is *Geboekt* (F025).
+    func setEnded(_ id: String) {
+        responder.sessionRoutes.setEnded(id)
+    }
+
+    /// The session is cancelled meanwhile, by someone else (F025 AC9).
+    func cancelSession(_ id: String) {
+        responder.sessionRoutes.cancelSession(id)
+    }
+
     /// The booking link bodies the app sent so far (`POST …/booking-links`), each value as text (F037).
     var bookingLinkRequests: [[String: String]] { responder.sessionRoutes.bookingLinkRequests }
 

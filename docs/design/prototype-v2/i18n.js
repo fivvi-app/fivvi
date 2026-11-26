@@ -185,6 +185,9 @@ window.FIVVI_I18N = (function () {
     [/^1 sessie van gisteren zonder aanwezigheid$/, "1 session from yesterday without attendance"],
     [/^(\d+) sessies van gisteren zonder aanwezigheid$/, "$1 sessions from yesterday without attendance"],
     [/^Vanaf (\d\d:\d\d)\.$/, "From $1."],
+    [/^Aanwezigheid kun je invullen vanaf (\d\d:\d\d)\.$/, "You can take attendance from $1."],
+    [/^1 wijziging van de aanwezigheid is nog niet verstuurd en gaat verloren als je uitlogt\.$/, "1 attendance change has not been sent yet and will be lost if you sign out."],
+    [/^(\d+) wijzigingen van de aanwezigheid zijn nog niet verstuurd en gaan verloren als je uitlogt\.$/, "$1 attendance changes have not been sent yet and will be lost if you sign out."],
     [/^Bezig · gestart om (.+)$/, "In progress · started at $1"],
     [/^Elke week op (\S+)$/, function (m, d) { return "Every week on " + P(d); }],
     [/^Training opgeslagen\. Schema (.+) staat klaar\.$/, "Workout saved. Template $1 is ready."],
@@ -406,7 +409,7 @@ window.FIVVI_I18N = (function () {
     /* today */
     "Nu bezig": "In progress", "Training starten": "Start workout", "Openen": "Open", "Schema:": "Template:",
     "Aanwezigheid nog invullen": "Attendance not recorded yet", "Invullen": "Fill in", "Sessies van gisteren zonder aanwezigheid": "Sessions from yesterday without attendance", "Niet verschenen": "No-show", "niet verschenen": "no-show", "Genoteerd als niet verschenen": "Recorded as no-show",
-    "Aanwezigheid invullen": "Record attendance", "Aanwezigheid opgeslagen": "Attendance saved", "Aanwezigheid les": "Class attendance", "Aanwezigheid": "Attendance", "Aanwezig": "Attended", "aanwezig": "attended", "Iedereen aanwezig": "Everyone attended",
+    "Aanwezigheid invullen": "Take attendance", "Wacht op verbinding": "Waiting for connection", "Deze les is geannuleerd. Aanwezigheid is niet nodig.": "This class is cancelled. No attendance needed.", "Deze sessie is geannuleerd. Aanwezigheid is niet nodig.": "This session is cancelled. No attendance needed.", "Aanwezigheid nog niet verstuurd": "Attendance not sent yet", "Toch uitloggen": "Sign out anyway", "Aanwezigheid opgeslagen": "Attendance saved", "Aanwezigheid les": "Class attendance", "Aanwezigheid": "Attendance", "Aanwezig": "Attended", "aanwezig": "attended", "Iedereen aanwezig": "Everyone attended",
     "Geannuleerd": "Cancelled", "Vol": "Full", "Morgen": "Tomorrow", "Geen sessies vandaag.": "No sessions today.", "Geen sessies.": "No sessions.", "Geen sessies": "No sessions",
     "Privésessie": "Private session", "privésessies": "private sessions", "Groepslessen": "Group classes", "Groepsles (invallen)": "Group class (covering)", "Groepsles": "Group class", "Privé": "Private", "Groep": "Group",
     /* calendar */

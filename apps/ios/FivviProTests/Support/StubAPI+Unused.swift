@@ -251,22 +251,4 @@ extension StubAPI {
     ) async throws -> Operations.UpdateOffer.Output {
         fatalError("The app doesn't call updateOffer yet")
     }
-
-    func listSessionParticipants(
-        _ input: Operations.ListSessionParticipants.Input
-    ) async throws -> Operations.ListSessionParticipants.Output {
-        fatalError("The app doesn't call listSessionParticipants yet")
-    }
-
-    func setParticipantAttendance(
-        _ input: Operations.SetParticipantAttendance.Input
-    ) async throws -> Operations.SetParticipantAttendance.Output {
-        fatalError("The app doesn't call setParticipantAttendance yet")
-    }
-
-    func markEveryoneAttended(
-        _ input: Operations.MarkEveryoneAttended.Input
-    ) async throws -> Operations.MarkEveryoneAttended.Output {
-        fatalError("The app doesn't call markEveryoneAttended yet")
-    }
 }

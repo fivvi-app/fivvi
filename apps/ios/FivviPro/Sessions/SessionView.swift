@@ -10,9 +10,12 @@ import FivviUI
 /// the client. The ⋯ menu has *Verplaatsen* (PS-05, for whoever may plan sessions, not for a cancelled session),
 /// *Klantprofiel* and, below a divider, the destructive *Annuleren* (PS-06, F026: the Owner for any session, a Trainer for
 /// their own; off while offline). A cancelled session shows "Geannuleerd op … door …" and offers *Klantprofiel* only. The
-/// sections of later features (workout, last time, notes, attendance) are not shown yet.
+/// sections of later features (workout, last time, notes) are not shown yet; *Aanwezigheid* is (F025: the segmented
+/// control per client, saved through the offline queue).
 struct SessionView: View {
     let model: SessionViewModel
+    /// TD-02's *Aanwezigheid* section (F025).
+    let attendance: AttendanceModel?
     let language: AppLanguage
     /// The person may plan sessions (`session.private.manage.own` or `.any`), so *Verplaatsen* shows.
     let canMove: Bool
@@ -57,7 +60,14 @@ struct SessionView: View {
             }
         }
         .task { await model.load() }
-        .onReturnToForeground { await model.refresh() }
+        // TD-02's attendance is read once the session is, and again on the foreground (F025).
+        .onChange(of: model.state) { _, state in
+            if state == .loaded { Task { await attendance?.refresh() } }
+        }
+        .onReturnToForeground {
+            await model.refresh()
+            await attendance?.refresh()
+        }
         .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
         .sheet(item: $sheet, onDismiss: { Task { await model.refresh() } }, content: { sheet in
             switch sheet {
@@ -135,6 +145,7 @@ struct SessionView: View {
                 workspaceRow
             }
             InsetGroup(header: model.clientLabel) { clientRow }
+            if let attendance { AttendanceSection(model: attendance) }
         }
         .toolbar { ToolbarItem(placement: .primaryAction) { menu } }
     }

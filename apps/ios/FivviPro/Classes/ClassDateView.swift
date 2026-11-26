@@ -13,11 +13,13 @@ import FivviUI
 /// for the Owner and the Trainers, not on a cancelled or past date), has *Les wijzigen*, which says the same, and below
 /// a divider the destructive *Les annuleren* (F026): a native confirmation that says how many booked clients get an
 /// email; a Trainer has no menu.
-/// A cancelled date shows "Geannuleerd op … door …" and no actions. The sections of later features (participants,
-/// attendance) are not shown yet.
+/// A cancelled date shows "Geannuleerd op … door …" and no actions. *Aanwezigheid invullen* opens CO-05 (F025); the
+/// participants list (*Deelnemers*, #1616) is not shown yet.
 struct ClassDateView: View {
     let model: ClassDateViewModel
     let language: AppLanguage
+    /// *Aanwezigheid invullen* opens CO-05 (F025); nil where the screen has no stack to push it on.
+    var onTakeAttendance: ((AttendanceRoute) -> Void)?
 
     private var catalog: Catalog { model.catalog }
 
@@ -120,6 +122,9 @@ struct ClassDateView: View {
                 trainerRow
             }
             bookedCard
+            if model.showsAttendance, let route = model.attendanceRoute, let onTakeAttendance {
+                takeAttendanceButton(route, onTakeAttendance)
+            }
             if model.showsShareLink { shareLinkButton }
             if let note = model.ownerNoteText {
                 Text(note)
@@ -216,7 +221,24 @@ struct ClassDateView: View {
         }
     }
 
-    /// *Boekingslink delen*, below the booked card (the participants come with F025).
+    /// *Aanwezigheid invullen* (F025), the screen's main action: CO-05, off while nobody has a place on the date.
+    private func takeAttendanceButton(
+        _ route: AttendanceRoute, _ open: @escaping (AttendanceRoute) -> Void
+    ) -> some View {
+        PillButtonStack {
+            Button { open(route) } label: {
+                Label(model.attendanceTakeText, systemImage: "checkmark")
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.pill(.filled))
+            .disabled(!model.canTakeAttendance)
+            .accessibilityIdentifier("classDate.takeAttendance")
+        }
+    }
+
+    /// *Boekingslink delen*, below the booked card.
     private var shareLinkButton: some View {
         PillButtonStack {
             Button {

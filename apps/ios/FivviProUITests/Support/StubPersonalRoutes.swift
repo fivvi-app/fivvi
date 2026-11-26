@@ -19,6 +19,10 @@ final class StubPersonalRoutes: @unchecked Sendable {
     static let krachtCancelled = "8a0b1c2e-8a54-4b51-9a42-0000000000b4"
 
     private let lock = NSLock()
+    /// Whether the session waits for attendance (F025): wired to the session routes, which know its participants.
+    var attendanceOpen: @Sendable (String) -> Bool = { _ in false }
+    /// Whether a test said the session has ended: it is no next one then.
+    var ended: @Sendable (String) -> Bool = { _ in false }
     private var served = Day.sarah
     private var level: String?
     /// Whether the session with this ID has been cancelled meanwhile (from TD-02), so the lists show it struck through.
@@ -96,7 +100,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
             Self.item(Self.kracht, johns, "15:00", "16:00", className: "Kracht", level: classLevel),
             Self.item(Self.krachtCancelled, johns, "18:00", "19:00", className: "Kracht", cancelled: true)
         ]
-        let shown = (which == .solo ? Array(items.prefix(2)) : items).map(markCancelled)
+        let shown = (which == .solo ? Array(items.prefix(2)) : items).map(markCancelled).map(withAttendance)
         let nextIsCancelled = isCancelled(Self.anna)
         var answer: [String: Any] = [
             "date": date, "timeZone": StubSessionRoutes.zone, "workspaceCount": which == .solo ? 1 : 2,
@@ -109,8 +113,20 @@ final class StubPersonalRoutes: @unchecked Sendable {
             "hasSessions": true
         ].merging(Self.sessionTypes(which)) { $1 }
         // A cancelled session is no next one.
-        if !nextIsCancelled { answer["next"] = ["sessionId": Self.anna, "state": "upcoming", "startsInMinutes": 25] }
+        if !nextIsCancelled, !ended(Self.anna) {
+            answer["next"] = ["sessionId": Self.anna, "state": "upcoming", "startsInMinutes": 25]
+        }
         return (200, answer)
+    }
+
+    /// What the API adds for attendance (F025): to a private session its client, and to it and to the class "Kracht"
+    /// whether it waits for attendance.
+    private func withAttendance(_ item: [String: Any]) -> [String: Any] {
+        guard let id = item["sessionId"] as? String, id == Self.anna || id == Self.kracht else { return item }
+        var next = item
+        if id == Self.anna { next["clients"] = [["clientId": StubSessionRoutes.annaID, "name": "Anna de Vries"]] }
+        if attendanceOpen(id) { next["attendanceOpen"] = true }
+        return next
     }
 
     /// The item as the API lists it once the session was cancelled from its screen.
@@ -209,13 +225,20 @@ final class StubPersonalRoutes: @unchecked Sendable {
             if let client { item["clientName"] = client }
             return item
         }
+        func withAttendance(_ item: [String: Any]) -> [String: Any] {
+            guard item["id"] as? String == Self.anna else { return item }
+            var next = item
+            next["clients"] = [["clientId": StubSessionRoutes.annaID, "name": "Anna de Vries"]]
+            if attendanceOpen(Self.anna) { next["attendanceOpen"] = true }
+            return next
+        }
         let items = date == Self.day ? [
             session(Self.studioMark, "07:00", "08:00", trainer: sarah, client: "Mark Jansen"),
             session(Self.kracht, "10:00", "11:00", trainer: sarah, className: "Kracht"),
             session(Self.studioLisa, "11:00", "12:00", trainer: tom, client: "Lisa Smit"),
             session(Self.anna, "18:00", "19:00", trainer: own, client: "Anna de Vries"),
             session(Self.studioBoxing, "18:00", "19:00", trainer: sarah, className: "Boxing")
-        ] : [[String: Any]]()
+        ].map(withAttendance) : [[String: Any]]()
         var day: [String: Any] = [
             "date": date, "timeZone": StubSessionRoutes.zone, "items": items, "attention": [Any](), "hasSessions": true
         ]

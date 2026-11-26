@@ -20,6 +20,20 @@
     "soon": "Deze link openen we binnenkort in de app."
   },
   "attendance": {
+    "app": {
+      "cancelled": "Geannuleerd.",
+      "caughtUp": "Alles bijgewerkt",
+      "chip": "Aanwezigheid · {name} {start}",
+      "from": "Vanaf {time}.",
+      "open": "Open",
+      "rowLabel": "{name}, {status}",
+      "signOutConfirm": "Toch uitloggen",
+      "signOutMessage": "{count, plural, one {# wijziging van de aanwezigheid is nog niet verstuurd en gaat verloren als je uitlogt.} other {# wijzigingen van de aanwezigheid zijn nog niet verstuurd en gaan verloren als je uitlogt.}}",
+      "signOutTitle": "Aanwezigheid nog niet verstuurd",
+      "take": "Aanwezigheid invullen",
+      "todo": "Te doen",
+      "waiting": "Wacht op verbinding"
+    },
     "cancelledClass": "Deze les is geannuleerd. Aanwezigheid is niet nodig.",
     "cancelledSession": "Deze sessie is geannuleerd. Aanwezigheid is niet nodig.",
     "errors": {
