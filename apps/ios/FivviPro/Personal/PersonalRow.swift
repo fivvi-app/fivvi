@@ -36,10 +36,20 @@ struct PersonalRow: Identifiable, Equatable {
     let level: Components.Schemas.ClassLevel?
     /// "09:00 tot 10:00, Anna de Vries, privésessie, John's Gym, Sarah Personal Training": one VoiceOver element, and
     /// it always names the type; a class with a level names it right after the class name.
-    let spokenLabel: String
+    var spokenLabel: String
     /// *Jij*, a trainer's name or *Geen trainer*: only on the workspace's day (*Hele studio*, F014), where each row names
     /// its trainer.
     var trainerText: String?
+    /// The private session has ended and its client is still *Geboekt* (F025, Q18): *Aanwezigheid nog invullen* with
+    /// *Aanwezig* and *Niet verschenen* under the row. Only Vandaag and *Hele studio* set it; Agenda's rows show nothing
+    /// extra.
+    var nudge: Nudge?
+
+    /// The client a nudge's buttons mark.
+    struct Nudge: Equatable {
+        let clientID: String
+        let clientName: String
+    }
 }
 
 /// Builds the rows of a list of items.

@@ -10,6 +10,8 @@ struct PersonalRowView: View {
     let row: PersonalRow
     let catalog: Catalog
     let onOpen: () -> Void
+    /// *Aanwezig* or *Niet verschenen* on the row's nudge (F025); nil where the list shows no nudges (Agenda).
+    var onMark: ((AttendanceStatus) -> Void)?
     /// The row's test ids are `<prefix>.row.<id>` and `<prefix>.route.<id>`: Vandaag's are `today`, Agenda's `calendar`.
     var identifierPrefix = "today"
     @Environment(\.openURL) private var openURL
@@ -17,6 +19,13 @@ struct PersonalRowView: View {
     @ScaledMetric(relativeTo: .body) private var barsScale = 1
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            line
+            if row.nudge != nil, let onMark { nudge(onMark) }
+        }
+    }
+
+    private var line: some View {
         HStack(spacing: 0) {
             Button(action: onOpen) {
                 HStack(alignment: .top, spacing: Tokens.Spacing.space3) {
@@ -44,6 +53,10 @@ struct PersonalRowView: View {
             .accessibilityAddTraits(.isButton)
             .accessibilityActions {
                 if let url = row.routeURL { Button(catalog[.todayOpenRoute]) { openURL(url) } }
+                if row.nudge != nil, let onMark {
+                    Button(catalog[.attendanceAttended]) { onMark(.attended) }
+                    Button(catalog[.attendanceNoShow]) { onMark(.noShow) }
+                }
             }
             .accessibilityIdentifier("\(identifierPrefix).row.\(row.id)")
             if let url = row.routeURL {
@@ -56,6 +69,39 @@ struct PersonalRowView: View {
                 .accessibilityIdentifier("\(identifierPrefix).route.\(row.id)")
             }
         }
+    }
+
+    /// *Aanwezigheid nog invullen* with *Aanwezig* and *Niet verschenen* under the row (F025).
+    private func nudge(_ onMark: @escaping (AttendanceStatus) -> Void) -> some View {
+        VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
+            Label(catalog[.attendanceNudge], systemImage: "exclamationmark.triangle")
+                .font(.system(Tokens.TextStyle.subhead, weight: .semibold))
+                .foregroundStyle(Tokens.Colors.statusWarningText)
+                .accessibilityIdentifier("\(identifierPrefix).nudge.\(row.id)")
+            HStack(spacing: Tokens.Spacing.space2) {
+                nudgeButton(.attended, "attended", onMark)
+                nudgeButton(.noShow, "noShow", onMark)
+            }
+        }
+        .padding(.horizontal, Tokens.Spacing.space4)
+        .padding(.bottom, Tokens.Spacing.space3)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func nudgeButton(
+        _ status: AttendanceStatus, _ name: String, _ onMark: @escaping (AttendanceStatus) -> Void
+    ) -> some View {
+        let word = status == .attended ? catalog[.attendanceAttended] : catalog[.attendanceNoShow]
+        return Button { onMark(status) } label: {
+            Text(word)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.pill(.tonal))
+        .accessibilityLabel(// Placeholders in the order of their names: name, status.
+        catalog.string(.attendanceNudgeButtonLabel, row.nudge?.clientName ?? "", word))
+        .accessibilityIdentifier("\(identifierPrefix).nudge.\(name).\(row.id)")
     }
 
     private var details: some View {

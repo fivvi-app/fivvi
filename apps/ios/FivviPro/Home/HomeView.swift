@@ -77,11 +77,11 @@ struct HomeView: View {
             onPreferredLocale: { language.startRead() }, workspaces: .persistent()
         )
         _today = State(initialValue: TodayViewModel(
-            api: api, catalog: language.catalog, store: personal, now: UITestClock.provider(),
+            api: api, catalog: language.catalog, store: personal, now: UITestClock.provider(), attendance: queue,
             refreshAccount: { [account] in await account.refreshedMemberships() }
         ))
         _studio = State(initialValue: StudioDayModel(
-            api: api, catalog: language.catalog, now: UITestClock.provider(),
+            api: api, catalog: language.catalog, now: UITestClock.provider(), attendance: queue,
             onForbidden: { [capabilities = account.capabilities] in await capabilities.forbidden(.calendar_manage) }
         ))
         _agenda = State(initialValue: AgendaModel(

@@ -35,12 +35,15 @@ final class TodayViewModel {
     private let deviceTimeZone: TimeZone
     /// Reads `GET /api/v1/me` again and answers the workspaces it lists, or nil when that failed.
     private let refreshAccount: @MainActor () async -> [PersonalCache.Workspace]?
+    /// The offline queue of attendance (F025): what the phone already answered is not nudged again.
+    private let attendance: AttendanceQueue?
 
     init(
         api: any APIProtocol, catalog: Catalog, store: any PersonalStore, now: @escaping () -> Date = Date.init,
-        deviceTimeZone: TimeZone = .autoupdatingCurrent,
+        deviceTimeZone: TimeZone = .autoupdatingCurrent, attendance: AttendanceQueue? = nil,
         refreshAccount: @escaping @MainActor () async -> [PersonalCache.Workspace]? = { nil }
     ) {
+        self.attendance = attendance
         self.api = api
         self.catalog = catalog
         cache = PersonalCache(store: store)
@@ -83,6 +86,8 @@ final class TodayViewModel {
             updateFailed = false
             updatedAt = now
             cache.day = .init(day: fresh, savedAt: now)
+            // The answers the queue kept for the nudges are in this day now.
+            attendance?.forgetSettled()
         } catch {
             failed(ClientRequestError(thrown: error), date: date)
         }
@@ -150,8 +155,26 @@ final class TodayViewModel {
         let start: Date
     }
 
-    /// *Te doen* of F025 will join this card as its first row; the card shows what the list doesn't tell.
+    /// The card's first row (F025): *Te doen* with a chip for each ended item whose attendance is still open, or *Alles
+    /// bijgewerkt*.
+    struct Todo: Equatable {
+        let title: String
+        let chips: [TodoChip]
+    }
+
+    /// One chip of *Te doen*.
+    struct TodoChip: Equatable, Identifiable {
+        /// The session's ID.
+        let id: String
+        /// *Aanwezigheid · Anna 09:00*
+        let text: String
+        /// What the chip opens: TD-02 for a private session, TD-03 for a class.
+        let row: PersonalRow
+    }
+
+    /// What the card shows besides *Te doen*; it shows what the list doesn't tell.
     struct Card: Equatable {
+        let todo: Todo
         /// Nil when no gap is left.
         let gap: FreeGap?
         let noFreeTime: String?
@@ -163,6 +186,7 @@ final class TodayViewModel {
         guard let day, !items.isEmpty else { return nil }
         let places = (day.placesAhead ?? []).map(\.name)
         return Card(
+            todo: todo,
             gap: day.freeGap.map { gap in
                 let hours = gap.endsAt.timeIntervalSince(gap.startsAt) / 3600
                 return FreeGap(
@@ -175,6 +199,37 @@ final class TodayViewModel {
             route: places.count >= 2 ? places.joined(separator: " → ") : nil
         )
     }
+
+    private var nudges: AttendanceNudges? { attendance.map { AttendanceNudges(queue: $0, catalog: catalog) } }
+
+    /// *Te doen*: a chip "Aanwezigheid · Anna 09:00" for each item that waits for attendance, in time order.
+    private var todo: Todo {
+        let chips: [TodoChip] = items.compactMap { item in
+            guard nudges?.isOpen(sessionID: item.sessionId, attendanceOpen: item.attendanceOpen) == true else {
+                return nil
+            }
+            let row = rowBuilder.row(item)
+            let who = item._type == .group ? row.title : String(row.title.split(separator: " ").first ?? "")
+            return .init(id: item.sessionId, text: catalog.string(.attendanceChip, who, row.startText), row: row)
+        }
+        return Todo(title: catalog[chips.isEmpty ? .attendanceCaughtUp : .attendanceTodo], chips: chips)
+    }
+
+    /// A row of the list with its nudge (F025), when its private session waits for attendance.
+    private func decorated(_ item: PersonalItem) -> PersonalRow {
+        var row = rowBuilder.row(item)
+        if let nudges, let nudge = nudges.nudge(
+            sessionID: item.sessionId, attendanceOpen: item.attendanceOpen, isPrivate: item._type == ._private,
+            clients: item.clients
+        ) {
+            row.nudge = nudge
+            row.spokenLabel = catalog.string(.todaySpokenJoin, row.spokenLabel, nudges.spoken(nudge))
+        }
+        return row
+    }
+
+    /// *Aanwezig* or *Niet verschenen* on a nudge: queued, and the nudge goes at once.
+    func mark(_ status: AttendanceStatus, row: PersonalRow) { nudges?.mark(status, row: row) }
 
     /// *1,5*, *2*: hours with at most one decimal.
     static func hours(_ hours: Double, locale: Locale) -> String {
@@ -211,7 +266,7 @@ final class TodayViewModel {
     /// Every other item of today in time order; the next one is not repeated.
     var rows: [PersonalRow] {
         let nextID = day?.next?.sessionId
-        return items.filter { $0.sessionId != nextID }.map(rowBuilder.row)
+        return items.filter { $0.sessionId != nextID }.map(decorated)
     }
 
     /// The empty day's text: *Geen sessies vandaag.*, with the date of the next session, or that there are none at all.
