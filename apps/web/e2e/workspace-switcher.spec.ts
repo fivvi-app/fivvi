@@ -1,3 +1,4 @@
+import { trainerWordForms } from '@fivvi/i18n';
 import type { BrowserContext, Page } from '@playwright/test';
 import {
   clientIpHeaders,
@@ -64,16 +65,20 @@ test.describe('F012 the scope switcher on the web', () => {
     await signInWithSession(context, sarah);
     await page.goto(`/w/${gymSlug}`);
 
-    const trigger = switcher(page, `${GYM} · ${copy.roles.trainer}`);
+    const trigger = switcher(page, `${GYM} · ${trainerWordForms('trainer', appLocale).Word}`);
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await expect(trigger).toBeEnabled();
     await trigger.click();
 
     await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    const menu = page.getByRole('menu', { name: `${GYM} · ${copy.roles.trainer}` });
+    const menu = page.getByRole('menu', {
+      name: `${GYM} · ${trainerWordForms('trainer', appLocale).Word}`,
+    });
     const rows = menu.getByRole('menuitemradio');
     await expect(rows).toHaveCount(2);
-    await expect(rows.nth(0)).toHaveAccessibleName(`${GYM} · ${copy.roles.trainer}`);
+    await expect(rows.nth(0)).toHaveAccessibleName(
+      `${GYM} · ${trainerWordForms('trainer', appLocale).Word}`,
+    );
     await expect(rows.nth(0)).toHaveAttribute('aria-checked', 'true');
     await expect(rows.nth(1)).toHaveAccessibleName(`${PERSONAL} · ${copy.roles.owner}`);
     await expect(rows.nth(1)).toHaveAttribute('aria-checked', 'false');
@@ -85,17 +90,19 @@ test.describe('F012 the scope switcher on the web', () => {
   test('the switcher works by keyboard: Enter opens, the arrow keys move, Escape closes and returns to the button', async ({
     page,
     context,
-    messages: copy,
+    appLocale,
   }) => {
     const { sarah, gymSlug, personalSlug } = await sarahOnTwoTeams();
     await signInWithSession(context, sarah);
     await page.goto(`/w/${gymSlug}`);
-    const trigger = switcher(page, `${GYM} · ${copy.roles.trainer}`);
+    const trigger = switcher(page, `${GYM} · ${trainerWordForms('trainer', appLocale).Word}`);
     await expect(trigger).toBeEnabled();
 
     await trigger.focus();
     await page.keyboard.press('Enter');
-    const menu = page.getByRole('menu', { name: `${GYM} · ${copy.roles.trainer}` });
+    const menu = page.getByRole('menu', {
+      name: `${GYM} · ${trainerWordForms('trainer', appLocale).Word}`,
+    });
     await expect(menu).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(menu).toBeHidden();
@@ -111,8 +118,10 @@ test.describe('F012 the scope switcher on the web', () => {
   });
 
   test("AC2: switching opens the role home with that workspace's data only; AC11: navigation follows each workspace's capabilities", async ({
+    wording,
     page,
     context,
+    appLocale,
     messages: copy,
   }) => {
     const { sarah, gymSlug, personalSlug } = await sarahOnTwoTeams();
@@ -137,7 +146,7 @@ test.describe('F012 the scope switcher on the web', () => {
     await page.goto(`/w/${gymSlug}`);
     const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
     await expect(nav.getByRole('link', { name: copy.workspaceNav.clients })).toBeVisible();
-    await expect(nav.getByRole('link', { name: copy.workspaceNav.trainers })).toHaveCount(0);
+    await expect(nav.getByRole('link', { name: wording.nav })).toHaveCount(0);
     await expect(nav.getByRole('link', { name: copy.workspaceNav.settings })).toHaveCount(0);
     await nav.getByRole('link', { name: copy.workspaceNav.clients }).click();
     await expect(page.getByText('Anna de Vries')).toBeVisible();
@@ -148,7 +157,7 @@ test.describe('F012 the scope switcher on the web', () => {
         response.url().endsWith(`/api/v1/workspaces/${idOf(personalSlug)}/switched`) &&
         response.request().method() === 'POST',
     );
-    await switcher(page, `${GYM} · ${copy.roles.trainer}`).click();
+    await switcher(page, `${GYM} · ${trainerWordForms('trainer', appLocale).Word}`).click();
     await page.getByRole('menuitemradio', { name: `${PERSONAL} · ${copy.roles.owner}` }).click();
 
     await expect(page).toHaveURL(`/w/${personalSlug}`);
@@ -159,12 +168,12 @@ test.describe('F012 the scope switcher on the web', () => {
     ).toBeVisible();
     await expect(page).toHaveTitle(PERSONAL);
     await expect(switcher(page, `${PERSONAL} · ${copy.roles.owner}`)).toBeVisible();
-    await expect(nav.getByRole('link', { name: copy.workspaceNav.trainers })).toBeVisible();
+    await expect(nav.getByRole('link', { name: wording.nav })).toBeVisible();
     await expect(nav.getByRole('link', { name: copy.workspaceNav.settings })).toBeVisible();
     await nav.getByRole('link', { name: copy.workspaceNav.clients }).click();
     await expect(page.getByText('Mark Jansen')).toBeVisible();
     await expect(page.getByText('Anna de Vries')).toHaveCount(0);
-    await nav.getByRole('link', { name: copy.workspaceNav.trainers }).click();
+    await nav.getByRole('link', { name: wording.nav }).click();
     // Wait for the Trainers page of this workspace (Sarah's own row) before checking that
     // John's Gym's Tom is not on it.
     await expect(page).toHaveURL(`/w/${personalSlug}/trainers`);
@@ -192,6 +201,7 @@ test.describe('F012 the scope switcher on the web', () => {
   test('AC4: home opens the last workspace; AC10: switching keeps the interface language', async ({
     page,
     context,
+    appLocale,
     messages: copy,
   }) => {
     const { sarah, personalSlug } = await sarahOnTwoTeams();
@@ -202,7 +212,7 @@ test.describe('F012 the scope switcher on the web', () => {
     await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
     const language = await page.locator('html').getAttribute('lang');
 
-    await switcher(page, `${GYM} · ${copy.roles.trainer}`).click();
+    await switcher(page, `${GYM} · ${trainerWordForms('trainer', appLocale).Word}`).click();
     await page.getByRole('menuitemradio', { name: `${PERSONAL} · ${copy.roles.owner}` }).click();
     await expect(page).toHaveURL(`/w/${personalSlug}`);
     // The Owner's home is the Dashboard (F014); the tab and the sidebar name the workspace.
@@ -240,6 +250,7 @@ test.describe('F012 the scope switcher on the web', () => {
   test('AC4: switching to a workspace where I am a Trainer opens Mijn dag there, and the browser remembers it', async ({
     page,
     context,
+    appLocale,
     messages: copy,
   }) => {
     const { sarah, gymSlug, personalSlug } = await sarahOnTwoTeams();
@@ -252,15 +263,23 @@ test.describe('F012 the scope switcher on the web', () => {
 
     // A Trainer's home in a workspace is Mijn dag (F013, F014): the switcher lands there, not on a page she may not use.
     await switcher(page, `${PERSONAL} · ${copy.roles.owner}`).click();
-    await page.getByRole('menuitemradio', { name: `${GYM} · ${copy.roles.trainer}` }).click();
+    await page
+      .getByRole('menuitemradio', {
+        name: `${GYM} · ${trainerWordForms('trainer', appLocale).Word}`,
+      })
+      .click();
     await expect(page).toHaveURL('/me/day');
     await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     await expect(page.getByRole('heading', { name: copy.noPermission.title })).toHaveCount(0);
     await expectRemembered(context, gymSlug);
     await page.goto('/home');
     await expect(page).toHaveURL('/me/day');
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
   });
 
   test("a Trainer's address of the workspace is answered with the redirect to Mijn dag, not with a page that redirects (#1548)", async ({
@@ -279,7 +298,12 @@ test.describe('F012 the scope switcher on the web', () => {
     expect(response?.request().redirectedFrom()).not.toBeNull();
   });
 
-  test('AC5: removed from the remembered workspace', async ({ page, context, messages: copy }) => {
+  test('AC5: removed from the remembered workspace', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
     const { sarah, gymSlug, personalSlug } = await sarahOnTwoTeams();
     await signInWithSession(context, sarah);
     await page.goto(`/w/${personalSlug}`);
@@ -298,7 +322,9 @@ test.describe('F012 the scope switcher on the web', () => {
     await expect(page).toHaveURL('/me/day');
     await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
     // The frame is John's Gym's, now the only workspace: a plain label, no switcher.
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
 
     await leaveTeam(sarah, gymSlug);
     await page.goto('/home');

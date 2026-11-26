@@ -1,6 +1,6 @@
 # Fivvi website design
 
-The design of the public website at `https://fivvi.app`, published as the [Fivvi Website artifact](https://claude.ai/artifact/TYm2FXMAATs5cB768MTiPG). It's throwaway code like the [prototype](../prototype-v2/README.md): it shows the look and the words, and [#611](https://github.com/fivvi-app/fivvi/issues/611) builds the real site in `apps/web`. Fictional data only. The owner's decisions are in [`DECISIONS.md` §9](../prototype-v2/DECISIONS.md#9-public-website).
+The design of the public website at `https://fivvi.app`, published as the [Fivvi Website artifact](https://claude.ai/artifact/TYm2FXMAATs5cB768MTiPG). Like the [prototype](../prototype-v2/README.md), its code shows the look and the words, not the architecture, and it is kept in step with the real site ([`DESIGN.md`](../../../DESIGN.md#the-designs-follow-the-app)). [#611](https://github.com/fivvi-app/fivvi/issues/611) builds the real site in `apps/web`. Fictional data only. The owner's decisions are in [`DECISIONS.md` §9](../prototype-v2/DECISIONS.md#9-public-website).
 
 **Run it:** make the generated files, then open `index.html`.
 

@@ -343,6 +343,7 @@ test.describe('F014 the Owner’s Dashboard on the web', () => {
   test('A Trainer’s home stays Mijn dag: opening the workspace address lands there, and the Dashboard is not in the Trainer’s navigation', async ({
     page,
     context,
+    appLocale,
     messages: copy,
   }) => {
     const gym = await team(page, context);
@@ -353,7 +354,9 @@ test.describe('F014 the Owner’s Dashboard on the web', () => {
     await expect(page).toHaveURL('/me/day');
     await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
     await expect(page.getByRole('heading', { name: copy.noPermission.title })).toHaveCount(0);
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     await expect(
       page
         .getByRole('navigation', { name: copy.workspaceNav.label })

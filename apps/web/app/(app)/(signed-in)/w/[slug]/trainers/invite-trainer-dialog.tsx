@@ -1,7 +1,7 @@
 'use client';
 
 import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
-import type { Locale } from '@fivvi/i18n';
+import type { Locale, TrainerWordForms } from '@fivvi/i18n';
 import { Button } from '@fivvi/ui/components/button';
 import {
   DialogClose,
@@ -44,12 +44,15 @@ type Refusal =
 export function InviteTrainerDialogContent({
   workspaceId,
   defaultLocale,
+  trainerWord,
   teamNames,
   done,
 }: {
   workspaceId: string;
   /** The workspace's default communication language, named in the first option. */
   defaultLocale: Locale;
+  /** The workspace's word for the people who teach (F068), in the reader's language. */
+  trainerWord: TrainerWordForms;
   /** The team members' names, by lower-cased address. */
   teamNames: ReadonlyMap<string, string>;
   done: (confirmation: string) => void;
@@ -118,7 +121,9 @@ export function InviteTrainerDialogContent({
     >
       <form noValidate onSubmit={submit} className="grid gap-4">
         <DialogHeader>
-          <DialogTitle className="text-lg leading-snug font-semibold">{t('title')}</DialogTitle>
+          <DialogTitle className="text-lg leading-snug font-semibold">
+            {t('title', { ...trainerWord })}
+          </DialogTitle>
           <DialogDescription id="invite-trainer-description">{t('description')}</DialogDescription>
         </DialogHeader>
         <Field

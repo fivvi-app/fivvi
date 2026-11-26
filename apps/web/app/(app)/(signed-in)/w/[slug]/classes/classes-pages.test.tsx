@@ -11,6 +11,7 @@ import { ClassList } from './class-list';
 import { ClassView } from './class-view';
 import type { ClassInput } from './classes-client';
 import { ClassesProvider } from './classes-provider';
+import { CopyBookingLink } from './copy-booking-link';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
@@ -681,6 +682,18 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
     });
   });
 
+  describe('WC-05 Boekingslink kopiëren as an icon button (F037)', () => {
+    const html = render(locale, <CopyBookingLink workspaceId="w1" sessionId="s1" variant="icon" />);
+    const name = escapeHtml(copy.bookingLinks.copyBooking);
+
+    it('AC8: shows a share icon only, named and given its tooltip by Boekingslink kopiëren', () => {
+      expect(html).toMatch(new RegExp(`<button[^>]*aria-label="${name}"[^>]*>`));
+      expect(html).toMatch(new RegExp(`<button[^>]*title="${name}"[^>]*>`));
+      expect(html).toMatch(/<button[^>]*><svg[^>]*aria-hidden="true"/);
+      expect(html).not.toContain(`>${name}<`);
+    });
+  });
+
   describe('F023 CO-01 Trainer toewijzen and Trainer vervangen', () => {
     const series: NonNullable<Session['series']> = {
       id: 'r1',
@@ -752,6 +765,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
       render(
         locale,
         <WorkspaceFrame
+          trainerWord={trainerWordForms('trainer', locale)}
           name="John's Gym"
           slug="johns-gym"
           teamRole="owner"

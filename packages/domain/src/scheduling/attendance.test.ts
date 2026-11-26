@@ -4,6 +4,7 @@ import {
   ATTENDANCE_OPENS_MINUTES_BEFORE,
   type AttendanceParticipant,
   type AttendanceSession,
+  attendanceOpen,
   attendanceOpensAt,
   attendanceSummary,
   changeParticipantStatus,
@@ -205,6 +206,33 @@ describe('F025 needsAttendance', () => {
     // Three elapsed hours after 01:30 CEST (23:30 UTC) is 02:30 UTC.
     expect(needsAttendance(facts, new Date('2026-10-25T02:29:00Z'))).toBe(false);
     expect(needsAttendance(facts, new Date('2026-10-25T02:30:00Z'))).toBe(true);
+  });
+});
+
+describe('F025 attendanceOpen', () => {
+  const facts = (
+    type: 'private' | 'group' | 'open_gym',
+    participantStatuses: ('booked' | 'attended' | 'cancelled' | 'no_show')[] = ['booked'],
+    overrides: Partial<AttendanceSession> = {},
+  ) => ({ type, ...session(overrides), participantStatuses });
+
+  it('AC2: a private session or a class date is open after the end, not during it', () => {
+    for (const type of ['private', 'group'] as const) {
+      expect(attendanceOpen(facts(type), at('09:50'))).toBe(false);
+      expect(attendanceOpen(facts(type), at('10:05'))).toBe(true);
+    }
+  });
+
+  it('is never open for Open Gym, which has no attendance, whoever is booked', () => {
+    expect(attendanceOpen(facts('open_gym'), at('10:05'))).toBe(false);
+  });
+
+  it('follows needsAttendance for the rest: cancelled, nobody booked, nobody there', () => {
+    const now = at('10:05');
+    expect(attendanceOpen(facts('group', ['booked'], { status: 'cancelled' }), now)).toBe(false);
+    expect(attendanceOpen(facts('group', ['attended', 'no_show', 'cancelled']), now)).toBe(false);
+    expect(attendanceOpen(facts('private', []), now)).toBe(false);
+    expect(attendanceOpen(facts('group', ['attended', 'booked']), now)).toBe(true);
   });
 });
 

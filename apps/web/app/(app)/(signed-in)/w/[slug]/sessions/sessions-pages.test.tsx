@@ -241,6 +241,7 @@ describe.each(locales)('F020 the session page and + Nieuw in %s', (locale) => {
     render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"

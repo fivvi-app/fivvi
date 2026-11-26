@@ -1,4 +1,4 @@
-import { locales, messages } from '@fivvi/i18n';
+import { locales, messages, trainerWordForms } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { TRAINER } from '../../../../../test/capabilities';
 import { escapeHtml, render } from '../../../../../test/render';
@@ -20,6 +20,7 @@ describe.each(locales)('F010 user menu of the workspace frame in %s', (locale) =
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
@@ -44,6 +45,7 @@ describe.each(locales)('F010 user menu of the workspace frame in %s', (locale) =
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"

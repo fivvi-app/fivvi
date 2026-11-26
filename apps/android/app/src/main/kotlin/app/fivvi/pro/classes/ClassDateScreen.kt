@@ -52,6 +52,7 @@ import app.fivvi.core.kit.PillButtonStyle
 import app.fivvi.core.kit.ToastHost
 import app.fivvi.core.kit.ToastVisuals
 import app.fivvi.core.kit.classLevelWord
+import app.fivvi.core.trainerWordForms
 import app.fivvi.core.ui.testTagsAsIds
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
@@ -63,7 +64,6 @@ import app.fivvi.pro.sessions.Loading
 import app.fivvi.pro.sessions.Notice
 import app.fivvi.pro.sessions.SessionFormat
 import app.fivvi.pro.sessions.rememberSessionFormat
-import app.fivvi.pro.sessions.trainerWordForms
 import java.time.ZoneId
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */

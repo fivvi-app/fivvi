@@ -2,10 +2,10 @@ import { weekDates } from '@fivvi/domain/calendar-grid';
 import { localDateOf } from '@fivvi/domain/zoned-time';
 import { trainerWordForms } from '@fivvi/i18n';
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { catalogLocale } from '../../../../../../i18n/config';
 import { apiClient } from '../../../../../../server/api';
+import { currentPageApiHeaders } from '../../../../../../server/page-api-headers';
 import { currentMe } from '../../../../../../server/signed-in';
 import { workspaceOf } from '../../../../../../server/workspace-of';
 import { NoPermission } from '../settings/general/no-permission';
@@ -36,8 +36,8 @@ export default async function WorkspaceCalendarPage({
   if (!workspace.capabilities.includes('calendar.read')) {
     return <NoPermission workspace={workspace.name} />;
   }
-  const cookie = (await headers()).get('cookie');
-  const authorization = cookie ? { cookie } : {};
+  // The page's language goes along: the API names the classes in it for an account with no stored one (#1595).
+  const authorization = await currentPageApiHeaders();
   const asked = typeof query.date === 'string' && DATE.test(query.date) ? query.date : undefined;
   const me = await currentMe();
   // The week is read on the workspace's wall clock, so "today" is its day too (ADR-012).
@@ -84,6 +84,7 @@ export default async function WorkspaceCalendarPage({
         canAssign: can('session.assign'),
         canCancelAny: can('session.private.cancel.any'),
         canCancelOwn: can('session.private.cancel.own'),
+        canCopyLink: can('booking_link.copy'),
         teamMemberId: workspace.teamMemberId,
       }}
     />
@@ -91,7 +92,10 @@ export default async function WorkspaceCalendarPage({
 }
 
 /** The workspace's time zone (`GET /v1/workspaces/{workspaceId}`). */
-async function timeZoneOf(workspaceId: string, authorization: { cookie?: string }) {
+async function timeZoneOf(
+  workspaceId: string,
+  authorization: Awaited<ReturnType<typeof currentPageApiHeaders>>,
+) {
   const { data } = await apiClient.GET('/v1/workspaces/{workspaceId}', {
     params: { path: { workspaceId } },
     headers: authorization,

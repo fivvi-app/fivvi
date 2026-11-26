@@ -31,6 +31,11 @@ import {
   internalServerErrorResponse,
   validationErrorResponse,
 } from '../errors.ts';
+import {
+  AttendanceOpenFieldSchema,
+  AttendanceSummarySchema,
+  attendanceShown,
+} from './attendance.ts';
 import { LocationAddressSchema, LocationSchema } from './locations.ts';
 import { ClassLevelSchema } from './sessions.ts';
 
@@ -212,11 +217,15 @@ export const PersonalSessionSchema = z
           'cancelled session keeps its clients. Left out for the other kinds. The session counts ' +
           'once in `summary` and in every list, whatever it holds.',
       }),
+    attendanceOpen: AttendanceOpenFieldSchema,
+    attendance: AttendanceSummarySchema.optional(),
   })
   .openapi('PersonalSession', {
     description:
       'A session the signed-in account is the current trainer of, in one of its workspaces. ' +
-      '`location` is where a private session takes place and is left out for the other kinds.',
+      '`location` is where a private session takes place and is left out for the other kinds. ' +
+      '`attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of ' +
+      'a class’s or a private session’s participants and is left out for Open Gym.',
   });
 
 const MyDayPlaceSchema = z
@@ -435,6 +444,7 @@ interface PersonalItem extends PersonalSessionTimes {
   readonly clients: PersonalSessionRow['clients'];
   readonly className: string | null;
   readonly level: PersonalSessionRow['level'];
+  readonly attendanceStatuses: PersonalSessionRow['attendanceStatuses'];
 }
 
 function toItem(
@@ -461,11 +471,12 @@ function toItem(
         ? null
         : pickContentLanguage(viewerLocale, row.classNameNl, row.classNameEn),
     level: row.level,
+    attendanceStatuses: row.attendanceStatuses,
   };
 }
 
 /** What the answer shows of an item: instants as ISO text; the fields of the other kinds are left out. */
-function shown(item: PersonalItem) {
+function shown(item: PersonalItem, now: Date) {
   const { location, clientName, clients, className } = item;
   return {
     sessionId: item.sessionId,
@@ -486,6 +497,7 @@ function shown(item: PersonalItem) {
           ...(className === null ? {} : { className }),
           ...(item.level === null ? {} : { level: item.level }),
         }),
+    ...attendanceShown(item, now),
   };
 }
 
@@ -624,7 +636,7 @@ export function registerPersonal(app: OpenAPIHono) {
         workspaceCount: perWorkspace.length,
         workspaces: workspaceTypes,
         showsKindLabel,
-        items: merged.items.map(shown),
+        items: merged.items.map((item) => shown(item, now)),
         summary: {
           count: merged.summary.count,
           done: merged.summary.done,
@@ -687,6 +699,7 @@ export function registerPersonal(app: OpenAPIHono) {
           return c.json(invalid('to', 'range_too_long'), 400);
       }
     }
+    const now = c.get('dependencies').clock.now();
     const { perWorkspace, workspaceTypes, showsKindLabel } = await readWorkspaces(
       c.get('scope'),
       { from: range.start, to: range.end },
@@ -701,7 +714,7 @@ export function registerPersonal(app: OpenAPIHono) {
         workspaceCount: perWorkspace.length,
         workspaces: workspaceTypes,
         showsKindLabel,
-        items: orderPersonalSessions(perWorkspace.flat()).map(shown),
+        items: orderPersonalSessions(perWorkspace.flat()).map((item) => shown(item, now)),
       },
       200,
     );

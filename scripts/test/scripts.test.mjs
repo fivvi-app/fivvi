@@ -1210,8 +1210,10 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     const maestroStep = 'Maestro flows (sign-in, anonymous and home; nl-NL and en)';
     const maestroStepMinutes = stepMinutes(androidMaestro, maestroStep);
     // Run 41938461253 (PR #518, 10 flows): nl-NL 8m30s and en 8m34s of flows, 1 to 2 minutes of setup per locale, so about
-    // 20 minutes and 11 s over the 20-minute cap; on main 18, 14 and 16 minutes. The step needs at least 1.5 x 20 minutes.
-    const slowestRun = 20;
+    // 20 minutes and 11 s over the 20-minute cap; on main 18, 14 and 16 minutes. The suite has grown since (#1578): the
+    // nightly runs of 21 to 24 November 2026 took 24m38s, 28m7s, 28m36s and over 30m13s (cut off by the 30-minute step with
+    // the last flow of en running; nl-NL 14m7s). The step needs at least 1.5 x 30 minutes.
+    const slowestRun = 30;
     assert.ok(
       maestroStepMinutes >= 1.5 * slowestRun,
       'the Maestro step has at least 1.5 x the slowest recent run',
@@ -1223,7 +1225,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       minutes(androidMaestro) >= maestroStepMinutes + 10,
       'the job holds the step plus the setup before it and the reports after it',
     );
-    assert.ok(minutes(androidMaestro) <= 40, 'the job still bounds a hung run');
+    assert.ok(minutes(androidMaestro) <= 60, 'the job still bounds a hung run');
     // A run that nears the cap says so: the step durations step warns above two thirds of the step's own budget, and the
     // budget it is given is the step's timeout.
     assert.match(

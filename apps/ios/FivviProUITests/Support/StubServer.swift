@@ -77,6 +77,13 @@ final class StubServer: Sendable {
         set { responder.name = newValue }
     }
 
+    /// The word the first workspace uses for its trainers, as a change on the web (Instellingen → Woordkeuze) leaves it:
+    /// the next `GET /api/v1/me` and `GET /api/v1/workspaces/{id}` say it (F068).
+    var trainerWord: String? {
+        get { responder.trainerWord }
+        set { responder.trainerWord = newValue }
+    }
+
     /// Whether the Owner's switch of workspace number `index` is on (F005): what `PUT` / `DELETE` left, or what the API
     /// says before: a Trainer trains, an Owner does not.
     func trainsHere(workspace index: Int) -> Bool {

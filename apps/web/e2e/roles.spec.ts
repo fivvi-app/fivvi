@@ -1,4 +1,4 @@
-import { formattingLocales } from '@fivvi/i18n';
+import { formattingLocales, trainerWordForms } from '@fivvi/i18n';
 import type { Page } from '@playwright/test';
 import {
   clientIpHeaders,
@@ -57,6 +57,7 @@ test.describe('@permission F004 roles on the web', () => {
   }
 
   test('AC2: John sees Trainers and Settings, and every owner action works', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -67,14 +68,14 @@ test.describe('@permission F004 roles on the web', () => {
 
     await page.goto(`/w/${slug}`);
     const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
-    await expect(nav.getByRole('link', { name: copy.workspaceNav.trainers })).toBeVisible();
+    await expect(nav.getByRole('link', { name: wording.nav })).toBeVisible();
     await expect(
       nav.getByRole('link', { name: copy.workspaceNav.settings, exact: true }),
     ).toBeVisible();
     await expectNoAxeViolations(page, `the Owner's navigation in ${appLocale}`);
 
     // The team: the Trainer has a role menu and a remove action.
-    await nav.getByRole('link', { name: copy.workspaceNav.trainers }).click();
+    await nav.getByRole('link', { name: wording.nav }).click();
     await expect(page).toHaveURL(`/w/${slug}/trainers`);
     await expect(page.getByLabel(copy.team.roleMenu.replace('{name}', 'Sarah'))).toBeVisible();
     await expect(page.getByRole('button', { name: copy.team.remove })).toBeVisible();
@@ -113,7 +114,9 @@ test.describe('@permission F004 roles on the web', () => {
     await signInWithSession(context, sarah);
 
     await page.goto(`/w/${slug}`);
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
     // A Trainer has the Persoonlijk group (Mijn dag, Mijn agenda: no permission, her own days, F013), Clients (clients.view, F006), the Aanmeldlink (join_link.view, F029) and nothing the role may not use.
     await expect(nav.getByRole('link')).toHaveText([
@@ -138,6 +141,7 @@ test.describe('@permission F004 roles on the web', () => {
   });
 
   test('AC4, AC5: John makes Sarah an Owner after confirming, and back; her label changes everywhere; the last Owner has no role menu', async ({
+    wording,
     page,
     context,
     browser,
@@ -156,7 +160,9 @@ test.describe('@permission F004 roles on the web', () => {
       await signInWithSession(sarahsBrowser, sarah);
       const sarahsPage = await sarahsBrowser.newPage();
       await sarahsPage.goto(`/w/${slug}`);
-      await expect(sarahsPage.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+      await expect(
+        sarahsPage.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+      ).toBeVisible();
 
       await page.goto(`/w/${slug}/trainers`);
       const menuOf = (name: string) => page.getByLabel(copy.team.roleMenu.replace('{name}', name));
@@ -165,7 +171,7 @@ test.describe('@permission F004 roles on the web', () => {
       await expect(menuOf('Sarah')).toHaveValue('trainer');
       await expect(menuOf('Sarah').locator('option')).toHaveText([
         copy.roles.owner,
-        copy.roles.trainer,
+        trainerWordForms('trainer', appLocale).Word,
       ]);
       const { workspaceId, members } = await teamOf(page, GYM);
       const johnsId = members.find(({ name }) => name === 'John')?.id;
@@ -201,7 +207,7 @@ test.describe('@permission F004 roles on the web', () => {
         copy.team.roleChanged.owner.replace('{name}', 'Sarah'),
       );
       // The title streams in after the body of the refresh (#353, #354), and axe wants one.
-      await expect(page).toHaveTitle(copy.team.title);
+      await expect(page).toHaveTitle(wording.title);
       await expect(menuOf('Sarah')).toHaveValue('owner');
       await expectNoAxeViolations(page, `TW-06 after a role change in ${appLocale}`);
 
@@ -210,7 +216,7 @@ test.describe('@permission F004 roles on the web', () => {
       await sarahsPage.reload();
       await expect(sarahsPage.getByText(`${GYM} · ${copy.roles.owner}`)).toBeVisible();
       const sarahsNav = sarahsPage.getByRole('navigation', { name: copy.workspaceNav.label });
-      await expect(sarahsNav.getByRole('link', { name: copy.workspaceNav.trainers })).toBeVisible();
+      await expect(sarahsNav.getByRole('link', { name: wording.nav })).toBeVisible();
       await expect(
         sarahsNav.getByRole('link', { name: copy.workspaceNav.settings, exact: true }),
       ).toBeVisible();
@@ -221,10 +227,8 @@ test.describe('@permission F004 roles on the web', () => {
 
       // Making an Owner a Trainer again needs no dialog.
       await menuOf('Sarah').selectOption('trainer');
-      await expect(page.getByRole('status')).toHaveText(
-        copy.team.roleChanged.trainer.replace('{name}', 'Sarah'),
-      );
-      await expect(page).toHaveTitle(copy.team.title);
+      await expect(page.getByRole('status')).toHaveText(wording.roleChanged('Sarah'));
+      await expect(page).toHaveTitle(wording.title);
       await expect(menuOf('Sarah')).toHaveValue('trainer');
       await expect(menuOf('John')).toHaveCount(0);
       expect((await teamOf(page, GYM)).members.map(({ role }) => role)).toEqual([
@@ -232,7 +236,9 @@ test.describe('@permission F004 roles on the web', () => {
         'trainer',
       ]);
       await sarahsPage.goto(`/w/${slug}`);
-      await expect(sarahsPage.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+      await expect(
+        sarahsPage.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+      ).toBeVisible();
       await expect(sarahsPage.getByRole('navigation').getByRole('link')).toHaveText([
         copy.workspaceNav.myDay,
         copy.workspaceNav.myCalendar,
@@ -250,6 +256,7 @@ test.describe('@permission F004 roles on the web', () => {
   });
 
   test('AC4: an Owner who makes themselves a Trainer confirms first, and then has the Trainer navigation', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -271,9 +278,7 @@ test.describe('@permission F004 roles on the web', () => {
     const menu = page.getByLabel(copy.team.roleMenu.replace('{name}', 'John'));
     await menu.selectOption('trainer');
     const dialog = page.getByRole('alertdialog');
-    await expect(
-      dialog.getByRole('heading', { name: copy.team.stepDownDialog.title }),
-    ).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: wording.stepDownTitle })).toBeVisible();
     await expect(
       dialog.getByText(copy.team.stepDownDialog.body.replace('{workspace}', GYM)),
     ).toBeVisible();
@@ -282,13 +287,15 @@ test.describe('@permission F004 roles on the web', () => {
     await expect(menu).toHaveValue('owner');
 
     await menu.selectOption('trainer');
-    await dialog.getByRole('button', { name: copy.team.stepDownDialog.confirm }).click();
+    await dialog.getByRole('button', { name: wording.stepDownConfirm }).click();
 
     // John is a Trainer now: the same page shows the no-permission page, and the frame his role.
     await expect(
       page.getByRole('heading', { level: 1, name: copy.noPermission.title }),
     ).toBeVisible();
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     await expect(page.getByRole('navigation').getByRole('link')).toHaveText([
       copy.workspaceNav.myDay,
       copy.workspaceNav.myCalendar,
@@ -296,11 +303,12 @@ test.describe('@permission F004 roles on the web', () => {
       copy.workspaceNav.clients,
       copy.workspaceNav.bookingLinks,
     ]);
-    await expect(page).toHaveTitle(copy.team.title);
+    await expect(page).toHaveTitle(wording.title);
     await expectNoAxeViolations(page, `the no-permission page after stepping down in ${appLocale}`);
   });
 
   test('AC5: Sarah is made a Trainer behind John’s back, so stepping down is refused, says why, and John’s menu is gone', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -324,7 +332,7 @@ test.describe('@permission F004 roles on the web', () => {
     expect((await patch('trainer')).status()).toBe(200);
     await menu.selectOption('trainer');
     const dialog = page.getByRole('alertdialog');
-    await dialog.getByRole('button', { name: copy.team.stepDownDialog.confirm }).click();
+    await dialog.getByRole('button', { name: wording.stepDownConfirm }).click();
 
     await expect(
       page
@@ -336,12 +344,13 @@ test.describe('@permission F004 roles on the web', () => {
     await expect(menu).toHaveCount(0);
     await expect(page.getByText(`${GYM} · ${copy.roles.owner}`)).toBeVisible();
     // The title streams in after the body of the refresh (#353, #354), and axe wants one.
-    await expect(page).toHaveTitle(copy.team.title);
+    await expect(page).toHaveTitle(wording.title);
     await expectNoAxeViolations(page, `TW-06 after a refused step-down in ${appLocale}`);
     expect((await teamOf(page, GYM)).members.map(({ role }) => role)).toEqual(['owner', 'trainer']);
   });
 
   test('AC8: Sarah has Owner navigation in Sarah Personal Training and Trainer navigation in John’s Gym', async ({
+    wording,
     page,
     context,
     appLocale,
@@ -355,7 +364,9 @@ test.describe('@permission F004 roles on the web', () => {
     const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
 
     await page.goto(`/w/${gymSlug}`);
-    await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`${GYM} · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     // A Trainer has the Persoonlijk group (Mijn dag, Mijn agenda: no permission, her own days, F013), Clients (clients.view, F006), the Aanmeldlink (join_link.view, F029) and nothing the role may not use.
     await expect(nav.getByRole('link')).toHaveText([
       copy.workspaceNav.myDay,
@@ -367,7 +378,7 @@ test.describe('@permission F004 roles on the web', () => {
 
     await page.goto(`/w/${personalSlug}`);
     await expect(page.getByText(`${PERSONAL} · ${copy.roles.owner}`)).toBeVisible();
-    await expect(nav.getByRole('link', { name: copy.workspaceNav.trainers })).toBeVisible();
+    await expect(nav.getByRole('link', { name: wording.nav })).toBeVisible();
     await expect(
       nav.getByRole('link', { name: copy.workspaceNav.settings, exact: true }),
     ).toBeVisible();
@@ -387,7 +398,7 @@ test.describe('@permission F004 roles on the web', () => {
 
     await page.goto('/me/profile');
     const items = page.getByRole('listitem');
-    await expect(items.nth(0)).toHaveText(`${GYM}${copy.roles.trainer}`);
+    await expect(items.nth(0)).toHaveText(`${GYM}${copy.myProfile.trainerRole}`);
     await expect(items.nth(1)).toHaveText(`${PERSONAL}${copy.roles.owner}`);
   });
 });

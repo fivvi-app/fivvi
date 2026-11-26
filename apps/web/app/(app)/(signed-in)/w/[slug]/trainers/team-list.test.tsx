@@ -1,4 +1,4 @@
-import { locales, messages, trainerWordForms } from '@fivvi/i18n';
+import { locales, messages, TRAINER_WORDS, trainerWordForms } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { escapeHtml, render } from '../../../../../../test/render';
 import { TeamList } from './team-list';
@@ -11,6 +11,13 @@ const sarah = { id: 't2', name: 'Sarah', email: 'sarah@example.com', role: 'trai
 // Expected copy is read from the catalogs, never hard-coded (TESTING.md §5.4).
 describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
   const copy = messages[locale];
+  // A new workspace says *trainer*; the copy with the word's placeholders filled in for it.
+  const forms = trainerWordForms('trainer', locale);
+  const words = {
+    title: copy.team.title.replace('{Words}', forms.Words),
+    badge: copy.team.badge.trainer.replace('{Word}', forms.Word),
+    invite: copy.team.invite.title.replace('{aWord}', forms.aWord),
+  };
   const list = (
     members: Parameters<typeof TeamList>[0]['members'],
     canManage = true,
@@ -39,7 +46,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
   it('AC2: shows each person with name, email address and role label, in the order given', () => {
     const html = list([john, sarah]);
 
-    expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.team.title)}</h1>`));
+    expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(words.title)}</h1>`));
     // John is the last Owner: a plain label. Sarah's role is in her menu (below).
     expect(html).toMatch(
       new RegExp(
@@ -54,7 +61,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     expect(menu).toBeDefined();
     expect(menu).toMatch(new RegExp(`<option[^>]*value="owner"[^>]*>${copy.roles.owner}</option>`));
     expect(menu).toMatch(
-      new RegExp(`<option[^>]*value="trainer"[^>]*selected[^>]*>${copy.roles.trainer}</option>`),
+      new RegExp(`<option[^>]*value="trainer"[^>]*selected[^>]*>${forms.Word}</option>`),
     );
   });
 
@@ -80,7 +87,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
 
     expect(html).not.toContain('<select');
     expect(html).not.toContain('<button');
-    expect(html).toContain(copy.roles.trainer);
+    expect(html).toContain(forms.Word);
   });
 
   it('AC4: a Trainer row has the remove action, and a person who can not invite has no add button', () => {
@@ -110,9 +117,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
 
   /** The badge of a row: the kit's pill after the role of the person. */
   const badges = (html: string) =>
-    html.match(
-      new RegExp(`<span[^>]*data-slot="status-pill"[^>]*>${copy.team.badge.trainer}</span>`, 'g'),
-    );
+    html.match(new RegExp(`<span[^>]*data-slot="status-pill"[^>]*>${words.badge}</span>`, 'g'));
 
   it('AC7: a trainer badge on each team member with a trainer profile, not on an Owner who does not train', () => {
     const joan = { ...john, id: 't3', name: 'Joan', email: 'joan@example.com' };
@@ -122,7 +127,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     expect(badges(html)).toHaveLength(2);
     expect(html).toMatch(
       new RegExp(
-        `John(?:</span>)+</td>.*?${copy.roles.owner}.*?<span[^>]*data-slot="status-pill"[^>]*>${copy.team.badge.trainer}</span>.*?Joan(?:</span>)+</td>`,
+        `John(?:</span>)+</td>.*?${copy.roles.owner}.*?<span[^>]*data-slot="status-pill"[^>]*>${words.badge}</span>.*?Joan(?:</span>)+</td>`,
       ),
     );
     expect(html).toMatch(
@@ -195,7 +200,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
 
       expect(html).toMatch(
         new RegExp(
-          `<h1[^>]*>${escapeHtml(copy.team.title)}</h1>.*?<button[^>]*>${copy.team.invite.title}</button>`,
+          `<h1[^>]*>${escapeHtml(words.title)}</h1>.*?<button[^>]*>${words.invite}</button>`,
         ),
       );
     });
@@ -205,7 +210,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
 
       expect(html).toMatch(
         new RegExp(
-          `Lisa(?:</span>)+</td><td[^>]*>lisa@example.com</td><td[^>]*>.*?${copy.roles.trainer}.*?<span[^>]*data-slot="status-pill"[^>]*>${copy.team.invitations.status}</span>.*?>\\p{L}+,? \\d{1,2} \\p{L}+\\.? 2026</span>`,
+          `Lisa(?:</span>)+</td><td[^>]*>lisa@example.com</td><td[^>]*>.*?${forms.Word}.*?<span[^>]*data-slot="status-pill"[^>]*>${copy.team.invitations.status}</span>.*?>\\p{L}+,? \\d{1,2} \\p{L}+\\.? 2026</span>`,
           'u',
         ),
       );
@@ -222,7 +227,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     it('AC9: without team.invite there is no invite button and no pending row', () => {
       const html = list([john, sarah]);
 
-      expect(html).not.toContain(copy.team.invite.title);
+      expect(html).not.toContain(words.invite);
       expect(html).not.toContain(copy.team.invitations.status);
     });
 
@@ -231,6 +236,54 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
 
       expect(html).not.toContain(copy.team.invitations.withdrawDialog.title);
       expect(html).not.toContain(escapeHtml(copy.team.invite.description));
+    });
+  });
+
+  describe.each(TRAINER_WORDS)('F068 the workspace says %s', (choice) => {
+    const word = trainerWordForms(choice, locale);
+    const sayingWord = (canInvite = true) =>
+      render(
+        locale,
+        <TeamList
+          workspaceId="w1"
+          workspaceName="John's Gym"
+          members={[john, sarah]}
+          canManage
+          trainerIds={['t2']}
+          currentEmail="john@example.com"
+          canInvite={canInvite}
+          trainerWord={word}
+        />,
+      );
+
+    it('AC1, AC3: the title, the invite button, the role and the badge say the word, in the reader’s language', () => {
+      const html = sayingWord();
+
+      expect(html).toMatch(
+        new RegExp(`<h1[^>]*>${escapeHtml(copy.team.title.replace('{Words}', word.Words))}</h1>`),
+      );
+      expect(html).toContain(escapeHtml(copy.team.invite.title.replace('{aWord}', word.aWord)));
+      // Sarah's role in the menu and her badge; the Owner's label does not change.
+      expect(menuOf(html, 'Sarah')).toMatch(
+        new RegExp(
+          `<option[^>]*value="trainer"[^>]*selected[^>]*>${escapeHtml(word.Word)}</option>`,
+        ),
+      );
+      expect(menuOf(html, 'Sarah')).toContain(`>${copy.roles.owner}</option>`);
+      expect(html).toMatch(
+        new RegExp(`<span[^>]*data-slot="status-pill"[^>]*>${escapeHtml(word.Word)}</span>`),
+      );
+    });
+
+    it('AC11: the catalog says no literal trainer on this page', () => {
+      const html = sayingWord();
+
+      // `trainer` is a role value in the markup (`value="trainer"`), never text a person reads.
+      const text = html.replace(/<[^>]*>/g, ' ');
+      // The chosen word is what the page says, for every choice (also when it is `trainer`).
+      expect(text).toContain(word.Words);
+      expect(text).toContain(word.Word);
+      if (choice !== 'trainer') expect(text).not.toMatch(/trainer/i);
     });
   });
 

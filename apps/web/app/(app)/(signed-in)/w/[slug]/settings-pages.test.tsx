@@ -1,4 +1,4 @@
-import { locales, messages } from '@fivvi/i18n';
+import { locales, messages, TRAINER_WORDS, trainerWordForms } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { OWNER, TRAINER } from '../../../../../test/capabilities';
 import { escapeHtml, render } from '../../../../../test/render';
@@ -25,6 +25,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym Utrecht"
         slug="johns-gym"
         teamRole="owner"
@@ -46,6 +47,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
       render(
         locale,
         <WorkspaceFrame
+          trainerWord={trainerWordForms('trainer', locale)}
           name="John's Gym"
           slug="johns-gym"
           teamRole={teamRole}
@@ -75,6 +77,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const owner = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
@@ -89,6 +92,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const trainer = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
@@ -102,7 +106,9 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     );
 
     expect(owner).toContain(`John&#x27;s Gym · ${escapeHtml(copy.roles.owner)}`);
-    expect(trainer).toContain(`John&#x27;s Gym · ${escapeHtml(copy.roles.trainer)}`);
+    expect(trainer).toContain(
+      `John&#x27;s Gym · ${escapeHtml(trainerWordForms('trainer', locale).Word)}`,
+    );
     expect(trainer).not.toContain(escapeHtml(copy.roles.owner));
   });
 
@@ -110,6 +116,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
@@ -140,6 +147,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
@@ -161,6 +169,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
@@ -175,15 +184,44 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
 
     expect(html).toMatch(
       new RegExp(
-        `<a[^>]*href="/w/johns-gym/trainers"[^>]*>${NAV_ICON}<span[^>]*>${escapeHtml(copy.workspaceNav.trainers)}</span></a>`,
+        `<a[^>]*href="/w/johns-gym/trainers"[^>]*>${NAV_ICON}<span[^>]*>${escapeHtml(copy.workspaceNav.trainers.replace('{Words}', trainerWordForms('trainer', locale).Words))}</span></a>`,
       ),
     );
   });
+
+  it.each(TRAINER_WORDS)(
+    'F068 AC1, AC3: the sidebar of a workspace that says %s names the Trainers page with it, in the reader’s language',
+    (choice) => {
+      const word = trainerWordForms(choice, locale);
+      const html = render(
+        locale,
+        <WorkspaceFrame
+          trainerWord={word}
+          name="John's Gym"
+          slug="johns-gym"
+          teamRole="owner"
+          workspaces={[]}
+          canCreateWorkspace={false}
+          capabilities={OWNER}
+          personName={null}
+        >
+          <hr />
+        </WorkspaceFrame>,
+      );
+
+      expect(html).toMatch(
+        new RegExp(
+          `<a[^>]*href="/w/johns-gym/trainers"[^>]*>${NAV_ICON}<span[^>]*>${escapeHtml(word.Words)}</span></a>`,
+        ),
+      );
+    },
+  );
 
   it('F003 AC3: a Trainer has no Trainers in the navigation', () => {
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
@@ -204,6 +242,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
       render(
         locale,
         <WorkspaceFrame
+          trainerWord={trainerWordForms('trainer', locale)}
           name="John's Gym"
           slug="johns-gym"
           teamRole={teamRole}
@@ -236,6 +275,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const ownerWithoutCapabilities = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
@@ -250,6 +290,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const trainerWithEveryCapability = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
@@ -275,6 +316,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
       render(
         locale,
         <WorkspaceFrame
+          trainerWord={trainerWordForms('trainer', locale)}
           name="John's Gym"
           slug="johns-gym"
           teamRole="trainer"
@@ -299,6 +341,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
@@ -323,6 +366,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
@@ -351,6 +395,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
@@ -396,6 +441,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
@@ -451,6 +497,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     const html = render(
       locale,
       <WorkspaceFrame
+        trainerWord={trainerWordForms('trainer', locale)}
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
@@ -475,6 +522,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
       render(
         locale,
         <WorkspaceFrame
+          trainerWord={trainerWordForms('trainer', locale)}
           name="John's Gym"
           slug="johns-gym"
           teamRole="trainer"

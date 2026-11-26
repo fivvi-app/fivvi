@@ -2,12 +2,11 @@ import { locales } from '../config.ts';
 import type { Analysis } from './analyze.ts';
 import { catalogFile } from './catalog.ts';
 import type { Body, Part } from './icu.ts';
-import {
-  type AllowedForGood,
-  type AllowedForNow,
-  type AllowedNotTheRole,
-  MOVES_WITH_TICKETS,
-  type TrainerAllowlist,
+import type {
+  AllowedForGood,
+  AllowedForGoodKey,
+  AllowedNotTheRole,
+  TrainerAllowlist,
 } from './no-literal-trainer-allowlist.ts';
 
 /** The words of the choices live here, so they say *trainer* by definition. */
@@ -47,11 +46,6 @@ export function literalTrainerProblems(
     if (seen.has(name)) problems.push(`allowlist entry "${name}" is listed twice`);
     seen.add(name);
     if (entry.reason.trim() === '') problems.push(`allowlist entry "${name}" has no reason`);
-    if ('key' in entry && !(MOVES_WITH_TICKETS as readonly number[]).includes(entry.movesWith)) {
-      problems.push(
-        `allowlist entry "${name}" moves with #${entry.movesWith}, which is not a ticket of spec #588 (${MOVES_WITH_TICKETS.map((n) => `#${n}`).join(', ')})`,
-      );
-    }
     if (![...keys].some((key) => covers(entry, key))) {
       problems.push(
         `allowlist entry "${name}" no longer says trainer; remove it from src/tools/no-literal-trainer-allowlist.ts`,
@@ -61,11 +55,11 @@ export function literalTrainerProblems(
   return problems;
 }
 
-type Entry = AllowedForGood | AllowedForNow | AllowedNotTheRole;
+type Entry = AllowedForGood | AllowedForGoodKey | AllowedNotTheRole;
 
 function entryName(entry: Entry): string {
   if ('prefix' in entry) return entry.prefix;
-  return 'exactKey' in entry ? entry.exactKey : entry.key;
+  return entry.exactKey;
 }
 
 function covers(entry: Entry, key: string): boolean {

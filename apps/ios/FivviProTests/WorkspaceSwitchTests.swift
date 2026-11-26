@@ -39,6 +39,34 @@ final class WorkspaceSwitchTests: XCTestCase {
         XCTAssertEqual(model.state, .loaded(email: "trainer@example.com"))
     }
 
+    /// F068 AC4: Sarah is a trainer at John's Gym (*instructeur*) and at Yoga Loft (*docent*): the workspace on screen
+    /// carries its own word, also right after she switches, and back. The role is Trainer in both: the same rights.
+    func test_F068_AC4_eachWorkspaceKeepsItsOwnWordAlsoRightAfterSwitching() async throws {
+        let yogaLoft = "7c1d2e3f-0000-4000-8000-000000000003"
+        let api = StubAPI()
+        await api.answerMe(with: .account(email: "trainer@example.com", team: [
+            .init(
+                workspaceID: johnsGym, name: "John's Gym", slug: "johns-gym", role: .trainer,
+                trainerWord: .instructeur
+            ),
+            .init(workspaceID: yogaLoft, name: "Yoga Loft", slug: "yoga-loft", role: .trainer, trainerWord: .docent)
+        ]))
+        let model = account(api, defaults: try emptyDefaults())
+
+        await model.load()
+        XCTAssertEqual(model.workspace?.id, johnsGym)
+        XCTAssertEqual(model.workspace?.trainerWord, .instructeur)
+
+        await model.switchWorkspace(to: yogaLoft)
+        XCTAssertEqual(model.workspace?.id, yogaLoft)
+        XCTAssertEqual(model.workspace?.trainerWord, .docent, "the other workspace's word at once, not the old one")
+        XCTAssertTrue(model.capabilities.allows(.clients_manage), "a Trainer's rights, whatever the word")
+
+        await model.switchWorkspace(to: johnsGym)
+        XCTAssertEqual(model.workspace?.trainerWord, .instructeur)
+        XCTAssertTrue(model.capabilities.allows(.clients_manage), "a Trainer's rights, whatever the word")
+    }
+
     func test_F012_AC6_aWorkspaceThePersonIsNotOnIsNotSwitchedTo() async throws {
         let api = StubAPI()
         await answerAsSarah(api)

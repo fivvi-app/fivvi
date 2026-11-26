@@ -188,7 +188,7 @@ public protocol APIProtocol: Sendable {
     func withdrawTrainerInvitation(_ input: Operations.WithdrawTrainerInvitation.Input) async throws -> Operations.WithdrawTrainerInvitation.Output
     /// What an invitation link is for
     ///
-    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the address the invitation is for (also masked) and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`, with no address.
+    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the word it uses for its trainers (`trainerWord`, F068), the name of the inviter, the address the invitation is for (also masked) and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`, with no address.
     ///
     /// - Remark: HTTP `GET /v1/invitations/{token}`.
     /// - Remark: Generated from `#/paths//v1/invitations/{token}/get(getInvitation)`.
@@ -349,7 +349,7 @@ public protocol APIProtocol: Sendable {
     func getWorkspaceCalendar(_ input: Operations.GetWorkspaceCalendar.Input) async throws -> Operations.GetWorkspaceCalendar.Output
     /// The workspace today: the rows of one day and what needs attention
     ///
-    /// The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).
+    /// The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer, and `needsAttendance`: the sessions that ended yesterday and still wait for attendance. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/day`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/day/get(getWorkspaceDay)`.
@@ -917,7 +917,7 @@ extension APIProtocol {
     }
     /// What an invitation link is for
     ///
-    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the address the invitation is for (also masked) and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`, with no address.
+    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the word it uses for its trainers (`trainerWord`, F068), the name of the inviter, the address the invitation is for (also masked) and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`, with no address.
     ///
     /// - Remark: HTTP `GET /v1/invitations/{token}`.
     /// - Remark: Generated from `#/paths//v1/invitations/{token}/get(getInvitation)`.
@@ -1284,7 +1284,7 @@ extension APIProtocol {
     }
     /// The workspace today: the rows of one day and what needs attention
     ///
-    /// The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).
+    /// The sessions of the workspace on one day (today unless `date` says otherwise, on the workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the class dates and private sessions in the next 14 days that have no trainer, and `needsAttendance`: the sessions that ended yesterday and still wait for attendance. `busiest` is the day’s busiest moment (the time with the most sessions at once, and how many), left out when no two sessions overlap. For the Owner’s dashboard and the apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/day`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/day/get(getWorkspaceDay)`.

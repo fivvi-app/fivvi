@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { type Locale, locales, type Messages, messages } from '@fivvi/i18n';
 import { type BrowserContext, test as base, expect, type Page } from '@playwright/test';
+import { type Wording, wordingOf } from './trainer-wording';
 
 /** Options each Playwright project sets (playwright.config.ts). */
 export interface E2EOptions {
@@ -11,6 +12,8 @@ export interface E2EOptions {
 interface E2EFixtures {
   /** The catalog for `appLocale`. Assert on copy from here, never on hard-coded text. */
   messages: Messages;
+  /** The copy that names the role, for a workspace that says *trainer* (F068); `wordingOf` takes another word. */
+  wording: Wording;
   /** The locale this project does not run in, for switching languages. */
   otherLocale: Locale;
   /** Runs the axe check on the page as the test left it (automatic). */
@@ -241,6 +244,10 @@ export const test = base.extend<E2EOptions & E2EFixtures>({
 
   messages: async ({ appLocale }, provide) => {
     await provide(messages[appLocale]);
+  },
+
+  wording: async ({ appLocale }, provide) => {
+    await provide(wordingOf(appLocale));
   },
 
   otherLocale: async ({ appLocale }, provide) => {

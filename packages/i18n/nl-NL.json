@@ -19,6 +19,38 @@
     "openInBrowser": "Openen in de browser",
     "soon": "Deze link openen we binnenkort in de app."
   },
+  "attendance": {
+    "cancelledClass": "Deze les is geannuleerd. Aanwezigheid is niet nodig.",
+    "cancelledSession": "Deze sessie is geannuleerd. Aanwezigheid is niet nodig.",
+    "errors": {
+      "generic": "Er ging iets mis. Probeer het opnieuw.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "participantCancelled": "Deze deelnemer heeft geannuleerd. De status is niet meer te wijzigen."
+    },
+    "everyone": "Iedereen aanwezig",
+    "fillIn": "Invullen",
+    "groupLabel": "Aanwezigheid van {name}",
+    "line": "Aanwezigheid: {status}",
+    "needs": "{count, plural, one {# sessie} other {# sessies}} van gisteren zonder aanwezigheid",
+    "needsItem": "{name}, {date} {time}",
+    "needsList": "Sessies van gisteren zonder aanwezigheid",
+    "notFilledIn": "Nog niet ingevuld",
+    "nudge": "Aanwezigheid nog invullen",
+    "nudgeButtonLabel": "{status}: {name}",
+    "nudgeFor": "Aanwezigheid nog invullen: {name}",
+    "participants": "Deelnemers",
+    "participantsTitle": "{participants} · {title}",
+    "saved": "Opgeslagen",
+    "status": {
+      "attended": "Aanwezig",
+      "booked": "Geboekt",
+      "cancelled": "Geannuleerd",
+      "noShow": "Niet verschenen"
+    },
+    "summary": "{attended} aanwezig · {noShow} niet verschenen · {open} open",
+    "title": "Aanwezigheid",
+    "tooEarly": "Aanwezigheid kun je invullen vanaf {time}."
+  },
   "bookingLinks": {
     "body": "Werken alleen voor klanten die je hebt goedgekeurd.",
     "columns": {
@@ -400,7 +432,7 @@
       "languageNotSupported": "Rij {row}: taal moet nl of en zijn.",
       "sheetMissing": "Het tabblad {sheet} ontbreekt.",
       "statusNotSupported": "Rij {row}: status moet active of inactive zijn.",
-      "trainerUnknown": "Rij {row}: {email} is geen trainer van {workspace}.",
+      "trainerUnknown": "Rij {row}: {email} hoort niet bij de {words} van {workspace}.",
       "valueMissing": "Rij {row}: {column} ontbreekt."
     }
   },
@@ -702,8 +734,8 @@
       "generic": "Er ging iets mis. Probeer het opnieuw.",
       "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw."
     },
-    "intro": "{inviter} nodigt je uit om trainer te worden bij {workspace}.",
-    "introAnonymous": "Je bent uitgenodigd om trainer te worden bij {workspace}.",
+    "intro": "{inviter} nodigt je uit om {aWord} te worden bij {workspace}.",
+    "introAnonymous": "Je bent uitgenodigd om {aWord} te worden bij {workspace}.",
     "noLongerValid": "Deze uitnodiging is niet meer geldig. Vraag om een nieuwe uitnodiging.",
     "signOutAndContinue": "Uitloggen en verder",
     "title": "Uitnodiging",
@@ -854,6 +886,7 @@
     "save": "Opslaan",
     "saved": "Opgeslagen.",
     "title": "Mijn profiel",
+    "trainerRole": "Trainer",
     "workspacesTitle": "Mijn werkruimtes"
   },
   "noAccess": {
@@ -917,7 +950,6 @@
   },
   "roles": {
     "owner": "Eigenaar",
-    "trainer": "Trainer",
     "trainerLabel": "{Word}"
   },
   "sessions": {
@@ -1155,6 +1187,15 @@
       "other": "Anders",
       "outdoor": "Buiten"
     }
+  },
+  "settingsWording": {
+    "errors": {
+      "generic": "Er ging iets mis. Probeer het opnieuw.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw."
+    },
+    "help": "Hoe noem je de mensen die lesgeven? Klanten en je team zien dit woord overal in {workspace}: in het rooster, de app, e-mails en op de poster. Pilatesstudio's kiezen vaak instructeur, yogastudio's docent.",
+    "saved": "Opgeslagen.",
+    "title": "Woordkeuze"
   },
   "signIn": {
     "changeEmail": "E-mailadres wijzigen",
@@ -1880,7 +1921,7 @@
   "team": {
     "actionsColumn": "Acties",
     "badge": {
-      "trainer": "Trainer"
+      "trainer": "{Word}"
     },
     "emailColumn": "E-mailadres",
     "errors": {
@@ -1941,7 +1982,7 @@
       "sendAgain": "Opnieuw sturen",
       "sent": "Uitnodiging verstuurd naar {name}.",
       "submit": "Versturen",
-      "title": "Trainer uitnodigen"
+      "title": "Nodig {aWord} uit"
     },
     "makeOwnerDialog": {
       "body": "Een eigenaar kan alles in {workspace}, ook het team, de instellingen en het geld.",
@@ -1952,7 +1993,7 @@
     "nameColumn": "Naam",
     "remove": "Uit het team verwijderen",
     "removeDialog": {
-      "body": "{name} kan niet meer als trainer bij {workspace}. Wat {name} als klant heeft, zoals boekingen, blijft.",
+      "body": "{name} verliest de rol van {word} bij {workspace}. Wat {name} als klant heeft, zoals boekingen, blijft.",
       "cancel": "Annuleren",
       "confirm": "Verwijderen",
       "title": "{name} uit het team verwijderen?"
@@ -1960,17 +2001,17 @@
     "removed": "{name} is uit het team verwijderd.",
     "roleChanged": {
       "owner": "{name} is nu eigenaar.",
-      "trainer": "{name} is nu trainer."
+      "trainer": "{name} is nu {aWord}."
     },
     "roleColumn": "Rol",
     "roleMenu": "Rol van {name}",
     "stepDownDialog": {
       "body": "Je bent dan geen eigenaar meer van {workspace}.",
       "cancel": "Annuleren",
-      "confirm": "Trainer maken",
-      "title": "Jezelf trainer maken?"
+      "confirm": "Mezelf {aWord} maken",
+      "title": "Jezelf {aWord} maken?"
     },
-    "title": "Trainers"
+    "title": "{Words}"
   },
   "trainerWord": {
     "coach": {
@@ -2130,7 +2171,7 @@
     "settingsGeneral": "Algemeen",
     "settingsLanguage": "Taal",
     "settingsLocation": "Locatie",
-    "trainers": "Trainers",
+    "trainers": "{Words}",
     "workspaceWithRole": "{name} · {role}"
   },
   "workspaceSwitcher": {

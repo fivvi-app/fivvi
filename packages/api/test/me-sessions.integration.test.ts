@@ -341,6 +341,8 @@ describe('F013 the personal day and sessions through the API', () => {
         clientName: 'Anna de Vries',
         // The clients apart (F066); one for a one-client session.
         clients: [{ clientId: expect.any(String), name: 'Anna de Vries' }],
+        // F025: the one participant's status as counts, so the apps word it without a request.
+        attendance: { attended: 0, noShow: 0, open: 1, cancelled: 0 },
       });
       expect(mark).toMatchObject({
         workspace: { id: w.gym.id, slug: w.gym.marker, name: w.gym.marker },

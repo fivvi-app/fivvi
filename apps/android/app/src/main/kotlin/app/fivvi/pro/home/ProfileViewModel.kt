@@ -7,6 +7,7 @@ import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.infrastructure.Serializer
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MyWorkspace
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.api.models.UpdateMeRequest
 import app.fivvi.api.models.ValidationError
 import java.io.IOException
@@ -20,7 +21,10 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import retrofit2.Response
 
-/** What the account is on a workspace's team; the screen turns it into the catalog's label. */
+/**
+ * What the account is on a workspace's team; the screen turns it into the catalog's label (an Owner's, or a Trainer's in
+ * the workspace's own word, F068).
+ */
 enum class ProfileRole { Owner, Trainer }
 
 /** How the last change of the Owner's *I also train here* switch of one workspace went. */
@@ -38,6 +42,8 @@ data class ProfileWorkspace(
     val role: ProfileRole,
     val trainsHere: Boolean,
     val canSwitchTrainsHere: Boolean,
+    /** The word this workspace uses for the people who teach (F068): the label of a Trainer's role is this word. */
+    val trainerWord: TrainerWord,
     val change: TrainsHereChange = TrainsHereChange.Idle,
 )
 
@@ -138,6 +144,7 @@ class ProfileViewModel(private val me: MeApi, private val trainers: TrainersApi)
         },
         trainsHere = trainsHere,
         canSwitchTrainsHere = MyWorkspace.Capabilities.TEAM_PERIOD_MANAGE in capabilities,
+        trainerWord = trainerWord,
     )
 
     /** The name row was tapped: the dialog opens with the name as it is. */

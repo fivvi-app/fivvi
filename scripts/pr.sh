@@ -105,12 +105,13 @@ RAILWAY_SERVICE="web"
 PREVIEW_CHECK="$RAILWAY_PROJECT_NAME - $RAILWAY_SERVICE"
 PREVIEW_SKIPPED="No deployment needed"
 # How long wait waits for CI, in minutes. The native jobs get longer: a passing iOS run can take, by the timeouts in
-# ci.yml (the "iOS tests" comment), Detect changes 5 + iOS build 12 + iOS tests 44 + the gate job 2 = 63 min, and Android
-# the same by its own (5 + 20 + 30 + 2). A run with no native job ends with the longer Linux chain: Checks (Linux), 25 min
-# by its timeout (#1490: a full uncached run) and needing no other job, or, in a run with UI tests (ci: full,
-# workflow_dispatch, the nightly run), Detect changes 5 + E2E (Linux) 30 = 35 min; 40 outlasts both. When no runner takes the
-# iOS build or a test pass (#1268), each is tried once more and each try may wait 15 min for a runner: 154 min (the comment
-# above ios-build-retry); 165 outlasts all, so wait does not give up on a run that still passes.
+# ci.yml (the "iOS tests" comment), Detect changes 5 + iOS build 12 + iOS tests 44 + the gate job 2 = 63 min, and
+# Android the same by its own (5 + 12 + 60 + 2 = 79 min). A run with no native job ends with the longer Linux chain:
+# Checks (Linux), 25 min by its timeout (#1490: a full uncached run) and needing no other job, or, in a run with UI
+# tests (ci: full, workflow_dispatch, the nightly run), Detect changes 5 + E2E (Linux) 30 = 35 min; 40 outlasts both.
+# When no runner takes the iOS build or a test pass (#1268), each is tried once more and each try may wait 15 min for a
+# runner: 154 min (the comment above ios-build-retry); 165 outlasts all, so wait does not give up on a run that still
+# passes.
 WAIT_MINUTES=40
 WAIT_MINUTES_NATIVE=165
 # The gates are the required checks iOS and Android; their parts (iOS build, iOS tests (nl), Android Maestro, ...) start with the

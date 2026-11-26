@@ -183,6 +183,42 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         XCTAssertTrue(server.requests.filter { $0.method == "PATCH" }.isEmpty, "nothing is stored on the server")
     }
 
+    /// F068 AC4: Sarah is a Trainer at John's Gym (*instructeur*) and at Yoga Loft (*docent*): each row names its own word,
+    /// also right after she switches to the other workspace, and back; her role is Trainer in both, so the same actions.
+    func test_F068_AC4_eachWorkspaceShowsItsOwnWordAlsoRightAfterSwitching() throws {
+        let catalog = TestCatalog.configured
+        let server = try StubServer(
+            signIn: StubServer.SignIn(
+                email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer", trainerWord: "instructeur",
+                otherWorkspaces: [.init(name: "Yoga Loft", role: "trainer", trainerWord: "docent")]
+            )
+        )
+        self.server = server
+        let screen = SignInScreen.launch(against: server, session: .signedIn)
+        let app = screen.app
+        XCTAssertTrue(waitForWorkspace("John's Gym", in: screen))
+        openProfile(screen)
+        let johnsRole = app.staticTexts["profile.workspaceRole.workspace-0"]
+        let yogaRole = app.staticTexts["profile.workspaceRole.workspace-1"]
+        XCTAssertEqual(johnsRole.label, catalog["trainerWord.instructeur.wordCap"])
+        XCTAssertEqual(yogaRole.label, catalog["trainerWord.docent.wordCap"])
+
+        // Choosing a workspace closes *Profiel* on that workspace's home: open it again.
+        switchWorkspace(own, to: "Yoga Loft", in: screen)
+        openProfile(screen)
+        XCTAssertEqual(
+            johnsRole.label, catalog["trainerWord.instructeur.wordCap"], "each its own word, not the current one's"
+        )
+        XCTAssertEqual(yogaRole.label, catalog["trainerWord.docent.wordCap"])
+
+        switchWorkspace(johns, to: "John's Gym", in: screen)
+        openProfile(screen)
+        XCTAssertEqual(johnsRole.label, catalog["trainerWord.instructeur.wordCap"])
+        XCTAssertEqual(yogaRole.label, catalog["trainerWord.docent.wordCap"])
+        XCTAssertFalse(app.switches["profile.trainsHere.workspace-0"].exists, "a Trainer in both: no Owner-only action")
+        XCTAssertFalse(app.switches["profile.trainsHere.workspace-1"].exists)
+    }
+
     func test_F012_AC11_actionsFollowWorkspaceRole() throws {
         let catalog = TestCatalog.configured
         let (screen, _) = try launchAsSarah()
@@ -192,7 +228,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         XCTAssertTrue(trainsHereInOwn.waitUntilExists(timeout: timeout), "Owner of her own workspace")
         XCTAssertFalse(app.switches["profile.trainsHere.workspace-0"].exists, "no Owner-only action in John's Gym")
         XCTAssertEqual(
-            app.staticTexts["profile.workspaceRole.workspace-0"].label, catalog["roles.trainer"]
+            app.staticTexts["profile.workspaceRole.workspace-0"].label, catalog["trainerWord.trainer.wordCap"]
         )
         XCTAssertEqual(app.staticTexts["profile.workspaceRole.workspace-1"].label, catalog["roles.owner"])
 

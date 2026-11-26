@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.test.platform.app.InstrumentationRegistry
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.MyWorkspace.Role
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
@@ -170,7 +171,7 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.onNodeWithTag("${ProfileTags.WORKSPACE_NAME}.johns-gym").assertTextEquals("John's Gym")
         compose.onNodeWithTag(
             "${ProfileTags.WORKSPACE_ROLE}.johns-gym",
-        ).assertTextEquals(string(R.string.roles_trainer))
+        ).assertTextEquals(string(R.string.trainer_word_trainer_word_cap))
         compose.onNodeWithTag("${ProfileTags.WORKSPACE_NAME}.sarah-personal-training")
             .assertTextEquals("Sarah Personal Training")
         compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.sarah-personal-training")
@@ -193,7 +194,31 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
         compose.waitUntilTagExists("${ProfileTags.WORKSPACE_ROLE}.johns-gym")
         compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.johns-gym")
-            .assertTextEquals(string(R.string.roles_trainer))
+            .assertTextEquals(string(R.string.trainer_word_trainer_word_cap))
+        compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.sarah-personal-training")
+            .assertTextEquals(string(R.string.roles_owner))
+    }
+
+    // F068 AC1: John's Gym uses *instructeur*, so Fivvi Pro names Sarah's role there *Instructeur* (*Instructor* to a reader in
+    // English), and an Owner's label stays *Eigenaar* / *Owner*.
+    @Test
+    fun test_F068_AC1_aTrainersRoleLabelIsTheWorkspacesWord() {
+        repeat(2) { me.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training")) }
+        me.answerWorkspaces(
+            trainingOwners = emptySet(),
+            johnsGym,
+            sarahPersonalTraining,
+            trainerWords = mapOf("John's Gym" to TrainerWord.INSTRUCTEUR),
+        )
+        launch()
+        compose.waitUntilTagExists(HomeTags.OPEN_PROFILE)
+
+        compose.onNodeWithTag(HomeTags.OPEN_PROFILE).performClick()
+
+        compose.waitUntilTagExists("${ProfileTags.WORKSPACE_ROLE}.johns-gym")
+        val label = compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.johns-gym")
+        label.assertTextEquals(string(R.string.trainer_word_instructeur_word_cap))
+        label.assertTextEquals(if (language == AppLanguage.DUTCH) "Instructeur" else "Instructor")
         compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.sarah-personal-training")
             .assertTextEquals(string(R.string.roles_owner))
     }
@@ -406,7 +431,7 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.onNodeWithTag("${ProfileTags.TRAINS_HERE}.sarah-personal-training").assertIsDisplayed()
         compose.onNodeWithTag(
             "${ProfileTags.WORKSPACE_ROLE}.johns-gym",
-        ).assertTextEquals(string(R.string.roles_trainer))
+        ).assertTextEquals(string(R.string.trainer_word_trainer_word_cap))
         compose.onNodeWithTag("${ProfileTags.TRAINS_HERE}.johns-gym").assertDoesNotExist()
         compose.onNodeWithText(string(R.string.profile_trains_here_label, "John's Gym")).assertDoesNotExist()
     }

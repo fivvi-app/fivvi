@@ -2,6 +2,7 @@ package app.fivvi.pro.home
 
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.auth.AuthState
 import app.fivvi.core.auth.InMemorySessionStore
 import app.fivvi.core.auth.Session
@@ -49,7 +50,12 @@ private fun ownerAccount() = MeResponse(
 
 private val OWNER_IN_WORKSPACE = MeState.Loaded(
     "owner@example.com",
-    HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym"), teamMemberIdOf("John's Gym")),
+    HomeDestination.Workspace(
+        "John's Gym",
+        workspaceIdOf("John's Gym"),
+        teamMemberIdOf("John's Gym"),
+        TrainerWord.TRAINER,
+    ),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -121,7 +127,12 @@ class HomeViewModelTest {
         api.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
         val viewModel = viewModel()
         assertEquals(
-            HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym"), teamMemberIdOf("John's Gym")),
+            HomeDestination.Workspace(
+                "John's Gym",
+                workspaceIdOf("John's Gym"),
+                teamMemberIdOf("John's Gym"),
+                TrainerWord.TRAINER,
+            ),
             (viewModel.state.value as MeState.Loaded).destination,
         )
 
@@ -137,7 +148,12 @@ class HomeViewModelTest {
         api.answerAccount(workspaces = listOf("John's Gym", "Other"), canCreateWorkspace = true)
 
         assertEquals(
-            HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym"), teamMemberIdOf("John's Gym")),
+            HomeDestination.Workspace(
+                "John's Gym",
+                workspaceIdOf("John's Gym"),
+                teamMemberIdOf("John's Gym"),
+                TrainerWord.TRAINER,
+            ),
             (viewModel().state.value as MeState.Loaded).destination,
         )
     }
@@ -173,6 +189,7 @@ class HomeViewModelTest {
                 "Sarah Personal Training",
                 workspaceIdOf("Sarah Personal Training"),
                 teamMemberIdOf("Sarah Personal Training"),
+                TrainerWord.TRAINER,
             ),
             (viewModel.state.value as MeState.Loaded).destination,
         )
@@ -291,6 +308,29 @@ class HomeViewModelTest {
 
     private fun shown(viewModel: HomeViewModel) =
         ((viewModel.state.value as MeState.Loaded).destination as HomeDestination.Workspace).name
+
+    private fun shownWord(viewModel: HomeViewModel) =
+        ((viewModel.state.value as MeState.Loaded).destination as HomeDestination.Workspace).trainerWord
+
+    // F068 AC4: Sarah is in John's Gym (instructeur) and Yoga Loft (docent): the workspace shown carries its own word, also
+    // right after she switches, and back; the word comes from the list the app already has, so a switch asks for nothing more.
+    @Test
+    fun test_F068_AC4_theWorkspaceShownCarriesItsOwnWordAlsoRightAfterSwitching() {
+        val words = mapOf("John's Gym" to TrainerWord.INSTRUCTEUR, "Yoga Loft" to TrainerWord.DOCENT)
+        repeat(3) {
+            api.answerAccount(workspaces = listOf("John's Gym", "Yoga Loft"), trainerWords = words)
+        }
+        val viewModel = viewModel()
+        assertEquals("John's Gym", shown(viewModel))
+        assertEquals(TrainerWord.INSTRUCTEUR, shownWord(viewModel))
+
+        viewModel.switchWorkspace(workspaceIdOf("Yoga Loft"))
+        assertEquals("Yoga Loft", shown(viewModel))
+        assertEquals(TrainerWord.DOCENT, shownWord(viewModel))
+
+        viewModel.switchWorkspace(workspaceIdOf("John's Gym"))
+        assertEquals(TrainerWord.INSTRUCTEUR, shownWord(viewModel))
+    }
 
     // F012 AC7: the app opens in the workspace used last on this device while the person is still on its team.
     @Test

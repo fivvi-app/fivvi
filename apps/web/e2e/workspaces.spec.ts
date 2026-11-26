@@ -1,4 +1,4 @@
-import { messages } from '@fivvi/i18n';
+import { messages, trainerWordForms } from '@fivvi/i18n';
 import {
   clientIpHeaders,
   createAccount,
@@ -379,7 +379,9 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
     // A Trainer's home is Mijn dag (F013), in the frame of John's Gym.
     await expect(page).toHaveURL('/me/day');
     await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
-    await expect(page.getByText(`John's Gym · ${copy.roles.trainer}`)).toBeVisible();
+    await expect(
+      page.getByText(`John's Gym · ${trainerWordForms('trainer', appLocale).Word}`),
+    ).toBeVisible();
     await expect(page.getByRole('link', { name: copy.workspaceNav.settings })).toHaveCount(0);
 
     await page.goto(`/w/${slug}/settings/general`);

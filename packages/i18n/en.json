@@ -19,6 +19,38 @@
     "openInBrowser": "Open in the browser",
     "soon": "We'll open this link in the app soon."
   },
+  "attendance": {
+    "cancelledClass": "This class is cancelled. No attendance needed.",
+    "cancelledSession": "This session is cancelled. No attendance needed.",
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "participantCancelled": "This participant cancelled. The status can no longer be changed."
+    },
+    "everyone": "Everyone attended",
+    "fillIn": "Fill in",
+    "groupLabel": "Attendance of {name}",
+    "line": "Attendance: {status}",
+    "needs": "{count, plural, one {# session} other {# sessions}} from yesterday without attendance",
+    "needsItem": "{name}, {date} {time}",
+    "needsList": "Sessions from yesterday without attendance",
+    "notFilledIn": "Not filled in yet",
+    "nudge": "Attendance not recorded yet",
+    "nudgeButtonLabel": "{status}: {name}",
+    "nudgeFor": "Attendance not recorded yet: {name}",
+    "participants": "Participants",
+    "participantsTitle": "{participants} · {title}",
+    "saved": "Saved",
+    "status": {
+      "attended": "Attended",
+      "booked": "Booked",
+      "cancelled": "Cancelled",
+      "noShow": "No-show"
+    },
+    "summary": "{attended} attended · {noShow} no-show · {open} open",
+    "title": "Attendance",
+    "tooEarly": "You can take attendance from {time}."
+  },
   "bookingLinks": {
     "body": "Only work for clients you have approved.",
     "columns": {
@@ -400,7 +432,7 @@
       "languageNotSupported": "Row {row}: language must be nl or en.",
       "sheetMissing": "The {sheet} sheet is missing.",
       "statusNotSupported": "Row {row}: status must be active or inactive.",
-      "trainerUnknown": "Row {row}: {email} isn't a trainer of {workspace}.",
+      "trainerUnknown": "Row {row}: {email} isn't one of the {words} at {workspace}.",
       "valueMissing": "Row {row}: {column} is missing."
     }
   },
@@ -702,8 +734,8 @@
       "generic": "Something went wrong. Try again.",
       "noConnection": "No connection. Check your internet and try again."
     },
-    "intro": "{inviter} invited you to become a trainer at {workspace}.",
-    "introAnonymous": "You've been invited to become a trainer at {workspace}.",
+    "intro": "{inviter} invited you to become {aWord} at {workspace}.",
+    "introAnonymous": "You've been invited to become {aWord} at {workspace}.",
     "noLongerValid": "This invitation is no longer valid. Ask for a new invitation.",
     "signOutAndContinue": "Sign out and continue",
     "title": "Invitation",
@@ -854,6 +886,7 @@
     "save": "Save",
     "saved": "Saved.",
     "title": "My profile",
+    "trainerRole": "Trainer",
     "workspacesTitle": "My workspaces"
   },
   "noAccess": {
@@ -917,7 +950,6 @@
   },
   "roles": {
     "owner": "Owner",
-    "trainer": "Trainer",
     "trainerLabel": "{Word}"
   },
   "sessions": {
@@ -1155,6 +1187,15 @@
       "other": "Other",
       "outdoor": "Outdoors"
     }
+  },
+  "settingsWording": {
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "noConnection": "No connection. Check your internet and try again."
+    },
+    "help": "What do you call the people who teach? Clients and your team see this word everywhere in {workspace}: in the timetable, the app, emails and on the poster. Pilates studios often choose instructor, yoga studios teacher.",
+    "saved": "Saved.",
+    "title": "Wording"
   },
   "signIn": {
     "changeEmail": "Change email address",
@@ -1880,7 +1921,7 @@
   "team": {
     "actionsColumn": "Actions",
     "badge": {
-      "trainer": "Trainer"
+      "trainer": "{Word}"
     },
     "emailColumn": "Email address",
     "errors": {
@@ -1941,7 +1982,7 @@
       "sendAgain": "Send again",
       "sent": "Invitation sent to {name}.",
       "submit": "Send",
-      "title": "Invite trainer"
+      "title": "Invite {aWord}"
     },
     "makeOwnerDialog": {
       "body": "An owner can do everything in {workspace}, including the team, the settings and the money.",
@@ -1952,7 +1993,7 @@
     "nameColumn": "Name",
     "remove": "Remove from team",
     "removeDialog": {
-      "body": "{name} will no longer have access to {workspace} as a trainer. What {name} has as a client, such as bookings, stays.",
+      "body": "{name} loses the {word} role at {workspace}. What {name} has as a client, such as bookings, stays.",
       "cancel": "Cancel",
       "confirm": "Remove",
       "title": "Remove {name} from the team?"
@@ -1960,17 +2001,17 @@
     "removed": "{name} has been removed from the team.",
     "roleChanged": {
       "owner": "{name} is now an owner.",
-      "trainer": "{name} is now a trainer."
+      "trainer": "{name} is now {aWord}."
     },
     "roleColumn": "Role",
     "roleMenu": "Role of {name}",
     "stepDownDialog": {
       "body": "You will no longer be an owner of {workspace}.",
       "cancel": "Cancel",
-      "confirm": "Make trainer",
-      "title": "Make yourself a trainer?"
+      "confirm": "Make me {aWord}",
+      "title": "Make yourself {aWord}?"
     },
-    "title": "Trainers"
+    "title": "{Words}"
   },
   "trainerWord": {
     "coach": {
@@ -2130,7 +2171,7 @@
     "settingsGeneral": "General",
     "settingsLanguage": "Language",
     "settingsLocation": "Location",
-    "trainers": "Trainers",
+    "trainers": "{Words}",
     "workspaceWithRole": "{name} · {role}"
   },
   "workspaceSwitcher": {

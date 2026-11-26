@@ -59,3 +59,12 @@ export function PersonPlusIcon(props: ComponentProps<'svg'>) {
     </svg>
   );
 }
+
+/** An arrow leaving a tray: share. Decorative: the button has its label. */
+export function ShareIcon(props: ComponentProps<'svg'>) {
+  return (
+    <svg {...outline} aria-hidden="true" {...props}>
+      <path d="M12 3.5v11M7.5 8L12 3.5 16.5 8M5 13v6.5h14V13" />
+    </svg>
+  );
+}

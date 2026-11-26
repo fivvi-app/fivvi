@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.R
+import app.fivvi.core.TrainerWordForms
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.InsetGroupedList
 import app.fivvi.core.kit.NextCard
@@ -50,6 +51,7 @@ import app.fivvi.core.kit.SegmentedOption
 import app.fivvi.core.kit.SessionType
 import app.fivvi.core.kit.sessionColors
 import app.fivvi.core.theme.tokens
+import app.fivvi.core.trainerWordForms
 import app.fivvi.core.ui.placeholder
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
@@ -57,8 +59,6 @@ import app.fivvi.designtokens.caption
 import app.fivvi.designtokens.footnote
 import app.fivvi.designtokens.headline
 import app.fivvi.designtokens.subhead
-import app.fivvi.pro.sessions.TrainerWordForms
-import app.fivvi.pro.sessions.trainerWordForms
 import java.time.Instant
 import java.util.UUID
 

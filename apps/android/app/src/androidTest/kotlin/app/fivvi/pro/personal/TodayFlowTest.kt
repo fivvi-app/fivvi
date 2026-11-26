@@ -63,7 +63,8 @@ class TodayFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
 
     private fun string(id: Int, vararg args: Any) = localizedString(language, id, *args)
 
-    // Sarah's account as `GET /v1/me` answers it, [times] times: the home reads it, and Vandaag on each pull and foreground.
+    // Sarah's account as `GET /v1/me` answers it, [times] times: the home reads it at start; on each foreground the
+    // language and Vandaag read it, and Vandaag on each pull.
     private fun answerAccount(times: Int, workspaces: List<String> = listOf(JOHNS_GYM, SARAH_PT)) = repeat(times) {
         me.answerAccount(
             email = "trainer@example.com",

@@ -1,6 +1,6 @@
 # Fivvi prototype v2
 
-A throwaway, clickable prototype of the new look (November 2026): Calendar-style base with Fitness and Health details, Liquid Glass on iOS, Material 3 on Android, shadcn/ui on the web. It answers "what should Fivvi look like, and does the flow work?" before the native and web builds. Fictional data only.
+A clickable prototype of the new look (November 2026): Calendar-style base with Fitness and Health details, Liquid Glass on iOS, Material 3 on Android, shadcn/ui on the web. It answers "what should Fivvi look like, and does the flow work?" before the native and web builds, and it is kept in step with them: every PR that changes what a user sees leaves it matching the app ([`DESIGN.md`](../../../DESIGN.md#the-designs-follow-the-app)). Its code shows look and flow, never the architecture. Fictional data only.
 
 | Round | What | Panel |
 |---|---|---|
@@ -36,4 +36,4 @@ The ⚙ panel also switches language (NL/EN), accent, light/dark, glass, role, a
 | `more-history.js` | Round 9: a logged workout on the trainer web with its edit mode and confirmations, and the client panel entries |
 | `i18n.js` | English on top of the Dutch screens (the real apps use `packages/i18n`) |
 
-Decisions the owner made while reviewing it are listed in the commit history of this branch; they move into the design tokens, the flow docs and the specs once the prototype is final.
+The owner's decisions are recorded in [`DECISIONS.md`](DECISIONS.md), and the specs and flow docs follow it. The prototype is never final: it changes with the app.

@@ -1,5 +1,5 @@
 import type { Schemas } from '@fivvi/contract';
-import type { Locale } from '@fivvi/i18n';
+import type { Locale, TrainerWordForms } from '@fivvi/i18n';
 import { useTranslations } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
 import { type ClassesProps, ClassesProvider } from './classes/classes-provider';
@@ -32,6 +32,7 @@ export function WorkspaceFrame({
   name,
   slug,
   teamRole,
+  trainerWord,
   workspaces,
   canCreateWorkspace,
   capabilities,
@@ -45,6 +46,8 @@ export function WorkspaceFrame({
   name: string;
   slug: string;
   teamRole: Schemas['MyWorkspace']['role'];
+  /** The word this workspace uses for its trainers, in the reader's language (F068): the sidebar's *Trainers* and the role in the switcher. */
+  trainerWord: TrainerWordForms;
   /** Every workspace the person is on the team of, by name: the scope switcher lists them (F012). */
   workspaces: ComponentProps<typeof WorkspaceSwitcher>['workspaces'];
   /** On the sign-up allowlist: the scope switcher ends with *Nieuwe werkruimte* (F012). */
@@ -79,7 +82,11 @@ export function WorkspaceFrame({
     items.push({ href: `/w/${slug}/classes`, label: t('classes'), icon: 'classes' });
   }
   if (capabilities.includes('team.view')) {
-    items.push({ href: `/w/${slug}/trainers`, label: t('trainers'), icon: 'trainers' });
+    items.push({
+      href: `/w/${slug}/trainers`,
+      label: t('trainers', { ...trainerWord }),
+      icon: 'trainers',
+    });
   }
   if (capabilities.includes('booking_link.copy')) {
     items.push({ href: `/w/${slug}/booking-links`, label: t('bookingLinks'), icon: 'joinLink' });
@@ -151,6 +158,7 @@ export function WorkspaceFrame({
           name={name}
           slug={slug}
           teamRole={teamRole}
+          trainerWord={trainerWord}
           workspaces={workspaces}
           canCreateWorkspace={canCreateWorkspace}
         />

@@ -209,6 +209,68 @@ describe.each(locales)('F014 the Owner’s Dashboard in %s', (locale) => {
     expect(html).not.toContain(copy.assign);
   });
 
+  describe('F025 AC11: Aandacht nodig, sessions of yesterday without attendance', () => {
+    const attendance = messages[locale].attendance;
+    // Monday 21 September 2026: Mark's session 07:00 and the evening Kracht at 19:00 ended yesterday.
+    const yesterday: Item = {
+      ...mark,
+      id: 's-yesterday',
+      startsAt: '2026-09-21T05:00:00.000Z',
+      endsAt: '2026-09-21T06:00:00.000Z',
+      attendanceOpen: true,
+    };
+    const yesterdayClass: Item = {
+      ...kracht,
+      id: 's-yesterday-class',
+      startsAt: '2026-09-21T17:00:00.000Z',
+      endsAt: '2026-09-21T18:00:00.000Z',
+      attendanceOpen: true,
+    };
+    const plural = (count: number) =>
+      attendance.needs.replace(
+        /\{count, plural, one \{([^}]*)\} other \{([^}]*)\}\}/,
+        (_, one: string, other: string) => (count === 1 ? one : other).replace('#', String(count)),
+      );
+
+    it('says how many, with Invullen that expands the row into the sessions, each linking to its page', () => {
+      const html = draw({ attention: [], needsAttendance: [yesterday, yesterdayClass] });
+
+      expect(text(html)).toContain(plural(2));
+      expect(html).toMatch(
+        new RegExp(`<button[^>]*aria-expanded="false"[^>]*>${attendance.fillIn}</button>`),
+      );
+      // The list is there for the expanded state and hidden until then.
+      expect(html).toMatch(/<ul[^>]*hidden=""[^>]*aria-label="[^"]*"/);
+      expect(html).toContain('href="/w/pilot-gym/sessions/s-yesterday"');
+      expect(html).toContain('href="/w/pilot-gym/sessions/s-yesterday-class"');
+      expect(text(html)).toContain(
+        attendance.needsItem
+          .replace('{name}', 'Mark Jansen')
+          .replace('{date}', shortDay('2026-09-21'))
+          .replace('{time}', '07:00'),
+      );
+      expect(text(html)).toContain(
+        attendance.needsItem
+          .replace('{name}', 'Kracht')
+          .replace('{date}', shortDay('2026-09-21'))
+          .replace('{time}', '19:00'),
+      );
+      // Something needs attention: the card does not say everything is up to date.
+      expect(text(html)).not.toContain(copy.attentionNone);
+    });
+
+    it('says one session in the singular', () => {
+      expect(text(draw({ needsAttendance: [yesterday] }))).toContain(plural(1));
+    });
+
+    it('is gone once every session is filled in', () => {
+      const html = draw({ attention: [], needsAttendance: undefined });
+
+      expect(html).not.toContain(attendance.fillIn);
+      expect(text(html)).toContain(copy.attentionNone);
+    });
+  });
+
   it('AC10: Nog vandaag has Tijd, Sessie, Trainer and Bezetting and lists only what is still to come', () => {
     const html = draw();
 

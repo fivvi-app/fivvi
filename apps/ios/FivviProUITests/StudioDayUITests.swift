@@ -9,10 +9,11 @@ final class StudioDayUITests: SignInUITestCase {
     private var server: StubServer?
 
     private func launch(
-        role: String = "owner", hasTeam: Bool = true, name: String = "John Visser"
+        role: String = "owner", hasTeam: Bool = true, name: String = "John Visser", trainerWord: String = "trainer"
     ) throws -> (XCUIApplication, StubServer) {
         let server = try StubServer(signIn: StubServer.SignIn(
-            email: "john@example.com", workspaceName: "John's Gym", role: role, name: name, hasTeam: hasTeam
+            email: "john@example.com", workspaceName: "John's Gym", role: role, trainerWord: trainerWord, name: name,
+            hasTeam: hasTeam
         ))
         self.server = server
         let app = AppLaunch.launch(against: server, session: .signedIn, startTab: nil, now: "2026-09-22T08:35:00+02:00")
@@ -26,6 +27,24 @@ final class StudioDayUITests: SignInUITestCase {
     }
 
     private var words: String { catalog["trainerWord.trainer.words"] }
+
+    /// F068 AC1: John's Gym uses *instructeur*, so the studio's day talks about its *instructeurs* (*instructors*).
+    func test_F068_AC1_theStudioDaySaysTheWorkspacesWord() throws {
+        let (app, _) = try launch(trainerWord: "instructeur")
+        let control = app.segmentedControls["today.scope"]
+        XCTAssertTrue(control.waitUntilExists(timeout: timeout), log)
+        control.buttons[catalog["myDay.app.scopeStudio"]].tap()
+
+        let line = app.staticTexts["today.scope.line"]
+        XCTAssertTrue(line.waitUntilExists(timeout: timeout), log)
+        let plural = catalog["trainerWord.instructeur.words"]
+        XCTAssertEqual(line.label, String(format: catalog["myDay.app.studioLine"], plural, "John's Gym"))
+        XCTAssertEqual(plural, TestCatalog.configuredLanguage == "nl" ? "instructeurs" : "instructors")
+        XCTAssertEqual(
+            app.staticTexts["today.studio.head"].label,
+            String(format: catalog["myDay.app.studioTrainersMany"], "3", plural)
+        )
+    }
 
     func test_F014_AC11_ownerTogglesWorkspaceDay() throws {
         let (app, server) = try launch()
@@ -81,6 +100,34 @@ final class StudioDayUITests: SignInUITestCase {
         let mark = app.buttons["today.row.\(StubPersonalRoutes.mark)"]
         XCTAssertTrue(mark.waitUntilExists(timeout: timeout), "Mijn dag again")
         XCTAssertFalse(app.staticTexts["today.studio.head"].exists)
+    }
+
+    /// F068 (#1604): the word is changed on the web while Fivvi Pro is in the background; when the person comes back,
+    /// the account is read again and the studio's day, still open, says the new word, on the same day (no new read of it
+    /// is needed for that, and the control stays on *Hele studio*).
+    func test_F068_theStudioDayFollowsTheWordWhenTheWorkspacesWordChanges() throws {
+        let (app, server) = try launch()
+        let control = app.segmentedControls["today.scope"]
+        XCTAssertTrue(control.waitUntilExists(timeout: timeout), log)
+        control.buttons[catalog["myDay.app.scopeStudio"]].tap()
+        let line = app.staticTexts["today.scope.line"]
+        XCTAssertTrue(line.waitUntilExists(timeout: timeout), log)
+        XCTAssertEqual(line.label, String(format: catalog["myDay.app.studioLine"], words, "John's Gym"))
+
+        server.trainerWord = "instructeur"
+        XCUIDevice.shared.press(.home)
+        _ = app.wait(for: .runningBackground, timeout: timeout)
+        app.activate()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: timeout))
+
+        let plural = catalog["trainerWord.instructeur.words"]
+        let expected = String(format: catalog["myDay.app.studioLine"], plural, "John's Gym")
+        let follows = Polling.until(timeout: timeout, interval: 0.3) { line.exists && line.label == expected }
+        XCTAssertTrue(follows, "the line says the new word: \(line.label)\n\(log)")
+        XCTAssertEqual(
+            app.staticTexts["today.studio.head"].label,
+            String(format: catalog["myDay.app.studioTrainersMany"], "3", plural)
+        )
     }
 
     func test_F014_AC11_aTrainerHasNoControl() throws {

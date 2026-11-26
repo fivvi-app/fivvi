@@ -1,12 +1,13 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { messages } from '../index.ts';
 import { analyze } from './analyze.ts';
 import { readCatalogSet } from './catalog.ts';
 import { runChecks } from './checks.ts';
 import { literalTrainerProblems } from './no-literal-trainer.ts';
 import {
   type AllowedForGood,
-  type AllowedForNow,
+  type AllowedForGoodKey,
   type AllowedNotTheRole,
   type TrainerAllowlist,
   trainerAllowlist,
@@ -78,10 +79,10 @@ describe('F068 no-literal-trainer check', () => {
       scope: 'website',
       reason: 'The public website’s copy is out of scope (spec #588).',
     };
-    const forNow: AllowedForNow = {
-      key: 'team.title',
-      movesWith: 746,
-      reason: 'moves with #746: the Trainers page',
+    const forGoodKey: AllowedForGoodKey = {
+      exactKey: 'myProfile.trainerRole',
+      scope: 'no-workspace',
+      reason: 'Mijn profiel lists the workspaces of one person, so it has no one word.',
     };
 
     it('lets an entry for good cover every key under its prefix', () => {
@@ -128,34 +129,40 @@ describe('F068 no-literal-trainer check', () => {
       ]);
     });
 
-    it('lets an entry for now cover exactly its key', () => {
-      const messages = { 'team.title': 'Trainers', 'team.other': 'Trainers' };
-      expect(problemsFor(messages, messages, [forNow])).toEqual([
-        expect.stringContaining('"team.other"'),
+    it('lets an entry for a screen with no workspace cover exactly its key', () => {
+      const messages = { 'myProfile.trainerRole': 'Trainer', 'myProfile.other': 'Trainer' };
+      expect(problemsFor(messages, messages, [forGoodKey])).toEqual([
+        expect.stringContaining('"myProfile.other"'),
       ]);
     });
 
-    it('fails on an entry that no message needs any more, so the ticket takes it off', () => {
-      const messages = { 'team.title': 'Instructeurs' };
-      expect(problemsFor(messages, messages, [forNow])).toEqual([
-        expect.stringContaining('"team.title" no longer says trainer'),
+    it('fails on an entry that no message needs any more', () => {
+      const messages = { 'myProfile.trainerRole': '{Word}' };
+      expect(problemsFor(messages, messages, [forGoodKey])).toEqual([
+        expect.stringContaining('"myProfile.trainerRole" no longer says trainer'),
       ]);
     });
 
     it('fails on an entry without a reason, or twice', () => {
-      const messages = { 'team.title': 'Trainers' };
-      expect(problemsFor(messages, messages, [{ ...forNow, reason: ' ' }])).toEqual([
+      const messages = { 'myProfile.trainerRole': 'Trainer' };
+      expect(problemsFor(messages, messages, [{ ...forGoodKey, reason: ' ' }])).toEqual([
         expect.stringContaining('reason'),
       ]);
-      expect(problemsFor(messages, messages, [forNow, forNow])).toEqual([
+      expect(problemsFor(messages, messages, [forGoodKey, forGoodKey])).toEqual([
         expect.stringContaining('twice'),
       ]);
     });
 
-    it('fails on an entry for now that does not name a ticket of spec #588', () => {
+    it('has no kind of entry that is temporary: nothing says it moves with a ticket', () => {
       const messages = { 'team.title': 'Trainers' };
-      const stray = { ...forNow, movesWith: 12 } as unknown as AllowedForNow;
-      expect(problemsFor(messages, messages, [stray])).toEqual([expect.stringContaining('#588')]);
+      const temporary = {
+        key: 'team.title',
+        movesWith: 746,
+        reason: 'moves with #746: the Trainers page',
+      } as unknown as TrainerAllowlist[number];
+      expect(problemsFor(messages, messages, [temporary])).toEqual(
+        expect.arrayContaining([expect.stringContaining('"team.title" says "trainer" literally')]),
+      );
     });
   });
 
@@ -171,18 +178,34 @@ describe('F068 no-literal-trainer check', () => {
       ]);
     });
 
-    it('gives every other entry the ticket of #588 that removes it, and a reason that says so', () => {
-      const forNow = trainerAllowlist.filter((entry): entry is AllowedForNow => 'key' in entry);
-      expect(forNow.length).toBeGreaterThan(0);
-      for (const entry of forNow) {
-        expect(entry.reason, entry.key).toContain(`moves with #${entry.movesWith}`);
-        expect([746, 747, 748, 749, 750, 751], entry.key).toContain(entry.movesWith);
+    it('names for good one key of a screen with no workspace: the role in Mijn profiel', () => {
+      const forGoodKeys = trainerAllowlist.filter(
+        (entry): entry is AllowedForGoodKey =>
+          'exactKey' in entry && entry.scope === 'no-workspace',
+      );
+      expect(forGoodKeys.map((entry) => entry.exactKey)).toEqual(['myProfile.trainerRole']);
+    });
+
+    it('has no temporary entry: every entry is for a screen with no workspace, the website or a word that is not the role', () => {
+      for (const entry of trainerAllowlist) {
+        expect(['no-workspace', 'website', 'not-the-role'], JSON.stringify(entry)).toContain(
+          entry.scope,
+        );
+        expect(entry, JSON.stringify(entry)).not.toHaveProperty('movesWith');
+      }
+    });
+
+    it('has no old role label: roles.trainer is in neither catalog, and nothing else replaced it by name', () => {
+      for (const locale of ['nl-NL', 'en'] as const) {
+        expect(messages[locale].roles).not.toHaveProperty('trainer');
+        expect(messages[locale].roles).toHaveProperty('trainerLabel');
       }
     });
 
     it('allows words that are not the role only by exact key, each naming the equipment', () => {
       const notTheRole = trainerAllowlist.filter(
-        (entry): entry is AllowedNotTheRole => 'exactKey' in entry,
+        (entry): entry is AllowedNotTheRole =>
+          'exactKey' in entry && entry.scope === 'not-the-role',
       );
       expect(notTheRole.map((entry) => entry.exactKey)).toEqual([
         'exercises.names.stationaryBike',

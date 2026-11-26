@@ -163,7 +163,7 @@ private struct KitGalleryBlocks: View {
         Card {
             HStack(spacing: Tokens.Spacing.space2) {
                 StatusPill(text: catalog[.rolesOwner], kind: .success)
-                StatusPill(text: catalog[.rolesTrainer], kind: .warning)
+                StatusPill(text: catalog.trainerRoleLabel(.trainer), kind: .warning)
                 StatusPill(text: "3/8")
                 StatusPill(text: catalog[.clientsNotSaved], kind: .danger)
             }

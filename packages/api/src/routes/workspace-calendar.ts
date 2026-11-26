@@ -6,6 +6,7 @@ import {
   type WorkspaceScope,
 } from '@fivvi/database';
 import {
+  attendanceWindow,
   attentionWindow,
   busiestMoment,
   type DetachedField,
@@ -15,6 +16,7 @@ import {
   localDayBounds,
   PERSONAL_RANGE_MAX_DAYS,
   parseWeeklyRule,
+  sessionsNeedingAttendance,
   sessionsOfDay,
   sessionsWithoutTrainer,
   type WorkspaceCalendarSession,
@@ -29,6 +31,11 @@ import {
   NOT_FOUND,
   validationErrorResponse,
 } from '../errors.ts';
+import {
+  AttendanceOpenFieldSchema,
+  AttendanceSummarySchema,
+  attendanceShown,
+} from './attendance.ts';
 import { LocationSchema } from './locations.ts';
 import { PersonalSessionClientSchema } from './personal.ts';
 import { ClassLevelSchema, SessionSeriesSchema, SessionTrainerSchema } from './sessions.ts';
@@ -220,6 +227,8 @@ export const WorkspaceCalendarSessionSchema = z
           'A client who cancelled is left out, a cancelled session keeps its clients. Left out ' +
           'for the other kinds.',
       }),
+    attendanceOpen: AttendanceOpenFieldSchema,
+    attendance: AttendanceSummarySchema.optional(),
     series: SessionSeriesSchema.optional().openapi({
       description:
         'The weekly series of a class date (F022): the weekday and time of the series line and ' +
@@ -228,8 +237,10 @@ export const WorkspaceCalendarSessionSchema = z
   })
   .openapi('WorkspaceCalendarSession', {
     description:
-      'A session of the workspace as a block of its calendar. It holds no note, email address or ' +
-      'other contact detail of a client.',
+      'A session of the workspace as a block of its calendar. `attendanceOpen` says it waits for ' +
+      'attendance (F025); `attendance` counts the statuses of a class date’s or a private session’s ' +
+      'participants and is left out for Open Gym. It holds no note, email address or other contact detail of a ' +
+      'client.',
   });
 
 export const WorkspaceCalendarSchema = z
@@ -306,6 +317,19 @@ export const WorkspaceDaySchema = z
         'geen trainer". Empty when nothing needs attention. Later features add their own open ' +
         'items.',
     }),
+    needsAttendance: z
+      .array(WorkspaceCalendarSessionSchema)
+      .optional()
+      .openapi({
+        description:
+          '*Aandacht nodig*, F025: the sessions that ended yesterday (on the workspace’s wall clock, ' +
+          'counted from now, whatever `date` is shown; one that ends at midnight ended yesterday, ' +
+          'one that crosses midnight is of the day it ended) that took place and still have a ' +
+          'participant *Geboekt*, in time order: "{n} sessies van gisteren zonder aanwezigheid · ' +
+          'Invullen". Each item links to its session page and says what it is as data (`type`, ' +
+          '`className` or `clientName`). A session leaves the list once every participant is filled ' +
+          'in. Left out when there is none.',
+      }),
     hasSessions: z.boolean().openapi({
       description:
         'Whether the workspace has any session at all, past or planned, cancelled or not, ' +
@@ -365,7 +389,8 @@ const getWorkspaceDayRoute = defineRoute(
     description:
       'The sessions of the workspace on one day (today unless `date` says otherwise, on the ' +
       'workspace’s wall clock), whoever the trainer is, in time order, and *Aandacht nodig*: the ' +
-      'class dates and private sessions in the next 14 days that have no trainer. `busiest` is the ' +
+      'class dates and private sessions in the next 14 days that have no trainer, and `needsAttendance`: ' +
+      'the sessions that ended yesterday and still wait for attendance. `busiest` is the ' +
       'day’s busiest moment (the time with the most sessions at once, and how many), left out ' +
       'when no two sessions overlap. For the Owner’s dashboard and the ' +
       'apps’ *Mijn dag | {workspace}* toggle. Only for the Owner (`calendar.manage`).',
@@ -391,6 +416,7 @@ interface CalendarItem extends WorkspaceCalendarSession {
 function toItem(row: WorkspaceCalendarRow): CalendarItem {
   return {
     row,
+    participantStatuses: row.attendanceStatuses,
     sessionId: row.id,
     type: row.type,
     status: row.status,
@@ -402,7 +428,7 @@ function toItem(row: WorkspaceCalendarRow): CalendarItem {
 }
 
 /** What the answer shows of a session: instants as ISO text; the fields of the other kinds are left out. */
-function shown({ row }: CalendarItem, timeZone: string, viewerLocale: string) {
+function shown({ row }: CalendarItem, timeZone: string, viewerLocale: string, now: Date) {
   const rule = row.series ? parseWeeklyRule(row.series.rrule) : undefined;
   return {
     id: row.id,
@@ -426,6 +452,7 @@ function shown({ row }: CalendarItem, timeZone: string, viewerLocale: string) {
             : { className: pickContentLanguage(viewerLocale, row.classNameNl, row.classNameEn) }),
           ...(row.level === null ? {} : { level: row.level }),
         }),
+    ...attendanceShown(row, now),
     ...(row.series && rule
       ? {
           series: {
@@ -501,6 +528,7 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
       };
     }
     const viewerLocale = viewerLocaleOf(c);
+    const now = c.get('dependencies').clock.now();
     const items = filterWorkspaceCalendar(await readWindow(scope, window), {
       ...(trainerIds ? { trainerIds } : {}),
       ...(types ? { types } : {}),
@@ -528,7 +556,7 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
         from,
         ...(to === undefined ? {} : { to }),
         timeZone: workspace.timeZone,
-        items: items.map((item) => shown(item, workspace.timeZone, viewerLocale)),
+        items: items.map((item) => shown(item, workspace.timeZone, viewerLocale, now)),
       },
       200,
     );
@@ -557,11 +585,21 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
     const ahead = window ? await readWindow(scope, window) : [];
     // Any row says the workspace has sessions; only an empty answer asks the database.
     const hasSessions = rows.length > 0 || ahead.length > 0 || (await hasWorkspaceSession(scope));
+    // Yesterday counted from now, whatever day is shown (F025): read on its own as well. The
+    // domain says what to read (a session that ended yesterday may have begun the day before).
+    const attendance = attendanceWindow(now, workspace.timeZone);
+    const needAttendance = attendance
+      ? sessionsNeedingAttendance(
+          await readWindow(scope, { from: attendance.from, to: attendance.to }),
+          now,
+          workspace.timeZone,
+        )
+      : [];
     return c.json(
       {
         date,
         timeZone: workspace.timeZone,
-        items: rows.map((item) => shown(item, workspace.timeZone, viewerLocale)),
+        items: rows.map((item) => shown(item, workspace.timeZone, viewerLocale, now)),
         ...(busiest
           ? {
               busiest: {
@@ -573,8 +611,15 @@ export function registerWorkspaceCalendar(app: OpenAPIHono) {
             }
           : {}),
         attention: sessionsWithoutTrainer(ahead, now, workspace.timeZone).map((item) =>
-          shown(item, workspace.timeZone, viewerLocale),
+          shown(item, workspace.timeZone, viewerLocale, now),
         ),
+        ...(needAttendance.length > 0
+          ? {
+              needsAttendance: needAttendance.map((item) =>
+                shown(item, workspace.timeZone, viewerLocale, now),
+              ),
+            }
+          : {}),
         hasSessions,
       },
       200,

@@ -1,8 +1,10 @@
 import { loginPath } from '@fivvi/auth/return-path';
+import { trainerWordForms } from '@fivvi/i18n';
 import type { Metadata, Route } from 'next';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { catalogLocale } from '../../../../i18n/config';
 import { apiClient } from '../../../../server/api';
 import { loadMe } from '../../../../server/me';
 import { InvitationCard, type InvitationView } from './invitation-card';
@@ -18,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * sign-in: a visitor who is not signed in goes to TW-10 and comes back here (`returnTo`). Signed in
  * with the address the invitation is for, the person answers it; with another address they read the
  * masked address and can sign out. What is read of the invitation (`GET /v1/invitations/{token}`)
- * is the workspace's name, the inviter's name, the address (`email`, which TW-10 uses to open with
+ * is the workspace's name, the word it uses for its trainers (F068), the inviter's name, the address (`email`, which TW-10 uses to open with
  * the address filled in), its masked form and whether it is for the signed-in account (`forYou`).
  * This page passes only `maskedEmail` to the card; the plain address never reaches the page's
  * markup.
@@ -45,6 +47,7 @@ export default async function InvitationPage({ params }: PageProps<'/invitations
         workspaceName: preview.workspaceName,
         inviterName: preview.inviterName,
         maskedEmail: preview.maskedEmail,
+        trainerWord: trainerWordForms(preview.trainerWord, catalogLocale(await getLocale())),
       }
     : { kind: 'wrongAccount', maskedEmail: preview.maskedEmail };
   return <InvitationCard token={token} initial={view} />;
