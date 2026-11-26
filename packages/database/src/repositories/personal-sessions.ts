@@ -83,6 +83,11 @@ export interface PersonalSessionRow {
    */
   readonly clientName: string | null;
   /**
+   * The status of every place of the session, cancelled ones included, in the order they were added
+   * (F025: `attendanceOpen` and the summary of a class are read from it). Names no client.
+   */
+  readonly attendanceStatuses: readonly AttendanceStatus[];
+  /**
    * The names of the class of a group session (F021), `null` for any other kind: the Dutch name
    * and the English one when it has one. The viewer's language picks between them
    * (`pickContentLanguage`, `packages/i18n`); that is not decided here.
@@ -230,11 +235,12 @@ export async function listSessionPlaces(
 export function placesShown(
   type: SessionType,
   places: readonly SessionPlace[],
-): Pick<PersonalSessionRow, 'booked' | 'clients' | 'clientName'> {
+): Pick<PersonalSessionRow, 'booked' | 'clients' | 'clientName' | 'attendanceStatuses'> {
   const active = places.filter((place) => place.attendanceStatus !== 'cancelled');
   const shown = type === 'private' ? (active.length > 0 ? active : places) : [];
   return {
     booked: active.length,
+    attendanceStatuses: places.map((place) => place.attendanceStatus),
     clients: shown.map((place) => ({ clientId: place.clientId, name: place.name })),
     clientName: shown.length > 0 ? shown.map((place) => place.name).join(' & ') : null,
   };

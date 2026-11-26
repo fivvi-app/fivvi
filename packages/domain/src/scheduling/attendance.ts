@@ -152,6 +152,33 @@ export function needsAttendance(
   );
 }
 
+/**
+ * Whether a session of the read models says *Aanwezigheid nog invullen* (F025, Q18): the rule of
+ * `needsAttendance` for a private session or a class date. Open Gym has no attendance yet, so it
+ * is never open, whoever is booked. The one place the type gate and the rule meet: the nudge on a
+ * session and the dashboard's *Aandacht nodig* row both ask here.
+ */
+export function attendanceOpen(
+  session: Pick<AttendanceSession, 'status' | 'endsAt'> & {
+    readonly type: 'private' | 'group' | 'open_gym';
+    /** The statuses of its participants; left out by a caller that has none. */
+    readonly participantStatuses?: readonly ParticipantStatus[];
+  },
+  now: Date,
+): boolean {
+  return (
+    session.type !== 'open_gym' &&
+    needsAttendance(
+      {
+        status: session.status,
+        endsAt: session.endsAt,
+        participants: session.participantStatuses ?? [],
+      },
+      now,
+    )
+  );
+}
+
 /** The counts of a session's statuses: `open` are the participants still `booked`. */
 export interface AttendanceSummary {
   readonly attended: number;

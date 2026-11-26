@@ -339,6 +339,7 @@ export {
   type AttendanceRefusal,
   type AttendanceSession,
   type AttendanceSummary,
+  attendanceOpen,
   attendanceOpensAt,
   attendanceSummary,
   changeParticipantStatus,
@@ -477,10 +478,12 @@ export {
 } from './scheduling/trainer-conflicts.ts';
 export {
   ATTENTION_DAYS,
+  attendanceWindow,
   attentionWindow,
   type BusiestMoment,
   busiestMoment,
   filterWorkspaceCalendar,
+  sessionsNeedingAttendance,
   sessionsOfDay,
   sessionsWithoutTrainer,
   type WorkspaceCalendarFilters,

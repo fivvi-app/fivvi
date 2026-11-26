@@ -1,6 +1,7 @@
-// Module: The rules of the workspace calendar: the filters of the week, the rows of one day and the open item "a session without a trainer".
-// Spec: F014
+// Module: The rules of the workspace calendar: the filters of the week, the rows of one day and the open items "a session without a trainer" and "a session of yesterday without attendance".
+// Spec: F014, F025
 
+import { attendanceOpen, type ParticipantStatus } from './attendance.ts';
 import { orderPersonalSessions } from './personal-day.ts';
 import { addDays, localDateOf, localDayBounds } from './zoned-time.ts';
 
@@ -24,6 +25,11 @@ export interface WorkspaceCalendarSession {
   readonly trainerId: string | null;
   /** The class of a class date (F037: the dates of one class); left out or `null` for any other kind. */
   readonly groupClassId?: string | null;
+  /**
+   * The statuses of the session's participants, one each (F025: what *Aanwezigheid nog invullen*
+   * reads); left out by a caller that has none, which then needs no attendance.
+   */
+  readonly participantStatuses?: readonly ParticipantStatus[];
 }
 
 /** The filters of the calendar; a filter left out, or empty, narrows nothing. */
@@ -104,6 +110,54 @@ export function sessionsWithoutTrainer<T extends WorkspaceCalendarSession>(
         session.trainerId === null &&
         session.startsAt >= window.from &&
         session.startsAt < window.to,
+    ),
+  );
+}
+
+/**
+ * What the dashboard's *Aandacht nodig* row reads for attendance (F025): yesterday on the wall
+ * clock of `timeZone` counted from `now`, and the instants to read sessions from. A session that
+ * ended yesterday may have begun the day before (it crossed midnight), so `from` is the start of
+ * the day before yesterday; `to` is the end of yesterday, when the first session that ends today
+ * begins no later. `undefined` when the zone has no such days.
+ */
+export function attendanceWindow(
+  now: Date,
+  timeZone: string,
+):
+  | {
+      readonly from: Date;
+      readonly to: Date;
+      readonly yesterday: { readonly start: Date; readonly end: Date };
+    }
+  | undefined {
+  const today = localDateOf(now, timeZone);
+  const yesterday = localDayBounds(addDays(today, -1), timeZone);
+  const dayBefore = localDayBounds(addDays(today, -2), timeZone);
+  return yesterday && dayBefore
+    ? { from: dayBefore.start, to: yesterday.end, yesterday }
+    : undefined;
+}
+
+/**
+ * The sessions that ended yesterday and still wait for attendance (F025, WC-01 *Aandacht nodig*:
+ * "2 sessies van gisteren zonder aanwezigheid"), in time order: a private session or a class date
+ * that took place, whose end falls in yesterday on the wall clock of `timeZone` (after its first
+ * instant, up to and including its last: a session that ends at midnight ended yesterday, one that
+ * crosses midnight is of the day it ended) and has a participant still `booked`
+ * (`attendanceOpen`). Once every participant is filled in the session is gone from the list.
+ */
+export function sessionsNeedingAttendance<T extends WorkspaceCalendarSession>(
+  sessions: readonly T[],
+  now: Date,
+  timeZone: string,
+): T[] {
+  const window = attendanceWindow(now, timeZone);
+  if (!window) return [];
+  const { start, end } = window.yesterday;
+  return orderPersonalSessions(
+    sessions.filter(
+      (session) => session.endsAt > start && session.endsAt <= end && attendanceOpen(session, now),
     ),
   );
 }
