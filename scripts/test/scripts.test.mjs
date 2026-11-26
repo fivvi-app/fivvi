@@ -2106,6 +2106,8 @@ const fakeSimctl = (
 if [ "$1" = xcresulttool ]; then
   case "$*" in *" activities "*) [ -z "$FAKE_XCRESULT_ACTIVITIES" ] || cat "$FAKE_XCRESULT_ACTIVITIES"; exit 0 ;; esac
   bundle=; while [ $# -gt 0 ]; do [ "$1" != --path ] || bundle="$2"; shift; done
+  # A summary the fake xcodebuild left inside the bundle (FAKE_BUSY) is the bundle's own, and goes with it when the script removes it.
+  [ ! -f "$bundle/fake-summary.json" ] || { cat "$bundle/fake-summary.json"; exit 0; }
   by_bundle="$FAKE_XCRESULT_DIR/$(basename "$bundle").json"
   if [ -n "$FAKE_XCRESULT_DIR" ] && [ -f "$by_bundle" ]; then cat "$by_bundle"
   elif [ -n "$FAKE_XCRESULT" ]; then cat "$FAKE_XCRESULT"; fi
@@ -2383,6 +2385,20 @@ case "$*" in
     case "$*" in *-retry.xcresult*) [ -z "$FAKE_RETRY_RESULT" ] || FAKE_RESULT="$FAKE_RETRY_RESULT" ;; esac
     # FAKE_FIRST_RUN_SECONDS (#1433): the first run, not the retry, takes this many seconds (fractions allowed).
     case "$*" in *-retry.xcresult*) ;; *) [ -z "$FAKE_FIRST_RUN_SECONDS" ] || perl -e 'select undef, undef, undef, shift' "$FAKE_FIRST_RUN_SECONDS" ;; esac
+    # FAKE_BUSY=<n> (#1607): the first n runs fail the way xcodebuild does when the simulator is still installing the test
+    # runner: it prints the error and exits 65, and leaves a bundle that holds the summary FAKE_BUSY_SUMMARY names.
+    if [ -n "$FAKE_BUSY" ]; then
+      ran=$(cat "${state}/busy-runs" 2>/dev/null || echo 0)
+      if [ "$ran" -lt "$FAKE_BUSY" ]; then
+        echo $((ran + 1)) >"${state}/busy-runs"
+        bundle=; prev=; for a in "$@"; do [ "$prev" != -resultBundlePath ] || bundle="$a"; prev="$a"; done
+        mkdir -p "$bundle"; cp "$FAKE_BUSY_SUMMARY" "$bundle/fake-summary.json"
+        echo 'Testing failed:'
+        echo '	Simulator device failed to launch app.fivvi.uitests.xctrunner.'
+        echo '** TEST EXECUTE FAILED **'
+        exit 65
+      fi
+    fi
     # FAKE_RESULT=stall: it never ends on its own, and on SIGINT it records that and ends with 130 (it has written its bundle).
     [ "$FAKE_RESULT" != stall ] || exec perl -e '$SIG{INT} = sub { open my $f, ">", shift(@ARGV); print $f "SIGINT\\n"; close $f; exit 130 }; sleep 60' "${state}/sigint.log"
     # FAKE_RESULT=stall-ignore-int: the same, but it ignores SIGINT, so only SIGKILL ends it.
@@ -3227,6 +3243,113 @@ esac`,
 
           assert.equal(run.status, 1, run.output);
           assert.match(run.output, /XUITests\/test2: did not run in the retry/);
+        });
+      });
+
+      // #1607: a simulator that is still installing the UI test runner ("Busy (installing or uninstalling)") fails the run
+      // without a failing test (nightly run 45598309235, 25 November: 1 of the 14 classes of the part ran). That alone is
+      // retried, once; a failing test never is.
+      describe('#1607: a run whose only failure is a Busy simulator that cannot launch the test runner is run once more', () => {
+        const BUSY =
+          'FivviUITests-Runner encountered an error (Failed to install or launch the test runner. (Underlying Error: ' +
+          'Simulator device failed to launch app.fivvi.uitests.xctrunner. The request was denied by service delegate ' +
+          '(SBMainWorkspace) for reason: Busy ("Application "app.fivvi.uitests.xctrunner" is installing or uninstalling, ' +
+          'and cannot be launched")))';
+        const failure = (name, text) => ({
+          testName: name,
+          testIdentifierString: name,
+          testIdentifierURL: `test://com.apple.xcode/Fivvi/${name}`,
+          failureText: text,
+        });
+        // The summary the first run leaves in its bundle: `failures` are [name, text] pairs.
+        const firstRun = (fake, failures) => {
+          const file = join(fake.repo, '..', 'busy-summary.json');
+          writeFileSync(
+            file,
+            JSON.stringify({
+              failedTests: failures.length,
+              passedTests: 0,
+              skippedTests: 0,
+              expectedFailures: 0,
+              totalTestCount: failures.length,
+              testFailures: failures.map(([name, text]) => failure(name, text)),
+              testNodes: [],
+            }),
+          );
+          return file;
+        };
+        const busy = (fake, list, summary, env = {}) =>
+          part(fake, list, 'nl', '1/2', 5, {
+            FAKE_BUSY: '1',
+            FAKE_BUSY_SUMMARY: summary,
+            ...env,
+          });
+
+        it('runs the part once more, in its bundle and with its tests, and passes when the second run passes', async () => {
+          const { fake, list } = await built();
+
+          const run = await busy(fake, list, firstRun(fake, [['FivviUITests-Runner', BUSY]]));
+
+          assert.equal(run.status, 0, run.output);
+          const lines = runs(fake);
+          assert.equal(lines.length, 2, 'the part and one more run');
+          assert.deepEqual(only(lines[1]), only(lines[0]));
+          assert.deepEqual(only(lines[1]), [
+            'FivviProTests/AlphaTests',
+            'FivviProUITests/ZUITests',
+          ]);
+          assert.match(lines[1], /-resultBundlePath \.build\/TestResults-nl-1of2\.xcresult\b/);
+          assert.match(run.output, /::warning::.*Busy.*run once more/);
+          assert.match(run.output, /✓ iOS tests in nl, part 1 of 2/);
+        });
+
+        it('retries once only: a second Busy run fails the part', async () => {
+          const { fake, list } = await built();
+
+          const run = await busy(fake, list, firstRun(fake, [['FivviUITests-Runner', BUSY]]), {
+            FAKE_BUSY: '2',
+          });
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(runs(fake).length, 2, 'the part and one more run, not a third');
+          assert.doesNotMatch(run.output, /✓ iOS tests/);
+        });
+
+        it('never retries a real test failure', async () => {
+          const { fake, list } = await built();
+          const summary = firstRun(fake, [['AlphaTests/test1', 'XCTAssertEqual failed']]);
+
+          const run = await busy(fake, list, summary);
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(runs(fake).length, 1, 'no second run');
+          assert.doesNotMatch(run.output, /run once more/);
+        });
+
+        it('never retries a Busy run that also has a real test failure', async () => {
+          const { fake, list } = await built();
+          const summary = firstRun(fake, [
+            ['FivviUITests-Runner', BUSY],
+            ['AlphaTests/test1', 'XCTAssertEqual failed'],
+          ]);
+
+          const run = await busy(fake, list, summary);
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(runs(fake).length, 1, 'no second run');
+        });
+
+        it('does not retry when too little of the part deadline is left for a second run', async () => {
+          const { fake, list } = await built();
+
+          const run = await busy(fake, list, firstRun(fake, [['FivviUITests-Runner', BUSY]]), {
+            IOS_TEST_DEADLINE: '4',
+            FAKE_FIRST_RUN_SECONDS: '3',
+          });
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(runs(fake).length, 1, 'no second run');
+          assert.match(run.output, /Not running the part once more: .*deadline/);
         });
       });
 
