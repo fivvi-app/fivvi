@@ -365,6 +365,19 @@
     "label": "Hoofdnavigatie",
     "profile": "Profiel"
   },
+  "clientWeb": {
+    "language": {
+      "enName": "English",
+      "enShort": "EN",
+      "error": "Je taal is niet opgeslagen. Probeer het opnieuw.",
+      "label": "Taal",
+      "nlName": "Nederlands",
+      "nlShort": "NL"
+    },
+    "noWorkspace": {
+      "haveLink": "Heb je de link al? Open hem en vraag daar om lid te worden."
+    }
+  },
   "clients": {
     "add": "Klant toevoegen",
     "addDialog": {

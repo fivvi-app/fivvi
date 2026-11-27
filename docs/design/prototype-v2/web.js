@@ -872,18 +872,14 @@
      A mobile website, built from the same parts as Fivvi Pro: large titles, glass bars, grouped lists,
      Calendar-style rows and the gradient "next" card. */
   var K = F.kit;
+  /* NL | EN in the header of every client web page */
+  function clang() { return '<div class="gb glass c-lng" translate="no">' + ["nl", "en"].map(function (l) { return '<button class="' + (F.PREF.lang === l ? "on" : "") + '" data-a="c-lang" data-v="' + l + '" aria-pressed="' + (F.PREF.lang === l) + '">' + l.toUpperCase() + "</button>"; }).join("") + "</div>"; }
   function client() {
     var c = C();
-    var lang = '<div class="gb glass c-lng" translate="no">' + ["nl", "en"].map(function (l) { return '<button class="' + (F.PREF.lang === l ? "on" : "") + '" data-a="c-lang" data-v="' + l + '" aria-pressed="' + (F.PREF.lang === l) + '">' + l.toUpperCase() + "</button>"; }).join("") + "</div>";
+    var lang = clang();
     if (c.step !== "app") return '<div class="screen"><div class="nb"><span class="sp"></span>' + lang + '</div><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + (CSTEP[c.step] || CSTEP.link)() + "</div></div>" + (c.web ? browser() : "");
-    var p = CSTEP.app(), sub = c.detail || c.workout != null;
-    var lead = sub ? '<button class="gb glass back" data-a="c-back" aria-label="Terug">' + ic("chevL") + "</button>" : c.tab === "rooster" ? wsSwitch() : "";
-    var h = '<div class="screen root c-web"><div class="nb">' + lead + '<span class="sp"></span>' + lang + '<div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
-    h += '<div class="fade-b"></div><nav class="tabbar" aria-label="Tabs"><div class="tabs glass">' + [["rooster", "Rooster", "cal"], ["agenda", "Mijn agenda", "today"], ["profiel", "Profiel", "me"]].map(function (t) { var on = c.tab === t[0]; return '<button class="tab ' + (on ? "on" : "") + '" data-a="c-tab" data-v="' + t[0] + '" aria-current="' + (on ? "page" : "false") + '">' + ic(t[2]) + "<span>" + t[1] + "</span></button>"; }).join("") + "</div></nav>";
-    if (c.web) h += browser();
-    if (c.wsheet) h += wsSheet();
-    if (c.dialog) h += cdialog();
-    return h;
+    /* signed in: the same Home, Boeken and Profiel as the app (owner, 6 Nov 2026; Activiteit comes with M7), in a web frame */
+    return capp();
   }
   /* the app's form field, with the client web's errors */
   function cfield(l, k, input) { var e = C().err && C().err[k]; return '<label class="fld' + (e ? " invalid" : "") + '"><span class="fl">' + l + "</span>" + input + (e ? '<small class="err" role="alert">' + ic("warn") + esc(e) + "</small>" : "") + "</label>"; }
@@ -1210,6 +1206,8 @@
   var ATABS = [["home", "Home", "home"], ["boeken", "Boeken", "cal"], ["training", "Activiteit", "pulse"], ["profiel", "Profiel", "me"]];
   function capp() {
     var c = C(); APP = true;
+    /* the client web: the app's tabs without Activiteit (M7), and NL | EN in the header */
+    var WEB = F.PREF.plat === "client", TABS = WEB ? ATABS.filter(function (t) { return t[0] !== "training"; }) : ATABS;
     try {
       if (!c.astep) c.astep = c.step === "app" ? "app" : "welcome";
       if (c.astep !== "app") {
@@ -1224,8 +1222,8 @@
       } else {
         /* the header: back on a sub page; on Boeken the studio switcher; elsewhere only the large title (owner, 5 Nov 2026) */
         var lead = sub ? '<button class="gb glass back" data-a="c-back" aria-label="Terug">' + ic("chevL") + "</button>" : (c.atab || "home") === "boeken" ? wsSwitch() : "";
-        h = '<div class="screen root c-web"><div class="nb">' + lead + '<span class="sp"></span><div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
-        h += '<div class="fade-b"></div><nav class="tabbar" aria-label="Tabs"><div class="tabs glass">' + ATABS.map(function (t) { var on = (c.atab || "home") === t[0]; return '<button class="tab ' + (on ? "on" : "") + '" data-a="c-atab" data-v="' + t[0] + '" aria-current="' + (on ? "page" : "false") + '">' + ic(t[2]) + "<span>" + t[1] + "</span></button>"; }).join("") + "</div></nav>";
+        h = '<div class="screen root c-web"><div class="nb">' + lead + '<span class="sp"></span>' + (WEB ? clang() : "") + '<div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
+        h += '<div class="fade-b"></div><nav class="tabbar" aria-label="Tabs"><div class="tabs glass">' + TABS.map(function (t) { var on = (c.atab || "home") === t[0]; return '<button class="tab ' + (on ? "on" : "") + '" data-a="c-atab" data-v="' + t[0] + '" aria-current="' + (on ? "page" : "false") + '">' + ic(t[2]) + "<span>" + t[1] + "</span></button>"; }).join("") + "</div></nav>";
       }
       if (c.web) h += browser();
       if (c.wsheet) h += wsSheet();
@@ -1414,7 +1412,7 @@
   A["c-reset"] = function () { var c = C(); c.step = "link"; c.code = ""; R(); };
   A["c-signin"] = function () { var c = C(); c.step = c.who === "anna" ? "app" : "request"; R(); };
   A["c-request"] = function () { var c = C(); if (!c.name.trim()) { c.err = { name: "Vul je naam in" }; F.toast(c.err.name, "err"); return; } c.step = "waiting"; F.toast("Verzoek verstuurd"); };
-  A["c-approved"] = function () { var c = C(); c.step = "app"; c.tab = "rooster"; F.toast("Je bent goedgekeurd. Welkom!"); };
+  A["c-approved"] = function () { var c = C(); c.step = "app"; c.tab = "rooster"; c.atab = "home"; F.toast("Je bent goedgekeurd. Welkom!"); };
   A["c-tab"] = function (d) { var c = C(); c.tab = d.v; c.detail = null; c.workout = null; R(); };
   A["c-day"] = function (d) { C().day = d.v; R(); };
   A["c-filter"] = function (d) { C().filter = d.v; R(); };
@@ -1622,18 +1620,18 @@
     ["Meedoen via de link", "F029", goClient("link")],
     ["Meedoen: studio nog niet klaar", "#466", function () { goClient("link")(); W().pay = "checking"; }],
     ["Wachten op goedkeuring", "F029", goClient("waiting", { name: "Kim de Graaf", email: "kim@example.com" })],
-    ["Rooster", "F027", goClient("app", { who: "anna" })],
-    ["Verlengen", "#468", function () { goClient("app", { who: "anna" })(); renewDemo("ends"); }],
-    ["Les boeken", "F031", function () { goClient("app", { who: "anna" })(); var t = F.dayItems(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type !== "priv" && i.people.length < i.cap && !C().booked[i.id]; })[0]; C().detail = t ? t.id : null; C().day = F.key(F.add(F.NOW, 1)); }],
+    ["Home", "F030", goClient("app", { who: "anna", atab: "home" })],
+    ["Boeken", "F027", goClient("app", { who: "anna", atab: "boeken" })],
+    ["Verlengen", "#468", function () { goClient("app", { who: "anna", atab: "home" })(); renewDemo("ends"); }],
+    ["Les boeken", "F031", function () { goClient("app", { who: "anna", atab: "boeken" })(); var t = F.dayItems(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type !== "priv" && i.people.length < i.cap && !C().booked[i.id]; })[0]; C().detail = t ? t.id : null; C().day = F.key(F.add(F.NOW, 1)); }],
     ["Wachtlijst", "F062", function () {
-      goClient("app", { who: "anna" })();
+      goClient("app", { who: "anna", atab: "boeken" })();
       /* the next group class that is full; if none is, fill the next one so the waitlist shows */
       var t = null, day = F.TODAY;
       for (var i = 0; i <= 3 && !t; i++) { day = F.key(F.add(F.NOW, i)); t = timetable(day).filter(function (x) { return x.type === "group" && !F.isPast(x, day) && !C().booked[x.id]; })[0] || null; }
       if (t) { while (t.people.length < t.cap) t.people.push("guest" + t.people.length); t.waitlist = t.waitlist || 2; C().detail = t.id; C().day = day; }
     }],
-    ["Mijn agenda", "F033", goClient("app", { who: "anna", tab: "agenda" })],
-    ["Profiel en tegoed", "F033", goClient("app", { who: "anna", tab: "profiel" })],
-    ["Gedeelde training", "F045", goClient("app", { who: "anna", tab: "profiel", workout: "anna-1" })]
+    ["Profiel en tegoed", "F033", goClient("app", { who: "anna", atab: "profiel" })],
+    ["Gedeelde training", "F045", goClient("app", { who: "anna", atab: "profiel", workout: "anna-1" })]
   ]]);
 })();

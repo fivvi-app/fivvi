@@ -361,10 +361,10 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - **Together:** *Home*, *Mijn agenda* and *Activiteit*. With two studios each row names its studio, and Home has one *Tegoed* line per studio.
   - The switcher opens ***Je studio's***: each studio with its balance, a check on the current one, and ***Studio toevoegen***. Adding a studio explains the link or QR code, because there is no search for studios (ADR-026).
   - *Tegoed* has a segmented switch per studio; *Profiel* lists the studios.
-  - The client web works the same way: the switcher on *Rooster*.
+  - The client web works the same way: the switcher on *Boeken*.
   - Screens: the index entries *Twee studio's* and *Studio toevoegen*, with the fictional second studio Yoga Loft.
 
-**Decided (owner, 6 November 2026):** the client web moves to the same four tabs as the app, *Home | Boeken | Activiteit | Profiel*, so clients find things in the same place everywhere. The prototype still shows *Rooster | Mijn agenda | Profiel* until it is updated.
+**Decided (owner, 6 November 2026):** the client web moves to the same four tabs as the app, *Home | Boeken | Activiteit | Profiel*, so clients find things in the same place everywhere.
 
 ## 6. Product decisions
 
@@ -395,7 +395,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 | ***Iedereen aanwezig* works offline** | Owner, 9 November 2026: it joins the offline queue like a single tap, as one queued request, and reverts with the message if the sync rejects it | F025, `PRODUCT.md §43` |
 | **A deliberate *Ontkoppelen* is a broken connection** | Owner, 9 November 2026: Fivvi keeps working and only what needs Mollie stops (online checkout, direct debits, new mandates). The payments-first lock is only for a workspace that has never set up payments | [Betalingen](#betalingen-cm-03-466), [§7](#7-assumptions) item 13, [#466](https://github.com/fivvi-app/fivvi/issues/466), `PRODUCT.md §94` |
 | **Open Gym: later** | Owner, 6 November 2026: not in the MVP, with Open Gym credits and the Open Gym booking link. The prototype hides it everywhere; the code stays for when it comes. The colour stays reserved | `PRODUCT.md §53`, [#470](https://github.com/fivvi-app/fivvi/issues/470), [#471](https://github.com/fivvi-app/fivvi/issues/471), [#472](https://github.com/fivvi-app/fivvi/issues/472) |
-| **Client web tabs** | The same four tabs as the app, *Home · Boeken · Activiteit · Profiel* (owner, 6 November 2026). The prototype still shows the earlier tabs | [#489](https://github.com/fivvi-app/fivvi/issues/489), [#497](https://github.com/fivvi-app/fivvi/issues/497) |
+| **Client web tabs** | The same four tabs as the app, *Home · Boeken · Activiteit · Profiel* (owner, 6 November 2026). | [#489](https://github.com/fivvi-app/fivvi/issues/489), [#497](https://github.com/fivvi-app/fivvi/issues/497) |
 
 ## 7. Assumptions
 
