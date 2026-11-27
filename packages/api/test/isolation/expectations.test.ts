@@ -376,7 +376,12 @@ describe('@isolation E014 a route that logs access may add log entries of its ow
 
   it('keeps an entry added to another workspace’s log, so the change is seen', () => {
     const before = [entry('a', 'old'), entry('b', 'theirs')];
-    const after = [entry('a', 'old'), entry('a', 'new'), entry('b', 'theirs'), entry('b', 'sneaky')];
+    const after = [
+      entry('a', 'old'),
+      entry('a', 'new'),
+      entry('b', 'theirs'),
+      entry('b', 'sneaky'),
+    ];
 
     expect(withoutNewLogEntries(before, after, 'a')).toEqual([
       entry('a', 'old'),
