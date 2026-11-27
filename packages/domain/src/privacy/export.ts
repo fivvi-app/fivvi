@@ -4,8 +4,8 @@
 //        with a BOM, formulas defused) and the read-me in the Owner's language (`exportReadme`)
 // Spec: E014 AC8, AC9
 
-import { type Locale, messages } from '@fivvi/i18n';
-import { createTranslator } from 'use-intl/core';
+import type { Locale } from '@fivvi/i18n';
+import { translatorFor } from '../commerce/translator.ts';
 import { PRIVACY_REGISTRY } from './registry.ts';
 
 // The export of E014 (spec #477, tickets #1177 and #1178): everything a workspace holds about one
@@ -162,21 +162,6 @@ export function csvLine(values: readonly unknown[]): string {
   return `${values.map(csvCell).join(',')}\r\n`;
 }
 
-function translator(locale: Locale) {
-  const translate = createTranslator({
-    locale: locale === 'nl-NL' ? 'nl-NL' : 'en-GB',
-    messages: messages[locale],
-    onError: (error) => {
-      throw error;
-    },
-  });
-  return (key: string, values: Record<string, string | number> = {}) =>
-    (translate as unknown as (key: string, values: Record<string, string | number>) => string)(
-      key,
-      values,
-    );
-}
-
 export interface ReadmeFile {
   readonly table: string;
   /** How many records the file holds. */
@@ -197,7 +182,7 @@ export interface ReadmeInput {
 
 /** `README.txt`: what the ZIP is, what each file is and what its field names mean, in the Owner's language. */
 export function exportReadme(input: ReadmeInput): string {
-  const t = translator(input.locale);
+  const t = translatorFor(input.locale);
   const lines = [
     t('privacyExport.readme.title'),
     '',
