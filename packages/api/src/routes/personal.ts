@@ -37,7 +37,7 @@ import {
   attendanceShown,
 } from './attendance.ts';
 import { LocationAddressSchema, LocationSchema } from './locations.ts';
-import { ClassLevelSchema } from './sessions.ts';
+import { ClassLevelSchema, SubstituteForSchema } from './sessions.ts';
 
 // The personal read model of a trainer (F013, spec #457): every session the signed-in account is the
 // current trainer of, across all its workspaces, for *Mijn dag* / *Vandaag* and *Mijn agenda* /
@@ -154,6 +154,14 @@ export const PersonalSessionClientSchema = z
   })
   .openapi('PersonalSessionClient', { description: 'A client in a private session of the day.' });
 
+const TakenOverBySchema = z
+  .object({
+    name: z
+      .string()
+      .openapi({ description: 'The substitute’s name; empty when the account has none.' }),
+  })
+  .openapi('TakenOverBy', { description: 'The trainer who took a date over (F024).' });
+
 export const PersonalSessionSchema = z
   .object({
     sessionId: z.uuid().openapi({
@@ -217,12 +225,25 @@ export const PersonalSessionSchema = z
           'cancelled session keeps its clients. Left out for the other kinds. The session counts ' +
           'once in `summary` and in every list, whatever it holds.',
       }),
+    substituteFor: SubstituteForSchema.optional().openapi({
+      description:
+        'The trainer the account replaces on this date (F024): “Je valt in voor Sarah”. Left out ' +
+        'when the date is no substitution, and for a date taken over (`takenOverBy`).',
+    }),
+    takenOverBy: TakenOverBySchema.optional().openapi({
+      description:
+        'Who took the date over from the account (F024): “Overgenomen door Mike”. The date is ' +
+        'listed, dimmed, without actions, and is not counted in `summary`, not *Straks*, ' +
+        'not in the free gap, the route or the tomorrow line; it has no attendance fields. ' +
+        'Left out for a date the account teaches.',
+    }),
     attendanceOpen: AttendanceOpenFieldSchema,
     attendance: AttendanceSummarySchema.optional(),
   })
   .openapi('PersonalSession', {
     description:
-      'A session the signed-in account is the current trainer of, in one of its workspaces. ' +
+      'A session the signed-in account is the current trainer of, in one of its workspaces, or ' +
+      'a date a substitute took over from it (`takenOverBy`). ' +
       '`location` is where a private session takes place and is left out for the other kinds. ' +
       '`attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of ' +
       'a class’s or a private session’s participants and is left out for Open Gym.',
@@ -445,6 +466,8 @@ interface PersonalItem extends PersonalSessionTimes {
   readonly className: string | null;
   readonly level: PersonalSessionRow['level'];
   readonly attendanceStatuses: PersonalSessionRow['attendanceStatuses'];
+  readonly substituteFor: PersonalSessionRow['substituteFor'];
+  readonly takenOverBy: PersonalSessionRow['takenOverBy'];
 }
 
 function toItem(
@@ -472,6 +495,9 @@ function toItem(
         : pickContentLanguage(viewerLocale, row.classNameNl, row.classNameEn),
     level: row.level,
     attendanceStatuses: row.attendanceStatuses,
+    substituteFor: row.substituteFor,
+    takenOverBy: row.takenOverBy,
+    takenOver: row.takenOverBy !== null,
   };
 }
 
@@ -497,7 +523,10 @@ function shown(item: PersonalItem, now: Date) {
           ...(className === null ? {} : { className }),
           ...(item.level === null ? {} : { level: item.level }),
         }),
-    ...attendanceShown(item, now),
+    ...(item.substituteFor ? { substituteFor: item.substituteFor } : {}),
+    ...(item.takenOverBy ? { takenOverBy: item.takenOverBy } : {}),
+    // A date a substitute took over is not the account's to take attendance of.
+    ...(item.takenOverBy ? {} : attendanceShown(item, now)),
   };
 }
 

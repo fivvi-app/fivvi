@@ -473,6 +473,17 @@ export {
   weeklyRule,
 } from './scheduling/series-rule.ts';
 export {
+  endSubstitution,
+  isSubstitution,
+  type SubstitutionChange,
+  type SubstitutionDate,
+  type SubstitutionDecision,
+  type SubstitutionRefusal,
+  sendsSubstitutionNotice,
+  substitute,
+  substitutionLanguage,
+} from './scheduling/substitution.ts';
+export {
   findTrainerConflicts,
   type TrainerBusySession,
 } from './scheduling/trainer-conflicts.ts';

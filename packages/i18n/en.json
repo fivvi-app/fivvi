@@ -579,6 +579,15 @@
       "subject": "Your sign-in code for Fivvi",
       "validity": "The code and the sign-in link work for {minutes, plural, one {# minute} other {# minutes}}."
     },
+    "substitution": {
+      "button": "View in Fivvi",
+      "intro": "You're covering for {original}: {class} at {workspace}.",
+      "introNoOriginal": "You're covering {class} at {workspace}.",
+      "preview": "You're covering {class} on {date} at {start}.",
+      "subject": "You're covering: {class} on {date}",
+      "when": "When: {date}, {start} to {end}",
+      "where": "Where: {location}"
+    },
     "trainerChange": {
       "classDatesPreview": "{class} has a new {word} from {date}.",
       "classDatesSubject": "New {word}: {class} from {date}",

@@ -579,6 +579,15 @@
       "subject": "Je inlogcode voor Fivvi",
       "validity": "De code en de inloglink werken {minutes, plural, one {# minuut} other {# minuten}}."
     },
+    "substitution": {
+      "button": "In Fivvi bekijken",
+      "intro": "Je valt in voor {original}: {class} bij {workspace}.",
+      "introNoOriginal": "Je valt in: {class} bij {workspace}.",
+      "preview": "Je valt in bij {class} op {date} om {start}.",
+      "subject": "Je valt in: {class} op {date}",
+      "when": "Wanneer: {date}, {start} tot {end}",
+      "where": "Waar: {location}"
+    },
     "trainerChange": {
       "classDatesPreview": "{class} heeft vanaf {date} een andere {word}.",
       "classDatesSubject": "Andere {word}: {class} vanaf {date}",

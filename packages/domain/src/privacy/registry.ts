@@ -407,6 +407,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     subject: 'team_member',
     personalData: [
       'trainer_profile_id',
+      'substitute_for_trainer_profile_id',
       'created_by_team_member_id',
       'updated_by_team_member_id',
       'cancelled_by_team_member_id',
@@ -416,6 +417,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
       'type',
       'status',
       'trainer_profile_id',
+      'substitute_for_trainer_profile_id',
       'location_id',
       'starts_at',
       'ends_at',
@@ -437,7 +439,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     ],
     onDelete: 'anonymize',
     retention: 'FORMER_TRAINER',
-    note: 'A scheduled session. The link to the trainer stays when the team member is removed: it points at the former trainer’s profile, which keeps the name it had, so a past session still says who taught it (F023). The links to who planned it, changed it last or cancelled it are cleared when the team member is removed; the session stays as the workspace’s record (R9). A cancellation keeps its time and who it came from, and a client’s request keeps its own time (F026, for the cancellation policy of M11); the message an Owner sent with a class date’s cancellation (F026) is the Owner’s own text as typed and may name a person, so it is in the export.',
+    note: 'A scheduled session. The link to the trainer stays when the team member is removed: it points at the former trainer’s profile, which keeps the name it had, so a past session still says who taught it (F023); the link to the trainer a substitution replaced (F024) is the same kind of link. The links to who planned it, changed it last or cancelled it are cleared when the team member is removed; the session stays as the workspace’s record (R9). A cancellation keeps its time and who it came from, and a client’s request keeps its own time (F026, for the cancellation policy of M11); the message an Owner sent with a class date’s cancellation (F026) is the Owner’s own text as typed and may name a person, so it is in the export.',
   },
   {
     table: 'booking_links',

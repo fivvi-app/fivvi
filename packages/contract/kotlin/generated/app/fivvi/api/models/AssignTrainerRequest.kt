@@ -33,9 +33,10 @@ import kotlinx.serialization.Contextual
  *
  * @param trainerId The new trainer’s team-member ID, from `GET …/trainers`. A team member who does not train in the workspace answers `404`, the session’s trainer already `400` on `trainerId` with the code `same_trainer`.
  * @param version The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
- * @param scope For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session.
+ * @param scope For a class date: `this` (*Alleen deze les*: a date that has no trainer gets one; on a date that has one it is a substitution, F024: the chosen trainer replaces the date’s trainer on this date alone, the date remembers whom (`substituteFor`) and the series and the other dates stay; choosing the trainer the date’s trainer replaces ends the substitution) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session, but a private session with `this` sent explicitly is a substitution that cannot be made: `422` `private_session` (its trainer is changed without a `scope`, *Trainer wijzigen*).
  * @param allowConflicts Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
- * @param notifyClients Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says.
+ * @param notifyClients Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`).
+ * @param notifySubstitute For a substitution (F024): whether to email the substitute EM-10, in their own language, else the workspace’s default, once per date and substitute. Left out it is `true`. Never sent when the substitution ends, for a date that has started (the substitution is recorded all the same, to say who taught) or for a date that is no substitution, whatever this says.
  * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
  */
 @Serializable
@@ -50,7 +51,7 @@ data class AssignTrainerRequest (
     @SerialName(value = "version")
     val version: kotlin.Int,
 
-    /* For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session. */
+    /* For a class date: `this` (*Alleen deze les*: a date that has no trainer gets one; on a date that has one it is a substitution, F024: the chosen trainer replaces the date’s trainer on this date alone, the date remembers whom (`substituteFor`) and the series and the other dates stay; choosing the trainer the date’s trainer replaces ends the substitution) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session, but a private session with `this` sent explicitly is a substitution that cannot be made: `422` `private_session` (its trainer is changed without a `scope`, *Trainer wijzigen*). */
     @SerialName(value = "scope")
     val scope: AssignTrainerRequest.Scope? = null,
 
@@ -58,9 +59,13 @@ data class AssignTrainerRequest (
     @SerialName(value = "allowConflicts")
     val allowConflicts: kotlin.Boolean? = null,
 
-    /* Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. */
+    /* Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`). */
     @SerialName(value = "notifyClients")
     val notifyClients: kotlin.Boolean? = null,
+
+    /* For a substitution (F024): whether to email the substitute EM-10, in their own language, else the workspace’s default, once per date and substitute. Left out it is `true`. Never sent when the substitution ends, for a date that has started (the substitution is recorded all the same, to say who taught) or for a date that is no substitution, whatever this says. */
+    @SerialName(value = "notifySubstitute")
+    val notifySubstitute: kotlin.Boolean? = null,
 
     /* The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */
     @SerialName(value = "surface")
@@ -69,7 +74,7 @@ data class AssignTrainerRequest (
 ) {
 
     /**
-     * For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session.
+     * For a class date: `this` (*Alleen deze les*: a date that has no trainer gets one; on a date that has one it is a substitution, F024: the chosen trainer replaces the date’s trainer on this date alone, the date remembers whom (`substituteFor`) and the series and the other dates stay; choosing the trainer the date’s trainer replaces ends the substitution) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session, but a private session with `this` sent explicitly is a substitution that cannot be made: `422` `private_session` (its trainer is changed without a `scope`, *Trainer wijzigen*).
      *
      * Values: THIS,FOLLOWING
      */

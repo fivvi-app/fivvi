@@ -1,6 +1,6 @@
 // Module: Assigning a trainer (F023): `assignTrainer` decides who teaches a session after the Owner
 //        picks someone, for a private session, one class date (*Alleen deze les*, only while the
-//        date has no trainer, until F024's substitution) and a class date with everything after it
+//        date has no trainer: one that has one is F024's `substitute`) and a class date with everything after it
 //        (*Deze en alle volgende lessen*, F022's `applyThisAndFollowing` with `{ trainer }`);
 //        `sendsTrainerChangeNotice` says whether the clients are told
 // Spec: F023 AC1, AC2, AC8, AC17
@@ -55,7 +55,7 @@ export type AssignTrainerRefusal =
   | 'not-scheduled'
   /** The chosen trainer is the session's trainer already. */
   | 'same-trainer'
-  /** *Alleen deze les* on a class date that has a trainer is F024's substitution, not built yet. */
+  /** *Alleen deze les* on a class date that has a trainer is F024's substitution (`substitute`), which the route decides first. */
   | 'has-trainer'
   /** *Deze en alle volgende lessen* on a class date that is in no series. */
   | 'not-in-series'
@@ -90,7 +90,7 @@ export type AssignTrainerDecision =
  * - a private session takes the trainer whatever the scope says;
  * - *this* on a class date that has none sets the trainer and marks it as the date's own in its
  *   series (`detached_fields`), so a later change of the series leaves it alone; one that already
- *   has a trainer is refused until F024's substitution;
+ *   has a trainer is F024's substitution (`isSubstitution`, `substitute`) and is refused here;
  * - *following* changes the series from the date on with `{ trainer }` (F022): dates with a trainer
  *   of their own and cancelled ones keep what they are, earlier dates keep the old trainer.
  */
