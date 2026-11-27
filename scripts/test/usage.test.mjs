@@ -1204,6 +1204,80 @@ describe('usage.mjs', () => {
       assert.deepEqual(prs.find((p) => p.number === 10).removals, { failed_checks: 1 });
     });
 
+    describe('refreshes and conflicting PRs (#1481, AC11)', () => {
+      const refreshed = (sha) => `🔄 **Refreshed:** merged main at \`${sha}\``;
+      const withBody = (pr, body, extra = []) => ({
+        ...pr,
+        body,
+        timelineItems: { nodes: [...pr.timelineItems.nodes, ...extra] },
+      });
+      const [ten, eleven, twelve] = mergedPrs;
+      // (a copy of 11, so the queue removed it for MERGE_CONFLICT too)
+      const thirteen = withBody(
+        { ...eleven, number: 13, closingIssuesReferences: { nodes: [] } },
+        `text\n\n${refreshed('c'.repeat(40))}`,
+      );
+      const prs = [
+        // two refreshes, each its own line
+        withBody(ten, `body\n\n${refreshed('a'.repeat(40))}\n\n${refreshed('b'.repeat(40))}`),
+        // conflicted in the queue only
+        eleven,
+        // a mention inside a line is not a record
+        withBody(twelve, `we discussed 🔄 **Refreshed:** merged main at \`${'d'.repeat(40)}\``),
+        // refreshed and removed for a conflict: one conflicting PR, not two
+        thirteen,
+      ];
+
+      it('counts the refreshes of each PR from the records in its body, and in total', () => {
+        const { flow } = flowSnapshot(flowRules({ prs })).data;
+        const byNumber = (n) => flow.prs.find((p) => p.number === n);
+        assert.equal(byNumber(10).refreshes, 2);
+        assert.equal(byNumber(11).refreshes, 0);
+        assert.equal(byNumber(12).refreshes, 0);
+        assert.equal(byNumber(13).refreshes, 1);
+        assert.equal(flow.conflicts.refreshes, 3);
+        assert.equal(flow.conflicts.refreshedPrs, 2);
+        assert.equal(flow.conflicts.refreshesPerMergedPr, 0.75);
+      });
+
+      it('counts a PR as conflicting when it was refreshed or the queue removed it for merge_conflict, once', () => {
+        const { flow } = flowSnapshot(flowRules({ prs })).data;
+        assert.deepEqual(flow.conflicts.conflictingPrs, 3);
+        assert.deepEqual(flow.conflicts.numbers, [10, 11, 13]);
+        assert.equal(flow.conflicts.queueRemovalsMergeConflict, 2);
+        // next to the removals by reason the flow already has
+        assert.equal(flow.ci.removalsByReason.merge_conflict, 2);
+        assert.deepEqual(
+          flow.prs.map((p) => [p.number, p.conflicted]),
+          [
+            [10, true],
+            [11, true],
+            [12, false],
+            [13, true],
+          ],
+        );
+      });
+
+      it('stores the numbers and not the SHAs or the text of the body', () => {
+        const done = flowSnapshot(flowRules({ prs }));
+        const text = JSON.stringify(done.data.flow);
+        assert.ok(!text.includes('a'.repeat(40)));
+        assert.ok(!text.includes('we discussed'));
+      });
+
+      it('measures zero, not "not measured", for a window in which no PR conflicted', () => {
+        const { flow } = flowSnapshot(flowRules({ prs: [twelve] })).data;
+        assert.deepEqual(flow.conflicts, {
+          refreshes: 0,
+          refreshedPrs: 0,
+          refreshesPerMergedPr: 0,
+          conflictingPrs: 0,
+          queueRemovalsMergeConflict: 0,
+          numbers: [],
+        });
+      });
+    });
+
     it('sorts the bugs of the window by source and counts them per merged ticket', () => {
       const { quality } = flowSnapshot().data.flow;
       assert.equal(quality.bugs.total, 4);
@@ -1324,6 +1398,8 @@ describe('usage.mjs', () => {
           queuedToMerged: 2,
           prToMerged: 4,
           removals: { merge_conflict: 1 },
+          refreshes: 0,
+          conflicted: true,
         },
       );
     });
@@ -1834,6 +1910,104 @@ describe('usage.mjs', () => {
           { ...snap('direct', [ticket()]), flow: direct },
         );
         assert.match(withMerge, /ci lean, review split, builders 1, merge direct\n/);
+      });
+
+      describe('refreshes and conflicting PRs (#1481, AC11)', () => {
+        const conflicts = (over = {}) => ({
+          refreshes: 12,
+          refreshedPrs: 8,
+          refreshesPerMergedPr: 0.12,
+          conflictingPrs: 10,
+          queueRemovalsMergeConflict: 6,
+          numbers: [],
+          ...over,
+        });
+
+        it('prints the refreshes, the refreshed and the conflicting PRs before → after', () => {
+          const before = flow();
+          before.conflicts = conflicts();
+          const after = fast();
+          after.conflicts = conflicts({
+            refreshes: 3,
+            refreshedPrs: 3,
+            refreshesPerMergedPr: 0.03,
+            conflictingPrs: 4,
+            queueRemovalsMergeConflict: 0,
+          });
+          const out = compare(
+            { ...snap('full', [ticket()]), flow: before },
+            { ...snap('fast', [ticket()]), flow: after },
+          );
+          assert.match(out, /^Flow: conflicts with main$/m);
+          assert.match(out, /refreshes\s+12 → 3\s+-75%/);
+          assert.match(out, /PRs refreshed\s+8 → 3\s+-62%/);
+          assert.match(out, /refreshes per merged PR\s+0\.12 → 0\.03\s+-75%/);
+          assert.match(out, /conflicting PRs\s+10 → 4\s+-60%/);
+          assert.match(out, /queue removals by merge_conflict\s+6 → 0\s+-100%/);
+        });
+
+        it('says "not measured" for a baseline without the fields, never zero', () => {
+          const after = fast();
+          after.conflicts = conflicts();
+          const out = compare(
+            { ...snap('full', [ticket()]), flow: flow() },
+            { ...snap('fast', [ticket()]), flow: after },
+          );
+          assert.match(out, /^\s+refreshes\s+not measured → 12\s+n\/a$/m);
+          assert.match(out, /^\s+PRs refreshed\s+not measured → 8\s+n\/a$/m);
+          assert.match(out, /^\s+conflicting PRs\s+not measured → 10\s+n\/a$/m);
+          const section = out.split('Flow: conflicts with main')[1].split('\n\n')[0];
+          assert.doesNotMatch(section, /\b0 →/);
+        });
+
+        it('takes the merge_conflict removals of a baseline without the block from ci.removalsByReason', () => {
+          // flow() has no conflicts block but counts merge_conflict 10 by reason in its CI section
+          const after = fast();
+          after.conflicts = conflicts();
+          const out = compare(
+            { ...snap('full', [ticket()]), flow: flow() },
+            { ...snap('fast', [ticket()]), flow: after },
+          );
+          assert.match(out, /^\s+queue removals by merge_conflict\s+10 → 6\s+-40%$/m);
+          assert.match(out, /^\s+refreshes\s+not measured → 12\s+n\/a$/m);
+          assert.match(out, /^\s+conflicting PRs\s+not measured → 10\s+n\/a$/m);
+        });
+
+        it('counts a reason missing from a measured removalsByReason as zero, and none measured as not measured', () => {
+          const before = flow();
+          before.ci.removalsByReason = { failed_checks: 30 };
+          const noCi = fast();
+          delete noCi.ci.removalsByReason;
+          const out = compare(
+            { ...snap('full', [ticket()]), flow: before },
+            { ...snap('fast', [ticket()]), flow: noCi },
+          );
+          assert.match(out, /^\s+queue removals by merge_conflict\s+0 → not measured\s+n\/a$/m);
+        });
+
+        it('says "n/a", not "not measured", for a measured window without a merged PR', () => {
+          const before = flow();
+          before.conflicts = conflicts({ refreshes: 0, refreshesPerMergedPr: null });
+          const after = fast();
+          after.conflicts = conflicts();
+          const out = compare(
+            { ...snap('full', [ticket()]), flow: before },
+            { ...snap('fast', [ticket()]), flow: after },
+          );
+          assert.match(out, /^\s+refreshes per merged PR\s+n\/a → 0\.12\s+n\/a$/m);
+          assert.match(out, /^\s+refreshes\s+0 → 12\s+n\/a$/m);
+        });
+
+        it('says "not measured" on the after side too, and measured zero stays a zero', () => {
+          const before = flow();
+          before.conflicts = conflicts({ refreshes: 0, conflictingPrs: 0 });
+          const out = compare(
+            { ...snap('old', [ticket()]), flow: before },
+            { ...snap('new', [ticket()]), flow: fast() },
+          );
+          assert.match(out, /^\s+refreshes\s+0 → not measured\s+n\/a$/m);
+          assert.match(out, /^\s+conflicting PRs\s+0 → not measured\s+n\/a$/m);
+        });
       });
 
       it('prints the warnings of a snapshot, and says so when one side has no flow', () => {
