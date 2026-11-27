@@ -27,6 +27,7 @@ import { registerLocations } from './routes/locations.ts';
 import { registerMe } from './routes/me.ts';
 import { registerOffers } from './routes/offers.ts';
 import { registerPersonal } from './routes/personal.ts';
+import { registerPrivacyExport } from './routes/privacy-export.ts';
 import { registerSessionCancellation } from './routes/session-cancellation.ts';
 import { registerSessions } from './routes/sessions.ts';
 import { registerSignIn } from './routes/sign-in.ts';
@@ -101,6 +102,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerBookingLinks(app);
   registerClients(app);
   registerAccessLog(app);
+  registerPrivacyExport(app);
   registerInvoiceDetails(app);
   registerBillingDetails(app);
   registerOffers(app);

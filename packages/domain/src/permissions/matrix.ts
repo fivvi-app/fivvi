@@ -34,6 +34,8 @@ export const CAPABILITIES = [
   'booking_link.manage',
   'booking_link.copy',
   'access_log.read',
+  'client.export',
+  'workspace.export',
   'invoices.manage',
   'commerce.offers.manage',
   'calendar.read',

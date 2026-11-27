@@ -39,6 +39,16 @@ export {
   listAccessLog,
 } from './repositories/access-log.ts';
 export {
+  countExportRows,
+  EXPORT_BATCH_SIZE,
+  type ExportClientLink,
+  type ExportColumnInfo,
+  type ExportRequest,
+  type ExportRow,
+  exportColumns,
+  readExportRows,
+} from './repositories/privacy-export.ts';
+export {
   findAccountForInvitation,
   findAccountIdByEmail,
   findBookingEmails,

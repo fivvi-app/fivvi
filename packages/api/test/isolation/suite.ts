@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Place } from '@fivvi/database';
 import { sql } from 'drizzle-orm';
+import { unzipSync } from 'fflate';
 import { buildOpenApiDocument } from '../../src/index.ts';
 import { type Actor, type Scenario, seedActors } from './actors.ts';
 import { type ContractDocument, describeOperations } from './coverage.ts';
@@ -91,6 +92,19 @@ async function readRows(world: World, tables: readonly string[]): Promise<Stored
     workspaceId: (t === 'organizations' ? row.id : row.organization_id) as string,
     row,
   }));
+}
+
+/**
+ * What a response says, as text: a ZIP (the data export, E014) is unpacked, so the ids and markers
+ * in its files are looked for as they are in any other answer.
+ */
+async function textOf(response: Response): Promise<string> {
+  if (response.headers.get('content-type') !== 'application/zip') return response.text();
+  const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
+  const decoder = new TextDecoder();
+  return Object.entries(files)
+    .map(([name, data]) => `${name}\n${decoder.decode(data)}`)
+    .join('\n');
 }
 
 /** `organizations` and every table in `public` with an `organization_id`, including probe tables. */
@@ -464,7 +478,6 @@ export async function runIsolationSuite(
       // The rows after the last call (or the seeds) are the rows before this one: nothing but
       // JavaScript ran in between, so they are read again only when a seed changed them.
       const beforeState = stored ?? (await readStored());
-      const before = beforeState.snaps;
       const ledger = ledgerOf(beforeState);
       const requestBody =
         typeof isolationCase.body === 'function' ? isolationCase.body(values) : isolationCase.body;
@@ -473,12 +486,19 @@ export async function runIsolationSuite(
         ...(isolationCase.query ? { query: isolationCase.query } : {}),
         ...(requestBody !== undefined ? { body: requestBody } : {}),
       });
-      const text = await response.text();
+      const text = await textOf(response);
       const afterState = await readStored();
       // A call that changed nothing leaves the ledger as it was: no need to build it again.
-      if (sameSnapshots(before, afterState.snaps)) afterState.ledger = ledger;
+      if (sameSnapshots(beforeState.snaps, afterState.snaps)) afterState.ledger = ledger;
       stored = afterState;
-      const after = afterState.snaps;
+      // A route that logs access (E014) may add entries to its own workspace's access log when it
+      // succeeds, and changes nothing else; a refusal may change nothing at all.
+      const logsAccess =
+        isolationCase.logsAccess && response.status >= 200 && response.status < 300;
+      const withoutLog = (state: Stored) =>
+        snapshots(state.rows.filter((row) => row.table !== 'access_log'));
+      const before = logsAccess ? withoutLog(beforeState) : beforeState.snaps;
+      const after = logsAccess ? withoutLog(afterState) : afterState.snaps;
       result.calls += 1;
 
       // 1. The status, and a refusal's body.
