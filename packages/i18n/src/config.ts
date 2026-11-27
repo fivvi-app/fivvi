@@ -16,7 +16,13 @@ export const defaultLocale: Locale = 'nl-NL';
  * `accessLog`: the words the access log's API puts in its answer, such as the name of a removed client (E014).
  * `privacyExport`: the read-me of the data export, written by the API in the Owner's language (E014).
  */
-export const serverOnlyNamespaces = ['email', 'site', 'dataImport', 'accessLog', 'privacyExport'] as const;
+export const serverOnlyNamespaces = [
+  'email',
+  'site',
+  'dataImport',
+  'accessLog',
+  'privacyExport',
+] as const;
 
 /** Workspace time zone used when nothing more specific is known (ADR-012). */
 export const defaultTimeZone = 'Europe/Amsterdam';
