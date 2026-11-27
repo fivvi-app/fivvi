@@ -751,7 +751,9 @@ describe('E020 web kit', () => {
       );
 
       expect(markup).toMatch(/<main[^>]*>[\s\S]*Home[\s\S]*<\/main>/);
-      expect(markup).toMatch(/<\/main><div[^>]*data-slot="client-tabs"[^>]*>[\s\S]*<nav>Tabs<\/nav>/);
+      expect(markup).toMatch(
+        /<\/main><div[^>]*data-slot="client-tabs"[^>]*>[\s\S]*<nav>Tabs<\/nav>/,
+      );
       expect(classesOf(markup, 'data-slot="client-tabs"')).toEqual(
         expect.arrayContaining(['glass', 'fixed', 'inset-x-0', 'bottom-0']),
       );
