@@ -61,6 +61,8 @@ import { conflict, SessionSchema, shown } from './sessions.ts';
 // les*, F024, ticket #552) is this route too: the date's trainer changes, the date remembers whom
 // the substitute replaces (`substituteFor`), the substitute gets EM-10 unless the Owner unchecks
 // the box, and choosing the original again ends the substitution (`substitute` in @fivvi/domain).
+// The booked participants of the date get the same EM-13 email for a substitution, and for ending
+// one, unless the Owner unchecks the box of their own (`notifyParticipants`, ticket #1635).
 
 // Typed once: written inline, TypeScript loses the route's request types (see workspaces.ts).
 const SIGNED_IN: RouteConfig['security'] = [{ cookieAuth: [] }, { bearerAuth: [] }];
@@ -181,7 +183,8 @@ const AssignTrainerBodySchema = z
           'Whether to email the clients with a booked place the new trainer (EM-13), each client ' +
           'one email listing their dates, in their email language, else the workspace’s default. ' +
           'Left out it is `true`. Never sent for a session that has started, whatever this says. ' +
-          'Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`).',
+          'Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`) and ' +
+          'the participants of the date the trainer-change email (`notifyParticipants`).',
       }),
     notifySubstitute: z
       .boolean()
@@ -193,6 +196,19 @@ const AssignTrainerBodySchema = z
           '`true`. Never sent when the substitution ends, for a date that has started (the ' +
           'substitution is recorded all the same, to say who taught) or for a date that is no ' +
           'substitution, whatever this says.',
+      }),
+    notifyParticipants: z
+      .boolean()
+      .optional()
+      .openapi({
+        description:
+          'For a substitution (F024, decision of 4 November 2026): whether to email the ' +
+          'participants booked on the date the trainer-change email (EM-13) naming the trainer ' +
+          'they now train with, each in their email language, else the workspace’s default, one ' +
+          'email each. Left out it is `true`. It also applies when the substitution ends (the ' +
+          'original trainer is chosen again). Independent of `notifySubstitute`. Never sent for ' +
+          'a date that has started, whatever this says, and ignored for a date that is no ' +
+          'substitution (`notifyClients` is for those). No other participant is named.',
       }),
     surface: z
       .enum(['ios', 'android'])
@@ -323,7 +339,10 @@ const assignTrainerRoute = defineRoute(
       'private session it is ignored. On a class date that has a trainer, `this` is a ' +
       'substitution (F024): only that date gets the substitute, the date remembers whom they ' +
       'replace, and the substitute gets EM-10 after the commit unless `notifySubstitute` is ' +
-      '`false` or the date has started (a past date is recorded without an email). `version` is the one the person saw: if the session has ' +
+      '`false` or the date has started (a past date is recorded without an email); the ' +
+      'participants booked on the date get the trainer-change email (EM-13), when the date has ' +
+      'not started, unless `notifyParticipants` is `false`, also when the substitution ends. ' +
+      '`version` is the one the person saw: if the session has ' +
       'been changed since, nothing is stored and the answer is `409` (`session_changed`) with ' +
       'the session as it is now. A cancelled session answers `409` `session_cancelled`. The ' +
       'new trainer is checked for double booking (`409` `trainer_conflict` with the sessions, ' +
@@ -657,10 +676,13 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
 
     // EM-13: one email to each client with a booked place on an affected date that has not started,
     // listing their dates. Each date is read as it is now, with the version that keys the email.
-    // A substitution tells the substitute (EM-10) and nobody else here: the participants' notice
-    // of a substitution is F024's AC16 and AC17, with a box of its own.
+    // A substitution, and ending one, tells the participants of the date with the same email, when
+    // `notifyParticipants` (not `notifyClients`) is left checked (F024 AC16, AC17); the substitute's
+    // EM-10 below is a box of its own.
     let clientsNotified = 0;
-    if (body.notifyClients !== false && substitution === undefined) {
+    const notifyParticipants =
+      substitution === undefined ? body.notifyClients !== false : body.notifyParticipants !== false;
+    if (notifyParticipants) {
       const changed: SessionView[] = [];
       for (const id of affected) {
         const date = id === sessionId ? latest : await findSession(scope, id);
