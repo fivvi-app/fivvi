@@ -220,14 +220,25 @@ describe('F024 substituting a trainer through the API', () => {
       body,
       headers,
     );
-  /** John substitutes `who` on the date, as CO-02 with *Alleen deze les* does. */
+  /**
+   * John substitutes `who` on the date, as CO-02 with *Alleen deze les* does. The participants'
+   * box is unchecked unless a test says otherwise, so the tests of EM-10 see only EM-10 (the
+   * participants' notice is AC16 and AC17, which check the box itself and its default).
+   */
   const substitute = (
     w: World,
     sessionId: string,
     who: { id: string },
     version: number,
     extra: Record<string, unknown> = {},
-  ) => assign(w, sessionId, w.john, { trainerId: who.id, scope: 'this', version, ...extra });
+  ) =>
+    assign(w, sessionId, w.john, {
+      trainerId: who.id,
+      scope: 'this',
+      version,
+      notifyParticipants: false,
+      ...extra,
+    });
 
   const read = async (w: World, sessionId: string) =>
     (await (
@@ -317,7 +328,7 @@ describe('F024 substituting a trainer through the API', () => {
 
     expect((await substitute(w, w.twentieth.id, w.mikeTrainer, 1)).status).toBe(200);
 
-    // Only Mike is mailed: the participants of the date are not (their notice is AC16, with a box of its own).
+    // Only Mike is mailed: the participants' box is unchecked here (their notice is AC16, with a box of its own).
     expect(w.transport.sent.map((email) => email.to.email)).toEqual([w.mikeTrainerAccount.email]);
     const toMike = w.transport.sent;
     expect(toMike[0]).toMatchObject({
@@ -540,6 +551,184 @@ describe('F024 substituting a trainer through the API', () => {
     });
   });
 
+  it('AC16: participants get the trainer-change email in their language; independent of EM-10', async () => {
+    const w = await krachtWorld();
+    const mikeAddress = w.mikeTrainerAccount.email;
+
+    // Both boxes left at their default (checked): the participants, Mike's EM-10, nobody else.
+    const response = await assign(w, w.twentieth.id, w.john, {
+      trainerId: w.mikeTrainer.id,
+      scope: 'this',
+      version: 1,
+    });
+
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as SubstitutedBody).clientsNotified).toBe(2);
+    expect(w.transport.sent.map((email) => email.to.email).toSorted()).toEqual(
+      [mikeAddress, 'anna@example.com', 'mark@example.com'].toSorted(),
+    );
+    const toAnna = w.transport.sent.find((email) => email.to.email === 'anna@example.com');
+    const toMark = w.transport.sent.find((email) => email.to.email === 'mark@example.com');
+    expect(toAnna).toMatchObject({
+      locale: 'nl-NL',
+      template: 'trainer-change',
+      subject: 'Andere trainer: Kracht op dinsdag 20 oktober',
+    });
+    expect(toAnna?.text).toContain('Je traint nu met Mike.');
+    expect(toAnna?.text).toContain('dinsdag 20 oktober 2026, 18:00 tot 19:00');
+    expect(toMark).toMatchObject({
+      locale: 'en',
+      template: 'trainer-change',
+      subject: 'New trainer: Kracht on Tuesday 20 October',
+    });
+    expect(toMark?.text).toContain("You'll now train with Mike.");
+    expect(w.transport.sent.find((email) => email.to.email === mikeAddress)).toMatchObject({
+      template: 'substitution',
+    });
+    // No email names another participant, nor the trainer they replace, and none carries an address.
+    for (const email of [toAnna, toMark]) {
+      expect(email?.text).not.toContain('Sarah');
+      expect(email?.text).not.toContain('@example.com');
+      expect(email?.html).not.toContain('@example.com');
+    }
+    for (const email of w.transport.sent) {
+      expect(email.text).not.toContain(email.to.email === 'anna@example.com' ? 'Mark' : 'Anna');
+      expect(email.text).not.toContain(email.to.email === 'mark@example.com' ? 'Anna' : 'Mark');
+    }
+    // One email for each participant, keyed by the date, its version and the participant.
+    expect(new Set(w.transport.sent.map((email) => email.idempotencyKey)).size).toBe(
+      w.transport.sent.length,
+    );
+
+    // The two boxes are independent: participants only, then the substitute only.
+    for (const iso of ['2026-10-27', '2026-11-03']) {
+      const date = await dateOn(w.gym.id, iso);
+      for (const client of [w.anna, w.mark]) {
+        await admin.db.insert(sessionParticipants).values({
+          organizationId: w.gym.id,
+          sessionId: date.id,
+          clientId: client.id,
+        });
+      }
+    }
+    w.transport.clear();
+    const onlyParticipants = await substitute(
+      w,
+      (await dateOn(w.gym.id, '2026-10-27')).id,
+      w.mikeTrainer,
+      1,
+      { notifySubstitute: false, notifyParticipants: true },
+    );
+    expect(((await onlyParticipants.json()) as SubstitutedBody).clientsNotified).toBe(2);
+    expect(w.transport.sent.map((email) => email.to.email).toSorted()).toEqual([
+      'anna@example.com',
+      'mark@example.com',
+    ]);
+
+    w.transport.clear();
+    const onlySubstitute = await assign(w, (await dateOn(w.gym.id, '2026-11-03')).id, w.john, {
+      trainerId: w.mikeTrainer.id,
+      scope: 'this',
+      version: 1,
+      notifyParticipants: false,
+    });
+    expect(((await onlySubstitute.json()) as SubstitutedBody).clientsNotified).toBe(0);
+    expect(w.transport.sent.map((email) => email.to.email)).toEqual([mikeAddress]);
+    expect(w.transport.sent[0]).toMatchObject({ template: 'substitution' });
+  });
+
+  it('AC16: a date that has started tells nobody, with both boxes checked', async () => {
+    const w = await krachtWorld();
+    // Tuesday 20 October, 19:00 Amsterdam: the class has started.
+    w.clock.set('2026-10-20T17:00:00.000Z');
+
+    const response = await assign(w, w.twentieth.id, w.john, {
+      trainerId: w.mikeTrainer.id,
+      scope: 'this',
+      version: 1,
+      notifySubstitute: true,
+      notifyParticipants: true,
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as SubstitutedBody;
+    expect(body.clientsNotified).toBe(0);
+    expect(body.session).toMatchObject({
+      trainer: { name: 'Mike' },
+      substituteFor: { name: 'Sarah' },
+    });
+    expect(w.transport.sent).toEqual([]);
+  });
+
+  it('AC16: a request that rolls back (a stale version, a double-booked substitute) tells no participant', async () => {
+    const w = await krachtWorld();
+    expect(
+      (
+        await assign(w, w.twentieth.id, w.john, {
+          trainerId: w.mikeTrainer.id,
+          scope: 'this',
+          version: 9,
+        })
+      ).status,
+    ).toBe(409);
+    await addSession(admin.db, {
+      workspaceId: w.gym.id,
+      clientId: w.mark.id,
+      trainerProfileId: await profileOf(w.mikeTrainer.id),
+      startsAt: zonedTime('2026-10-20T18:30'),
+    });
+    expect(
+      (
+        await assign(w, w.twentieth.id, w.john, {
+          trainerId: w.mikeTrainer.id,
+          scope: 'this',
+          version: 1,
+        })
+      ).status,
+    ).toBe(409);
+    expect(w.transport.sent).toEqual([]);
+  });
+
+  it('AC17: ending a substitution notifies only when asked', async () => {
+    const w = await krachtWorld();
+    await substitute(w, w.twentieth.id, w.mikeTrainer, 1, { notifySubstitute: false });
+    w.transport.clear();
+
+    // Back to Sarah with the box at its default (checked): Anna and Mark, nobody else (no EM-10).
+    const ended = await assign(w, w.twentieth.id, w.john, {
+      trainerId: w.sarahRole.id,
+      scope: 'this',
+      version: 2,
+    });
+
+    expect(ended.status).toBe(200);
+    expect(((await ended.json()) as SubstitutedBody).clientsNotified).toBe(2);
+    expect(w.transport.sent.map((email) => email.to.email).toSorted()).toEqual([
+      'anna@example.com',
+      'mark@example.com',
+    ]);
+    const toAnna = w.transport.sent.find((email) => email.to.email === 'anna@example.com');
+    const toMark = w.transport.sent.find((email) => email.to.email === 'mark@example.com');
+    expect(toAnna).toMatchObject({ locale: 'nl-NL', template: 'trainer-change' });
+    expect(toAnna?.text).toContain('Je traint nu met Sarah.');
+    expect(toMark).toMatchObject({ locale: 'en', template: 'trainer-change' });
+    expect(toMark?.text).toContain("You'll now train with Sarah.");
+    for (const email of w.transport.sent) expect(email.text).not.toContain('Mike');
+
+    // The same, with the box unchecked: nothing goes out.
+    await substitute(w, w.twentieth.id, w.mikeTrainer, 3, { notifySubstitute: false });
+    w.transport.clear();
+    const quiet = await assign(w, w.twentieth.id, w.john, {
+      trainerId: w.sarahRole.id,
+      scope: 'this',
+      version: 4,
+      notifyParticipants: false,
+    });
+    expect(quiet.status).toBe(200);
+    expect(((await quiet.json()) as SubstitutedBody).clientsNotified).toBe(0);
+    expect(w.transport.sent).toEqual([]);
+  });
+
   it('AC10: Trainers get 403 and nothing changes', async () => {
     const w = await krachtWorld();
 
@@ -663,6 +852,10 @@ describe('F024 substituting a trainer through the API', () => {
     );
     const body = contract.components.schemas.AssignTrainerRequest.properties;
     expect(body.notifySubstitute.type).toBe('boolean');
+    expect(body.notifyParticipants.type).toBe('boolean');
+    expect(contract.components.schemas.AssignTrainerRequest.required ?? []).not.toContain(
+      'notifyParticipants',
+    );
     for (const schema of ['Session', 'WorkspaceCalendarSession', 'PersonalSession']) {
       expect(contract.components.schemas[schema].properties.substituteFor).toBeDefined();
       expect(contract.components.schemas[schema].required ?? []).not.toContain('substituteFor');

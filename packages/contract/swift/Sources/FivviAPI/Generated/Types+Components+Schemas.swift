@@ -4155,7 +4155,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/version`.
             public var version: Swift.Int
-            /// Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`).
+            /// Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`) and the participants of the date the trainer-change email (`notifyParticipants`).
             ///
             /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/notifyClients`.
             public var notifyClients: Swift.Bool?
@@ -4163,6 +4163,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/notifySubstitute`.
             public var notifySubstitute: Swift.Bool?
+            /// For a substitution (F024, decision of 4 November 2026): whether to email the participants booked on the date the trainer-change email (EM-13) naming the trainer they now train with, each in their email language, else the workspace’s default, one email each. Left out it is `true`. It also applies when the substitution ends (the original trainer is chosen again). Independent of `notifySubstitute`. Never sent for a date that has started, whatever this says, and ignored for a date that is no substitution (`notifyClients` is for those). No other participant is named.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/notifyParticipants`.
+            public var notifyParticipants: Swift.Bool?
             /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/surface`.
@@ -4181,8 +4185,9 @@ extension Components {
             ///   - scope: For a class date: `this` (*Alleen deze les*: a date that has no trainer gets one; on a date that has one it is a substitution, F024: the chosen trainer replaces the date’s trainer on this date alone, the date remembers whom (`substituteFor`) and the series and the other dates stay; choosing the trainer the date’s trainer replaces ends the substitution) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session, but a private session with `this` sent explicitly is a substitution that cannot be made: `422` `private_session` (its trainer is changed without a `scope`, *Trainer wijzigen*).
             ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - version: The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
-            ///   - notifyClients: Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`).
+            ///   - notifyClients: Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`) and the participants of the date the trainer-change email (`notifyParticipants`).
             ///   - notifySubstitute: For a substitution (F024): whether to email the substitute EM-10, in their own language, else the workspace’s default, once per date and substitute. Left out it is `true`. Never sent when the substitution ends, for a date that has started (the substitution is recorded all the same, to say who taught) or for a date that is no substitution, whatever this says.
+            ///   - notifyParticipants: For a substitution (F024, decision of 4 November 2026): whether to email the participants booked on the date the trainer-change email (EM-13) naming the trainer they now train with, each in their email language, else the workspace’s default, one email each. Left out it is `true`. It also applies when the substitution ends (the original trainer is chosen again). Independent of `notifySubstitute`. Never sent for a date that has started, whatever this says, and ignored for a date that is no substitution (`notifyClients` is for those). No other participant is named.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 trainerId: Swift.String,
@@ -4191,6 +4196,7 @@ extension Components {
                 version: Swift.Int,
                 notifyClients: Swift.Bool? = nil,
                 notifySubstitute: Swift.Bool? = nil,
+                notifyParticipants: Swift.Bool? = nil,
                 surface: Components.Schemas.AssignTrainerRequest.SurfacePayload? = nil
             ) {
                 self.trainerId = trainerId
@@ -4199,6 +4205,7 @@ extension Components {
                 self.version = version
                 self.notifyClients = notifyClients
                 self.notifySubstitute = notifySubstitute
+                self.notifyParticipants = notifyParticipants
                 self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
@@ -4208,6 +4215,7 @@ extension Components {
                 case version
                 case notifyClients
                 case notifySubstitute
+                case notifyParticipants
                 case surface
             }
         }
