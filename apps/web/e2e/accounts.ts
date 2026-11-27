@@ -2,6 +2,7 @@ import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import {
   authSessions,
   authUsers,
+  clients,
   createDatabase,
   locations,
   organizations,
@@ -160,6 +161,28 @@ export async function joinTeam(
         .insert(trainerProfiles)
         .values({ organizationId: gym.id, teamMemberId: member.id });
     }
+  } finally {
+    await client.close();
+  }
+}
+
+/**
+ * Makes the existing account `email` a client of the workspace with the URL name `slug`, on the e2e
+ * app server's database: a client record linked to the account, which `GET /v1/me` lists under
+ * `clientWorkspaces` (F030). Until join requests exist (F029) a linked record counts as joined.
+ */
+export async function joinAsClient(email: string, slug: string, name = 'E2E'): Promise<void> {
+  const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
+  try {
+    const user = (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
+    if (!user) throw new Error(`No account ${email} on the e2e database.`);
+    const gym = (
+      await client.db.select().from(organizations).where(eq(organizations.slug, slug))
+    )[0];
+    if (!gym) throw new Error(`No workspace ${slug} on the e2e database.`);
+    await client.db
+      .insert(clients)
+      .values({ organizationId: gym.id, accountId: user.id, name, email });
   } finally {
     await client.close();
   }
