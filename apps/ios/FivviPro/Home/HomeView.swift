@@ -67,13 +67,14 @@ struct HomeView: View {
         api: any APIProtocol, store: any SessionStore, language: AppLanguage, connectivity: Connectivity,
         welcomeURL: URL, onAccount: @escaping (String) -> Void,
         onSignedOut: @escaping (Bool) -> Void,
-        personal: any PersonalStore = FilePersonalStore.shared,
-        attendanceStore: any PersonalStore = FilePersonalStore.attendance
+        files: PhoneFiles = .live
     ) {
-        let queue = AttendanceQueue(api: api, store: attendanceStore, isOnline: { connectivity.isOnline })
+        let personal = files.personal
+        let queue = AttendanceQueue(api: api, store: files.attendance, session: store) { connectivity.isOnline }
         _attendance = State(initialValue: queue)
+        // The queue follows the account and the sign-out the person chose (#1618, `AccountViewModel+Attendance`).
         let account = AccountViewModel(
-            api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
+            api: api, store: store, queue: queue, onAccount: onAccount, onSignedOut: onSignedOut,
             onPreferredLocale: { language.startRead() }, workspaces: .persistent()
         )
         _today = State(initialValue: TodayViewModel(
