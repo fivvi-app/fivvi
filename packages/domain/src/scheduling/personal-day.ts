@@ -26,12 +26,18 @@ export interface PersonalSessionTimes {
    * without one (a caller that has no places) adds nothing to `placesAhead`.
    */
   readonly placeId?: string;
+  /**
+   * The date was taken over by a substitute (F024, *Overgenomen door Mike*): it stays in the list,
+   * dimmed, but is not the person's to teach, so it is not counted in the summary, not *Straks*,
+   * not in the free gap, the route or the tomorrow line.
+   */
+  readonly takenOver?: boolean;
 }
 
 export interface PersonalDay<T extends PersonalSessionTimes> {
   /** The day shown: `YYYY-MM-DD` in the time zone. */
   readonly date: string;
-  /** The day's items in time order, cancelled ones included (they stay, struck through). */
+  /** The day's items in time order, cancelled ones included (they stay, struck through), and dates taken over by a substitute (dimmed). */
   readonly items: T[];
   /**
    * "4 sessies · 09:00–19:00": how many items the day holds, cancelled ones counted, and from the
@@ -150,29 +156,33 @@ export function mergePersonalDay<T extends PersonalSessionTimes>(
   const within = (bounds: { start: Date; end: Date }) => (item: T) =>
     item.startsAt >= bounds.start && item.startsAt < bounds.end;
   const items = orderPersonalSessions(all.filter(within(day)));
+  // What the person teaches: a date a substitute took over (F024) is listed, not counted.
+  const mine = items.filter((item) => item.takenOver !== true);
   const tomorrowItems = orderPersonalSessions(
-    all.filter(within(nextDay)).filter((item) => item.status === 'scheduled'),
+    all
+      .filter(within(nextDay))
+      .filter((item) => item.status === 'scheduled' && item.takenOver !== true),
   );
 
-  const first = items[0];
-  const lastEndsAt = items.reduce<Date | null>(
+  const first = mine[0];
+  const lastEndsAt = mine.reduce<Date | null>(
     (latest, item) => (latest === null || item.endsAt > latest ? item.endsAt : latest),
     null,
   );
   const upcoming =
     date === today
-      ? items.find((item) => item.status === 'scheduled' && item.endsAt > now)
+      ? mine.find((item) => item.status === 'scheduled' && item.endsAt > now)
       : undefined;
   const tomorrowFirst = tomorrowItems[0];
   // The sessions that take place and have not ended: the ones the rest of today is made of.
-  const ahead = items.filter((item) => item.status === 'scheduled' && item.endsAt > now);
+  const ahead = mine.filter((item) => item.status === 'scheduled' && item.endsAt > now);
 
   return {
     date,
     items,
     summary: {
-      count: items.length,
-      done: items.filter((item) => item.status === 'scheduled' && item.endsAt <= now).length,
+      count: mine.length,
+      done: mine.filter((item) => item.status === 'scheduled' && item.endsAt <= now).length,
       firstStartsAt: first?.startsAt ?? null,
       lastEndsAt,
     },

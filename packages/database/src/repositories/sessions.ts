@@ -45,6 +45,16 @@ export interface SessionTrainerView {
   readonly name: string;
 }
 
+/**
+ * The trainer a substitution replaces on a date (F024): the team-member ID as for `trainer`, the
+ * trainer profile that `sessions.substitute_for_trainer_profile_id` holds, and the account's name.
+ */
+export interface SessionSubstituteForView {
+  readonly id: string;
+  readonly trainerProfileId: string;
+  readonly name: string;
+}
+
 /** The class a class date was scheduled from, by name (F021): the viewer's language picks one. */
 export interface SessionGroupClassView {
   readonly id: string;
@@ -94,6 +104,8 @@ export interface SessionView {
   readonly location: LocationView;
   /** `null` when the session has no trainer (an Open Gym, or the trainer's profile ended). */
   readonly trainer: SessionTrainerView | null;
+  /** The trainer this date's trainer replaces (F024); `null` when the date is not a substitution. */
+  readonly substituteFor: SessionSubstituteForView | null;
   /** The class of a class date (F021); `null` for the other kinds. */
   readonly groupClass: SessionGroupClassView | null;
   /** The weekly series of a class date (F022); `null` for a date on its own and for the other kinds. */
@@ -155,6 +167,7 @@ export async function findSession(
       version: sessions.version,
       locationId: sessions.locationId,
       trainerProfileId: sessions.trainerProfileId,
+      substituteForTrainerProfileId: sessions.substituteForTrainerProfileId,
       updatedByTeamMemberId: sessions.updatedByTeamMemberId,
       groupClassId: sessions.groupClassId,
       seriesId: sessions.seriesId,
@@ -172,6 +185,7 @@ export async function findSession(
   const {
     locationId,
     trainerProfileId,
+    substituteForTrainerProfileId,
     updatedByTeamMemberId,
     groupClassId,
     seriesId,
@@ -188,28 +202,32 @@ export async function findSession(
   if (!location) throw new Error('The location of a session was not found.');
   // A trainer who was removed from the team keeps their profile (F023), so past sessions still show
   // who taught them: the team member is gone, the profile holds who it was.
-  const [trainer] = trainerProfileId
-    ? await db
-        .select({
-          id: sql<string>`coalesce(${teamMembers.id}, ${trainerProfiles.removedTeamMemberId})`,
-          name: sql<string>`coalesce(${authUsers.name}, ${trainerProfiles.removedName}, '')`,
-        })
-        .from(trainerProfiles)
-        .leftJoin(
-          teamMembers,
-          and(
-            eq(teamMembers.organizationId, trainerProfiles.organizationId),
-            eq(teamMembers.id, trainerProfiles.teamMemberId),
-          ),
-        )
-        .leftJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
-        .where(
-          and(
-            eq(trainerProfiles.organizationId, scope.workspaceId),
-            eq(trainerProfiles.id, trainerProfileId),
-          ),
-        )
-    : [];
+  const trainerOf = async (profileId: string | null) => {
+    if (!profileId) return undefined;
+    const [row] = await db
+      .select({
+        id: sql<string>`coalesce(${teamMembers.id}, ${trainerProfiles.removedTeamMemberId})`,
+        name: sql<string>`coalesce(${authUsers.name}, ${trainerProfiles.removedName}, '')`,
+      })
+      .from(trainerProfiles)
+      .leftJoin(
+        teamMembers,
+        and(
+          eq(teamMembers.organizationId, trainerProfiles.organizationId),
+          eq(teamMembers.id, trainerProfiles.teamMemberId),
+        ),
+      )
+      .leftJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+      .where(
+        and(
+          eq(trainerProfiles.organizationId, scope.workspaceId),
+          eq(trainerProfiles.id, profileId),
+        ),
+      );
+    return row;
+  };
+  const trainer = await trainerOf(trainerProfileId);
+  const original = await trainerOf(substituteForTrainerProfileId);
   const [lastChangedBy] = updatedByTeamMemberId
     ? await db
         .select({ id: teamMembers.id, name: authUsers.name })
@@ -284,6 +302,10 @@ export async function findSession(
     location,
     // A profile whose team member went another way (the account was purged) names nobody.
     trainer: trainer?.id ? trainer : null,
+    substituteFor:
+      original?.id && substituteForTrainerProfileId
+        ? { ...original, trainerProfileId: substituteForTrainerProfileId }
+        : null,
     groupClass: groupClass ?? null,
     series: series
       ? {
@@ -406,6 +428,11 @@ export interface SessionTrainerAssignment {
   readonly trainerProfileId: string | null;
   /** What the date differs in from its series after the change; left out: not touched (a private session). */
   readonly detachedFields?: readonly string[];
+  /**
+   * The trainer profile the new trainer replaces (F024's substitution); left out or `null`: the
+   * session is no substitution, so an earlier one's record is cleared with the change.
+   */
+  readonly substituteForTrainerProfileId?: string | null;
   /** The team-member record of the person who assigns. */
   readonly changedByTeamMemberId: string;
 }
@@ -426,6 +453,7 @@ export async function assignSessionTrainer(
     .update(sessions)
     .set({
       trainerProfileId: input.trainerProfileId,
+      substituteForTrainerProfileId: input.substituteForTrainerProfileId ?? null,
       ...(input.detachedFields ? { detachedFields: [...input.detachedFields] } : {}),
       version: sql`${sessions.version} + 1`,
       updatedByTeamMemberId: input.changedByTeamMemberId,

@@ -4,6 +4,7 @@ import {
   findOwnTeamMember,
   findSession,
   findTrainer,
+  findTrainerRecipient,
   findWorkspace,
   listBookedClients,
   listSeriesDates,
@@ -15,9 +16,14 @@ import {
 import {
   type AssignTrainerDecision,
   assignTrainer,
+  isSubstitution,
   localDateOf,
+  sendsSubstitutionNotice,
   sendsTrainerChangeNotice,
+  substitute,
+  substitutionLanguage,
 } from '@fivvi/domain';
+import type { SubstitutionMail } from '@fivvi/email/substitution-mail';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
@@ -26,6 +32,7 @@ import {
   NOT_FOUND,
   validationErrorResponse,
 } from '../errors.ts';
+import { substitutionEmailEvent } from '../sessions/email-event.ts';
 import { queueTrainerChangeEmails } from '../sessions/trainer-change-emails.ts';
 import {
   allowConflictsField,
@@ -50,7 +57,10 @@ import { conflict, SessionSchema, shown } from './sessions.ts';
 // (EM-13) unless the Owner unchecks the box. The rules are `assignTrainer` and
 // `sendsTrainerChangeNotice` in @fivvi/domain; the double-booking check is the one every
 // scheduling save has (`trainer_conflict`, PS-07). Who may: `session.assign`, the Owner only
-// (decision of 4 November 2026). Substituting one date that has a trainer is F024.
+// (decision of 4 November 2026). Substituting a trainer on one class date that has one (*Alleen deze
+// les*, F024, ticket #552) is this route too: the date's trainer changes, the date remembers whom
+// the substitute replaces (`substituteFor`), the substitute gets EM-10 unless the Owner unchecks
+// the box, and choosing the original again ends the substitution (`substitute` in @fivvi/domain).
 
 // Typed once: written inline, TypeScript loses the route's request types (see workspaces.ts).
 const SIGNED_IN: RouteConfig['security'] = [{ cookieAuth: [] }, { bearerAuth: [] }];
@@ -141,13 +151,17 @@ const AssignTrainerBodySchema = z
       .optional()
       .openapi({
         description:
-          'For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that ' +
-          'has one answers `400` on `scope` with the code `has_trainer`, until the substitution ' +
-          'of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the ' +
+          'For a class date: `this` (*Alleen deze les*: a date that has no trainer gets one; on a ' +
+          'date that has one it is a substitution, F024: the chosen trainer replaces the date’s ' +
+          'trainer on this date alone, the date remembers whom (`substituteFor`) and the series ' +
+          'and the other dates stay; choosing the trainer the date’s trainer replaces ends the ' +
+          'substitution) or `following` (*Deze en alle volgende lessen*: the trainer becomes the ' +
           'series’ regular trainer from this date, and dates with a change of their own keep ' +
           'theirs; a date outside a series answers `400` on `scope` with the code ' +
           '`not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored ' +
-          'for a private session.',
+          'for a private session, but a private session with `this` sent explicitly is a ' +
+          'substitution that cannot be made: `422` `private_session` (its trainer is changed ' +
+          'without a `scope`, *Trainer wijzigen*).',
       }),
     allowConflicts: allowConflictsField,
     version: z
@@ -166,7 +180,19 @@ const AssignTrainerBodySchema = z
         description:
           'Whether to email the clients with a booked place the new trainer (EM-13), each client ' +
           'one email listing their dates, in their email language, else the workspace’s default. ' +
-          'Left out it is `true`. Never sent for a session that has started, whatever this says.',
+          'Left out it is `true`. Never sent for a session that has started, whatever this says. ' +
+          'Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`).',
+      }),
+    notifySubstitute: z
+      .boolean()
+      .optional()
+      .openapi({
+        description:
+          'For a substitution (F024): whether to email the substitute EM-10, in their own ' +
+          'language, else the workspace’s default, once per date and substitute. Left out it is ' +
+          '`true`. Never sent when the substitution ends, for a date that has started (the ' +
+          'substitution is recorded all the same, to say who taught) or for a date that is no ' +
+          'substitution, whatever this says.',
       }),
     surface: z
       .enum(['ios', 'android'])
@@ -208,6 +234,19 @@ const TrainerAssignedSchema = z
 // One object, not a `oneOf` (see `RescheduleRefusalSchema` in sessions.ts for why): `code` tells
 // the refusals apart, `session` and `changedBy` come with the session codes and `conflicts` with
 // `trainer_conflict`.
+const SubstitutionRefusedSchema = z
+  .object({
+    code: z.enum(['private_session']).openapi({
+      description:
+        '`private_session`: a private session’s trainer is changed with *Trainer wijzigen* ' +
+        '(`scope` left out), never substituted.',
+    }),
+  })
+  .openapi('SubstitutionRefused', {
+    description:
+      'Why the substitution was refused; nothing was stored. Contains no user-facing text.',
+  });
+
 const AssignTrainerRefusalSchema = z
   .object({
     code: z.enum(['session_changed', 'session_cancelled', 'trainer_conflict']).openapi({
@@ -281,7 +320,10 @@ const assignTrainerRoute = defineRoute(
       'without a trainer; the date is marked as changed from its series) or `following` (the ' +
       'series’ regular trainer from this date on: dates with a change of their own keep it, ' +
       'earlier dates keep theirs, later dates the calendar fills get the new trainer); for a ' +
-      'private session it is ignored. `version` is the one the person saw: if the session has ' +
+      'private session it is ignored. On a class date that has a trainer, `this` is a ' +
+      'substitution (F024): only that date gets the substitute, the date remembers whom they ' +
+      'replace, and the substitute gets EM-10 after the commit unless `notifySubstitute` is ' +
+      '`false` or the date has started (a past date is recorded without an email). `version` is the one the person saw: if the session has ' +
       'been changed since, nothing is stored and the answer is `409` (`session_changed`) with ' +
       'the session as it is now. A cancelled session answers `409` `session_cancelled`. The ' +
       'new trainer is checked for double booking (`409` `trainer_conflict` with the sessions, ' +
@@ -303,6 +345,10 @@ const assignTrainerRoute = defineRoute(
         content: { 'application/json': { schema: TrainerAssignedSchema } },
       },
       400: validationErrorResponse,
+      422: {
+        description: 'A private session cannot be substituted (`scope` `this` sent for it).',
+        content: { 'application/json': { schema: SubstitutionRefusedSchema } },
+      },
       409: {
         description:
           'The session was changed after the `version` sent, or it is cancelled, or the new ' +
@@ -468,7 +514,8 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
     const scope = c.get('scope');
     const { sessionId } = c.req.valid('param');
     const body = c.req.valid('json');
-    const { clock, productEvents, sendTrainerChange } = c.get('dependencies');
+    const dependencies = c.get('dependencies');
+    const { clock, productEvents, sendTrainerChange } = dependencies;
     const current = await findSession(scope, sessionId);
     const workspace = await findWorkspace(scope);
     const trainer = await findTrainer(scope, body.trainerId);
@@ -477,6 +524,11 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
       return c.json(NOT_FOUND, 404);
     }
     const timeZone = workspace.timeZone;
+    // A private session is never substituted (F024 AC11): `this` sent for it is refused, whatever
+    // its state; *Trainer wijzigen* sends no scope.
+    if (current.type === 'private' && body.scope === 'this') {
+      return c.json({ code: 'private_session' as const }, 422);
+    }
     // A cancelled session stays as it is (F026): the state is told before the version, so a form
     // opened before the cancellation learns why it cannot save.
     if (current.status === 'cancelled') {
@@ -489,12 +541,48 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
     const now = clock.now();
     const editScope = body.scope ?? 'this';
     const { session: facts, stored, dates } = await factsOf(scope, current);
-    const decision = assignTrainer({
-      session: facts,
-      trainerProfileId: trainer.trainerProfileId,
-      scope: editScope,
-      today: localDateOf(now, timeZone),
-    });
+    const substitution = isSubstitution(facts, editScope)
+      ? substitute(
+          {
+            type: current.type,
+            status: current.status,
+            startsAt: current.startsAt,
+            trainerProfileId: facts.trainerProfileId,
+            substituteForTrainerProfileId: current.substituteFor?.trainerProfileId ?? null,
+            series:
+              facts.series && stored
+                ? {
+                    trainerProfileId: stored.trainerProfileId,
+                    detachedFields: facts.series.detachedFields,
+                  }
+                : undefined,
+          },
+          trainer.trainerProfileId,
+          now,
+        )
+      : undefined;
+    if (substitution?.outcome === 'refused' && substitution.reason !== 'same-trainer') {
+      // The cancelled date and the private session were answered above, a date with a trainer has one.
+      throw new Error(
+        `A refusal the request rules out reached the handler: ${substitution.reason}.`,
+      );
+    }
+    const decision: AssignTrainerDecision =
+      substitution === undefined
+        ? assignTrainer({
+            session: facts,
+            trainerProfileId: trainer.trainerProfileId,
+            scope: editScope,
+            today: localDateOf(now, timeZone),
+          })
+        : substitution.outcome === 'applied'
+          ? {
+              outcome: 'applied',
+              kind: 'date',
+              trainerProfileId: substitution.trainerProfileId,
+              detachedFields: substitution.detachedFields,
+            }
+          : { outcome: 'refused', reason: 'same-trainer' };
     // Each refusal rolls the request's transaction back: nothing is stored, nothing is sent.
     if (decision.outcome === 'refused') {
       const [answer, status] = refusalOf(decision, current, timeZone);
@@ -521,8 +609,11 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
       const moved = await assignSessionTrainer(scope, {
         sessionId,
         expectedVersion: body.version,
-        trainerProfileId: trainer.trainerProfileId,
+        trainerProfileId: decision.trainerProfileId,
         ...(current.series ? { detachedFields: decision.detachedFields } : {}),
+        ...(substitution?.outcome === 'applied'
+          ? { substituteForTrainerProfileId: substitution.substituteForTrainerProfileId }
+          : {}),
         changedByTeamMemberId: actor.id,
       });
       if (!moved) {
@@ -567,8 +658,10 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
 
     // EM-13: one email to each client with a booked place on an affected date that has not started,
     // listing their dates. Each date is read as it is now, with the version that keys the email.
+    // A substitution tells the substitute (EM-10) and nobody else here: the participants' notice
+    // of a substitution is F024's AC16 and AC17, with a box of its own.
     let clientsNotified = 0;
-    if (body.notifyClients !== false) {
+    if (body.notifyClients !== false && substitution === undefined) {
       const changed: SessionView[] = [];
       for (const id of affected) {
         const date = id === sessionId ? latest : await findSession(scope, id);
@@ -586,20 +679,68 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
       });
     }
 
-    // The workspace ID, the platform, the scope and the kind only (OBSERVABILITY.md §4).
+    // EM-10: the substitute is told, once, after the commit, in their own language, when the Owner
+    // left the box checked and the date has not started (F024 AC2, AC8, AC12). Ending a
+    // substitution tells nobody (AC5).
+    if (
+      substitution?.outcome === 'applied' &&
+      sendsSubstitutionNotice({
+        notify: body.notifySubstitute !== false,
+        change: substitution.change,
+        startsAt: latest.startsAt,
+        now,
+      })
+    ) {
+      const recipient = await findTrainerRecipient(scope, trainer.id);
+      if (recipient) {
+        const mail: SubstitutionMail = {
+          to: { email: recipient.email, name: recipient.name },
+          locale: substitutionLanguage({
+            accountPreference: recipient.preferredLocale,
+            workspaceDefault: workspace.defaultLocale,
+          }),
+          workspaceName: workspace.name,
+          workspaceSlug: workspace.slug,
+          timeZone,
+          session: {
+            id: latest.id,
+            nameNl: latest.groupClass?.nameNl ?? '',
+            nameEn: latest.groupClass?.nameEn ?? null,
+          },
+          startsAt: latest.startsAt,
+          endsAt: latest.endsAt,
+          location: { name: latest.location.name, address: latest.location.address },
+          originalName: latest.substituteFor?.name.trim() ? latest.substituteFor.name : null,
+          event: substitutionEmailEvent(latest.id, trainer.id),
+        };
+        afterCommit(() => dependencies.sendSubstitution(mail));
+      }
+    }
+
+    // The workspace ID and the platform only for a substitution (OBSERVABILITY.md §4); the
+    // workspace ID, the platform, the scope and the kind for an assignment.
     const platform = surfaceOf(c.req.header('authorization'), body.surface);
     if (platform !== undefined) {
       afterCommit(() =>
-        productEvents.track({
-          event: 'trainer_assigned',
-          distinctId: c.get('account').id,
-          properties: {
-            workspace_id: scope.workspaceId,
-            platform,
-            scope: current.type === 'private' ? 'this' : editScope,
-            kind: current.type === 'private' ? 'private' : 'class',
-          },
-        }),
+        productEvents.track(
+          substitution?.outcome === 'applied'
+            ? {
+                event:
+                  substitution.change === 'ended' ? 'substitution_ended' : 'trainer_substituted',
+                distinctId: c.get('account').id,
+                properties: { workspace_id: scope.workspaceId, platform },
+              }
+            : {
+                event: 'trainer_assigned',
+                distinctId: c.get('account').id,
+                properties: {
+                  workspace_id: scope.workspaceId,
+                  platform,
+                  scope: current.type === 'private' ? 'this' : editScope,
+                  kind: current.type === 'private' ? 'private' : 'class',
+                },
+              },
+        ),
       );
     }
     return c.json({ session: shown(latest, timeZone), clientsNotified, keptDates }, 200);

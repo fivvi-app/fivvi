@@ -117,7 +117,7 @@ describe('F023 AC1: this date, a class that has no trainer', () => {
     });
   });
 
-  it('AC1: a date that already has a trainer is refused until F024 builds the substitution', () => {
+  it('AC1: a date that already has a trainer is F024’s substitution, which assignTrainer leaves to `substitute`', () => {
     expect(
       assignTrainer({
         session: krachtOn('2026-10-13'),

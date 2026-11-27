@@ -21,6 +21,7 @@ import {
   createMemoryTransport,
   createPrivateSessionSender,
   createSendEmail,
+  createSubstitutionSender,
   createTrainerChangeSender,
   createTrainerInvitationSender,
 } from '@fivvi/email';
@@ -158,6 +159,14 @@ export async function createWorld(options: WorldOptions = {}): Promise<World> {
     }),
     // The assignment route emails EM-13 (F023): into memory, never out.
     sendTrainerChange: createTrainerChangeSender({
+      sendEmail: createSendEmail({
+        transport: createMemoryTransport(),
+        sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+        replyTo: { email: 'support@example.com' },
+      }),
+    }),
+    // The assignment route emails EM-10 to a substitute (F024): into memory, never out.
+    sendSubstitution: createSubstitutionSender({
       sendEmail: createSendEmail({
         transport: createMemoryTransport(),
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },

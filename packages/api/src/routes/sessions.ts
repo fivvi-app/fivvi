@@ -131,6 +131,24 @@ export const SessionTrainerSchema = z
   })
   .openapi('SessionTrainer', { description: 'The trainer of a session.' });
 
+export const SubstituteForSchema = z
+  .object({
+    id: z.uuid().openapi({
+      description:
+        'The team-member ID of the trainer the date’s trainer replaces, as in `GET …/trainers` ' +
+        '(`trainer.id` of the date before the substitution).',
+    }),
+    trainerProfileId: z.uuid().openapi({
+      description: 'The trainer profile of that trainer, what the date remembers.',
+    }),
+    name: z.string().openapi({ description: 'The account’s name; empty when it has none.' }),
+  })
+  .openapi('SubstituteFor', {
+    description:
+      'The trainer a substitution replaces on one date (F024): “Mike (vervangt Sarah)”, ' +
+      '“Je valt in voor Sarah”. Every team member who may read the date reads it.',
+  });
+
 /**
  * The level of a class (F067): a fixed list, not translated user content (the UI shows the word
  * from `classLevel.*`). A thing without one (*Geen*) leaves the field out.
@@ -200,6 +218,11 @@ export const SessionSchema = z
     // union with `null` is dropped by the Swift generator; an optional property is right in all three clients.
     trainer: SessionTrainerSchema.optional().openapi({
       description: 'Left out when the session has no trainer (the trainer’s profile ended).',
+    }),
+    substituteFor: SubstituteForSchema.optional().openapi({
+      description:
+        'The trainer this date’s trainer replaces (F024): present while the date is a ' +
+        'substitution, left out otherwise. `trainer` is the substitute.',
     }),
     cancellation: SessionCancellationSchema.optional().openapi({
       description:
@@ -615,6 +638,7 @@ export function shown(session: SessionView, timeZone: string) {
     startsAt,
     endsAt,
     trainer,
+    substituteFor,
     groupClass,
     series,
     cancellation,
@@ -626,6 +650,7 @@ export function shown(session: SessionView, timeZone: string) {
   return {
     ...rest,
     ...(trainer ? { trainer } : {}),
+    ...(substituteFor ? { substituteFor } : {}),
     ...(groupClass ? { groupClass } : {}),
     ...(level ? { level } : {}),
     ...(cancellation
