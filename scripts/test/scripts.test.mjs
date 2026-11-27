@@ -2453,7 +2453,7 @@ case "$*" in *"/api/v1/me"*)
   [ "$FAKE_WARM_UP" = ok ] && printf 200 || printf 401 ;; esac
 case "$*" in *"/api/v1/health"*)
   # FAKE_WEB_EXIT (#1600): the web server exited at start, so nothing answers; the call takes the 1 s the poll below takes.
-  [ -z "$FAKE_WEB_EXIT" ] || { /bin/sleep 0.5; exit 7; } ;; esac
+  [ -z "$FAKE_WEB_EXIT" ] || { /bin/sleep 1; exit 7; } ;; esac
 case "$*" in *"localhost:$((E2E_PORT + 2000))/"*)
   exec node -e "
     const url = process.argv[1], end = Date.now() + 1000;
