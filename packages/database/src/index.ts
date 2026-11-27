@@ -238,6 +238,16 @@ export {
 } from './repositories/personal-sessions.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {
+  countExportRows,
+  EXPORT_BATCH_SIZE,
+  type ExportClientLink,
+  type ExportColumnInfo,
+  type ExportRequest,
+  type ExportRow,
+  exportColumns,
+  readExportRows,
+} from './repositories/privacy-export.ts';
+export {
   type ChargebackRecord,
   findRefund,
   findRefundFacts,

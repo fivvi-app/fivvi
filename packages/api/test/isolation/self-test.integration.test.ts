@@ -61,6 +61,10 @@ const SELF_TEST_CASES: Record<string, IsolationCase> = {
   probeLeakyClients: { seed: seedWorkspace },
   probeLeakyBodies: { seed: seedNote(PROTECTED) },
   probeWritingGet: { seed: seedWorkspace },
+  // Routes that log access (E014): one adds an entry to its own workspace's log, as it may, the
+  // other to the log of every other workspace, which it may not.
+  probeLogsOwnAccess: { seed: seedWorkspace, logsAccess: true },
+  probeLogsOtherAccess: { seed: seedWorkspace, logsAccess: true },
   // The same too-strict table, read by cases that seed nothing, or something no row holds.
   probeUnseeded: {},
   probeUnknownSeed: { seed: () => Promise.resolve({ note: 'note-0badc0de' }) },
@@ -141,6 +145,24 @@ function registerLeakyRoutes(world: World) {
       200,
     ),
   );
+  // Adds an access-log entry to the workspace of the path, as a route that logs access may...
+  app.openapi(defineRoute(route('/probe/logs-own', 'probeLogsOwnAccess'), team), async (c) => {
+    const { workspaceId } = c.get('scope');
+    await world.admin.db.execute(
+      sql`insert into access_log (organization_id, action, actor_team_member_id)
+          values (${workspaceId}, 'workspace.exported', gen_random_uuid())`,
+    );
+    return c.json({ workspace: workspaceId }, 200);
+  });
+  // ...and one that also writes an entry into the log of every other workspace, which it may not.
+  app.openapi(defineRoute(route('/probe/logs-other', 'probeLogsOtherAccess'), team), async (c) => {
+    const { workspaceId } = c.get('scope');
+    await world.admin.db.execute(
+      sql`insert into access_log (organization_id, action, actor_team_member_id)
+          select id, 'workspace.exported', gen_random_uuid() from organizations`,
+    );
+    return c.json({ workspace: workspaceId }, 200);
+  });
   // Reads the too-strict table, listed by a case whose seed returns nothing to look for.
   for (const operationId of ['probeUnseeded', 'probeUnknownSeed']) {
     app.openapi(defineRoute(route(`/probe/${operationId}`, operationId), team), async (c) =>
@@ -204,6 +226,16 @@ describe('@isolation E011 the suite can fail', () => {
           expect.stringMatching(/^probeWritingGet as A’s owner in A: rows of A changed/),
         ]),
       );
+      // ...for a route that logs access and writes into another workspace's log too, but not for
+      // one that adds an entry to the log of its own workspace...
+      expect(failuresOf('probeLogsOtherAccess')).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(
+            /^probeLogsOtherAccess as A’s owner in A: rows of B changed, and this call may not change them/,
+          ),
+        ]),
+      );
+      expect(failuresOf('probeLogsOwnAccess')).toEqual([]);
       // ...for a route that leaks only the text of a note, found by the marker in it...
       expect(failuresOf('probeLeakyBodies')).toEqual(
         expect.arrayContaining([
@@ -260,6 +292,7 @@ describe('@isolation E011 the suite can fail', () => {
           !failure.startsWith('probeLeakyJoinCodes as ') &&
           !failure.startsWith(`probeNotes_${STRICT} as `) &&
           !failure.startsWith('probeWritingGet as ') &&
+          !failure.startsWith('probeLogsOtherAccess as ') &&
           !failure.startsWith('probeUnseeded: ') &&
           !failure.startsWith('probeUnknownSeed: ') &&
           !failure.startsWith(`probeNotes_${UNPROTECTED} as `),

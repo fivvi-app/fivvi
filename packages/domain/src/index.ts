@@ -288,6 +288,22 @@ export {
   InvalidDeletionLogEntryError,
   type InvalidDeletionLogEntryField,
 } from './privacy/deletion-log.ts';
+export {
+  type ClientLink,
+  CSV_BOM,
+  csvLine,
+  type ExportColumn,
+  type ExportFile,
+  type ExportKind,
+  type ExportValue,
+  exportColumnNames,
+  exportFileKey,
+  exportFilesFor,
+  exportReadme,
+  exportRecord,
+  localInstant,
+  type ReadmeFile,
+} from './privacy/export.ts';
 export { renderPrivacyInventory } from './privacy/inventory.ts';
 export {
   declaredTable,

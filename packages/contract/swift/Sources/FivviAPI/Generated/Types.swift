@@ -480,6 +480,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/access-log`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/access-log/get(listAccessLog)`.
     func listAccessLog(_ input: Operations.ListAccessLog.Input) async throws -> Operations.ListAccessLog.Output
+    /// Export everything the workspace holds about one client
+    ///
+    /// Downloads a ZIP named `fivvi-{workspace-slug}-{client-id}-{date}.zip` (the Owner only; a Trainer gets `403`) with the client’s profile, her sessions and bookings with attendance, and, as later features add them, the rest of her records, all from this workspace only. `README.txt` in the Owner’s language (their stored language, else `Accept-Language`, else English) says what each file is and what the field names mean; `data.json` holds every record; each kind of record is also a CSV in UTF-8 with a byte order mark, so Excel opens it with the accents intact. The field names are English and stable. Every time is given in UTC and, next to it, in the workspace time zone (`…_local`). It is generated for this request and streamed: the server stores no file. It writes one entry in the access log. A client who is not in this workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}/export`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/export/get(exportClient)`.
+    func exportClient(_ input: Operations.ExportClient.Input) async throws -> Operations.ExportClient.Output
+    /// Export everything the workspace holds
+    ///
+    /// Downloads a ZIP named `fivvi-{workspace-slug}-{date}.zip` (the Owner only; a Trainer gets `403`) with every record of the workspace that the privacy registry declares, for when the workspace leaves. `README.txt` in the Owner’s language (their stored language, else `Accept-Language`, else English) says what each file is and what the field names mean; `data.json` holds every record; each kind of record is also a CSV in UTF-8 with a byte order mark, so Excel opens it with the accents intact. The field names are English and stable. Every time is given in UTC and, next to it, in the workspace time zone (`…_local`). It is generated for this request and streamed: the server stores no file. It writes one entry in the access log.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/export`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/export/get(exportWorkspace)`.
+    func exportWorkspace(_ input: Operations.ExportWorkspace.Input) async throws -> Operations.ExportWorkspace.Output
     /// The invoice details of a workspace
     ///
     /// The seller’s invoice details, the email for invoice questions and the no-VAT switch of the workspace (the Owner only; a Trainer gets `403`). A workspace that never saved them answers `200` with `null` fields, `noVat: false` and `complete: false`.
@@ -1586,6 +1600,40 @@ extension APIProtocol {
         headers: Operations.ListAccessLog.Input.Headers = .init()
     ) async throws -> Operations.ListAccessLog.Output {
         try await listAccessLog(Operations.ListAccessLog.Input(
+            path: path,
+            query: query,
+            headers: headers
+        ))
+    }
+    /// Export everything the workspace holds about one client
+    ///
+    /// Downloads a ZIP named `fivvi-{workspace-slug}-{client-id}-{date}.zip` (the Owner only; a Trainer gets `403`) with the client’s profile, her sessions and bookings with attendance, and, as later features add them, the rest of her records, all from this workspace only. `README.txt` in the Owner’s language (their stored language, else `Accept-Language`, else English) says what each file is and what the field names mean; `data.json` holds every record; each kind of record is also a CSV in UTF-8 with a byte order mark, so Excel opens it with the accents intact. The field names are English and stable. Every time is given in UTC and, next to it, in the workspace time zone (`…_local`). It is generated for this request and streamed: the server stores no file. It writes one entry in the access log. A client who is not in this workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}/export`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/export/get(exportClient)`.
+    public func exportClient(
+        path: Operations.ExportClient.Input.Path,
+        query: Operations.ExportClient.Input.Query = .init(),
+        headers: Operations.ExportClient.Input.Headers = .init()
+    ) async throws -> Operations.ExportClient.Output {
+        try await exportClient(Operations.ExportClient.Input(
+            path: path,
+            query: query,
+            headers: headers
+        ))
+    }
+    /// Export everything the workspace holds
+    ///
+    /// Downloads a ZIP named `fivvi-{workspace-slug}-{date}.zip` (the Owner only; a Trainer gets `403`) with every record of the workspace that the privacy registry declares, for when the workspace leaves. `README.txt` in the Owner’s language (their stored language, else `Accept-Language`, else English) says what each file is and what the field names mean; `data.json` holds every record; each kind of record is also a CSV in UTF-8 with a byte order mark, so Excel opens it with the accents intact. The field names are English and stable. Every time is given in UTC and, next to it, in the workspace time zone (`…_local`). It is generated for this request and streamed: the server stores no file. It writes one entry in the access log.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/export`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/export/get(exportWorkspace)`.
+    public func exportWorkspace(
+        path: Operations.ExportWorkspace.Input.Path,
+        query: Operations.ExportWorkspace.Input.Query = .init(),
+        headers: Operations.ExportWorkspace.Input.Headers = .init()
+    ) async throws -> Operations.ExportWorkspace.Output {
+        try await exportWorkspace(Operations.ExportWorkspace.Input(
             path: path,
             query: query,
             headers: headers
