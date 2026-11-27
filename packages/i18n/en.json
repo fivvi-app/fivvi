@@ -365,6 +365,30 @@
     "label": "Main navigation",
     "profile": "Profile"
   },
+  "clientWeb": {
+    "language": {
+      "enName": "English",
+      "enShort": "EN",
+      "error": "Your language wasn't saved. Try again.",
+      "label": "Language",
+      "nlName": "Nederlands",
+      "nlShort": "NL"
+    },
+    "noWorkspace": {
+      "haveLink": "Got the link? Open it and ask to join there."
+    },
+    "studios": {
+      "add": "Add a studio",
+      "addExplain": "Ask your studio for its Fivvi link, or scan the QR code at the front desk. You then ask to join. Once they approve you, the studio shows up here.",
+      "addHint": "With your studio's link or QR code",
+      "close": "Close",
+      "current": "Selected",
+      "done": "Done",
+      "switcher": "Studio: {name}",
+      "title": "My studios",
+      "yours": "Your studios"
+    }
+  },
   "clients": {
     "add": "Add client",
     "addDialog": {
@@ -554,6 +578,15 @@
       "preview": "Use code {code} to sign in to Fivvi.",
       "subject": "Your sign-in code for Fivvi",
       "validity": "The code and the sign-in link work for {minutes, plural, one {# minute} other {# minutes}}."
+    },
+    "substitution": {
+      "button": "View in Fivvi",
+      "intro": "You're covering for {original}: {class} at {workspace}.",
+      "introNoOriginal": "You're covering {class} at {workspace}.",
+      "preview": "You're covering {class} on {date} at {start}.",
+      "subject": "You're covering: {class} on {date}",
+      "when": "When: {date}, {start} to {end}",
+      "where": "Where: {location}"
     },
     "trainerChange": {
       "classDatesPreview": "{class} has a new {word} from {date}.",
@@ -907,6 +940,7 @@
   },
   "noAccess": {
     "body": "You don't have access to a workspace yet.",
+    "clientHint": "Are you a client? Use the Fivvi app.",
     "title": "No access yet"
   },
   "noPermission": {

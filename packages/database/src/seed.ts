@@ -269,6 +269,12 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     monday: mondayOf(options.now ?? new Date(), gymZone?.timeZone ?? 'Europe/Amsterdam'),
     now: options.now ?? new Date(),
   });
+  // F024 AC15: one class date of that week with a substitute, so the G2 demo shows one.
+  await seedSubstitutedClassDate(db, {
+    workspaceId: gym,
+    ownerTeamMemberId: johnInGym.id,
+    monday: mondayOf(options.now ?? new Date(), gymZone?.timeZone ?? 'Europe/Amsterdam'),
+  });
   await seedPersonalCalendar(db, { gym, personalTraining });
   // The pilot-shaped week of the workspace calendar (F014), in a workspace of its own so that
   // F013's 22 September of John's Gym stays as it is (see `seed-pilot-week.ts`).
@@ -939,6 +945,72 @@ async function seedCancelledClassDate(
       cancelledAt: new Date(Math.min(date.startsAt.getTime() - 3 * 86_400_000, now.getTime())),
       cancelledByTeamMemberId: ownerTeamMemberId,
       cancellationInitiator: 'workspace',
+      updatedByTeamMemberId: ownerTeamMemberId,
+    })
+    .where(eq(sessions.id, date.id));
+}
+
+/**
+ * Gives one class date of the seeded week a substitute as the Owner would (F024 AC15, ticket
+ * #552): "Kracht" on the Tuesday of the week `now` falls in, 18:00, which Tom teaches for Sarah,
+ * the date's trainer in the series. The date keeps its series but is marked as its own in the
+ * trainer, as the API writes a substitution. It is done once: a date that is substituted already,
+ * cancelled or has another trainer than Sarah, or is not there, is left alone, and the next week
+ * gets its own.
+ */
+async function seedSubstitutedClassDate(
+  db: DatabaseExecutor,
+  {
+    workspaceId,
+    ownerTeamMemberId,
+    monday,
+  }: { workspaceId: string; ownerTeamMemberId: string; monday: string },
+): Promise<void> {
+  const profiles = new Map(
+    (
+      await db
+        .select({ email: authUsers.email, profileId: trainerProfiles.id })
+        .from(trainerProfiles)
+        .innerJoin(teamMembers, eq(teamMembers.id, trainerProfiles.teamMemberId))
+        .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+        .where(eq(trainerProfiles.organizationId, workspaceId))
+    ).map((row) => [row.email, row.profileId]),
+  );
+  const sarah = profiles.get('trainer@example.com');
+  const tom = profiles.get('tom@example.com');
+  if (!sarah || !tom) return;
+  const [date] = await db
+    .select({
+      id: sessions.id,
+      status: sessions.status,
+      trainerProfileId: sessions.trainerProfileId,
+      substituteFor: sessions.substituteForTrainerProfileId,
+    })
+    .from(sessions)
+    .innerJoin(groupClasses, eq(groupClasses.id, sessions.groupClassId))
+    .where(
+      and(
+        eq(sessions.organizationId, workspaceId),
+        eq(sessions.type, 'group'),
+        eq(groupClasses.nameNl, 'Kracht'),
+        eq(sessions.occurrenceDate, addDaysTo(monday, 1)),
+      ),
+    );
+  if (
+    !date ||
+    date.status === 'cancelled' ||
+    date.trainerProfileId !== sarah ||
+    date.substituteFor !== null
+  ) {
+    return;
+  }
+  await db
+    .update(sessions)
+    .set({
+      trainerProfileId: tom,
+      substituteForTrainerProfileId: sarah,
+      detachedFields: sql`array(select distinct unnest(${sessions.detachedFields} || array['trainer']::text[]))`,
+      version: sql`${sessions.version} + 1`,
       updatedByTeamMemberId: ownerTeamMemberId,
     })
     .where(eq(sessions.id, date.id));

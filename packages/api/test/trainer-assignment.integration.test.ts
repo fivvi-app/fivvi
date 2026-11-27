@@ -384,15 +384,18 @@ describe('F023 assigning and changing a trainer through the API', () => {
       await readSession(w.server, w.gym.id, date.id, w.john)
     ).json()) as SessionBody;
     expect(read.trainer).toEqual({ id: w.tomRole.id, name: 'Tom' });
-    // Until F024, a date that has a trainer takes no "only this date" change.
+    // A date that has a trainer takes the "only this date" change as F024's substitution: Sarah
+    // teaches it for Tom (the F024 tests cover it).
     const again = await assign(w, date.id, w.john, {
       trainerId: w.sarahRole.id,
       scope: 'this',
+      notifySubstitute: false,
       version: 2,
     });
-    expect(again.status).toBe(400);
-    expect(await again.json()).toMatchObject({
-      issues: [{ path: 'scope', code: 'has_trainer' }],
+    expect(again.status).toBe(200);
+    expect(((await again.json()) as TrainerBody).session).toMatchObject({
+      trainer: { id: w.sarahRole.id, name: 'Sarah' },
+      substituteFor: { id: w.tomRole.id, name: 'Tom' },
     });
   });
 

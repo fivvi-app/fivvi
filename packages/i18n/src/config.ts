@@ -14,8 +14,15 @@ export const defaultLocale: Locale = 'nl-NL';
  * `site`: the copy of the public website, rendered by `apps/web` (F064, ADR-030).
  * `dataImport`: the problems the import check reports, rendered by the API and the web (E015).
  * `accessLog`: the words the access log's API puts in its answer, such as the name of a removed client (E014).
+ * `clientWeb`: the copy only the client web renders, such as its NL | EN switch (F030); the tabs and the no-studio title are shared with the client app (`clientNav`, `noWorkspace`).
  */
-export const serverOnlyNamespaces = ['email', 'site', 'dataImport', 'accessLog'] as const;
+export const serverOnlyNamespaces = [
+  'email',
+  'site',
+  'dataImport',
+  'accessLog',
+  'clientWeb',
+] as const;
 
 /** Workspace time zone used when nothing more specific is known (ADR-012). */
 export const defaultTimeZone = 'Europe/Amsterdam';

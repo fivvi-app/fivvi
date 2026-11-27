@@ -207,17 +207,7 @@ struct HomeView: View {
                 }
             }
         case .noAccess:
-            Card {
-                VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
-                    Text(catalog[.noAccessTitle])
-                        .font(.system(Tokens.TextStyle.title2, weight: .semibold))
-                        .foregroundStyle(Tokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-                        .accessibilityIdentifier("home.noAccessTitle")
-                    message(catalog[.noAccessBody], id: "home.noAccess")
-                }
-            }
+            noAccessCard
         case .workspace, nil:
             EmptyView()
         }
@@ -351,6 +341,24 @@ extension HomeView {
 
 /// Small text pieces of the home, kept apart so the screen's own body stays short.
 extension HomeView {
+    /// The no-access state: the title, the text and, for a client who opened Fivvi Pro by mistake, the line that points
+    /// to the Fivvi app (F030 AC9).
+    fileprivate var noAccessCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
+                Text(catalog[.noAccessTitle])
+                    .font(.system(Tokens.TextStyle.title2, weight: .semibold))
+                    .foregroundStyle(Tokens.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("home.noAccessTitle")
+                message(catalog[.noAccessBody], id: "home.noAccess")
+                message(catalog[.noAccessClientHint], id: "home.noAccessClientHint")
+                    .padding(.top, Tokens.Spacing.space2)
+            }
+        }
+    }
+
     fileprivate func message(_ text: String, id: String) -> some View {
         Text(text)
             .font(.system(Tokens.TextStyle.body))

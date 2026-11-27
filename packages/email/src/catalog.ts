@@ -8,6 +8,7 @@ import { helloEmail } from './templates/hello.tsx';
 import { privateSessionEmail } from './templates/private-session.tsx';
 import { privateSessionMovedEmail } from './templates/private-session-moved.tsx';
 import { signInEmail } from './templates/sign-in.tsx';
+import { substitutionEmail } from './templates/substitution.tsx';
 import { trainerChangeEmail } from './templates/trainer-change.tsx';
 import { trainerInvitationEmail } from './templates/trainer-invitation.tsx';
 
@@ -166,11 +167,12 @@ export const catalog: readonly CatalogEntry[] = [
   },
   {
     id: 'EM-10',
-    status: 'reserved',
+    status: 'active',
     audience: 'trainer',
     owner: ['F024'],
     subjectKeys: ['email.substitution.subject'],
-    note: 'The trainer who covers a class.',
+    template: register(substitutionEmail),
+    note: 'The trainer who covers a class date (F024), in their own language, once per date and substitute.',
   },
   {
     id: 'EM-11',

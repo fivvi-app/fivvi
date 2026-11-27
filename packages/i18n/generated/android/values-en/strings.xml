@@ -684,6 +684,7 @@
     <string name="my_profile_trainer_role">Trainer</string>
     <string name="my_profile_workspaces_title">My workspaces</string>
     <string name="no_access_body">You don\'t have access to a workspace yet.</string>
+    <string name="no_access_client_hint">Are you a client? Use the Fivvi app.</string>
     <string name="no_access_title">No access yet</string>
     <string name="no_permission_body">You don\'t have access to this page. Ask the owner of %1$s.</string>
     <string name="no_permission_title">No access</string>

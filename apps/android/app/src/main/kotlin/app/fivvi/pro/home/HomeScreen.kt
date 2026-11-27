@@ -56,6 +56,9 @@ object HomeTags {
     const val SET_UP_ON_WEB = "home.setUpOnWeb"
     const val OPEN_WEB = "home.openWeb"
     const val NO_ACCESS = "home.noAccess"
+
+    /** The line under the no-access text that points a client who opened Fivvi Pro by mistake to the Fivvi app (F030). */
+    const val NO_ACCESS_CLIENT_HINT = "home.noAccessClientHint"
     const val OPEN_PROFILE = "home.openProfile"
     const val OPEN_CLIENTS = "home.openClients"
 
@@ -263,6 +266,11 @@ private fun Destination(me: MeState, onOpenWeb: () -> Unit) {
                     style = MaterialTheme.typography.title2,
                 )
                 Text(text = stringResource(R.string.no_access_body), style = MaterialTheme.typography.body)
+                Text(
+                    text = stringResource(R.string.no_access_client_hint),
+                    modifier = Modifier.padding(top = Spacing.space2).testTag(HomeTags.NO_ACCESS_CLIENT_HINT),
+                    style = MaterialTheme.typography.body,
+                )
             }
         }
     }

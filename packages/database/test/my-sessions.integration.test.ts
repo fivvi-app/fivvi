@@ -324,6 +324,8 @@ describe('F013 the personal read model', () => {
         classNameEn: null,
         booked: 1,
         attendanceStatuses: ['booked'],
+        substituteFor: null,
+        takenOverBy: null,
       });
     });
 

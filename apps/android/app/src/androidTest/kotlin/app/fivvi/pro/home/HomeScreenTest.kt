@@ -105,6 +105,36 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertDoesNotExist()
     }
 
+    // F030 AC9: Mark signs in with an account that has no team role. He sees the no-access state with the line that points
+    // him to the Fivvi app, in the language shown, and no workspace data.
+    @Test
+    fun test_F030_AC9_clientInFivviProIsPointedToFivvi() {
+        me.answerAccount("mark@example.com", workspaces = emptyList(), canCreateWorkspace = false)
+        launch()
+
+        val hint = when (language) {
+            AppLanguage.DUTCH -> "Ben je klant? Gebruik de app Fivvi."
+            else -> "Are you a client? Use the Fivvi app."
+        }
+        compose.onNodeWithTag(HomeTags.NO_ACCESS_CLIENT_HINT).assertIsDisplayed().assertTextEquals(hint)
+        compose.onNodeWithTag(HomeTags.NO_ACCESS_CLIENT_HINT).assertTextEquals(string(R.string.no_access_client_hint))
+        compose.onNodeWithText(string(R.string.no_access_body)).assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.SET_UP_ON_WEB).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.OPEN_CLIENTS).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.NEW).assertDoesNotExist()
+    }
+
+    // AC9: an account with a team role gets Home as before, without the line.
+    @Test
+    fun test_F030_AC9_aTeamMemberDoesNotSeeTheClientHint() {
+        me.answerAccount(workspaces = listOf("John's Gym"))
+        launch()
+
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertTextEquals("John's Gym")
+        compose.onNodeWithTag(HomeTags.NO_ACCESS_CLIENT_HINT).assertDoesNotExist()
+    }
+
     @Test
     fun test_F002_AC10_noAccessSignOutShowsSignIn() {
         me.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
