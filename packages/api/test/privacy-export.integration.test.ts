@@ -438,9 +438,10 @@ describe('E014 the Owner exports data', () => {
       expect(response.status).toBe(200);
       await expect(body).rejects.toThrow();
       expect(reported).toHaveLength(1);
-      expect((reported[0]?.error as Error).message).toContain('boom');
-      expect(reported[0]?.context?.route).toBe('/v1/workspaces/:workspaceId/export');
-      expect(reported[0]?.context?.request).toBeInstanceOf(Request);
+      const [first] = reported as [(typeof reported)[number]];
+      expect((first.error as Error).message).toContain('boom');
+      expect(first.context?.route).toBe('/v1/workspaces/:workspaceId/export');
+      expect(first.context?.request).toBeInstanceOf(Request);
       // The log line names the error and nothing else.
       const logged = errors.mock.calls.flat().join(' ');
       expect(logged).toContain('Error');

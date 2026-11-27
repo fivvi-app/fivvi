@@ -8,8 +8,8 @@ import {
   mayChangeRow,
   mayShow,
   mustShow,
-  withoutNewLogEntries,
   splitAddedGroups,
+  withoutNewLogEntries,
   type XAccess,
 } from './expectations.ts';
 

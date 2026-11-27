@@ -18,8 +18,8 @@ import {
   type RowGroup,
   splitAddedGroups,
   type TokenOwner,
-  type XAccess,
   withoutNewLogEntries,
+  type XAccess,
 } from './expectations.ts';
 import { adminPool, type World } from './harness.ts';
 import type { IsolationCase } from './isolation-cases.ts';
