@@ -38,6 +38,7 @@ final class StubAttendance: @unchecked Sendable {
 
     private var holding = false
     private var held: [CheckedContinuation<Void, Never>] = []
+    private var watchers: [CheckedContinuation<Void, Never>] = []
 
     /// From now on a request waits, before it is stored, until `release()`: a send that is still running.
     func hold() { lock.withLock { holding = true } }
@@ -54,13 +55,28 @@ final class StubAttendance: @unchecked Sendable {
     /// How many requests wait for `release()`.
     var waitingCount: Int { lock.withLock { held.count } }
 
+    /// Returns once a request waits for `release()`.
+    func untilWaiting() async {
+        await withCheckedContinuation { continuation in
+            let ready = lock.withLock { () -> Bool in
+                if !held.isEmpty { return true }
+                watchers.append(continuation)
+                return false
+            }
+            if ready { continuation.resume() }
+        }
+    }
+
     func gate() async {
         await withCheckedContinuation { continuation in
-            let wait = lock.withLock { () -> Bool in
-                if holding { held.append(continuation) }
-                return holding
+            let (wait, arrived) = lock.withLock { () -> (Bool, [CheckedContinuation<Void, Never>]) in
+                guard holding else { return (false, []) }
+                held.append(continuation)
+                defer { watchers = [] }
+                return (true, watchers)
             }
             if !wait { continuation.resume() }
+            arrived.forEach { $0.resume() }
         }
     }
 

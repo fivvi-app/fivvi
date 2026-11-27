@@ -7,59 +7,9 @@ import XCTest
 /// #1618, spec #460: the attendance queue and the end of a sign-in. The sign-out the person chose (after the warning)
 /// empties it for good; a token the API rejected keeps the taps for the same account; no tap is ever sent under another
 /// account, and none vanishes without a trace. The Android part is covered by the Android slice (#1620).
-@MainActor
-final class AttendanceQueueSignOutTests: XCTestCase {
-    private let workspaceID = AttendanceFixtures.workspace.id
-    private let session = AttendanceFixtures.sessionID
-    private let file = "attendance-queue.json"
-
-    private final class Online: @unchecked Sendable {
-        var value = true
-    }
-
-    private func served() -> StubAPI {
-        let api = StubAPI()
-        api.attendance.serve(AttendanceFixtures.people())
-        return api
-    }
-
-    /// A phone: its Keychain, the attendance file and the network, shared by every queue (every app start) of a test.
-    private struct Phone {
-        let api: StubAPI
-        let tokens: InMemorySessionStore
-        let files = MemoryPersonalStore()
-        let online = Online()
-    }
-
-    private func phone(token: String? = "token-a") -> Phone {
-        Phone(api: served(), tokens: InMemorySessionStore(token: token))
-    }
-
-    private func queue(_ phone: Phone, ids: String = "request") -> AttendanceQueue {
-        AttendanceQueue(
-            api: phone.api, store: phone.files, isOnline: { phone.online.value },
-            makeID: { "\(ids)-\(UUID().uuidString.prefix(4))" }, retryAfter: nil,
-            signIn: { [tokens = phone.tokens] in tokens.token.map(SignInFingerprint.of) }
-        )
-    }
-
-    private func tap(_ queue: AttendanceQueue, _ name: String, _ status: AttendanceStatus = .attended) {
-        queue.enqueue(
-            workspaceID: workspaceID, sessionID: session,
-            .set(clientID: AttendanceFixtures.id(name), status: status.request ?? .booked)
-        )
-    }
-
-    /// The API rejects the token: the app deletes it and signs out, without the warning and without `clear()`.
-    private func tokenRejected(_ phone: Phone) { phone.tokens.deleteToken() }
-
-    private func signIn(_ phone: Phone, token: String, account: String) async {
-        try? phone.tokens.save(token: token)
-        await phone.api.answerMe(with: .account(email: "x@example.com", id: account))
-    }
-
+final class AttendanceQueueSignOutTests: AttendanceQueuePhoneTestCase {
     private func waitForRequestInFlight(_ api: StubAPI) async {
-        for _ in 0 ..< 500 where api.attendance.waitingCount == 0 { try? await Task.sleep(for: .milliseconds(10)) }
+        await api.attendance.untilWaiting()
         XCTAssertEqual(api.attendance.waitingCount, 1, "a send is running")
     }
 
@@ -259,47 +209,6 @@ final class AttendanceQueueSignOutTests: XCTestCase {
 
         XCTAssertTrue(phone.api.attendance.requests.isEmpty)
         XCTAssertEqual(second.rejections(sessionID: session).map(\.reason), [.other])
-    }
-
-    func test_F025_1618_theQueueAsksWhoSignedInBeforeItSendsWhatAnEarlierSignInLeft() async {
-        let phone = phone()
-        phone.online.value = false
-        let first = queue(phone)
-        first.learn(account: "account-a")
-        tap(first, "Anna de Vries")
-        tokenRejected(phone)
-
-        // The same account signs in again; the app did not get to read its account (offline start, then online).
-        await signIn(phone, token: "token-a2", account: "account-a")
-        let second = queue(phone)
-        phone.online.value = true
-        await second.flush()
-
-        XCTAssertEqual(phone.api.attendance.requests.map(\.clientID), [AttendanceFixtures.id("Anna de Vries")])
-        XCTAssertTrue(second.entries.isEmpty)
-    }
-
-    func test_F025_1618_whenTheAccountCannotBeReadTheEarlierSignInsTapsWaitAndNothingGoesOut() async {
-        let phone = phone()
-        phone.online.value = false
-        let first = queue(phone)
-        first.learn(account: "account-a")
-        tap(first, "Anna de Vries")
-        tokenRejected(phone)
-
-        await signIn(phone, token: "token-b", account: "account-b")
-        await phone.api.answerMe(with: .offline)
-        phone.online.value = true
-        let second = queue(phone)
-        tap(second, "Bram Jansen")
-        await second.flush()
-
-        XCTAssertTrue(phone.api.attendance.requests.isEmpty, "not even the new tap goes before the order is settled")
-        XCTAssertTrue(second.isStalled)
-        XCTAssertEqual(second.entries.count, 1)
-        XCTAssertNotNil(phone.files.read(file))
-        let stored = String(data: phone.files.read(file) ?? Data(), encoding: .utf8) ?? ""
-        XCTAssertTrue(stored.contains(AttendanceFixtures.id("Anna de Vries")), "the earlier tap stays in the file")
     }
 
     func test_F025_1618_aFileOfAnOlderAppIsTheOpenSignInsQueue() {

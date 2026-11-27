@@ -72,11 +72,9 @@ struct HomeView: View {
     ) {
         let queue = AttendanceQueue(api: api, store: attendanceStore, session: store) { connectivity.isOnline }
         _attendance = State(initialValue: queue)
-        // The account is known: what an earlier sign-in of it left goes on (#1618). The person chose to sign out (after
-        // the warning of the button): what waits is cleared; a rejected token signs out elsewhere and keeps it.
+        // The queue follows the account and the sign-out the person chose (#1618, `AccountViewModel+Attendance`).
         let account = AccountViewModel(
-            api: api, store: store, onAccount: { queue.learn(account: $0); onAccount($0) },
-            onSignedOut: { queue.clear(); onSignedOut($0) },
+            api: api, store: store, queue: queue, onAccount: onAccount, onSignedOut: onSignedOut,
             onPreferredLocale: { language.startRead() }, workspaces: .persistent()
         )
         _today = State(initialValue: TodayViewModel(

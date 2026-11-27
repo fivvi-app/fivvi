@@ -53,12 +53,14 @@ struct AttendanceQueueEntry: Codable, Equatable, Identifiable, Sendable {
 
 /// F025's offline queue: every attendance tap of the app is a request in a list on the phone, sent in order, with a
 /// client request ID of its own (a request sent twice stores one change). The list survives app restarts (a file with
-/// complete file protection, cleared at sign-out) and is sent when the phone is online. A tap the API refuses on its way
-/// (the class was cancelled meanwhile) leaves the list with the reason, so the screens revert that row and word it.
+/// complete file protection, cleared by the sign-out the person chose) and is sent when the phone is online. A tap the
+/// API refuses on its way (the class was cancelled meanwhile) leaves the list with the reason, so the screens revert
+/// that row and word it.
 /// *Iedereen aanwezig* is one request of its own, in order with the taps around it (owner, 9 November 2026).
 ///
 /// What waits belongs to a sign-in and an account (#1618). The sign-out the person chose (after the warning) empties the
-/// queue for good (`clear()`), and a send that is still running neither sends on nor writes anything back. A token the
+/// queue for good (`clear()`, the moment that sign-out starts), and a send that is still running neither sends on nor
+/// writes anything back. A token the
 /// API rejected ends the sign-in without that warning, so the taps stay on the phone: they are sent when the same account
 /// signs in again (`learn(account:)`), never under another account. Taps of another account are dropped then; taps whose
 /// account was never known are not sent either, and the rows they changed say so (`Reason.other`).
@@ -113,13 +115,17 @@ final class AttendanceQueue {
     private let signIn: @MainActor () -> String?
     /// The sign-in this queue was made for; once the token is another one, or gone, the queue neither sends nor writes.
     private let ownSignIn: String?
-    /// The account of this sign-in, once `GET /api/v1/me` answered.
+    /// The account of this sign-in, once `GET /api/v1/me` answered (in this launch or an earlier one of the same sign-in).
     private var account: String?
+    /// The account of every sign-in with taps on the phone, kept in a file next to the queue: a launch of the same sign-in
+    /// that starts offline still knows whose taps it takes.
+    private var accounts: [String: String]
     private var isClosed = false
     private var running: Task<Void, Never>?
     private var retry: Task<Void, Never>?
 
     private static let file = "attendance-queue.json"
+    private static let accountsFile = "attendance-accounts.json"
 
     /// `retryAfter`: how long after a failed attempt the queue tries again by itself; nil leaves it to the next tap, the
     /// foreground and a change of the network. `signIn` names the sign-in that is open now (`SignInFingerprint`).
@@ -136,7 +142,20 @@ final class AttendanceQueue {
         self.signIn = signIn
         let own = signIn()
         ownSignIn = own
-        let kept = store.read(Self.file).flatMap { try? JSONDecoder().decode([Entry].self, from: $0) } ?? []
+        var kept = store.read(Self.file).flatMap { try? JSONDecoder().decode([Entry].self, from: $0) } ?? []
+        var known = store.read(Self.accountsFile).flatMap { try? JSONDecoder().decode([String: String].self, from: $0) }
+            ?? [:]
+        // A tap of a sign-in whose account is known (from the file, or from another tap of that sign-in) is that account's.
+        for entry in kept {
+            if let signIn = entry.signIn, let account = entry.account, known[signIn] == nil { known[signIn] = account }
+        }
+        kept = kept.map { entry in
+            var entry = entry
+            if entry.account == nil, let signIn = entry.signIn ?? own { entry.account = known[signIn] }
+            return entry
+        }
+        accounts = known
+        account = own.flatMap { known[$0] }
         // A file an older app wrote was emptied at every sign-out, so its taps are those of the sign-in that is open.
         entries = kept.filter { $0.signIn == nil || $0.signIn == own }.map { entry in
             var entry = entry
@@ -239,8 +258,9 @@ final class AttendanceQueue {
     /// account's taps are dropped, and taps of an earlier sign-in whose account was never known are not sent: the rows
     /// they changed show the generic message instead of the taps vanishing.
     func learn(account id: String) {
-        guard isCurrent else { return }
+        guard isCurrent, let ownSignIn else { return }
         account = id
+        accounts[ownSignIn] = id
         entries = entries.map { entry in
             var entry = entry
             entry.account = entry.account ?? id
@@ -288,6 +308,10 @@ final class AttendanceQueue {
     private func save() {
         guard isCurrent else { return }
         if let data = try? JSONEncoder().encode(held + entries) { store.write(data, as: Self.file) }
+        // Only the sign-ins that still have taps (and this one) keep an account in the file.
+        let signIns = Set((held + entries).compactMap(\.signIn) + [ownSignIn].compactMap { $0 })
+        let kept = accounts.filter { signIns.contains($0.key) }
+        if let data = try? JSONEncoder().encode(kept) { store.write(data, as: Self.accountsFile) }
     }
 
     private func scheduleRetry() {
