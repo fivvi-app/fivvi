@@ -3,9 +3,11 @@ import { useTranslations } from 'next-intl';
 import { GatePage } from '../../gate-page';
 
 /**
- * The no-access page (`information-architecture.md §9.5`, F002 AC5): a signed-in person who is in
+ * The no-access page (`information-architecture.md §9.5`, F002 AC5): what a trainer-web page that
+ * is only for people on a team (the personal pages under `/me`) shows a signed-in person who is in
  * no workspace and may not set one up, such as a client or someone whose team role was removed.
- * It never offers TW-11. *Uitloggen* / *Sign out* is in the header of every signed-in page.
+ * The signed-in home sends such a person to the client web instead (F030). It never offers TW-11.
+ * *Uitloggen* / *Sign out* is in the header of every signed-in page.
  */
 export function NoAccess() {
   const t = useTranslations('noAccess');

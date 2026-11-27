@@ -75,4 +75,36 @@ final class WorkspaceHomeUITests: SignInUITestCase {
         XCTAssertTrue(screen.email.waitUntilExists(timeout: timeout))
         XCTAssertEqual(server.requests(to: "/api/v1/sign-out").map(\.method), ["POST"])
     }
+
+    /// F030 AC9, in nl and en (the test plan's two configurations): Mark has an account but no team role. He sees the
+    /// no-access state with the line that points him to the Fivvi app, and no workspace data.
+    func test_F030_AC9_clientInFivviProIsPointedToFivvi() throws {
+        let catalog = TestCatalog.configured
+        let server = try StubServer(signIn: StubServer.SignIn(
+            email: "mark@example.com", workspaceName: nil, canCreateWorkspace: false))
+        let screen = SignInScreen.launch(against: server, session: .signedIn)
+        let hint = screen.app.staticTexts["home.noAccessClientHint"]
+
+        XCTAssertTrue(hint.waitUntilExists(timeout: timeout))
+        let expected = TestCatalog.configuredLanguage == "nl"
+            ? "Ben je klant? Gebruik de app Fivvi." : "Are you a client? Use the Fivvi app."
+        XCTAssertEqual(hint.label, expected)
+        XCTAssertEqual(hint.label, catalog["noAccess.clientHint"])
+        XCTAssertEqual(screen.app.staticTexts["home.noAccess"].label, catalog["noAccess.body"])
+        XCTAssertFalse(screen.app.staticTexts["home.workspaceName"].exists)
+        XCTAssertFalse(screen.app.buttons["home.openClients"].exists)
+        XCTAssertFalse(screen.app.buttons["home.openWeb"].exists)
+    }
+
+    /// F030 AC9: the line is whole and readable at the largest text size.
+    func test_F030_AC9_clientHintWrapsAtTheLargestTextSize() throws {
+        let server = try StubServer(signIn: StubServer.SignIn(
+            email: "mark@example.com", workspaceName: nil, canCreateWorkspace: false))
+        let screen = SignInScreen.launch(against: server, session: .signedIn, textSize: AppLaunch.largestTextSize)
+        let hint = screen.app.staticTexts["home.noAccessClientHint"]
+
+        XCTAssertTrue(hint.waitUntilExists(timeout: timeout))
+        screen.scrollIntoView(hint)
+        try assertReadable(screen, [hint], wholeInWindow: true)
+    }
 }

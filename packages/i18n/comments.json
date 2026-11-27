@@ -167,6 +167,7 @@
   "myProfile.trainerRole": "Role label of a Trainer in the list of workspaces on the web My profile (TW-09), which lists the workspaces of one person and so has no one workspace word: it says the literal word, on the allowlist of the no-literal-trainer check (F068, AC12). Everywhere else the role label is roles.trainerLabel.",
   "myProfile.workspacesTitle": "Heading of the section listing the workspaces the person is on the team of, each with their role.",
   "noAccess.body": "Text of the no-access page (information-architecture §9.5, No permission). Native apps show it too, under the same conditions. The Dutch uses 'werkruimte' as the spec words it.",
+  "noAccess.clientHint": "Line under the no-access text in Fivvi Pro (iOS, Android) that points a client who opened it by mistake to the Fivvi app (F030 AC9). Same words as noWorkspace.teamHint the other way round. The Dutch app name is 'de app Fivvi'.",
   "noAccess.title": "Heading of the no-access page: a signed-in person who is not in a workspace and may not create one (a client, or someone who was removed). The page has the sign-out button.",
   "noPermission.body": "Text of the no-permission page. {workspace} is the name of the workspace, a name as typed by its owner and not translated.",
   "noPermission.title": "Heading of the no-permission page (information-architecture §9.5): a team member opens a page their role may not use, such as a Trainer opening Settings.",

@@ -15,6 +15,7 @@ export const defaultLocale: Locale = 'nl-NL';
  * `dataImport`: the problems the import check reports, rendered by the API and the web (E015).
  * `accessLog`: the words the access log's API puts in its answer, such as the name of a removed client (E014).
  * `privacyExport`: the read-me of the data export, written by the API in the Owner's language (E014).
+ * `clientWeb`: the copy only the client web renders, such as its NL | EN switch (F030); the tabs and the no-studio title are shared with the client app (`clientNav`, `noWorkspace`).
  */
 export const serverOnlyNamespaces = [
   'email',
@@ -22,6 +23,7 @@ export const serverOnlyNamespaces = [
   'dataImport',
   'accessLog',
   'privacyExport',
+  'clientWeb',
 ] as const;
 
 /** Workspace time zone used when nothing more specific is known (ADR-012). */

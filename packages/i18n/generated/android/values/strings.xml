@@ -778,6 +778,8 @@
     <string name="my_profile_workspaces_title">Mijn werkruimtes</string>
     <!-- Text of the no-access page (information-architecture §9.5, No permission). Native apps show it too, under the same conditions. The Dutch uses 'werkruimte' as the spec words it. -->
     <string name="no_access_body">Je hebt nog geen toegang tot een werkruimte.</string>
+    <!-- Line under the no-access text in Fivvi Pro (iOS, Android) that points a client who opened it by mistake to the Fivvi app (F030 AC9). Same words as noWorkspace.teamHint the other way round. The Dutch app name is 'de app Fivvi'. -->
+    <string name="no_access_client_hint">Ben je klant? Gebruik de app Fivvi.</string>
     <!-- Heading of the no-access page: a signed-in person who is not in a workspace and may not create one (a client, or someone who was removed). The page has the sign-out button. -->
     <string name="no_access_title">Nog geen toegang</string>
     <!-- Text of the no-permission page. {workspace} is the name of the workspace, a name as typed by its owner and not translated. -->
