@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@fivvi/ui/components/dialog';
+import { ChevronUpDownIcon, CloseIcon } from '@fivvi/ui/kit/icons';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -61,21 +62,14 @@ export function StudioSwitcher({
         >
           <StudioMark name={studio.name} size="sm" />
           <span className="truncate">{studio.name}</span>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="size-4 shrink-0 text-muted-foreground"
-          >
-            <path d="m8 9 4-4 4 4M8 15l4 4 4-4" />
-          </svg>
+          <ChevronUpDownIcon className="size-4 shrink-0 text-muted-foreground" />
         </button>
       </DialogTrigger>
-      <DialogContent className="top-auto bottom-0 left-0 max-h-[85dvh] max-w-none translate-x-0 translate-y-0 gap-4 overflow-y-auto rounded-t-[26px] rounded-b-none bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
+      {/* The list has only its title; the description is for *Studio toevoegen*. */}
+      <DialogContent
+        {...(adding ? {} : { 'aria-describedby': undefined })}
+        className="top-auto bottom-0 left-0 max-h-[85dvh] max-w-none translate-x-0 translate-y-0 gap-4 overflow-y-auto rounded-t-[26px] rounded-b-none bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:left-1/2 sm:max-w-md sm:-translate-x-1/2"
+      >
         <div className="flex items-center justify-between gap-3">
           <DialogTitle className="text-[22px] leading-7 font-bold">
             {adding ? t('add') : t('yours')}
@@ -84,22 +78,10 @@ export function StudioSwitcher({
             aria-label={t('close')}
             className="grid size-11 shrink-0 place-items-center rounded-full bg-foreground/10"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              aria-hidden="true"
-              className="size-5"
-            >
-              <path d="m6 6 12 12M18 6 6 18" />
-            </svg>
+            <CloseIcon className="size-5" />
           </DialogClose>
         </div>
-        <DialogDescription className="sr-only">
-          {adding ? t('addHint') : t('yours')}
-        </DialogDescription>
+        {adding ? <DialogDescription className="sr-only">{t('addHint')}</DialogDescription> : null}
         {adding ? (
           <AddStudio close={() => change(false)} />
         ) : (

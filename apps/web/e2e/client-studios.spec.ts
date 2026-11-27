@@ -107,6 +107,9 @@ test.describe('F030 the client’s studios on the web', () => {
     await button.click();
 
     await expect(sheet(page).getByRole('heading', { name: text.yours })).toBeVisible();
+    // The title names the sheet: no description that says it a second time.
+    await expect(sheet(page)).toHaveAccessibleName(text.yours);
+    await expect(sheet(page)).toHaveAccessibleDescription('');
     await expect(sheet(page).getByRole('link')).toHaveText([
       `${FIT_STUDIO} ${text.current}`,
       JOHNS_GYM,

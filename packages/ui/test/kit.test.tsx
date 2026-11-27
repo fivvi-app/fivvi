@@ -9,7 +9,15 @@ import { Avatar } from '../src/kit/avatar';
 import { ClientLayout } from '../src/kit/client-layout';
 import { ErrorLine } from '../src/kit/error-line';
 import { Field } from '../src/kit/field';
-import { ChevronRightIcon, PersonPlusIcon, SearchIcon } from '../src/kit/icons';
+import {
+  CheckIcon,
+  ChevronRightIcon,
+  ChevronUpDownIcon,
+  CloseIcon,
+  PersonPlusIcon,
+  PlusIcon,
+  SearchIcon,
+} from '../src/kit/icons';
 import { InsetList, InsetListItem } from '../src/kit/inset-list';
 import { LevelIcon } from '../src/kit/level-icon';
 import { NextCard } from '../src/kit/next-card';
@@ -347,7 +355,15 @@ describe('E020 web kit', () => {
 
   describe('icons', () => {
     it('are decorative drawings that take their colour from the text and a class', () => {
-      for (const Icon of [ChevronRightIcon, PersonPlusIcon, SearchIcon]) {
+      for (const Icon of [
+        ChevronRightIcon,
+        ChevronUpDownIcon,
+        CheckIcon,
+        CloseIcon,
+        PlusIcon,
+        PersonPlusIcon,
+        SearchIcon,
+      ]) {
         const markup = html(<Icon className="size-4" />);
 
         expect(markup).toMatch(/^<svg[^>]*aria-hidden="true"/);

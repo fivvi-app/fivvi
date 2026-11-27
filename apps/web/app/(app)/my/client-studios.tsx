@@ -1,8 +1,8 @@
 import { ChevronRightIcon } from '@fivvi/ui/kit/icons';
 import { InsetList, InsetListItem } from '@fivvi/ui/kit/inset-list';
 import { useTranslations } from 'next-intl';
-import { type Studio, studioPath } from './client-studio';
-import { StudioMark } from './studio-mark';
+import type { Studio } from './client-studio';
+import { StudioRow } from './studio-row';
 
 /**
  * *Mijn studio's* / *My studios* on the client home (F030): one row per studio the client belongs
@@ -17,17 +17,11 @@ export function ClientStudios({ studios }: { studios: readonly Studio[] }) {
         {t('title')}
       </h2>
       <InsetList>
-        {studios.map(({ slug, name }) => (
-          <InsetListItem key={slug}>
-            {/* A plain link: the address answers with the redirect to *Boeken* and a cookie. */}
-            <a
-              href={studioPath(slug)}
-              className="-mx-4 -my-2.5 flex min-h-13 flex-1 items-center gap-3 px-4 py-2.5"
-            >
-              <StudioMark name={name} size="lg" />
-              <span className="min-w-0 flex-1 truncate text-[17px] font-semibold">{name}</span>
+        {studios.map((studio) => (
+          <InsetListItem key={studio.slug}>
+            <StudioRow studio={studio}>
               <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" />
-            </a>
+            </StudioRow>
           </InsetListItem>
         ))}
       </InsetList>

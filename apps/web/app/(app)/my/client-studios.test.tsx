@@ -128,4 +128,19 @@ describe.each(locales)('F030 the client’s studios in %s', (locale) => {
     expect(html).not.toContain('<form');
     expect(html).not.toContain('type="search"');
   });
+
+  it('AC7: adding a studio is centred under a plus mark, with a full-width ghost Klaar', () => {
+    const html = render(locale, <AddStudio close={() => {}} />);
+
+    // The prototype's `c-addws`: a centred column with the plus mark (`c-mark lg add`) on top.
+    expect(html).toMatch(/^<div[^>]*class="[^"]*\btext-center\b/);
+    expect(html).toMatch(/<span[^>]*aria-hidden="true"[^>]*>\s*<svg[^>]*aria-hidden="true"/);
+    expect(html).toContain('size-[42px]');
+    expect(html).toMatch(/<p[^>]*class="[^"]*\btext-\[15px\]/);
+    const button = html.match(/<button([^>]*)>(.*?)<\/button>/);
+    expect(button?.[2]).toBe(escapeHtml(copy.clientWeb.studios.done));
+    expect(button?.[1]).toContain('hover:bg-muted');
+    expect(button?.[1]).toContain('w-full');
+    expect(button?.[1]).not.toContain('bg-secondary');
+  });
 });

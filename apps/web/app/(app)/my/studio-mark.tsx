@@ -1,3 +1,4 @@
+import { PlusIcon } from '@fivvi/ui/kit/icons';
 import type { ComponentProps } from 'react';
 import { initials } from '../(signed-in)/w/[slug]/workspace-initials';
 
@@ -28,5 +29,17 @@ export function StudioMark({
       aria-hidden="true"
       className={`grid shrink-0 place-items-center bg-primary font-extrabold text-primary-foreground before:content-[attr(data-initials)] ${SIZES[size]}`}
     />
+  );
+}
+
+/** The plus mark of *Studio toevoegen* (the prototype's `c-mark lg add`): a mark that is no studio. */
+export function AddMark() {
+  return (
+    <span
+      aria-hidden="true"
+      className="grid size-[42px] shrink-0 place-items-center rounded-xl bg-secondary text-accent-text"
+    >
+      <PlusIcon className="size-5" />
+    </span>
   );
 }
