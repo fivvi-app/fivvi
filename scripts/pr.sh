@@ -13,7 +13,12 @@
 #                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh --fast, the checks
 #                                                 the change can affect without the integration and e2e tests, which run
 #                                                 in CI or in the nightly run, as .github/pipeline.json says (ci: fast,
-#                                                 lean; ADR-033, ADR-034, ADR-035); --full runs check.sh --all, everything
+#                                                 lean; ADR-033, ADR-034, ADR-035); --full runs check.sh --all, everything.
+#                                                 It also warns, and still pushes, when the branch changes a hot file
+#                                                 (openapi.json, a migration, a generated client, one of the sorted lists and
+#                                                 catalogs of spec #1481; scripts/hot-files.mjs) that another open PR changes
+#                                                 too, naming that PR and the files (#1485); not its own PR or the PR of the
+#                                                 same ticket or slice
 #   pr.sh ready                                   mark the draft ready for review, only when for the head commit every
 #                                                 CI check passed (the merge gate's rule), the clean review is recorded
 #                                                 (pr.sh reviewed) and so is the smoke check (pr.sh smoke); else names
@@ -197,6 +202,31 @@ warn_if_large() {
   echo "  is one piece of work; otherwise leave the last tickets of the slice for a PR of their own. The push goes on." >&2
 }
 
+# The hot files (scripts/hot-files.mjs: openapi.json, the migrations, the generated clients and the sorted lists and
+# catalogs of spec #1481) this branch changes that another open PR changes too (#1485): a conflict is coming, so say
+# which PR and which files, while there is time to land one first. Another open PR is not this branch's own PR and not
+# the PR of the same ticket or slice ($1: their issues, space-separated). A warning, never a refusal: the push goes on,
+# also when the open PRs can't be read (GitHub is not needed to push, only to warn).
+warn_if_shared_hot_files() {
+  local prs changed issues found
+  prs="$(open_prs_json)" || {
+    echo "⚠ could not read the open PRs, so this branch was not checked for hot files another PR changes. The push goes on." >&2
+    return 0
+  }
+  changed="$(git diff --name-only "origin/$(default_branch)...HEAD" 2>/dev/null)" || return 0
+  issues="$(jq -nc --arg issues "$1" '[$issues | scan("[0-9]+")]')" || return 0
+  found="$({ printf '%s\n' "$prs"; jq -Rnc '[inputs]' <<<"$changed"; } \
+    | jq -sc --arg branch "$BRANCH" --argjson issues "$issues" '{prs: .[0], changed: .[1], branch: $branch, issues: $issues}' \
+    | node "$ROOT/scripts/hot-files.mjs" overlap)" || {
+    echo "⚠ could not check this branch for hot files another open PR changes. The push goes on." >&2
+    return 0
+  }
+  [ "$(jq 'length' <<<"$found")" -gt 0 ] || return 0
+  echo "⚠ this branch changes files that another open PR changes too, so one of them will conflict with the other (the PR that merges second needs a merge of main, a regenerate for generated files):" >&2
+  jq -r '.[] | "  PR #\(.pr) \(.title): \(.files[:8] | join(", "))\(if (.files | length) > 8 then " and \(.files | length - 8) more" else "" end)"' <<<"$found" >&2
+  echo "  Land the other PR first when you can; the push goes on." >&2
+}
+
 cmd_create() {
   local title="" body="" body_set=false draft=true check=true full=false issue existing slice closes t
   while [ $# -gt 0 ]; do
@@ -246,6 +276,7 @@ cmd_create() {
     fi
   fi
   warn_if_large
+  warn_if_shared_hot_files "$issue ${slice:-}"
   local out
   out="$(git push --quiet -u origin HEAD 2>&1)" || { echo "$out" >&2; die "push failed"; }
 

@@ -188,6 +188,25 @@ use_brew_java() {
   java_ok
 }
 
+# The open PRs with what the waiting and overlap rules read (#1485, scripts/hot-files.mjs), one `gh pr list` call: a JSON
+# list of {number, title, headRefName, headRefOid, mergeable, closingIssuesReferences, files} with `files` as paths.
+# GitHub lists at most 100 files of a PR; a PR that reaches that has its files read again, from the pulls API (paginated),
+# so a big PR that changes openapi.json is not missed. Prints nothing and fails when a read fails, for the caller to
+# decide what a failed read means. Needs $REPO.
+OPEN_PR_FILES_CAP=100
+open_prs_json() {
+  local prs n files
+  prs="$(gh pr list --repo "$REPO" --state open --limit 100 \
+    --json number,title,headRefName,headRefOid,mergeable,closingIssuesReferences,files)" || return 1
+  prs="$(jq -c --argjson cap "$OPEN_PR_FILES_CAP" '[.[] | .truncated = ((.files // []) | length >= $cap)
+    | .files = ((.files // []) | map(if type == "object" then .path else . end))]' <<<"$prs")" || return 1
+  for n in $(jq -r '.[] | select(.truncated) | .number' <<<"$prs"); do
+    files="$(gh api "repos/$REPO/pulls/$n/files" --paginate --jq '.[].filename' | jq -Rnc '[inputs]')" || return 1
+    prs="$(jq -c --argjson n "$n" --argjson files "$files" '[.[] | if .number == $n then .files = $files else . end]' <<<"$prs")" || return 1
+  done
+  jq -c '[.[] | del(.truncated)]' <<<"$prs"
+}
+
 read_body() {
   case "$1" in
     -) cat ;;

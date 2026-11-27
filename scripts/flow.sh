@@ -33,7 +33,17 @@
 #                                           as `Build #n first (nightly): ...`, and not a second time as a ready ticket.
 #                                           Then every open PR GitHub marks CONFLICTING, drafts and owner-only ones
 #                                           included (#1274): `Refresh PR #n (conflicting with main)`, before the other
-#                                           tickets (conflict_items, below)
+#                                           tickets (conflict_items, below). A ready ticket whose title tags
+#                                           mark it as changing the API (`API`, e.g. `(DB, domain, API)`) is not listed
+#                                           there while another open PR changes packages/contract/openapi.json, nor one
+#                                           tagged `DB` while another open PR changes a file under
+#                                           packages/database/migrations/ (#1485, spec #1481, scripts/hot-files.mjs): it
+#                                           is listed, only when there is one, under its own heading `== Waiting for an
+#                                           open PR` (between "Ready for an agent" and "Waiting on the owner"), as
+#                                           `#n title — waits for #PR (API contract)` or `(migration)`, and once that PR
+#                                           is merged or closed it is ready again. A ticket without those tags is never
+#                                           held; a PR never holds its own ticket (the PR that closes it, a branch named
+#                                           after it). The PRs come from the one `gh pr list` the conflict scan reads
 #   flow.sh refresh <pr> [--owner <reason>]  a conflicting PR (#1274, spec #1481): without --owner, record that this run
 #                                           starts its refresh (the merge of origin/main in the PR's worktree, work skill,
 #                                           Refresh) and print the branch, the head commit and the worktree; with --owner,
@@ -56,7 +66,11 @@
 #                                           idle it syncs the PR labels like `next`
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           no limit on the tickets in progress, unless FIVVI_MAX_TICKETS (a positive
-#                                           integer) sets one: then it refuses at that many (--force to override)
+#                                           integer) sets one: then it refuses at that many (--force to override).
+#                                           It also refuses a ticket tagged `API` or `DB` while an open PR changes the
+#                                           contract or adds a migration (`#n waits for #PR (API contract)`; --force to
+#                                           override), and when it can't read the open PRs to tell (a ticket without
+#                                           those tags needs no read); a ticket that already has its branch resumes
 #   flow.sh start --slice <spec> <platform> [--type <t>] [--force]
 #                                           one PR per platform slice of a spec (ADR-033): claim up to 5 open, unblocked,
 #                                           ready-for-agent tickets of spec <spec> on one platform (backend, web, ios or
@@ -64,7 +78,11 @@
 #                                           ticket blocked only by tickets of the slice, and make one worktree, branch
 #                                           (named after the first ticket) and notes file for them; the slice is recorded
 #                                           in .work/<first>/slice. status, next and finish treat every ticket of the
-#                                           slice like the first; pr.sh create closes each one
+#                                           slice like the first; pr.sh create closes each one. A ticket tagged `API`
+#                                           or `DB` that waits for an open PR as above stays out of the slice (a line
+#                                           `⏳ #n waits for #PR (…): left out of the slice`, and what it blocks stays
+#                                           out too); the slice is refused when every ticket of it waits (--force to
+#                                           override)
 #   flow.sh slice <n> --drop <t>            leave ticket <t> of the slice of <n> out of it (ADR-033): it was not built
 #                                           (blocked, or the rest above about 1,500 lines). It leaves .work/<first>/slice
 #                                           and is unassigned, so pr.sh create no longer closes it, finish leaves it
@@ -503,8 +521,14 @@ cmd_next() {
   conflict_items
   # The nightly issue is listed once, up front: not again as the ready ticket it also is.
   if [ -n "$NIGHTLY_NUMBER" ]; then ready="$(grep -v "^#$NIGHTLY_NUMBER " <<<"$ready" || true)"; fi
-  ready="$DEPLOY_WORK$NIGHTLY_WORK$CONFLICT_WORK$ready"
+  # A ticket that waits for an open PR (hold_ready, #1485) is not ready work: it gets a section of its own, only when there is one.
+  hold_ready "$ready"
+  ready="$DEPLOY_WORK$NIGHTLY_WORK$CONFLICT_WORK$READY_FREE"
   grep . <<<"$ready" || echo "(none)"
+  if [ -n "$HELD_WORK" ]; then
+    echo "== Waiting for an open PR"
+    printf '%s' "$HELD_WORK"
+  fi
   echo "== Waiting on the owner"
   owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
   owner="$DEPLOY_OWNER$CONFLICT_OWNER$owner"
@@ -749,12 +773,57 @@ refresh_skipped() {
   recent_work "$branch" "$issue"
 }
 
+# The open PRs, read once per run (#1485): the scan for conflicting PRs and the waiting rule share the one call. Sets
+# OPEN_PRS (open_prs_json in _lib.sh); fails when the read fails.
+OPEN_PRS=""
+read_open_prs() { [ -n "$OPEN_PRS" ] || OPEN_PRS="$(open_prs_json)"; }
+
+# The waiting rule (#1485, spec #1481): a ticket whose title tags say it changes the API (`API`) waits while another open
+# PR changes packages/contract/openapi.json, one tagged `DB` while another open PR changes a file under
+# packages/database/migrations/ (scripts/hot-files.mjs). Both read the open PRs from GitHub, never from memory, and only
+# when a ticket carries such a tag: a ticket without them costs no read and is never held.
+#
+# A failed read of the open PRs holds nothing back silently: `next` and `idle` fail like every other failed read, and
+# `start` refuses (--force overrides). Starting colliding work on a guess costs a builder run and a conflict to resolve;
+# a refusal costs a retry.
+
+# hold_tickets <tickets-json>: [{number, title}] of the tickets; prints the hot-files `holds` JSON ([] when none waits).
+hold_tickets() {
+  local tagged
+  tagged="$(node "$ROOT/scripts/hot-files.mjs" tagged <<<"$1")" || return 1
+  if [ "$(jq 'length' <<<"$tagged")" -eq 0 ]; then echo '[]'; return 0; fi
+  read_open_prs || return 1
+  { printf '%s\n' "$OPEN_PRS"; printf '%s\n' "$tagged"; } | jq -sc '{prs: .[0], tickets: .[1]}' \
+    | node "$ROOT/scripts/hot-files.mjs" holds
+}
+
+# `waits for #PR (API contract), #PR (migration)` for one entry of the holds JSON ($1).
+wait_text() { jq -r '"waits for " + (.waits | map("#\(.pr) (\(.reason))") | join(", "))' <<<"$1"; }
+
+# hold_ready <ready lines>: splits what ready_items printed. READY_FREE gets the lines of tickets that can start (all other
+# lines too, untouched), HELD_WORK a line `#n title — waits for #PR (API contract)` for each ticket that waits.
+hold_ready() {
+  local tickets holds n line entry
+  READY_FREE="$1" HELD_WORK=""
+  tickets="$(jq -Rnc '[inputs | capture("^#(?<number>[0-9]+) (?<title>.*)$")? | .number |= tonumber]' <<<"$1")" \
+    || die "could not read the ready tickets"
+  holds="$(hold_tickets "$tickets")" || die "could not read the open PRs, so no ticket can be checked against them"
+  [ "$(jq 'length' <<<"$holds")" -gt 0 ] || return 0
+  READY_FREE=""
+  while IFS= read -r line; do
+    n="$(sed -nE 's/^#([0-9]+) .*/\1/p' <<<"$line")"
+    entry=""
+    if [ -n "$n" ]; then entry="$(jq -c --argjson n "$n" '.[] | select(.number == $n)' <<<"$holds")"; fi
+    if [ -n "$entry" ]; then HELD_WORK+="$line — $(wait_text "$entry")"$'\n'; else READY_FREE+="$line"$'\n'; fi
+  done <<<"$1"
+}
+
 conflict_items() {
   local prs pr title branch head state queue closing record kind run record_head reason attempted current=""
   CONFLICT_WORK="" CONFLICT_OWNER="" CONFLICT_PRS=" "
-  prs="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,headRefName,headRefOid,mergeable,closingIssuesReferences \
-    --jq '.[] | [.number, (.headRefOid // "-"), (.mergeable // "UNKNOWN"), (.headRefName // "-"),
-      ((.closingIssuesReferences // []) | map(.number | tostring) | join(",") | if . == "" then "-" else . end), .title] | @tsv')" \
+  read_open_prs || die "could not read the open PRs"
+  prs="$(jq -r '.[] | [.number, (.headRefOid // "-"), (.mergeable // "UNKNOWN"), (.headRefName // "-"),
+      ((.closingIssuesReferences // []) | map(.number | tostring) | join(",") | if . == "" then "-" else . end), .title] | @tsv' <<<"$OPEN_PRS")" \
     || die "could not read the open PRs"
   while IFS=$'\t' read -r pr head state branch closing title; do
     [ -n "$pr" ] || continue
@@ -884,7 +953,9 @@ idle_scan() {
   removals="$(removal_items)" || exit 1
   finished="$(finished_items "$mine")" || exit 1
   ready="$(ready_items "$specs" "$questions" "$removals" "$finished")" || exit 1
-  work+="$ready"
+  # A ticket that waits for an open PR is no work: not for `idle` either (hold_ready, #1485).
+  hold_ready "$ready"
+  work+="$READY_FREE"
   if grep -q . <<<"$work"; then
     echo work
     grep . <<<"$work"
@@ -892,6 +963,10 @@ idle_scan() {
     owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
     owner="$DEPLOY_OWNER$CONFLICT_OWNER$owner"
     echo idle
+    if [ -n "$HELD_WORK" ]; then
+      echo "== Waiting for an open PR"
+      printf '%s' "$HELD_WORK"
+    fi
     echo "== Waiting on the owner"
     grep . <<<"$owner" || echo "(none)"
     sync_owner_labels "$owner"
@@ -1125,9 +1200,15 @@ slice_candidates() {
   echo "$out"
 }
 
+# The numbers (one per line) of the tickets that build together on $2 out of $1, the candidates JSON (scripts/slice.jq).
+pick_slice() {
+  jq -r -L "$ROOT/scripts" --arg platform "$2" --argjson max "$SLICE_MAX_TICKETS" \
+    'include "slice"; pick($platform; $max) | .[]' <<<"$1"
+}
+
 # flow.sh start --slice <spec> <platform>: see the header. $3 is the branch type ("" for the default), $4 --force.
 cmd_start_slice() {
-  local spec="$1" platform="$2" type="$3" force="$4" max login candidates picked n t title labels branch wt hint d spec_labels
+  local spec="$1" platform="$2" type="$3" force="$4" max login candidates picked n t title labels branch wt hint d spec_labels holds entry
   is_number "$spec"
   case " $SLICE_PLATFORMS " in *" $platform "*) ;; *) die "platform must be one of: $SLICE_PLATFORMS" ;; esac
   max="$(max_tickets)" || exit 1
@@ -1136,9 +1217,21 @@ cmd_start_slice() {
   grep -qxF "$APPROVED_LABEL" <<<"$spec_labels" \
     || die "spec #$spec is not approved: the owner adds the $APPROVED_LABEL label before its tickets are built"
   candidates="$(slice_candidates "$spec" "$login")" || exit 1
-  picked="$(jq -r -L "$ROOT/scripts" --arg platform "$platform" --argjson max "$SLICE_MAX_TICKETS" \
-    'include "slice"; pick($platform; $max) | .[]' <<<"$candidates")" \
-    || die "could not pick the tickets of the slice"
+  picked="$(pick_slice "$candidates" "$platform")" || die "could not pick the tickets of the slice"
+  if ! $force && [ -n "$picked" ]; then
+    # Tickets tagged API or DB wait for the open PR that changes the contract or adds a migration (#1485): they stay out of
+    # the slice, which then takes what else is ready; blocked tickets follow their blockers out.
+    holds="$(hold_tickets "$(jq -c --argjson picked "$(jq -sc . <<<"$picked")" '[.[] | select(.number as $n | $picked | index($n)) | {number, title}]' <<<"$candidates")")" \
+      || die "could not read the open PRs to check the slice against them (pass --force to start anyway)"
+    if [ "$(jq 'length' <<<"$holds")" -gt 0 ]; then
+      while IFS= read -r entry; do
+        echo "⏳ #$(jq -r .number <<<"$entry") $(wait_text "$entry"): left out of the slice"
+      done < <(jq -c '.[]' <<<"$holds")
+      candidates="$(jq -c --argjson holds "$holds" '[.[] | select(.number as $n | $holds | map(.number) | index($n) | not)]' <<<"$candidates")"
+      picked="$(pick_slice "$candidates" "$platform")" || die "could not pick the tickets of the slice"
+      [ -n "$picked" ] || die "every ready ticket of spec #$spec on $platform waits for an open PR (above): start the slice once it is merged or closed (pass --force to start anyway)"
+    fi
+  fi
   [ -n "$picked" ] || die "no ready, unblocked ticket of spec #$spec on $platform (scripts/issue.sh ready --parent $spec)"
   t="$(head -n 1 <<<"$picked")"
   title="$(jq -r --argjson t "$t" '.[] | select(.number == $t) | .title' <<<"$candidates")"
@@ -1198,7 +1291,7 @@ cmd_slice() {
 }
 
 cmd_start() {
-  local n="" type="" force=false f d phase branch wt title max login slice=()
+  local n="" type="" force=false f d phase branch wt title max login holds slice=()
   while [ $# -gt 0 ]; do
     case "$1" in
       --type) type="${2:?}"; shift ;;
@@ -1230,6 +1323,13 @@ cmd_start() {
       die "$max tickets are already in progress (scripts/wt.sh list, FIVVI_MAX_TICKETS=$max); finish one first, unset FIVVI_MAX_TICKETS, or pass --force"
     fi
     title="$(jq -r .title <<<"$f")"
+    # A new start of a ticket tagged API or DB waits for the open PR that changes the contract or adds a migration (#1485).
+    if ! $force; then
+      holds="$(hold_tickets "$(jq -nc --argjson n "$n" --arg title "$title" '[{number: $n, title: $title}]')")" \
+        || die "could not read the open PRs to check #$n against them (pass --force to start anyway)"
+      [ "$(jq 'length' <<<"$holds")" -eq 0 ] \
+        || die "#$n $(wait_text "$(jq -c '.[0]' <<<"$holds")"): start it once that PR is merged or closed (pass --force to start anyway)"
+    fi
     if [ -z "$type" ]; then
       if jq -e '.labels | index("bug")' <<<"$f" >/dev/null; then type=fix
       elif [[ "$title" =~ ^\[E[0-9]+\] ]]; then type=chore

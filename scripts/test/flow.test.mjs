@@ -1587,6 +1587,154 @@ describe('ADR-021 flow.sh start: no fixed limit on the tickets in progress', () 
   });
 });
 
+// #1485 (spec #1481): `flow.sh start` does not start a ticket tagged API or DB while another open PR changes the
+// contract or adds a migration. The claim fails on purpose: start stops there, so no worktree is created.
+describe('#1485 flow.sh start waits for the open PR that changes the contract or adds a migration', () => {
+  const gh = fakeGh();
+  let repo;
+  before(() => {
+    const { repo: dir, git } = scriptsRepo('flow-hold-');
+    repo = dir;
+    git('branch', 'feature/9996-the-route-api');
+  });
+  after(() => {
+    gh.cleanup();
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  const CONTRACT = 'packages/contract/openapi.json';
+  const ticket = (number, title) => ({
+    number,
+    title,
+    state: 'OPEN',
+    labels: labels('ready-for-agent'),
+    assignees: [],
+    body: '## Acceptance criteria',
+    comments: [],
+    parent: null,
+    subIssues: { nodes: [] },
+    blockedBy: { nodes: [] },
+  });
+  const TICKETS = [
+    ticket(9991, '[F003] The client route (API, domain)'),
+    ticket(9992, '[F003] The client tables (DB, domain)'),
+    ticket(9993, '[F003] The client card (web)'),
+    ticket(9996, '[F003] The route again (API)'),
+  ];
+  const pr = (number, files, { branch = 'docs/no-issue', closing = [] } = {}) => ({
+    number,
+    title: `[E001] PR ${number}`,
+    headRefName: branch,
+    headRefOid: 'a'.repeat(40),
+    mergeable: 'MERGEABLE',
+    closingIssuesReferences: closing.map((n) => ({ number: n })),
+    files: files.map((path) => ({ path })),
+  });
+  const start = (number, openPrs, { args = [], failing = [], pipeline } = {}) => {
+    const file = join(repo, '.github/pipeline.json');
+    const before = readFileSync(file, 'utf8');
+    if (pipeline) writeFileSync(file, JSON.stringify(pipeline));
+    try {
+      const result = spawnSync(join(repo, 'scripts/flow.sh'), ['start', String(number), ...args], {
+        encoding: 'utf8',
+        env: gh.env([
+          ...failing.map((match) => ({ match, out: '', status: 1 })),
+          { match: '^api user', out: { login: 'thekeyvan' } },
+          ...TICKETS.map((t) => ({ match: `^issue view ${t.number} `, out: t })),
+          { match: `^issue edit ${number} `, out: 'claim refused', status: 1 },
+          { match: '^pr list .*--state open', out: openPrs },
+          { match: '^pr list ', out: [] },
+        ]),
+      });
+      const claimed = gh
+        .calls()
+        .some((call) => call.args.join(' ').startsWith(`issue edit ${number}`));
+      return { ...result, claimed };
+    } finally {
+      writeFileSync(file, before);
+    }
+  };
+
+  it('AC8: refuses an API-tagged ticket while an open PR changes openapi.json, before it claims anything', () => {
+    const result = start(9991, [pr(60, [CONTRACT])]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /#9991 waits for #60 \(API contract\)/);
+    assert.match(result.stderr, /--force/);
+    assert.equal(result.claimed, false);
+  });
+
+  it('AC8: starts it once that PR is merged or closed (no longer an open PR)', () => {
+    const result = start(9991, [pr(61, ['apps/web/page.tsx'])]);
+    assert.doesNotMatch(result.stderr, /waits for/);
+    assert.equal(result.claimed, true, result.stderr);
+  });
+
+  it('AC9: refuses a DB-tagged ticket while an open PR adds a migration, naming (migration)', () => {
+    const result = start(9992, [pr(60, ['packages/database/migrations/0042_hold.sql'])]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /#9992 waits for #60 \(migration\)/);
+    assert.equal(result.claimed, false);
+  });
+
+  it('AC9: never holds a ticket without an API or DB tag, and does not even read the open PRs for it', () => {
+    const result = start(9993, [pr(60, [CONTRACT, 'packages/database/migrations/0042_hold.sql'])]);
+    assert.doesNotMatch(result.stderr, /waits for/);
+    assert.equal(result.claimed, true, result.stderr);
+    assert.equal(
+      gh
+        .calls()
+        .some(({ args }) => args[0] === 'pr' && args[1] === 'list' && args.includes('open')),
+      false,
+    );
+  });
+
+  it('a PR that closes the ticket, or whose branch is named after it, does not hold it', () => {
+    for (const own of [
+      pr(60, [CONTRACT], { closing: [9991] }),
+      pr(60, [CONTRACT], { branch: 'feature/9991-the-client-route' }),
+    ]) {
+      const result = start(9991, [own]);
+      assert.doesNotMatch(result.stderr, /waits for/);
+      assert.equal(result.claimed, true, result.stderr);
+    }
+  });
+
+  it('does not hold a ticket that already has its branch: starting it again resumes it', () => {
+    const result = start(9996, [pr(60, [CONTRACT])]);
+    assert.doesNotMatch(result.stderr, /waits for/);
+    assert.equal(result.claimed, true, result.stderr);
+  });
+
+  it('--force starts it anyway', () => {
+    const result = start(9991, [pr(60, [CONTRACT])], { args: ['--force'] });
+    assert.doesNotMatch(result.stderr, /waits for/);
+    assert.equal(result.claimed, true, result.stderr);
+  });
+
+  it('refuses when the open PRs cannot be read (a ticket is not started on a guess), and --force still starts it', () => {
+    const failing = ['^pr list .*--state open'];
+    const refused = start(9991, [], { failing });
+    assert.equal(refused.status, 1);
+    assert.match(refused.stderr, /could not read the open PRs/);
+    assert.match(refused.stderr, /--force/);
+    assert.equal(refused.claimed, false);
+    const forced = start(9991, [], { failing, args: ['--force'] });
+    assert.equal(forced.claimed, true, forced.stderr);
+    // A ticket without the tags needs no read, so it starts.
+    const plain = start(9993, [], { failing });
+    assert.equal(plain.claimed, true, plain.stderr);
+  });
+
+  it('AC12: behaves the same with ci: full and review: per-pr', () => {
+    const pipeline = { ci: 'full', review: 'per-pr' };
+    const held = start(9991, [pr(60, [CONTRACT])], { pipeline });
+    assert.equal(held.status, 1);
+    assert.match(held.stderr, /#9991 waits for #60 \(API contract\)/);
+    const free = start(9991, [], { pipeline });
+    assert.equal(free.claimed, true, free.stderr);
+  });
+});
+
 // #292 AC13, AC14: one factory run at a time. The lock is a file outside git, shared by all worktrees
 // (FIVVI_RUN_LOCK points the tests at their own); it expires after 3 hours, so a crashed run does not stop the factory.
 describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
@@ -3253,6 +3401,224 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       assert.match(refresh, /no lock.*no one-refresh limit/i);
       assert.match(refresh, /never a rebase|no rebase/i);
       assert.match(skill, /Refresh PR #n/);
+    });
+  });
+
+  // #1485 (spec #1481): work that is sure to collide waits for the open PR that changes the same file.
+  describe('#1485 a ticket tagged API or DB waits for the open PR that changes the contract or adds a migration', () => {
+    const CONTRACT = 'packages/contract/openapi.json';
+    const MIGRATION = 'packages/database/migrations/0042_hold.sql';
+    const open = (number, files, { branch = 'docs/no-issue', closing = [] } = {}) => ({
+      number,
+      title: `[E001] PR ${number}`,
+      isDraft: false,
+      headRefName: branch,
+      headRefOid: String(number).padEnd(40, 'a'),
+      mergeable: 'MERGEABLE',
+      closingIssuesReferences: closing.map((n) => ({ number: n })),
+      files: files.map((path) => ({ path, additions: 1, deletions: 0 })),
+    });
+    // What the owner list reads for each open PR (risk, refusal, merge queue); the PR's files decide its risk.
+    const facts = (pr) => [
+      {
+        match: `^api repos/[^ ]+/pulls/${pr.number}/files`,
+        out: pr.files.map(({ path }) => ({ filename: path })),
+      },
+      { match: `^pr view ${pr.number} .*--json body`, out: { body: 'Closes #1' } },
+      {
+        match: `^pr view ${pr.number} .*--json headRefName,closingIssuesReferences`,
+        out: { headRefName: pr.headRefName, closingIssuesReferences: [], changedFiles: 1 },
+      },
+      queueRule(pr.number, { head: pr.headRefOid }),
+    ];
+    const scenario = (openPrs, tickets, extra = {}) => ({
+      openPrs,
+      tickets,
+      others: tickets,
+      rules: openPrs.flatMap(facts),
+      ...extra,
+    });
+    const api = issue(181, '[F003] The client route (API, domain)', ['ready-for-agent']);
+    const db = issue(182, '[F003] The client tables (DB, domain)', ['ready-for-agent']);
+    const both = issue(183, '[F003] The client rules (DB, domain, API)', ['ready-for-agent']);
+    const plain = issue(184, '[F003] The client card (web)', ['ready-for-agent']);
+    // The ready tickets only: `next` prints the tickets that wait in a section of their own, before the owner's.
+    const freeOf = (stdout) => readyOf(stdout).split('== Waiting for an open PR')[0];
+    const waitingOf = (stdout) =>
+      stdout.includes('== Waiting for an open PR')
+        ? stdout.slice(
+            stdout.indexOf('== Waiting for an open PR'),
+            stdout.indexOf('== Waiting on the owner'),
+          )
+        : '';
+    const withPipeline = (pipeline, fn) => {
+      const file = join(repo, '.github/pipeline.json');
+      const before = readFileSync(file, 'utf8');
+      writeFileSync(file, JSON.stringify(pipeline));
+      try {
+        return fn();
+      } finally {
+        writeFileSync(file, before);
+      }
+    };
+
+    it('AC8: an API-tagged ticket waits for the open PR that changes openapi.json, listed as waits for #PR (API contract)', () => {
+      const result = run(
+        'next',
+        scenario([open(60, [CONTRACT, 'packages/api/src/x.ts'])], [api, plain]),
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        freeOf(result.stdout),
+        '== Ready for an agent\n#184 [F003] The client card (web)\n',
+      );
+      assert.equal(
+        waitingOf(result.stdout),
+        '== Waiting for an open PR\n#181 [F003] The client route (API, domain) — waits for #60 (API contract)\n',
+      );
+    });
+
+    it('AC8: once that PR is merged or closed, the ticket is ready, and nothing changes in the output without a waiting ticket', () => {
+      const result = run('next', scenario([open(61, ['apps/web/page.tsx'])], [api, plain]));
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        freeOf(result.stdout),
+        '== Ready for an agent\n#181 [F003] The client route (API, domain)\n#184 [F003] The client card (web)\n',
+      );
+      assert.doesNotMatch(result.stdout, /Waiting for an open PR/);
+    });
+
+    it('AC8: a draft PR holds too, and the lowest PR number is the one named', () => {
+      const draft = { ...open(70, [CONTRACT]), isDraft: true };
+      const result = run('next', scenario([open(75, [CONTRACT]), draft], [api]));
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(waitingOf(result.stdout), /waits for #70 \(API contract\)$/m);
+    });
+
+    it('AC9: a DB-tagged ticket waits for the open PR that adds a migration, listed as (migration)', () => {
+      const result = run('next', scenario([open(60, [MIGRATION])], [db, plain]));
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        freeOf(result.stdout),
+        '== Ready for an agent\n#184 [F003] The client card (web)\n',
+      );
+      assert.match(waitingOf(result.stdout), /^#182 .* — waits for #60 \(migration\)$/m);
+    });
+
+    it('AC9: a contract PR holds no DB ticket and a migration PR no API ticket; a ticket tagged both waits for both', () => {
+      const contract = run('next', scenario([open(60, [CONTRACT])], [db]));
+      assert.equal(contract.status, 0, contract.stderr);
+      assert.match(freeOf(contract.stdout), /^#182 /m);
+      const migration = run('next', scenario([open(61, [MIGRATION])], [api]));
+      assert.equal(migration.status, 0, migration.stderr);
+      assert.match(freeOf(migration.stdout), /^#181 /m);
+      const prs = [open(60, [CONTRACT]), open(61, [MIGRATION])];
+      const bothHeld = run('next', scenario(prs, [both]));
+      assert.equal(bothHeld.status, 0, bothHeld.stderr);
+      assert.match(
+        waitingOf(bothHeld.stdout),
+        /^#183 .* — waits for #60 \(API contract\), #61 \(migration\)$/m,
+      );
+    });
+
+    it('AC9: a ticket without an API or DB tag is never held, whatever the open PRs change', () => {
+      const prs = [open(60, [CONTRACT, MIGRATION])];
+      const noTags = issue(185, '[F003] The API docs page (web) and the database notes', [
+        'ready-for-agent',
+      ]);
+      const result = run('next', scenario(prs, [plain, noTags]));
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        freeOf(result.stdout),
+        '== Ready for an agent\n#184 [F003] The client card (web)\n#185 [F003] The API docs page (web) and the database notes\n',
+      );
+      assert.doesNotMatch(result.stdout, /Waiting for an open PR/);
+    });
+
+    it('a PR does not hold its own ticket: the PR that closes it, or a branch named after it', () => {
+      const closing = run('next', scenario([open(60, [CONTRACT], { closing: [181] })], [api]));
+      assert.equal(closing.status, 0, closing.stderr);
+      assert.match(freeOf(closing.stdout), /^#181 /m);
+      const named = run(
+        'next',
+        scenario([open(60, [CONTRACT], { branch: 'feature/181-the-client-route' })], [api]),
+      );
+      assert.equal(named.status, 0, named.stderr);
+      assert.match(freeOf(named.stdout), /^#181 /m);
+      assert.doesNotMatch(named.stdout, /Waiting for an open PR/);
+    });
+
+    it('reads the files of a PR GitHub cut off at 100 again, so a big contract PR still holds', () => {
+      const filler = Array.from(
+        { length: 100 },
+        (_, i) => `apps/web/f${String(i).padStart(3, '0')}.ts`,
+      );
+      const result = run('next', {
+        ...scenario([open(60, filler)], [api]),
+        rules: [
+          {
+            match: '^api repos/[^ ]+/pulls/60/files .*--paginate',
+            out: [...filler, CONTRACT].map((filename) => ({ filename })),
+          },
+          ...facts(open(60, filler)),
+        ],
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(waitingOf(result.stdout), /^#181 .* — waits for #60 \(API contract\)$/m);
+    });
+
+    it('reads the files of the open PRs once, for the conflict scan and the waiting rule together', () => {
+      const result = run('next', scenario([open(60, [CONTRACT])], [api, db, both]));
+      assert.equal(result.status, 0, result.stderr);
+      const withFiles = gh
+        .calls()
+        .filter(
+          ({ args }) =>
+            args[0] === 'pr' && args[1] === 'list' && args.some((a) => /\bfiles\b/.test(a)),
+        );
+      assert.equal(withFiles.length, 1, withFiles.map(({ args }) => args.join(' ')).join('\n'));
+    });
+
+    it('a failed read of the open PRs is an error for next and idle, never a ticket treated as free', () => {
+      for (const command of ['next', 'idle']) {
+        const result = run(command, {
+          ...scenario([open(60, [CONTRACT])], [api]),
+          failing: ['^pr list .*--state open'],
+        });
+        assert.notEqual(result.status, 0, command);
+        assert.match(result.stderr, /could not read the open PRs/, command);
+        assert.doesNotMatch(result.stdout, /^#181 /m, command);
+      }
+    });
+
+    it('idle: a ticket that waits for an open PR is no work, and is listed', () => {
+      const result = run('idle', scenario([open(60, [CONTRACT])], [api]));
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.match(result.stdout, /^idle: nothing for an agent$/m);
+      assert.match(result.stdout, /^#181 .* — waits for #60 \(API contract\)$/m);
+      const free = run('idle', scenario([open(60, [CONTRACT])], [api, plain]));
+      assert.equal(free.status, 1, free.stdout + free.stderr);
+      assert.match(free.stdout, /^#184 /m);
+      assert.doesNotMatch(free.stdout.split('\n').slice(0, 3).join('\n'), /^#181 /m);
+    });
+
+    it('AC12: behaves the same with ci: full and review: per-pr, and with review: split', () => {
+      for (const pipeline of [
+        { ci: 'full', review: 'per-pr' },
+        { ci: 'fast', review: 'split' },
+        { ci: 'lean', review: 'split' },
+      ]) {
+        withPipeline(pipeline, () => {
+          const result = run('next', scenario([open(60, [CONTRACT])], [api, plain]));
+          assert.equal(result.status, 0, `${JSON.stringify(pipeline)}: ${result.stderr}`);
+          assert.match(freeOf(result.stdout), /^#184 /m, JSON.stringify(pipeline));
+          assert.match(
+            waitingOf(result.stdout),
+            /^#181 .* — waits for #60 \(API contract\)$/m,
+            JSON.stringify(pipeline),
+          );
+        });
+      }
     });
   });
 
