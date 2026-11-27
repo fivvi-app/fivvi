@@ -6,6 +6,7 @@ extension StringKey {
     static let homeSignedInAs = StringKey("home.signedInAs")
     static let noAccessTitle = StringKey("noAccess.title")
     static let noAccessBody = StringKey("noAccess.body")
+    static let noAccessClientHint = StringKey("noAccess.clientHint")
     static let setUpOnWeb = StringKey("home.setUpOnWeb")
     static let openWeb = StringKey("home.openWeb")
     static let profileTitle = StringKey("profile.title")

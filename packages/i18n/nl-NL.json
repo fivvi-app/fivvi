@@ -931,6 +931,7 @@
   },
   "noAccess": {
     "body": "Je hebt nog geen toegang tot een werkruimte.",
+    "clientHint": "Ben je klant? Gebruik de app Fivvi.",
     "title": "Nog geen toegang"
   },
   "noPermission": {

@@ -11594,6 +11594,24 @@
         }
       }
     },
+    "noAccess.clientHint" : {
+      "comment" : "Line under the no-access text in Fivvi Pro (iOS, Android) that points a client who opened it by mistake to the Fivvi app (F030 AC9). Same words as noWorkspace.teamHint the other way round. The Dutch app name is 'de app Fivvi'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you a client? Use the Fivvi app."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ben je klant? Gebruik de app Fivvi."
+          }
+        }
+      }
+    },
     "noAccess.title" : {
       "comment" : "Heading of the no-access page: a signed-in person who is not in a workspace and may not create one (a client, or someone who was removed). The page has the sign-out button.",
       "extractionState" : "manual",
