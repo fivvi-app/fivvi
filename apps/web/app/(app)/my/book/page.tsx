@@ -16,7 +16,7 @@ export default async function ClientBookPage() {
   const t = await getTranslations('clientNav');
   return (
     <>
-      <ClientTitle title={t('book')} />
+      <ClientTitle title={t('book')} now={new Date()} />
       <NoWorkspace />
     </>
   );

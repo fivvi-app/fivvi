@@ -65,10 +65,14 @@ test.describe('F030 the client web', () => {
     );
     // NL | EN in the header, the page's language marked.
     const language = page.getByRole('group', { name: copy.clientWeb.language.label });
+    // The accessible name has the visible label in it, then the name in its own language (WCAG 2.5.3).
+    const { nlShort, nlName, enShort, enName } = copy.clientWeb.language;
     await expect(language.getByRole('button')).toHaveText([
-      copy.clientWeb.language.nlShort,
-      copy.clientWeb.language.enShort,
+      `${nlShort} ${nlName}`,
+      `${enShort} ${enName}`,
     ]);
+    await expect(language.getByRole('button').first()).toHaveAccessibleName(`${nlShort} ${nlName}`);
+    await expect(language.getByRole('button').last()).toHaveAccessibleName(`${enShort} ${enName}`);
     await expect(
       language.getByRole('button', {
         name: appLocale === 'en' ? copy.clientWeb.language.enName : copy.clientWeb.language.nlName,

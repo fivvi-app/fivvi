@@ -8,7 +8,11 @@ import { useEffect, useState } from 'react';
 import { catalogLocale } from '../../../i18n/config';
 import { saveLanguage } from '../(signed-in)/language/language-client';
 
-/** The options: the short label, and the name in its own language for screen readers. */
+/**
+ * The options: the short label, and the name in its own language for screen readers. The name
+ * is hidden text after the short label, so the accessible name contains the visible one (WCAG
+ * 2.5.3 Label in Name).
+ */
 const OPTIONS = [
   { locale: 'nl-NL', lang: 'nl', short: 'nlShort', name: 'nlName' },
   { locale: 'en', lang: 'en', short: 'enShort', name: 'enName' },
@@ -50,13 +54,13 @@ export function ClientLanguageSwitch() {
             key={locale}
             type="button"
             lang={lang}
-            aria-label={t(name)}
             aria-pressed={locale === current}
             disabled={!ready || pending}
             onClick={() => choose(locale)}
             className="min-h-9 min-w-11 rounded-full px-2.5 text-secondary-foreground aria-pressed:bg-card aria-pressed:text-card-foreground aria-pressed:shadow-xs"
           >
             {t(short)}
+            <span className="sr-only"> {t(name)}</span>
           </button>
         ))}
       </fieldset>

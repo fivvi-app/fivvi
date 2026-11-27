@@ -16,7 +16,7 @@ export default async function ClientProfilePage() {
   const t = await getTranslations('clientNav');
   return (
     <>
-      <ClientTitle title={t('profile')} />
+      <ClientTitle title={t('profile')} now={new Date()} />
       <ClientSignOut />
     </>
   );

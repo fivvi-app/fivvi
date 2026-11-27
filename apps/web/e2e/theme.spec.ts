@@ -506,6 +506,16 @@ test.describe('E020 trainer web shell', () => {
         `client home in ${scheme}`,
       ).toHaveCSS('background-color', tokenColour('bg.canvas', scheme));
       await expectNoAxeViolations(page, `client home in ${scheme} and ${appLocale}`);
+      // A client who opens the trainer's personal pages gets the no access page, on the sidebar fill.
+      await page.goto('/me/day');
+      await expect(
+        page.getByRole('heading', { level: 1, name: copy.noAccess.title }),
+      ).toBeVisible();
+      await expect(page.locator('main'), `no access in ${scheme}`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.sidebar', scheme),
+      );
+      await expectNoAxeViolations(page, `no access in ${scheme} and ${appLocale}`);
     }
 
     const newcomer = newAllowedAddress('newcomer');

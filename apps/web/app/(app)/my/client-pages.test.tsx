@@ -1,4 +1,4 @@
-import { locales, messages } from '@fivvi/i18n';
+import { type Locale, locales, messages } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { escapeHtml, render } from '../../../test/render';
 import { ClientLanguageSwitch } from './client-language-switch';
@@ -49,32 +49,54 @@ describe.each(locales)('F030 the client web in %s', (locale) => {
     const html = render(locale, <ClientLanguageSwitch />);
 
     expect(html).toContain(escapeHtml(copy.clientWeb.language.label));
-    const button = (short: string, name: string, pressed: boolean) =>
-      new RegExp(
-        `<button[^>]*aria-pressed="${pressed}"[^>]*aria-label="${name}"[^>]*>${short}</button>|<button[^>]*aria-label="${name}"[^>]*aria-pressed="${pressed}"[^>]*>${short}</button>`,
-      );
-    expect(html).toMatch(
-      button(copy.clientWeb.language.nlShort, copy.clientWeb.language.nlName, locale === 'nl-NL'),
+    const buttons = [...html.matchAll(/<button([^>]*)>(.*?)<\/button>/g)].map(
+      ([, attrs, inner]) => ({
+        attrs: attrs ?? '',
+        // The text a screen reader reads: the visible label, then the hidden name.
+        name: (inner ?? '').replace(/<[^>]+>/g, ''),
+        visible: (inner ?? '').replace(/<span class="sr-only">.*?<\/span>/g, ''),
+      }),
     );
-    expect(html).toMatch(
-      button(copy.clientWeb.language.enShort, copy.clientWeb.language.enName, locale === 'en'),
-    );
+    const { nlShort, nlName, enShort, enName } = copy.clientWeb.language;
+    expect(buttons.map((b) => b.visible)).toEqual([nlShort, enShort]);
+    expect(buttons.map((b) => b.attrs.includes('aria-pressed="true"'))).toEqual([
+      locale === 'nl-NL',
+      locale === 'en',
+    ]);
+    // WCAG 2.5.3 Label in Name: the accessible name has the visible text in it, and no aria-label
+    // replaces it.
+    expect(buttons.map((b) => b.name)).toEqual([`${nlShort} ${nlName}`, `${enShort} ${enName}`]);
+    for (const b of buttons) expect(b.attrs).not.toContain('aria-label');
+    expect(html).toContain('lang="nl"');
+    expect(html).toContain('lang="en"');
   });
 
-  it('AC1: the large title has the date above it, in the language of the page', () => {
-    const html = render(locale, <ClientTitle title={copy.clientNav.home} />);
+  // 14 January, 23:30 UTC is 00:30 on 15 January in Amsterdam: the date is the next day's. In
+  // summer time 30 June, 22:30 UTC is 00:30 on 1 July.
+  const dates: Record<Locale, [instant: string, date: string][]> = {
+    'nl-NL': [
+      ['2026-01-14T12:00:00Z', 'woensdag 14 januari'],
+      ['2026-01-14T23:30:00Z', 'donderdag 15 januari'],
+      ['2026-06-30T22:30:00Z', 'woensdag 1 juli'],
+    ],
+    en: [
+      ['2026-01-14T12:00:00Z', 'Wednesday 14 January'],
+      ['2026-01-14T23:30:00Z', 'Thursday 15 January'],
+      ['2026-06-30T22:30:00Z', 'Wednesday 1 July'],
+    ],
+  };
 
-    expect(html).toContain(`<h1`);
+  it.each(dates[locale])('AC1: the large title shows the date of %s as %s', (instant, date) => {
+    const html = render(
+      locale,
+      <ClientTitle title={copy.clientNav.home} now={new Date(instant)} />,
+    );
+
     expect(html).toContain(`>${escapeHtml(copy.clientNav.home)}</h1>`);
-    // The date comes first: a weekday, a day number and a month, in the page's language.
-    const date = html.match(/<p[^>]*>([^<]+)<\/p>/)?.[1] ?? '';
-    expect(html.indexOf(date)).toBeLessThan(html.indexOf('<h1'));
-    expect(date).toMatch(/\d/);
-    const weekdays =
-      locale === 'nl-NL'
-        ? /maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag/
-        : /Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/;
-    expect(date).toMatch(weekdays);
+    // The date comes first, above the title.
+    const shown = html.match(/<p[^>]*>([^<]+)<\/p>/)?.[1] ?? '';
+    expect(shown).toBe(date);
+    expect(html.indexOf(shown)).toBeLessThan(html.indexOf('<h1'));
   });
 
   it('AC1: with no workspace the home asks for the studio’s link, and says where to open it', () => {

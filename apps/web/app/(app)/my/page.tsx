@@ -17,7 +17,7 @@ export default async function ClientHomePage() {
   const t = await getTranslations('clientNav');
   return (
     <>
-      <ClientTitle title={t('home')} />
+      <ClientTitle title={t('home')} now={new Date()} />
       <NoWorkspace />
     </>
   );
