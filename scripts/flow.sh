@@ -63,13 +63,14 @@
 #                                           otherwise; exit 2 on every error (a bad argument and a missing tool
 #                                           included), never a false idle. A cheap check for the scheduled factory run,
 #                                           right after `lock acquire`. A failing development deploy (above) is work. When
-#                                           idle it syncs the PR labels like `next`
+#                                           idle it syncs the PR labels like `next`, and it may print `== Waiting for an
+#                                           open PR` (tickets held for a contract or migration PR, #1485)
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           no limit on the tickets in progress, unless FIVVI_MAX_TICKETS (a positive
 #                                           integer) sets one: then it refuses at that many (--force to override).
 #                                           It also refuses a ticket tagged `API` or `DB` while an open PR changes the
-#                                           contract or adds a migration (`#n waits for #PR (API contract)`; --force to
-#                                           override), and when it can't read the open PRs to tell (a ticket without
+#                                           contract or a file under packages/database/migrations/ (`#n waits for #PR
+#                                           (API contract)`; --force to override), and when it can't read the open PRs to tell (a ticket without
 #                                           those tags needs no read); a ticket that already has its branch resumes
 #   flow.sh start --slice <spec> <platform> [--type <t>] [--force]
 #                                           one PR per platform slice of a spec (ADR-033): claim up to 5 open, unblocked,
@@ -1217,20 +1218,23 @@ cmd_start_slice() {
   grep -qxF "$APPROVED_LABEL" <<<"$spec_labels" \
     || die "spec #$spec is not approved: the owner adds the $APPROVED_LABEL label before its tickets are built"
   candidates="$(slice_candidates "$spec" "$login")" || exit 1
-  picked="$(pick_slice "$candidates" "$platform")" || die "could not pick the tickets of the slice"
-  if ! $force && [ -n "$picked" ]; then
-    # Tickets tagged API or DB wait for the open PR that changes the contract or adds a migration (#1485): they stay out of
-    # the slice, which then takes what else is ready; blocked tickets follow their blockers out.
-    holds="$(hold_tickets "$(jq -c --argjson picked "$(jq -sc . <<<"$picked")" '[.[] | select(.number as $n | $picked | index($n)) | {number, title}]' <<<"$candidates")")" \
+  holds='[]'
+  if ! $force; then
+    # Tickets tagged API or DB wait for the open PR that changes the contract or a migration (#1485). The check runs
+    # once over every candidate of the platform, before the pick, so the pick never adds a held ticket from beyond the
+    # first five: held tickets stay out of the slice, which then takes what else is ready; a ticket blocked by a held one
+    # is no candidate to the pick (its blocker is not in the slice) and follows it out.
+    holds="$(hold_tickets "$(jq -c -L "$ROOT/scripts" --arg platform "$platform" \
+      'include "slice"; [.[] | select(platform == $platform) | {number, title}]' <<<"$candidates")")" \
       || die "could not read the open PRs to check the slice against them (pass --force to start anyway)"
-    if [ "$(jq 'length' <<<"$holds")" -gt 0 ]; then
-      while IFS= read -r entry; do
-        echo "⏳ #$(jq -r .number <<<"$entry") $(wait_text "$entry"): left out of the slice"
-      done < <(jq -c '.[]' <<<"$holds")
-      candidates="$(jq -c --argjson holds "$holds" '[.[] | select(.number as $n | $holds | map(.number) | index($n) | not)]' <<<"$candidates")"
-      picked="$(pick_slice "$candidates" "$platform")" || die "could not pick the tickets of the slice"
-      [ -n "$picked" ] || die "every ready ticket of spec #$spec on $platform waits for an open PR (above): start the slice once it is merged or closed (pass --force to start anyway)"
-    fi
+    while IFS= read -r entry; do
+      echo "⏳ #$(jq -r .number <<<"$entry") $(wait_text "$entry"): left out of the slice"
+    done < <(jq -c '.[]' <<<"$holds")
+    candidates="$(jq -c --argjson holds "$holds" '[.[] | select(.number as $n | $holds | map(.number) | index($n) | not)]' <<<"$candidates")"
+  fi
+  picked="$(pick_slice "$candidates" "$platform")" || die "could not pick the tickets of the slice"
+  if [ -z "$picked" ] && [ "$(jq 'length' <<<"$holds")" -gt 0 ]; then
+    die "every ready ticket of spec #$spec on $platform waits for an open PR (above): start the slice once it is merged or closed (pass --force to start anyway)"
   fi
   [ -n "$picked" ] || die "no ready, unblocked ticket of spec #$spec on $platform (scripts/issue.sh ready --parent $spec)"
   t="$(head -n 1 <<<"$picked")"
@@ -1323,7 +1327,7 @@ cmd_start() {
       die "$max tickets are already in progress (scripts/wt.sh list, FIVVI_MAX_TICKETS=$max); finish one first, unset FIVVI_MAX_TICKETS, or pass --force"
     fi
     title="$(jq -r .title <<<"$f")"
-    # A new start of a ticket tagged API or DB waits for the open PR that changes the contract or adds a migration (#1485).
+    # A new start of a ticket tagged API or DB waits for the open PR that changes the contract or a migration (#1485).
     if ! $force; then
       holds="$(hold_tickets "$(jq -nc --argjson n "$n" --arg title "$title" '[{number: $n, title: $title}]')")" \
         || die "could not read the open PRs to check #$n against them (pass --force to start anyway)"

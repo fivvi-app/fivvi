@@ -216,6 +216,17 @@ describe('the CLI', () => {
     );
   });
 
+  it('answers the hot ones of a list of paths for hot, [] when there is none', () => {
+    assert.deepEqual(
+      JSON.parse(
+        run('hot', ['apps/web/page.tsx', CONTRACT_SPEC, `${MIGRATIONS}/0001_x.sql`]).stdout,
+      ),
+      [CONTRACT_SPEC, `${MIGRATIONS}/0001_x.sql`],
+    );
+    assert.deepEqual(JSON.parse(run('hot', ['apps/web/page.tsx']).stdout), []);
+    assert.deepEqual(JSON.parse(run('hot', []).stdout), []);
+  });
+
   it('fails on input that is not JSON, and on an unknown command', () => {
     const bad = run('holds', 'nope');
     assert.equal(bad.status, 1);

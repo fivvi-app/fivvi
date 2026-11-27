@@ -2806,6 +2806,24 @@ describe('#1485 pr.sh create warns on hot files another open PR changes', () => 
     assert.equal(result.pushed, true);
   });
 
+  it('reads no open PRs from GitHub for a branch without a hot file, and says nothing even when the read would fail', () => {
+    prepare(['apps/web/page.tsx']);
+    const before = gh.calls().length;
+    const result = create([pr(61, [CONTRACT])], {
+      failing: ['^pr list (?!.*--head).*--state open'],
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /open PRs|another open PR/);
+    const listsOfOpenPrs = gh
+      .calls()
+      .slice(before)
+      .filter(
+        (call) => call.args[0] === 'pr' && call.args[1] === 'list' && !call.args.includes('--head'),
+      );
+    assert.deepEqual(listsOfOpenPrs, []);
+    assert.equal(result.pushed, true);
+  });
+
   it('does not count the branch’s own PR, or a PR of the same ticket', () => {
     prepare([CONTRACT]);
     const result = create(

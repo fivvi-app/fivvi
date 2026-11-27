@@ -4,7 +4,7 @@
 // a list of paths), so the same list serves both scripts and nothing here reads GitHub or git itself.
 //
 //   node scripts/hot-files.mjs tagged                 stdin: [{number, title}] of tickets; prints the ones whose title
-//                                                     tags say they change the API (`API`) or add a migration (`DB`), as
+//                                                     tags say they change the API (`API`) or change a migration (`DB`), as
 //                                                     a JSON list: the only tickets that can be held
 //   node scripts/hot-files.mjs holds                  stdin: {prs, tickets: [{number, title}]}; prints [{number, waits:
 //                                                     [{pr, reason}]}] for each ticket that must wait: reason is `API
@@ -14,6 +14,8 @@
 //                                                     one entry per reason, the lowest PR number. A ticket's own PR (the
 //                                                     branch named after it, or a PR that closes it) never holds it. []
 //                                                     when none waits
+//   node scripts/hot-files.mjs hot                    stdin: [path]; prints the hot ones as a JSON list ([] when none): a
+//                                                     branch without one needs no read of the open PRs
 //   node scripts/hot-files.mjs overlap                stdin: {prs, changed: [path], branch, issues: [n]}; prints [{pr,
 //                                                     title, files}]: each other open PR that changes a hot file this
 //                                                     branch changes, with those files (sorted). Not the PR of `branch`
@@ -25,6 +27,7 @@
 // to them. The product and decision docs stay out: they are owner-only and out of the spec's scope.
 import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { DOC } from './doc-lists.mjs';
 import { GROUPS } from './regenerate.mjs';
 
 export const CONTRACT_SPEC = 'packages/contract/openapi.json';
@@ -32,7 +35,7 @@ export const MIGRATIONS = 'packages/database/migrations';
 
 /** The lists and catalogs every PR appends to, kept sorted by #1272 and #1483. */
 export const SORTED_LISTS = [
-  'docs/engineering/OBSERVABILITY.md',
+  DOC,
   'packages/api/lint/repository-only-imports.test.ts',
   'packages/api/test/isolation/isolation-cases.ts',
   'packages/database/README.md',
@@ -148,7 +151,9 @@ const input = () => {
 const run = () => {
   const [command, ...rest] = process.argv.slice(2);
   if (rest.length > 0) usage();
-  if (command === 'tagged') {
+  if (command === 'hot') {
+    console.log(JSON.stringify(input().filter(isHot)));
+  } else if (command === 'tagged') {
     console.log(JSON.stringify(tagged(input())));
   } else if (command === 'holds') {
     const { prs, tickets } = input();

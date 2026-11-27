@@ -209,11 +209,13 @@ warn_if_large() {
 # also when the open PRs can't be read (GitHub is not needed to push, only to warn).
 warn_if_shared_hot_files() {
   local prs changed issues found
+  changed="$(git diff --name-only "origin/$(default_branch)...HEAD" 2>/dev/null)" || return 0
+  # A branch without a hot file has nothing to collide on: no GitHub read.
+  [ "$(jq -Rnc '[inputs]' <<<"$changed" | node "$ROOT/scripts/hot-files.mjs" hot | jq 'length')" -gt 0 ] || return 0
   prs="$(open_prs_json)" || {
     echo "⚠ could not read the open PRs, so this branch was not checked for hot files another PR changes. The push goes on." >&2
     return 0
   }
-  changed="$(git diff --name-only "origin/$(default_branch)...HEAD" 2>/dev/null)" || return 0
   issues="$(jq -nc --arg issues "$1" '[$issues | scan("[0-9]+")]')" || return 0
   found="$({ printf '%s\n' "$prs"; jq -Rnc '[inputs]' <<<"$changed"; } \
     | jq -sc --arg branch "$BRANCH" --argjson issues "$issues" '{prs: .[0], changed: .[1], branch: $branch, issues: $issues}' \

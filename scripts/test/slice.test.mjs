@@ -351,6 +351,44 @@ describe('ADR-033 flow.sh start --slice', () => {
     assert.match(result.stdout, /#9101 waits for #61 \(migration\): left out of the slice/);
   });
 
+  // The hold check covers every candidate of the platform, not only the first five: a later ticket tagged API or DB that
+  // the second pick would add is held too.
+  const SEVEN = (second, sixth) => [
+    ticketFacts(9201, '[F056] The first read (domain)'),
+    ticketFacts(9202, second),
+    ticketFacts(9203, '[F056] The second read (domain)'),
+    ticketFacts(9204, '[F056] The third read (domain)'),
+    ticketFacts(9205, '[F056] The fourth read (domain)'),
+    ticketFacts(9206, sixth),
+    ticketFacts(9207, '[F056] The fifth read (domain)'),
+  ];
+
+  it('AC8: a later API-tagged ticket that the second pick would add is held too', () => {
+    const result = start(
+      ['9000', 'backend'],
+      SEVEN('[F056] The plan route (API, domain)', '[F056] The invoice route (API, domain)'),
+      {},
+      openPrs({ number: 63, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9201, 9203, 9204, 9205, 9207]);
+    assert.match(result.stdout, /#9202 waits for #63 \(API contract\): left out of the slice/);
+    assert.match(result.stdout, /#9206 waits for #63 \(API contract\): left out of the slice/);
+  });
+
+  it('AC9: a later DB-tagged ticket that the second pick would add is held too', () => {
+    const result = start(
+      ['9000', 'backend'],
+      SEVEN('[F056] The plan tables (DB, domain)', '[F056] The invoice tables (DB, domain)'),
+      {},
+      openPrs({ number: 64, files: [MIGRATION] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9201, 9203, 9204, 9205, 9207]);
+    assert.match(result.stdout, /#9202 waits for #64 \(migration\): left out of the slice/);
+    assert.match(result.stdout, /#9206 waits for #64 \(migration\): left out of the slice/);
+  });
+
   it('AC8: takes every ticket once that PR is merged or closed', () => {
     const result = start(
       ['9000', 'backend'],
