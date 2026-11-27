@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   accessLog,
   authUsers,
@@ -339,12 +340,25 @@ describe('E014 the Owner exports data', () => {
 
   it('AC10: exports write one access-log entry each and leave no file on the server', async () => {
     const w = await world();
-    const filesBefore = readdirSync(tmpdir()).sort();
-
-    await unpack(await exportClient(w.gym.id, w.mark.id, w.john));
-    const afterClient = await logOf(w.gym.id);
-    await unpack(await exportWorkspace(w.gym.id, w.john));
-    const afterWorkspace = await logOf(w.gym.id);
+    // The server's temp directory is a fresh, empty one for this test: other test files (and other processes) write
+    // to the shared one while this runs, so comparing that listing would flake.
+    const sharedTmp = process.env.TMPDIR;
+    const privateTmp = mkdtempSync(join(tmpdir(), 'privacy-export-tmp-'));
+    process.env.TMPDIR = privateTmp;
+    let afterClient: Awaited<ReturnType<typeof logOf>>;
+    let afterWorkspace: Awaited<ReturnType<typeof logOf>>;
+    let leftOnDisk: string[];
+    try {
+      await unpack(await exportClient(w.gym.id, w.mark.id, w.john));
+      afterClient = await logOf(w.gym.id);
+      await unpack(await exportWorkspace(w.gym.id, w.john));
+      afterWorkspace = await logOf(w.gym.id);
+      leftOnDisk = readdirSync(privateTmp);
+    } finally {
+      if (sharedTmp === undefined) delete process.env.TMPDIR;
+      else process.env.TMPDIR = sharedTmp;
+      rmSync(privateTmp, { recursive: true, force: true });
+    }
 
     expect(afterClient).toHaveLength(1);
     expect(afterClient[0]).toMatchObject({
@@ -362,7 +376,7 @@ describe('E014 the Owner exports data', () => {
     // Fit Studio's log is untouched.
     expect(await logOf(w.studio.id)).toHaveLength(0);
     // The ZIP is built for the response: nothing was written to the server's disk.
-    expect(readdirSync(tmpdir()).sort()).toEqual(filesBefore);
+    expect(leftOnDisk).toEqual([]);
   });
 
   it('AC6: Sarah 403, Mike 404, anonymous 401, a client of another workspace 404; nothing is logged', async () => {
