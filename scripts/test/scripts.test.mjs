@@ -2144,6 +2144,8 @@ const iPhone = (udid, model, runtime, state = 'Shutdown') => ({
 // check.sh, which also runs web e2e tests on E2E_PORT) don't take the same ports. A port is free when nothing listens
 // on it at 'localhost' (the host fake-lettermint.ts binds, which on macOS is not the wildcard address: another process can
 // hold the port there while the wildcard check passes) nor at the wildcard address (where the web server listens).
+// The random ports are 20000 to 29999 (and 2000 above): below the 32768 to 60999 that Linux hands out to outgoing connections,
+// one of which can hold a port in that range just when the fake Lettermint server binds it (#1600).
 // `first` are ports to try before random ones (a test uses them). The pairs handed out by this process are skipped
 // (each is closed again after the check, so two checkouts in a row could draw the same one). A port is checked in a
 // process of its own, because this one may not block on it.
@@ -2167,7 +2169,7 @@ const free = async (port) => {
 (async () => {
   const candidates = [...first];
   for (;;) {
-    const port = candidates.shift() ?? 20000 + Math.floor(Math.random() * 25000);
+    const port = candidates.shift() ?? 20000 + Math.floor(Math.random() * 10000);
     if (skipped.includes(port) || skipped.includes(port + 2000) || skipped.includes(port - 2000)) continue;
     if ((await free(port)) && (await free(port + 2000))) return console.log(port);
   }
@@ -6875,7 +6877,46 @@ esac`,
         );
       });
     }
+
+    // #1600: a fake Lettermint server that exits at start (here its port is held, as an outgoing connection of a loaded
+    // CI machine can hold it) never answers, and the wait for it ran its whole 60 s, ending with "didn't start". It stops
+    // at once now, says that the process exited, and shows the end of its log (the cause, EADDRINUSE).
+    it(`#1600: ${name} stops at once, with the cause, when the fake Lettermint server exits at start`, async () => {
+      const fake = checkout({ emulatorRunning: true, simulatorBooted: true });
+      // Held at 'localhost' as the fake server would bind it, and closing every connection: it never answers GET /.
+      const holder = createServer((socket) => socket.destroy());
+      await new Promise((resolve) => holder.listen(fake.lettermintPort, 'localhost', resolve));
+      try {
+        const run = await fake.run('scripts/maestro.sh', args);
+
+        assert.notEqual(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /the fake Lettermint server exited before it answered/,
+          run.output,
+        );
+        assert.match(run.output, /EADDRINUSE/, `the end of its log: ${run.output}`);
+        const waits = fake
+          .log('calls')
+          .filter((call) => call.startsWith(`curl -fsS http://localhost:${fake.lettermintPort}/`));
+        assert.ok(waits.length <= 3, `it did not wait the 60 s out: ${waits.length} tries`);
+      } finally {
+        holder.close();
+      }
+    });
   }
+
+  // #1600: the Linux kernel hands the ports 32768 to 60999 to outgoing connections, so a test port in that range can be
+  // taken by one (of any process on the machine) before the fake Lettermint server binds it, which then exits. The ports of
+  // a run (the web server's and, 2000 above it, the fake Lettermint server's) stay below it.
+  it('#1600: the ports of a run are below the range of outgoing connections on Linux', () => {
+    for (let draw = 0; draw < 30; draw++) {
+      const { port, lettermintPort } = freePorts();
+
+      assert.ok(port >= 1024, `a port: ${port}`);
+      assert.ok(lettermintPort < 32768, `below Linux's ephemeral range: ${lettermintPort}`);
+    }
+  });
 
   // E008 #383: the ports of a run were fixed (3999 and 5999), so two runs on one machine (two worktrees running
   // check.sh) took the same ports and their fake servers answered each other's calls. Each run has its own pair.
