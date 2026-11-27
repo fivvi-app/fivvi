@@ -141,9 +141,12 @@ interface Planned {
 }
 
 /**
- * Answers with the ZIP. The access-log entry is written in this request's transaction, the export
- * itself is read in a transaction of its own (the request's commits when this returns, and the body
- * is read after), opened as the same account with the same access: the Owner's, checked again.
+ * Answers with the ZIP. The access-log entry is written in this request's transaction. The export
+ * itself is read in a transaction of its own, opened as the same account with the same access (the
+ * Owner's, checked again), and only once the request's transaction has committed (`afterCommit`):
+ * if the commit fails the answer is a `500`, the producer never starts and no transaction is
+ * opened. After that the body is read as the client takes it; a client that takes nothing for too
+ * long (`streamZip`) ends the stream with an error and releases the transaction.
  */
 async function answerWithZip(
   c: Context<WorkspaceEnv>,
@@ -189,26 +192,47 @@ async function answerWithZip(
   const files = exportFilesFor(planned.kind);
   const date = localInstant(now, workspace.timeZone).slice(0, 10);
   const fileName = `fivvi-${workspace.slug}-${planned.clientId ? `${planned.clientId}-` : ''}${date}.zip`;
-  const stream = streamZip(now, async (zip) => {
-    const entry = await dependencies.tenantScopes.inWorkspaceScope(
-      {
-        accountId: account.id,
-        workspaceId: scope.workspaceId,
-        admit: (place) => admission(access, place),
-      },
-      (exportScope: WorkspaceScope) =>
-        writeExport(zip, {
-          scope: exportScope,
-          kind: planned.kind,
-          locale,
-          workspace,
-          ...(planned.clientId ? { clientId: planned.clientId } : {}),
-          files,
-          exportedAt: now,
-        }),
-    );
-    if (entry.status !== 'entered') throw new Error('The export is no longer allowed.');
+  // The producer starts when the request's transaction has committed, and not at all otherwise.
+  let committed: () => void = () => {};
+  const startWhen = new Promise<void>((resolve) => {
+    committed = resolve;
   });
+  c.get('afterCommit')(committed);
+  const stream = streamZip(
+    now,
+    async (zip) => {
+      const entry = await dependencies.tenantScopes.inWorkspaceScope(
+        {
+          accountId: account.id,
+          workspaceId: scope.workspaceId,
+          admit: (place) => admission(access, place),
+        },
+        (exportScope: WorkspaceScope) =>
+          writeExport(zip, {
+            scope: exportScope,
+            kind: planned.kind,
+            locale,
+            workspace,
+            ...(planned.clientId ? { clientId: planned.clientId } : {}),
+            files,
+            exportedAt: now,
+          }),
+      );
+      if (entry.status !== 'entered') throw new Error('The export is no longer allowed.');
+    },
+    {
+      startWhen,
+      // After the 200 there is nobody to answer: report it, as the other after-commit failures
+      // are. The name only goes to the log, because a database error can quote a record.
+      onError: (error) => {
+        console.error('Export stream failed:', error instanceof Error ? error.name : 'unknown');
+        dependencies.errorReporter.captureError(error, {
+          request: c.req.raw,
+          route: c.req.routePath,
+        });
+      },
+    },
+  );
   return new Response(stream, {
     status: 200,
     headers: {

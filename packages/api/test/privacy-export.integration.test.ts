@@ -27,7 +27,7 @@ import {
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { count, eq } from 'drizzle-orm';
 import { strFromU8, unzipSync } from 'fflate';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
 
 // E014 (spec #477, tickets #1177 and #1178): the Owner exports what the workspace holds about one
@@ -350,6 +350,104 @@ describe('E014 the Owner exports data', () => {
     expect(JSON.parse(files['data.json'] as string).tables.clients[0].name).toBe(
       '=HYPERLINK("https://example.com")',
     );
+  });
+
+  /**
+   * The tenant scopes of the app, with a hook on every `inWorkspaceScope` call: the first is the
+   * request's transaction, the second (when there is one) is the transaction the export reads in.
+   */
+  function watchedScopes(
+    around: (call: number, open: () => Promise<unknown>) => Promise<unknown>,
+  ): { tenantScopes: ApiDependencies['tenantScopes']; calls: () => number } {
+    const real = createTenantScopes(() => app.db);
+    let calls = 0;
+    return {
+      calls: () => calls,
+      tenantScopes: {
+        ...real,
+        inWorkspaceScope: ((input: never, run: never) => {
+          calls += 1;
+          return around(calls, () => real.inWorkspaceScope(input, run));
+        }) as ApiDependencies['tenantScopes']['inWorkspaceScope'],
+      },
+    };
+  }
+
+  it('the export opens its read transaction only after the request’s transaction committed', async () => {
+    const w = await world();
+    const events: string[] = [];
+    const { tenantScopes, calls } = watchedScopes(async (call, open) => {
+      if (call === 2) events.push('export opens');
+      const entry = await open();
+      if (call === 1) events.push('request committed');
+      return entry;
+    });
+
+    const files = await unpack(
+      await exportWorkspace(w.gym.id, w.john, { server: api({ tenantScopes }) }),
+    );
+
+    expect(Object.keys(files)).toContain('data.json');
+    expect(calls()).toBe(2);
+    expect(events).toEqual(['request committed', 'export opens']);
+  });
+
+  it('never opens the export’s transaction when the request’s transaction does not commit', async () => {
+    const w = await world();
+    const { tenantScopes, calls } = watchedScopes(async (call, open) => {
+      const entry = await open();
+      if (call === 1) throw new Error('the commit failed');
+      return entry;
+    });
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const response = await exportWorkspace(w.gym.id, w.john, {
+        server: api({ tenantScopes }),
+      });
+      await response.arrayBuffer().catch(() => undefined);
+      // Time for a producer that was started anyway to open its transaction.
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(response.status).toBe(500);
+      expect(calls()).toBe(1);
+    } finally {
+      errors.mockRestore();
+    }
+  });
+
+  it('reports an error after the 200 with its name, the request and the route, and nothing of the data', async () => {
+    const w = await world();
+    const reported: { error: unknown; context: Record<string, unknown> | undefined }[] = [];
+    const { tenantScopes } = watchedScopes((call, open) =>
+      call === 2 ? Promise.reject(new Error('boom: anna@example.com')) : open(),
+    );
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const response = await exportWorkspace(w.gym.id, w.john, {
+        server: api({
+          tenantScopes,
+          errorReporter: {
+            ...NO_DEPENDENCIES.errorReporter,
+            captureError: (error, context) =>
+              reported.push({ error, context: context as Record<string, unknown> | undefined }),
+          },
+        }),
+      });
+      const body = response.arrayBuffer();
+
+      expect(response.status).toBe(200);
+      await expect(body).rejects.toThrow();
+      expect(reported).toHaveLength(1);
+      expect((reported[0]?.error as Error).message).toContain('boom');
+      expect(reported[0]?.context?.route).toBe('/v1/workspaces/:workspaceId/export');
+      expect(reported[0]?.context?.request).toBeInstanceOf(Request);
+      // The log line names the error and nothing else.
+      const logged = errors.mock.calls.flat().join(' ');
+      expect(logged).toContain('Error');
+      expect(logged).not.toContain('anna@example.com');
+    } finally {
+      errors.mockRestore();
+    }
   });
 
   it('AC10: exports write one access-log entry each and leave no file on the server', async () => {
