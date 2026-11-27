@@ -26,7 +26,9 @@
       "chip": "Aanwezigheid · {name} {start}",
       "from": "Vanaf {time}.",
       "open": "Open",
+      "participantsCount": "Deelnemers · {count}",
       "rowLabel": "{name}, {status}",
+      "showAll": "Toon alle {count}",
       "signOutConfirm": "Toch uitloggen",
       "signOutMessage": "{count, plural, one {# wijziging van de aanwezigheid is nog niet verstuurd en gaat verloren als je uitlogt.} other {# wijzigingen van de aanwezigheid zijn nog niet verstuurd en gaan verloren als je uitlogt.}}",
       "signOutTitle": "Aanwezigheid nog niet verstuurd",
@@ -362,6 +364,30 @@
     "home": "Home",
     "label": "Hoofdnavigatie",
     "profile": "Profiel"
+  },
+  "clientWeb": {
+    "language": {
+      "enName": "English",
+      "enShort": "EN",
+      "error": "Je taal is niet opgeslagen. Probeer het opnieuw.",
+      "label": "Taal",
+      "nlName": "Nederlands",
+      "nlShort": "NL"
+    },
+    "noWorkspace": {
+      "haveLink": "Heb je de link al? Open hem en vraag daar om lid te worden."
+    },
+    "studios": {
+      "add": "Studio toevoegen",
+      "addExplain": "Vraag je studio om de Fivvi-link, of scan de QR-code bij de balie. Je vraagt dan om mee te doen. Zodra ze je goedkeuren, staat de studio hier.",
+      "addHint": "Met de link of QR-code van je studio",
+      "close": "Sluiten",
+      "current": "Gekozen",
+      "done": "Klaar",
+      "switcher": "Studio: {name}",
+      "title": "Mijn studio's",
+      "yours": "Je studio's"
+    }
   },
   "clients": {
     "add": "Klant toevoegen",

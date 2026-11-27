@@ -68,3 +68,39 @@ export function ShareIcon(props: ComponentProps<'svg'>) {
     </svg>
   );
 }
+
+/** A check mark: the chosen one in a list. Decorative: hidden text says what is chosen. */
+export function CheckIcon(props: ComponentProps<'svg'>) {
+  return (
+    <svg {...outline} strokeWidth={2.5} aria-hidden="true" {...props}>
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </svg>
+  );
+}
+
+/** A plus: add something. Decorative: the button or the title has its label. */
+export function PlusIcon(props: ComponentProps<'svg'>) {
+  return (
+    <svg {...outline} strokeWidth={2.2} aria-hidden="true" {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+/** An up and a down chevron: a button that opens a choice between several. Decorative. */
+export function ChevronUpDownIcon(props: ComponentProps<'svg'>) {
+  return (
+    <svg {...outline} aria-hidden="true" {...props}>
+      <path d="m8 9 4-4 4 4M8 15l4 4 4-4" />
+    </svg>
+  );
+}
+
+/** A cross: close. Decorative: the button has its label. */
+export function CloseIcon(props: ComponentProps<'svg'>) {
+  return (
+    <svg {...outline} aria-hidden="true" {...props}>
+      <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  );
+}

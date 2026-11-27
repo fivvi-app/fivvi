@@ -24,6 +24,8 @@ extension StringKey {
     static let attendanceWaiting = StringKey("attendance.app.waiting")
     static let attendanceOpenLabel = StringKey("attendance.app.open")
     static let attendanceRowLabel = StringKey("attendance.app.rowLabel")
+    static let attendanceParticipantsCount = StringKey("attendance.app.participantsCount")
+    static let attendanceShowAll = StringKey("attendance.app.showAll")
     static let attendanceTake = StringKey("attendance.app.take")
     static let attendanceTodo = StringKey("attendance.app.todo")
     static let attendanceCaughtUp = StringKey("attendance.app.caughtUp")

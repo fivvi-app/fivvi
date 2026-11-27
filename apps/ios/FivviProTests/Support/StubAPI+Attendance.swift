@@ -11,12 +11,14 @@ extension StubAPI {
     func setParticipantAttendance(
         _ input: Operations.SetParticipantAttendance.Input
     ) async throws -> Operations.SetParticipantAttendance.Output {
-        try attendance.set(input)
+        await attendance.gate()
+        return try attendance.set(input)
     }
 
     func markEveryoneAttended(
         _ input: Operations.MarkEveryoneAttended.Input
     ) async throws -> Operations.MarkEveryoneAttended.Output {
-        try attendance.everyone(input)
+        await attendance.gate()
+        return try attendance.everyone(input)
     }
 }

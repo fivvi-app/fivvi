@@ -369,6 +369,7 @@ flowchart TB
 | Profiel / Profile | `/my/profile` | Signed-in client | F033, F010, F006 |
 | Mijn trainingen / My workouts | `/my/workouts` and `/my/workouts/{id}` | Signed-in client | F045, F048 |
 
+- **The tabs** (F030, owner, 6 November 2026): the client web has the app's tabs, *Home · Boeken · Profiel* (*Activiteit* with M7), at `/my`, `/my/book` and `/my/profile`, with NL | EN in the header and *Uitloggen* on *Profiel*; the signed-in home (`/home`) sends a person who is only a client, or nothing yet, to `/my`. The pages above (`/my/bookings/{id}`, `/my/workouts`) sit under these tabs when their features land.
 - **A client who isn't signed in** manages one booking through the tokenised link in their confirmation email (`/manage/{token}`). From there they can cancel it or sign in to see all their bookings.
 - A client can have bookings at more than one workspace (same email). *Mijn boekingen* lists them together with the workspace name on each booking. Each booking still belongs to its own workspace [QE05](open-questions.md#qe05).
 - A trainer-created private session is not automatically a booking in CW-02/03. After the trainer explicitly shares its workout, the recap and optional client message appear in CW-05. Only the owning client can read it; the internal note stays in trainer surfaces ([QE04](open-questions.md#qe04)).
