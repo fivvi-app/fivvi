@@ -232,12 +232,6 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     kind: property.enum(['client', 'workspace']),
     platform: property.enum(['web', 'ios', 'android']),
   },
-  // E014: someone deleted their own account. The platform only: no workspace (an account belongs to
-  // none), and neither the account's ID, nor the name or email address. The distinct ID is random
-  // for each event (`anonymousDistinctId()`), because the account is gone.
-  account_deleted: {
-    platform: property.enum(['web', 'ios', 'android']),
-  },
   // F010: someone chose their interface language. The language and the surface only: the distinct
   // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no
   // name or email address is recorded.
