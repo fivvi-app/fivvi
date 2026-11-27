@@ -58,7 +58,8 @@ export async function exportColumns(
   );
   return request.fields.map((name) => {
     const type = types.get(name);
-    if (type === undefined) throw new Error('An export names a column that the table does not have.');
+    if (type === undefined)
+      throw new Error('An export names a column that the table does not have.');
     return { name, time: type === TIMESTAMP };
   });
 }
@@ -126,9 +127,7 @@ export async function* readExportRows(
       for (const column of columns) {
         const value = row[column.name];
         shaped[column.name] =
-          column.time && typeof value === 'string'
-            ? new Date(value)
-            : (value as ExportRow[string]);
+          column.time && typeof value === 'string' ? new Date(value) : (value as ExportRow[string]);
       }
       return shaped;
     });
