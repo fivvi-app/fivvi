@@ -19,6 +19,8 @@ struct PhoneFiles {
 struct AppSignIn {
     let session: Session
     let auth: AuthMiddleware
+    /// The files of the phone, which the home reads and writes as well (`HomeView(files:)`).
+    let files: PhoneFiles
 
     init(
         store: any SessionStore, files: PhoneFiles = .live,
@@ -29,6 +31,7 @@ struct AppSignIn {
             files.personal.clear()
         })
         self.session = session
+        self.files = files
         auth = AuthMiddleware(store: store) { await session.tokenRejected() }
     }
 }

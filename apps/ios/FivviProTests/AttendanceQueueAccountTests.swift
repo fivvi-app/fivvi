@@ -31,6 +31,28 @@ final class AttendanceQueueAccountTests: AttendanceQueuePhoneTestCase {
         XCTAssertTrue(third.rejections(sessionID: session).isEmpty, "none of them is refused for want of an account")
     }
 
+    // AC3: the account an earlier launch learned, with no tap waiting, is what a later offline launch's taps belong to.
+    func test_F025_1618_theAccountAnEarlierLaunchLearnedIsReadFromItsFileByALaterOfflineLaunch() async {
+        let phone = phone()
+        let first = queue(phone)
+        // Launch 1 reads `GET /api/v1/me` and has no tap: the account is only in `attendance-accounts.json`.
+        first.learn(account: "account-a")
+        phone.online.value = false
+        // Launch 2 of the same sign-in starts offline and has no answer from `GET /api/v1/me`.
+        let second = queue(phone)
+        tap(second, "Anna de Vries")
+        tokenRejected(phone)
+
+        await signIn(phone, token: "token-a2", account: "account-a")
+        phone.online.value = true
+        let third = queue(phone)
+        third.learn(account: "account-a")
+        await third.flush()
+
+        XCTAssertEqual(phone.api.attendance.requests.map(\.clientID), [AttendanceFixtures.id("Anna de Vries")])
+        XCTAssertTrue(third.rejections(sessionID: session).isEmpty, "the tap is not refused for want of an account")
+    }
+
     // AC3: a tap without an account takes the account another tap of its sign-in has.
     func test_F025_1618_aTapWithoutAnAccountTakesTheAccountOfAnotherTapOfItsSignIn() async throws {
         let phone = phone()

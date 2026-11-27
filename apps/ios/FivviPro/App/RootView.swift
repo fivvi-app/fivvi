@@ -14,6 +14,9 @@ struct RootView: View {
     let store: any SessionStore
     let language: AppLanguage
     let connectivity: Connectivity
+    /// The files of the phone: the home keeps what the personal screens and the attendance queue need in the same ones
+    /// the sign-out and a rejected token act on (`AppSignIn`).
+    var files = PhoneFiles.live
     /// The API's base URL; trainer web is on the same host.
     var apiBaseURL = AppConfiguration.apiBaseURL()
 
@@ -29,7 +32,7 @@ struct RootView: View {
             HomeView(
                 api: api, store: store, language: language, connectivity: connectivity,
                 welcomeURL: AppConfiguration.welcomeURL(apiBaseURL: apiBaseURL), onAccount: ErrorReporting.setUser,
-                onSignedOut: { session.signedOut(afterRejection: $0) }
+                onSignedOut: { session.signedOut(afterRejection: $0) }, files: files
             )
         }
     }

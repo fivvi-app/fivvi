@@ -1,5 +1,7 @@
 import FivviAPI
+import FivviLanguage
 import FivviSession
+import FivviUI
 import XCTest
 
 @testable import FivviPro
@@ -64,6 +66,15 @@ final class AttendanceSignInWiringTests: XCTestCase {
         return (phone, queue)
     }
 
+    /// The generated client with the app's middleware, on a transport that answers 401 to everything.
+    private func rejectingClient(_ signIn: AppSignIn) -> Client {
+        Client(
+            serverURL: URL(string: "https://example.com/api")!,
+            transport: StubTransport(status: .unauthorized, json: #"{"code":"not_signed_in"}"#),
+            middlewares: [signIn.auth]
+        )
+    }
+
     // MARK: AC1: the sign-out the person chose
 
     func test_F025_1618_signingOutThroughTheAccountEmptiesTheQueueAndItsFile() async {
@@ -101,10 +112,7 @@ final class AttendanceSignInWiringTests: XCTestCase {
             clearReportingUser: {}
         )
         phone.personalFiles.write(Data("day".utf8), as: "day.json")
-        let transport = StubTransport(status: .unauthorized, json: #"{"code":"not_signed_in"}"#)
-        let client = Client(
-            serverURL: URL(string: "https://example.com/api")!, transport: transport, middlewares: [signIn.auth]
-        )
+        let client = rejectingClient(signIn)
 
         _ = try await client.getMe()
 
@@ -117,13 +125,16 @@ final class AttendanceSignInWiringTests: XCTestCase {
         await phone.api.answerMe(with: .account(email: "x@example.com", id: "account-a"))
         phone.online.value = true
         let next = self.queue(phone)
+        phone.online.value = false
         let account = account(phone, queue: next)
         await account.load()
+        XCTAssertEqual(next.entries.count, 2, "the account the home read reached the queue, which took the taps")
+        phone.online.value = true
         await next.flush()
 
         XCTAssertEqual(
             phone.api.attendance.requests.map(\.clientID), ["Anna de Vries", "Bram Jansen"].map(AttendanceFixtures.id),
-            "the account the home read reached the queue, which sent the taps in order"
+            "the taps went out in order"
         )
     }
 
@@ -134,10 +145,7 @@ final class AttendanceSignInWiringTests: XCTestCase {
             store: phone.tokens, files: PhoneFiles(personal: phone.personalFiles, attendance: phone.queueFiles),
             clearReportingUser: {}
         )
-        let transport = StubTransport(status: .unauthorized, json: #"{"code":"not_signed_in"}"#)
-        let client = Client(
-            serverURL: URL(string: "https://example.com/api")!, transport: transport, middlewares: [signIn.auth]
-        )
+        let client = rejectingClient(signIn)
         _ = try await client.getMe()
 
         try phone.tokens.save(token: "token-b")
@@ -148,5 +156,32 @@ final class AttendanceSignInWiringTests: XCTestCase {
         await next.flush()
 
         XCTAssertTrue(phone.api.attendance.requests.isEmpty)
+    }
+
+    // The file the production home writes its taps to is the file `AppSignIn` hands out, so what a rejected token does
+    // to the sign-in's files is what it does to the home's queue: re-adding an attendance clear there fails this.
+    func test_F025_1618_theHomeQueuesItsTapsInTheFileOfAppSignInAndATokenTheApiRejectsLeavesThem() async throws {
+        let phone = phone()
+        phone.api.attendance.fail(.offline)
+        let signIn = AppSignIn(
+            store: phone.tokens, files: PhoneFiles(personal: phone.personalFiles, attendance: phone.queueFiles),
+            clearReportingUser: {}
+        )
+        let language = AppLanguage(
+            api: phone.api, store: phone.tokens, defaults: try emptyDefaults(),
+            sources: LanguageSources(perApp: nil, device: ["nl-NL"])
+        )
+        let home = HomeView(
+            api: phone.api, store: phone.tokens, language: language, connectivity: Connectivity(),
+            welcomeURL: URL(string: "https://example.com")!, onAccount: { _ in }, onSignedOut: { _ in },
+            files: signIn.files
+        )
+
+        tap(home.attendance, "Anna de Vries")
+        XCTAssertNotNil(phone.queueFiles.read(file), "the home keeps the taps in the file of the sign-in's files")
+        _ = try await rejectingClient(signIn).getMe()
+
+        XCTAssertEqual(signIn.session.state, .signedOut(afterRejection: true))
+        XCTAssertNotNil(phone.queueFiles.read(file), "the rejected token leaves the home's taps on the phone")
     }
 }
