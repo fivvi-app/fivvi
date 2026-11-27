@@ -145,6 +145,10 @@ describe('E014 export: the producer starts only when it may, and never waits for
   });
 
   it('does not give up on a reader that keeps reading, however slowly', async () => {
+    // The whole read takes longer than the stall timeout, each single wait is far shorter: only a
+    // timer that starts again at every read lets it finish.
+    const stallTimeoutMs = 1_000;
+    const readDelayMs = 100;
     const stream = streamZip(
       new Date(),
       async (zip) => {
@@ -155,19 +159,22 @@ describe('E014 export: the producer starts only when it may, and never waits for
           })(),
         );
       },
-      { stallTimeoutMs: 5_000 },
+      { stallTimeoutMs },
     );
     const reader = stream.getReader();
+    const startedAt = Date.now();
     let total = 0;
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
       total += value.byteLength;
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await new Promise((resolve) => setTimeout(resolve, readDelayMs));
     }
+    const elapsed = Date.now() - startedAt;
 
     expect(total).toBeGreaterThan(0);
-  });
+    expect(elapsed).toBeGreaterThan(stallTimeoutMs);
+  }, 30_000);
 
   it('reports a producer that fails, but not a reader that leaves', async () => {
     const reported: unknown[] = [];
