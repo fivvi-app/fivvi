@@ -451,6 +451,28 @@ describe('F024 substituting a trainer through the API', () => {
     expect(w.transport.sent[0]?.text).toContain('Je valt in voor Sarah');
   });
 
+  it('AC5: a later substitute keeps the stored original, also when that profile names nobody any more (a purged account)', async () => {
+    const w = await krachtWorld();
+    const sarah = await profileOf(w.sarahRole.id);
+    await substitute(w, w.twentieth.id, w.mikeTrainer, 1, { notifySubstitute: false });
+    // Sarah's account is purged: her profile no longer says who she was, the date still points at it.
+    await admin.db
+      .update(trainerProfiles)
+      .set({ teamMemberId: null, removedTeamMemberId: null, removedName: null })
+      .where(eq(trainerProfiles.id, sarah));
+
+    const replaced = await substitute(w, w.twentieth.id, w.lisaTrainer, 2, {
+      notifySubstitute: false,
+    });
+
+    expect(replaced.status).toBe(200);
+    // Lisa is for Sarah, not for Mike.
+    expect(await dateOn(w.gym.id, '2026-10-20')).toMatchObject({
+      trainerProfileId: await profileOf(w.lisaTrainer.id),
+      substituteForTrainerProfileId: sarah,
+    });
+  });
+
   it('AC6: Lisa becomes the regular trainer from 13 October: 20 October keeps Mike and “vervangt Sarah”, the other dates from 13 October get Lisa', async () => {
     const w = await krachtWorld();
     const lisa = await profileOf(w.lisaTrainer.id);

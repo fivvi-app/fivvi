@@ -106,6 +106,11 @@ export interface SessionView {
   readonly trainer: SessionTrainerView | null;
   /** The trainer this date's trainer replaces (F024); `null` when the date is not a substitution. */
   readonly substituteFor: SessionSubstituteForView | null;
+  /**
+   * The trainer profile the column holds, even when that profile names nobody any more (a purged
+   * account) and `substituteFor` is `null`: the rules read this one, the API does not show it.
+   */
+  readonly substituteForTrainerProfileId: string | null;
   /** The class of a class date (F021); `null` for the other kinds. */
   readonly groupClass: SessionGroupClassView | null;
   /** The weekly series of a class date (F022); `null` for a date on its own and for the other kinds. */
@@ -306,6 +311,7 @@ export async function findSession(
       original?.id && substituteForTrainerProfileId
         ? { ...original, trainerProfileId: substituteForTrainerProfileId }
         : null,
+    substituteForTrainerProfileId,
     groupClass: groupClass ?? null,
     series: series
       ? {

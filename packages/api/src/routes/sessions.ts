@@ -639,6 +639,7 @@ export function shown(session: SessionView, timeZone: string) {
     endsAt,
     trainer,
     substituteFor,
+    substituteForTrainerProfileId: _substituteForTrainerProfileId,
     groupClass,
     series,
     cancellation,

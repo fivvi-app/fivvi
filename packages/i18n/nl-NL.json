@@ -582,8 +582,8 @@
     "substitution": {
       "button": "In Fivvi bekijken",
       "intro": "Je valt in voor {original}: {class} bij {workspace}.",
-      "introNoOriginal": "Je valt in voor {class} bij {workspace}.",
-      "preview": "Je valt in voor {class} op {date} om {start}.",
+      "introNoOriginal": "Je valt in: {class} bij {workspace}.",
+      "preview": "Je valt in bij {class} op {date} om {start}.",
       "subject": "Je valt in: {class} op {date}",
       "when": "Wanneer: {date}, {start} tot {end}",
       "where": "Waar: {location}"

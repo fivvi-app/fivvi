@@ -95,6 +95,19 @@ describe('F024 EM-10 substitution email', () => {
     },
   );
 
+  it('AC2: the Dutch wording covers the class, never the person the class is named after', async () => {
+    const withName = await renderEmail(substitutionEmail, kracht, { locale: 'nl-NL' });
+    const withoutName = await renderEmail(
+      substitutionEmail,
+      { ...kracht, originalName: null },
+      { locale: 'nl-NL' },
+    );
+
+    expect(withName.html).toContain('Je valt in bij Kracht op dinsdag 20 oktober om 18:00.');
+    expect(withoutName.text).toContain('Je valt in: Kracht bij John’s Gym.');
+    expect(withoutName.text).not.toContain('Je valt in voor Kracht');
+  });
+
   it('shows the times in the time zone it is given, not in UTC', async () => {
     const utc = await renderEmail(substitutionEmail, kracht, { locale: 'en', timeZone: 'UTC' });
 

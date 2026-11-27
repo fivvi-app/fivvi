@@ -60,8 +60,6 @@ export type SubstitutionDecision =
       readonly substituteForTrainerProfileId: string | null;
       /** What the date differs in from its series after the change; `[]` for a date on its own. */
       readonly detachedFields: readonly DetachedField[];
-      /** Whether the new trainer is told: a substitution that is not over and has not started. */
-      readonly toldSubstitute: boolean;
     }
   | { readonly outcome: 'refused'; readonly reason: SubstitutionRefusal };
 
@@ -124,12 +122,12 @@ export function sendsSubstitutionNotice(input: {
  * - a date that is a substitution already keeps the first original: Lisa for Mike's date is Lisa
  *   for Sarah;
  * - choosing the original again ends the substitution (`endSubstitution`);
- * - a date in the past is recorded all the same (who actually taught), only never emailed.
+ * - a date in the past is recorded all the same (who actually taught); whether anyone is told is
+ *   `sendsSubstitutionNotice`'s rule, the only place the date's time is looked at.
  */
 export function substitute(
   session: SubstitutionDate,
   newTrainerProfileId: string,
-  now: Date,
 ): SubstitutionDecision {
   if (session.type === 'private') return { outcome: 'refused', reason: 'private-session' };
   if (session.status !== 'scheduled') return { outcome: 'refused', reason: 'not-scheduled' };
@@ -147,7 +145,6 @@ export function substitute(
     substituteForTrainerProfileId:
       session.substituteForTrainerProfileId ?? session.trainerProfileId,
     detachedFields: detachedAfter(session, { marked: true }),
-    toldSubstitute: session.startsAt.getTime() > now.getTime(),
   };
 }
 
@@ -167,7 +164,6 @@ export function endSubstitution(session: SubstitutionDate): SubstitutionDecision
     detachedFields: detachedAfter(session, {
       marked: session.series !== undefined && session.series.trainerProfileId !== original,
     }),
-    toldSubstitute: false,
   };
 }
 

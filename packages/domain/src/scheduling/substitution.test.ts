@@ -59,13 +59,12 @@ const kracht = (
 
 describe('F024 AC1: only this date changes', () => {
   it('AC1: only this date’s trainer changes: Mike teaches 20 October, Sarah is remembered, the date is its own in the trainer', () => {
-    expect(substitute(kracht('2026-10-20'), MIKE, NOW)).toEqual({
+    expect(substitute(kracht('2026-10-20'), MIKE)).toEqual({
       outcome: 'applied',
       change: 'started',
       trainerProfileId: MIKE,
       substituteForTrainerProfileId: SARAH,
       detachedFields: ['trainer'],
-      toldSubstitute: true,
     });
   });
 
@@ -73,7 +72,6 @@ describe('F024 AC1: only this date changes', () => {
     const decision = substitute(
       kracht('2026-10-20', {}, { trainerProfileId: SARAH, detachedFields: ['time', 'level'] }),
       MIKE,
-      NOW,
     );
 
     expect(decision).toMatchObject({
@@ -83,7 +81,7 @@ describe('F024 AC1: only this date changes', () => {
   });
 
   it('AC1: a date on its own (no series) has nothing to detach from', () => {
-    expect(substitute({ ...kracht('2026-10-20'), series: undefined }, MIKE, NOW)).toMatchObject({
+    expect(substitute({ ...kracht('2026-10-20'), series: undefined }, MIKE)).toMatchObject({
       outcome: 'applied',
       detachedFields: [],
       substituteForTrainerProfileId: SARAH,
@@ -91,19 +89,19 @@ describe('F024 AC1: only this date changes', () => {
   });
 
   it('AC1: a cancelled date, a date without a trainer, the same trainer and a private session are refused', () => {
-    expect(substitute(kracht('2026-10-20', { status: 'cancelled' }), MIKE, NOW)).toEqual({
+    expect(substitute(kracht('2026-10-20', { status: 'cancelled' }), MIKE)).toEqual({
       outcome: 'refused',
       reason: 'not-scheduled',
     });
-    expect(substitute(kracht('2026-10-20', { trainerProfileId: null }), MIKE, NOW)).toEqual({
+    expect(substitute(kracht('2026-10-20', { trainerProfileId: null }), MIKE)).toEqual({
       outcome: 'refused',
       reason: 'no-trainer',
     });
-    expect(substitute(kracht('2026-10-20'), SARAH, NOW)).toEqual({
+    expect(substitute(kracht('2026-10-20'), SARAH)).toEqual({
       outcome: 'refused',
       reason: 'same-trainer',
     });
-    expect(substitute(kracht('2026-10-20', { type: 'private' }), MIKE, NOW)).toEqual({
+    expect(substitute(kracht('2026-10-20', { type: 'private' }), MIKE)).toEqual({
       outcome: 'refused',
       reason: 'private-session',
     });
@@ -133,21 +131,19 @@ describe('F024 AC5: replacing and ending a substitution', () => {
       trainerProfileId: SARAH,
       substituteForTrainerProfileId: null,
       detachedFields: [],
-      toldSubstitute: false,
     };
 
-    expect(substitute(mikesDate, SARAH, NOW)).toEqual(expected);
+    expect(substitute(mikesDate, SARAH)).toEqual(expected);
     expect(endSubstitution(mikesDate)).toEqual(expected);
   });
 
   it('AC5: a third trainer keeps the first original: Lisa replaces Sarah, and Lisa is told', () => {
-    expect(substitute(mikesDate, LISA, NOW)).toEqual({
+    expect(substitute(mikesDate, LISA)).toEqual({
       outcome: 'applied',
       change: 'replaced',
       trainerProfileId: LISA,
       substituteForTrainerProfileId: SARAH,
       detachedFields: ['trainer'],
-      toldSubstitute: true,
     });
   });
 
@@ -158,7 +154,7 @@ describe('F024 AC5: replacing and ending a substitution', () => {
       { trainerProfileId: SARAH, detachedFields: ['trainer'] },
     );
 
-    expect(substitute(tomsOwn, LISA, NOW)).toMatchObject({
+    expect(substitute(tomsOwn, LISA)).toMatchObject({
       change: 'ended',
       trainerProfileId: LISA,
       detachedFields: ['trainer'],
@@ -177,12 +173,11 @@ describe('F024 AC8: a date that has started', () => {
   it('AC8: a past date is recorded with the substitute, who is not told', () => {
     const past = kracht('2026-10-06');
 
-    expect(substitute(past, MIKE, NOW)).toMatchObject({
+    expect(substitute(past, MIKE)).toMatchObject({
       outcome: 'applied',
       change: 'started',
       trainerProfileId: MIKE,
       substituteForTrainerProfileId: SARAH,
-      toldSubstitute: false,
     });
   });
 

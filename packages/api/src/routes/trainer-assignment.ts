@@ -231,9 +231,6 @@ const TrainerAssignedSchema = z
   })
   .openapi('TrainerAssigned', { description: 'The session after the trainer was assigned.' });
 
-// One object, not a `oneOf` (see `RescheduleRefusalSchema` in sessions.ts for why): `code` tells
-// the refusals apart, `session` and `changedBy` come with the session codes and `conflicts` with
-// `trainer_conflict`.
 const SubstitutionRefusedSchema = z
   .object({
     code: z.enum(['private_session']).openapi({
@@ -247,6 +244,9 @@ const SubstitutionRefusedSchema = z
       'Why the substitution was refused; nothing was stored. Contains no user-facing text.',
   });
 
+// One object, not a `oneOf` (see `RescheduleRefusalSchema` in sessions.ts for why): `code` tells
+// the refusals apart, `session` and `changedBy` come with the session codes and `conflicts` with
+// `trainer_conflict`.
 const AssignTrainerRefusalSchema = z
   .object({
     code: z.enum(['session_changed', 'session_cancelled', 'trainer_conflict']).openapi({
@@ -548,7 +548,7 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
             status: current.status,
             startsAt: current.startsAt,
             trainerProfileId: facts.trainerProfileId,
-            substituteForTrainerProfileId: current.substituteFor?.trainerProfileId ?? null,
+            substituteForTrainerProfileId: current.substituteForTrainerProfileId,
             series:
               facts.series && stored
                 ? {
@@ -558,7 +558,6 @@ export function registerTrainerAssignment(app: OpenAPIHono) {
                 : undefined,
           },
           trainer.trainerProfileId,
-          now,
         )
       : undefined;
     if (substitution?.outcome === 'refused' && substitution.reason !== 'same-trainer') {
