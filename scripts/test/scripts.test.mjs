@@ -2267,6 +2267,7 @@ esac`;
     writeFileSync(
       join(repo, 'apps/web/.next/standalone/apps/web/server.js'),
       `require('node:fs').writeFileSync('${state}/web-env.json', JSON.stringify(process.env));
+if (process.env.FAKE_WEB_EXIT) process.exit(1);
 setInterval(() => {}, 1000);\n`,
     );
     mkdirSync(join(repo, 'packages/database'));
@@ -2450,6 +2451,9 @@ exit 0`,
 case "$*" in *"/api/v1/me"*)
   [ "$FAKE_WARM_UP" != fail ] || exit 7
   [ "$FAKE_WARM_UP" = ok ] && printf 200 || printf 401 ;; esac
+case "$*" in *"/api/v1/health"*)
+  # FAKE_WEB_EXIT (#1600): the web server exited at start, so nothing answers; the call takes the 1 s the poll below takes.
+  [ -z "$FAKE_WEB_EXIT" ] || { /bin/sleep 0.5; exit 7; } ;; esac
 case "$*" in *"localhost:$((E2E_PORT + 2000))/"*)
   exec node -e "
     const url = process.argv[1], end = Date.now() + 1000;
@@ -6903,6 +6907,30 @@ esac`,
       } finally {
         holder.close();
       }
+    });
+
+    // The web server's wait takes the process id too (#1600): a web server that exits at start (a port held, a crash on
+    // boot) is named at once, not after the 60 s that ended with "didn't start".
+    it(`#1600: ${name} stops at once, saying so, when the web server exits at start`, async () => {
+      const fake = checkout({ emulatorRunning: true, simulatorBooted: true });
+
+      const run = await fake.run('scripts/maestro.sh', args, { FAKE_WEB_EXIT: '1' });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        new RegExp(`the web server on port ${fake.port} exited before it answered`),
+        run.output,
+      );
+      assert.ok(!run.output.includes("didn't start"), run.output);
+      const health = fake.log('calls').filter((call) => call.includes('/api/v1/health'));
+      assert.ok(health.length <= 3, `it did not wait the 60 s out: ${health.length} health calls`);
+      assert.equal(
+        fake.log('calls').filter((call) => call.startsWith('maestro ') && call.includes(' test '))
+          .length,
+        0,
+        'no flow started',
+      );
     });
   }
 
