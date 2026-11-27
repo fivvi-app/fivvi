@@ -151,7 +151,7 @@ start_stack() {
   # The fake Lettermint server of the web e2e (apps/web/e2e/fake-lettermint.ts): it keeps the emails the web server sends.
   (cd apps/web && PORT="$LETTERMINT_PORT" exec node e2e/fake-lettermint.ts) >"$REPORTS/lettermint.log" 2>&1 &
   LETTERMINT_PID=$!
-  wait_for "http://localhost:$LETTERMINT_PORT/" "the fake Lettermint server" "lettermint.log"
+  wait_for "http://localhost:$LETTERMINT_PORT/" "the fake Lettermint server" "lettermint.log" "$LETTERMINT_PID"
   # Every value is synthetic: the fake Lettermint server accepts any token. EMAIL_SEND_EXAMPLE_DOMAIN=1 sends @example.com mail,
   # the seeded owner@example.com, through Lettermint (here the fake server) instead of writing it to the log (packages/email);
   # the server isn't the production environment, which would also tag Sentry and PostHog as production.
@@ -167,15 +167,18 @@ start_stack() {
     SIGN_UP_ALLOWED_EMAILS=@example.com \
     exec node --env-file=../../packages/database/.env .next/standalone/apps/web/server.js) >"$REPORTS/web.log" 2>&1 &
   SERVER_PID=$!
-  wait_for "http://127.0.0.1:$PORT/api/v1/health" "the web server on port $PORT" "web.log"
+  wait_for "http://127.0.0.1:$PORT/api/v1/health" "the web server on port $PORT" "web.log" "$SERVER_PID"
   warm_up_server
 }
 
-# Waits up to 60 s for GET $1 to answer; $2 names what it is, $3 is its log in e2e/maestro/build.
+# Waits up to 60 s for GET $1 to answer; $2 names what it is, $3 is its log in e2e/maestro/build, $4 its process id. A
+# process that has exited never answers (its port held by another process makes the fake Lettermint server exit, #1600),
+# and whatever else answers on that port is not it: that fails at once, with the end of the log, not after the 60 s.
 wait_for() {
   local waited=0
-  until curl -fsS "$1" >/dev/null 2>&1; do
-    [ "$waited" -lt 60 ] || die "$2 didn't start (log: e2e/maestro/build/$3)"
+  until curl -fsS "$1" >/dev/null 2>&1 && kill -0 "$4" 2>/dev/null; do
+    kill -0 "$4" 2>/dev/null || die "$2 exited before it answered (log: e2e/maestro/build/$3):"$'\n'"$(tail -n 20 "$REPORTS/$3")"
+    [ "$waited" -lt 60 ] || die "$2 didn't start (log: e2e/maestro/build/$3):"$'\n'"$(tail -n 20 "$REPORTS/$3")"
     sleep 1; waited=$((waited + 1))
   done
 }
