@@ -154,6 +154,14 @@ extension StubAPI {
         fatalError("The app doesn't call getJoinLink yet")
     }
 
+    func exportClient(_ input: Operations.ExportClient.Input) async throws -> Operations.ExportClient.Output {
+        fatalError("The app doesn't call exportClient yet")
+    }
+
+    func exportWorkspace(_ input: Operations.ExportWorkspace.Input) async throws -> Operations.ExportWorkspace.Output {
+        fatalError("The app doesn't call exportWorkspace yet")
+    }
+
     func listAccessLog(_ input: Operations.ListAccessLog.Input) async throws -> Operations.ListAccessLog.Output {
         fatalError("The app doesn't call listAccessLog yet")
     }

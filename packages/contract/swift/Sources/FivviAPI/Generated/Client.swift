@@ -6551,7 +6551,7 @@ public struct Client: APIProtocol {
     }
     /// Assign or change the trainer of a session
     ///
-    /// Gives a private session or a class date another trainer, or a class date without one its first (the Owner only: a Trainer gets `403`). For a class date `scope` is `this` (a date without a trainer; the date is marked as changed from its series) or `following` (the series’ regular trainer from this date on: dates with a change of their own keep it, earlier dates keep theirs, later dates the calendar fills get the new trainer); for a private session it is ignored. `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` (`session_changed`) with the session as it is now. A cancelled session answers `409` `session_cancelled`. The new trainer is checked for double booking (`409` `trainer_conflict` with the sessions, unless `allowConflicts` is `true`, PS-07). After the change is committed the clients with a booked place get EM-13, one email each listing their dates, unless `notifyClients` is `false` or the session has started. No other participant and no email address of the trainer is in it. A session or trainer that is not in the workspace answers `404`.
+    /// Gives a private session or a class date another trainer, or a class date without one its first (the Owner only: a Trainer gets `403`). For a class date `scope` is `this` (a date without a trainer; the date is marked as changed from its series) or `following` (the series’ regular trainer from this date on: dates with a change of their own keep it, earlier dates keep theirs, later dates the calendar fills get the new trainer); for a private session it is ignored. On a class date that has a trainer, `this` is a substitution (F024): only that date gets the substitute, the date remembers whom they replace, and the substitute gets EM-10 after the commit unless `notifySubstitute` is `false` or the date has started (a past date is recorded without an email). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` (`session_changed`) with the session as it is now. A cancelled session answers `409` `session_cancelled`. The new trainer is checked for double booking (`409` `trainer_conflict` with the sessions, unless `allowConflicts` is `true`, PS-07). After the change is committed the clients with a booked place get EM-13, one email each listing their dates, unless `notifyClients` is `false` or the session has started. No other participant and no email address of the trainer is in it. A session or trainer that is not in the workspace answers `404`.
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer/post(assignTrainer)`.
@@ -6721,6 +6721,28 @@ public struct Client: APIProtocol {
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
                     return .conflict(.init(body: body))
+                case 422:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.AssignTrainer.Output.UnprocessableContent.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.SubstitutionRefused.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unprocessableContent(.init(body: body))
                 case 500:
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.AssignTrainer.Output.InternalServerError.Body
@@ -11865,6 +11887,385 @@ public struct Client: APIProtocol {
                 case 500:
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.ListAccessLog.Output.InternalServerError.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "text/plain"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "text/plain":
+                        body = try converter.getResponseBodyAsBinary(
+                            OpenAPIRuntime.HTTPBody.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .plainText(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .internalServerError(.init(body: body))
+                default:
+                    return .undocumented(
+                        statusCode: response.status.code,
+                        .init(
+                            headerFields: response.headerFields,
+                            body: responseBody
+                        )
+                    )
+                }
+            }
+        )
+    }
+    /// Export everything the workspace holds about one client
+    ///
+    /// Downloads a ZIP named `fivvi-{workspace-slug}-{client-id}-{date}.zip` (the Owner only; a Trainer gets `403`) with the client’s profile, her sessions and bookings with attendance, and, as later features add them, the rest of her records, all from this workspace only. `README.txt` in the Owner’s language (their stored language, else `Accept-Language`, else English) says what each file is and what the field names mean; `data.json` holds every record; each kind of record is also a CSV in UTF-8 with a byte order mark, so Excel opens it with the accents intact. The field names are English and stable. Every time is given in UTC and, next to it, in the workspace time zone (`…_local`). It is generated for this request and streamed: the server stores no file. It writes one entry in the access log. A client who is not in this workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}/export`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/export/get(exportClient)`.
+    public func exportClient(_ input: Operations.ExportClient.Input) async throws -> Operations.ExportClient.Output {
+        try await client.send(
+            input: input,
+            forOperation: Operations.ExportClient.id,
+            serializer: { input in
+                let path = try converter.renderedPath(
+                    template: "/v1/workspaces/{}/clients/{}/export",
+                    parameters: [
+                        input.path.workspaceId,
+                        input.path.clientId
+                    ]
+                )
+                var request: HTTPTypes.HTTPRequest = .init(
+                    soar_path: path,
+                    method: .get
+                )
+                suppressMutabilityWarning(&request)
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "surface",
+                    value: input.query.surface
+                )
+                converter.setAcceptHeader(
+                    in: &request.headerFields,
+                    contentTypes: input.headers.accept
+                )
+                return (request, nil)
+            },
+            deserializer: { response, responseBody in
+                switch response.status.code {
+                case 200:
+                    let headers: Operations.ExportClient.Output.Ok.Headers = .init(contentDisposition: try converter.getRequiredHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "content-disposition",
+                        as: Swift.String.self
+                    ))
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportClient.Output.Ok.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/zip"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/zip":
+                        body = try converter.getResponseBodyAsBinary(
+                            OpenAPIRuntime.HTTPBody.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationZip(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .ok(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 400:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportClient.Output.BadRequest.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ValidationError.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .badRequest(.init(body: body))
+                case 401:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportClient.Output.Unauthorized.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.NotSignedIn.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unauthorized(.init(body: body))
+                case 403:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportClient.Output.Forbidden.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Forbidden.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .forbidden(.init(body: body))
+                case 404:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportClient.Output.NotFound.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.NotFound.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .notFound(.init(body: body))
+                case 500:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportClient.Output.InternalServerError.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "text/plain"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "text/plain":
+                        body = try converter.getResponseBodyAsBinary(
+                            OpenAPIRuntime.HTTPBody.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .plainText(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .internalServerError(.init(body: body))
+                default:
+                    return .undocumented(
+                        statusCode: response.status.code,
+                        .init(
+                            headerFields: response.headerFields,
+                            body: responseBody
+                        )
+                    )
+                }
+            }
+        )
+    }
+    /// Export everything the workspace holds
+    ///
+    /// Downloads a ZIP named `fivvi-{workspace-slug}-{date}.zip` (the Owner only; a Trainer gets `403`) with every record of the workspace that the privacy registry declares, for when the workspace leaves. `README.txt` in the Owner’s language (their stored language, else `Accept-Language`, else English) says what each file is and what the field names mean; `data.json` holds every record; each kind of record is also a CSV in UTF-8 with a byte order mark, so Excel opens it with the accents intact. The field names are English and stable. Every time is given in UTC and, next to it, in the workspace time zone (`…_local`). It is generated for this request and streamed: the server stores no file. It writes one entry in the access log.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/export`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/export/get(exportWorkspace)`.
+    public func exportWorkspace(_ input: Operations.ExportWorkspace.Input) async throws -> Operations.ExportWorkspace.Output {
+        try await client.send(
+            input: input,
+            forOperation: Operations.ExportWorkspace.id,
+            serializer: { input in
+                let path = try converter.renderedPath(
+                    template: "/v1/workspaces/{}/export",
+                    parameters: [
+                        input.path.workspaceId
+                    ]
+                )
+                var request: HTTPTypes.HTTPRequest = .init(
+                    soar_path: path,
+                    method: .get
+                )
+                suppressMutabilityWarning(&request)
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "surface",
+                    value: input.query.surface
+                )
+                converter.setAcceptHeader(
+                    in: &request.headerFields,
+                    contentTypes: input.headers.accept
+                )
+                return (request, nil)
+            },
+            deserializer: { response, responseBody in
+                switch response.status.code {
+                case 200:
+                    let headers: Operations.ExportWorkspace.Output.Ok.Headers = .init(contentDisposition: try converter.getRequiredHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "content-disposition",
+                        as: Swift.String.self
+                    ))
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportWorkspace.Output.Ok.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/zip"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/zip":
+                        body = try converter.getResponseBodyAsBinary(
+                            OpenAPIRuntime.HTTPBody.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationZip(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .ok(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 400:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportWorkspace.Output.BadRequest.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ValidationError.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .badRequest(.init(body: body))
+                case 401:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportWorkspace.Output.Unauthorized.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.NotSignedIn.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unauthorized(.init(body: body))
+                case 403:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportWorkspace.Output.Forbidden.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Forbidden.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .forbidden(.init(body: body))
+                case 404:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportWorkspace.Output.NotFound.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.NotFound.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .notFound(.init(body: body))
+                case 500:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ExportWorkspace.Output.InternalServerError.Body
                     let chosenContentType = try converter.bestContentType(
                         received: contentType,
                         options: [

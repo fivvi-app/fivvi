@@ -154,3 +154,42 @@ export async function findTrainerProfileId(
     .limit(1);
   return row?.id;
 }
+
+/** Where an email to a trainer goes: the address and name of the account, and its stored language. */
+export interface TrainerRecipient {
+  readonly email: string;
+  readonly name: string;
+  /** The account's stored communication language; `null` until they chose one. */
+  readonly preferredLocale: string | null;
+}
+
+/**
+ * The account behind the trainer with that team-member ID in the scope's workspace, for the email
+ * to them (EM-10, F024); `undefined` when the team member does not train here. Never reads another
+ * workspace's trainer.
+ */
+export async function findTrainerRecipient(
+  scope: WorkspaceScope,
+  teamMemberId: string,
+): Promise<TrainerRecipient | undefined> {
+  const [row] = await executorOf(scope)
+    .select({
+      email: authUsers.email,
+      name: authUsers.name,
+      preferredLocale: authUsers.preferredLocale,
+    })
+    .from(trainerProfiles)
+    .innerJoin(
+      teamMembers,
+      and(
+        eq(teamMembers.organizationId, trainerProfiles.organizationId),
+        eq(teamMembers.id, trainerProfiles.teamMemberId),
+      ),
+    )
+    .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+    .where(
+      and(eq(trainerProfiles.organizationId, scope.workspaceId), eq(teamMembers.id, teamMemberId)),
+    )
+    .limit(1);
+  return row;
+}

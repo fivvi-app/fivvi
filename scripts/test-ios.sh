@@ -641,9 +641,11 @@ run_tests() {
 RETRY_DEADLINE=${IOS_RETRY_DEADLINE:-600}
 RETRY_MAX_TESTS=3
 # Before a retry the first run is shown to be complete, by counting the tests its configuration has: xcodebuild
-# enumerates them in about 20 s (it starts the test host without running a test), and this deadline, and the grace, stop
-# an enumeration that hangs.
-ENUMERATE_DEADLINE=${IOS_ENUMERATE_DEADLINE:-120}
+# enumerates them (it starts the test host without running a test: about 20 s on a developer Mac), and this deadline, and
+# the grace, stop an enumeration that hangs. On the CI runner, right after the simulator booted, the first try took 85 s
+# or more, and 22 of 28 first tries in the 7 nightly runs of 20-26 November 2026 ran past the old 120 s (#1580); the
+# second try, on a runner that has run xcodebuild once, took 49 to 92 s. So 240 s, twice the slowest enumeration seen to end.
+ENUMERATE_DEADLINE=${IOS_ENUMERATE_DEADLINE:-240}
 
 # The number of tests that the run of locale $2 on simulator $1 has (what its -only-test-configuration and -skip-testing
 # select), counted by xcodebuild's own enumeration, which reads the .xctestrun like the run does. Nothing when it can't.

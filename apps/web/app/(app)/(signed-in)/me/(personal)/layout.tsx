@@ -18,7 +18,7 @@ import { WorkspaceShell } from '../../w/[slug]/workspace-shell';
  * `information-architecture.md §4.1` draws them, with *Persoonlijk* above the workspace's own
  * pages. Anyone else has no personal pages: a person on a team who does not train (an Owner without
  * a trainer profile) goes where the signed-in home sends them, and an account on no team, such as
- * a client, sees the no-access state (AC12, AC13).
+ * a client, sees the no-access state (AC12, AC13); the client web (F030) is their home.
  */
 export default async function PersonalLayout({ children }: { children: ReactNode }) {
   const me = await currentMe();
@@ -27,7 +27,7 @@ export default async function PersonalLayout({ children }: { children: ReactNode
     : undefined;
   if (!workspace) {
     const destination = await homeDestination(me);
-    if (destination.to !== 'no-access') redirectTo(destination);
+    if (destination.to !== 'client') redirectTo(destination);
     return <NoAccess />;
   }
   return (

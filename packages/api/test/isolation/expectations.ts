@@ -144,6 +144,29 @@ export function splitAddedGroups<T extends { workspaceId: string; clientId?: str
   return { workspaces, others: added.filter((g) => !workspaces.includes(g)) };
 }
 
+/**
+ * The rows after a call that logs access (E014), without the access-log entries it added to the
+ * log of the workspace of the path: those, and nothing else, are what the call may add. An entry
+ * of another workspace's log, one that was there before and changed, and one that is gone stay in
+ * the comparison, so the suite fails on them. An entry is told apart by its `id`.
+ */
+export function withoutNewLogEntries<
+  R extends { table: string; workspaceId: string; row: Record<string, unknown> },
+>(before: readonly R[], after: readonly R[], workspaceId: string): R[] {
+  const known = new Set(
+    before.filter((r) => r.table === 'access_log').map((r) => String(r.row.id ?? '')),
+  );
+  return after.filter(
+    (r) =>
+      !(
+        r.table === 'access_log' &&
+        r.workspaceId === workspaceId &&
+        typeof r.row.id === 'string' &&
+        !known.has(r.row.id)
+      ),
+  );
+}
+
 function clientRowOf(place: Place | undefined, group: RowGroup): boolean {
   return !!place?.clientId && group.clientId === place.clientId;
 }

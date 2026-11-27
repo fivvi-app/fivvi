@@ -1057,6 +1057,74 @@ describe('E004 database', () => {
       });
     });
 
+    it('AC15 (F024, #552): gives the synthetic week one class date a substitute, once: Tom teaches Tuesday’s Kracht for Sarah', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        await seed(tx, { now: WEDNESDAY });
+
+        const substituted = await rows<{
+          day: string;
+          className: string;
+          substitute: string;
+          original: string;
+          detachedFields: string[];
+          version: number;
+          status: string;
+        }>(
+          tx,
+          sql`select s.occurrence_date::text as day, gc.name_nl as "className",
+                     tu.name as substitute, ou.name as original,
+                     s.detached_fields as "detachedFields", s.version, s.status
+              from sessions s
+              join organizations o on o.id = s.organization_id and o.slug = 'johns-gym'
+              join group_classes gc on gc.id = s.group_class_id
+              join trainer_profiles tp on tp.id = s.trainer_profile_id
+              join team_members tm on tm.id = tp.team_member_id
+              join auth_users tu on tu.id = tm.account_id
+              join trainer_profiles op on op.id = s.substitute_for_trainer_profile_id
+              join team_members om on om.id = op.team_member_id
+              join auth_users ou on ou.id = om.account_id`,
+        );
+
+        // Tuesday 3 November 2026, 18:00: one date, in the series, marked as having a trainer of its own.
+        expect(substituted).toEqual([
+          {
+            day: '2026-11-03',
+            className: 'Kracht',
+            substitute: 'Tom',
+            original: 'Sarah',
+            detachedFields: ['trainer'],
+            version: 2,
+            status: 'scheduled',
+          },
+        ]);
+        // The other Tuesdays are Sarah's.
+        const [others] = await rows<{ count: number }>(
+          tx,
+          sql`select count(*)::int as count
+              from sessions s
+              join organizations o on o.id = s.organization_id and o.slug = 'johns-gym'
+              join group_classes gc on gc.id = s.group_class_id and gc.name_nl = 'Kracht'
+              join trainer_profiles tp on tp.id = s.trainer_profile_id
+              join team_members tm on tm.id = tp.team_member_id
+              join auth_users tu on tu.id = tm.account_id and tu.name = 'Sarah'
+              where s.occurrence_date > date '2026-11-03' and extract(isodow from s.occurrence_date) = 2
+                and s.substitute_for_trainer_profile_id is null`,
+        );
+        expect(others?.count).toBeGreaterThan(5);
+      });
+    });
+
+    it('AC15 (F024, #552): seeds no substitution in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true, now: WEDNESDAY });
+
+        expect(await tx.$count(sessions, isNotNull(sessions.substituteForTrainerProfileId))).toBe(
+          0,
+        );
+      });
+    });
+
     it('AC16 (F026): seeds no cancellation in production', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx, { production: true, now: WEDNESDAY });
@@ -1219,12 +1287,13 @@ describe('E004 database', () => {
           expect(date.day >= '2026-11-02' && date.day <= '2026-11-08').toBe(true);
         }
         expect(new Set(dates.map(({ name }) => name)).size).toBe(3);
-        // Every date copied its class: the trainer, the capacity and the length.
+        // Every date copied its class: the trainer, the capacity and the length. Except the one
+        // substituted date (F024 AC15): Tom teaches Tuesday's Kracht for Sarah.
         const classes = await seededClasses(tx);
         for (const date of dates) {
           const own = classes.find(({ name }) => name === date.name);
           expect(date).toMatchObject({
-            trainer: own?.trainer,
+            trainer: date.name === 'Kracht' && date.day === '2026-11-03' ? 'Tom' : own?.trainer,
             capacity: own?.capacity,
             minutes: own?.minutes,
           });

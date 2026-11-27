@@ -190,7 +190,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
     await expectNoAxeViolations(page, `TW-06 for a Trainer in ${appLocale}`);
   });
 
-  test('AC4, AC6: John removes Sarah after confirming, and her signed-in browser shows the no-access page', async ({
+  test('AC4, AC6: John removes Sarah after confirming, and her signed-in browser shows the client home', async ({
     wording,
     page,
     context,
@@ -251,14 +251,15 @@ test.describe('F003 my workspaces and the role in the header', () => {
       expect(listed.map(({ name }) => name)).toEqual(['John']);
 
       // No sign-out needed: Sarah's session still works (she is not sent to sign in), so her
-      // account is kept, and her next page is the no-access page.
+      // account is kept, and her next page is the client home (F030).
       await sarahsPage.goto(`/w/${slug}`);
+      await expect(sarahsPage).toHaveURL('/my');
       await expect(
-        sarahsPage.getByRole('heading', { level: 1, name: copy.noAccess.title }),
+        sarahsPage.getByRole('heading', { level: 1, name: copy.clientNav.home }),
       ).toBeVisible();
       await expectNoAxeViolations(
         sarahsPage,
-        `the no-access page of a removed Trainer in ${appLocale}`,
+        `the client home of a removed Trainer in ${appLocale}`,
       );
     } finally {
       await sarahsBrowser.close();

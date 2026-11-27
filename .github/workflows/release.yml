@@ -96,14 +96,17 @@ jobs:
     # boot, the settle and the other steps (at most 310 s) + 2 min, 2590 s (ci.yml has the reasons), then what the release
     # budgets on top of CI's part: the count of the part's tests before the run (CI's part counts too; the release
     # budgets it here, on top of those 44 minutes; `--shard` enumerates the tests to choose the part, with a deadline of
-    # IOS_ENUMERATE_DEADLINE, 120 s, + the grace, 60 s, and a second try when the first gives nothing: 360 s at most,
-    # though it takes about 20 s), and the one retry of the failed UI tests that `release.sh tests ios` asks for
-    # (#1433; its deadline, IOS_RETRY_DEADLINE, 600 s, + the grace, 60 s, + 60 s for its reports: 720 s). The retry counts
-    # nothing again: the part was counted when it was chosen. 360 + 720 s = 18 minutes, so 3 + 15 + 44 + 18 = 80 minutes
-    # for a part: a part is about half of a language (1250 s and 810 s of xcodebuild in the nightly run of 20 November),
-    # so it keeps its room to grow to 85 % of the deadline. Raising a deadline in scripts/test-ios.sh means raising this;
-    # a test fails when they no longer fit.
-    timeout-minutes: 80
+    # IOS_ENUMERATE_DEADLINE, 240 s, + the grace, 60 s, and a second try when the first gives nothing: 600 s at most,
+    # though it takes about 20 s on a Mac, 85 s or more on the first try after the boot of a simulator of the runner and
+    # 49 to 92 s on the second, #1580; the job counts once for each app, Fivvi Pro and then Fivvi, and the budget is for
+    # Fivvi Pro's count: Fivvi's suite is small, so its count is expected to be fast, and a second count that hangs is
+    # paid from the share of the run's deadline the part does not use), and the one retry of the failed UI tests that
+    # `release.sh tests ios` asks for (#1433; its deadline, IOS_RETRY_DEADLINE, 600 s, + the grace, 60 s, + 60 s for its
+    # reports: 720 s). The retry counts nothing again: the part was counted when it was chosen. 600 + 720 s = 22
+    # minutes, so 3 + 15 + 44 + 22 = 84 minutes for a part: a part is about half of a language (1250 s and 810 s of
+    # xcodebuild in the nightly run of 20 November), so it keeps its room to grow to 85 % of the deadline. Raising a
+    # deadline in scripts/test-ios.sh means raising this; a test fails when they no longer fit.
+    timeout-minutes: 84
     strategy:
       # All four parts always run: a failing one doesn't hide the others' results.
       fail-fast: false

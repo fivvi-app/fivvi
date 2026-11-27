@@ -38,3 +38,12 @@ export function trainerChangeEmailEvent(
 export function classDateEmailEvent(sessionId: string, version: number, clientId: string): string {
   return privateSessionEmailEvent(sessionId, version, clientId);
 }
+
+/**
+ * The event behind EM-10 (F024) to the substitute of one class date: the date and the substitute,
+ * so the same substitution sent twice has one event and one idempotency key and the email goes out
+ * once; another date or another substitute has a key of its own.
+ */
+export function substitutionEmailEvent(sessionId: string, substituteTeamMemberId: string): string {
+  return `substitution:${sessionId}:${substituteTeamMemberId}`;
+}

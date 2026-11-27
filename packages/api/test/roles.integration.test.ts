@@ -196,6 +196,8 @@ describe('@permission F004 roles on every workspace route', () => {
       'createTrainerInvitation',
       'deactivateBookingLink',
       'deleteTrainerProfile',
+      'exportClient',
+      'exportWorkspace',
       'getClientBillingDetails',
       'getInvoiceDetails',
       'getKeptClassDates',

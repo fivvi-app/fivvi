@@ -389,6 +389,8 @@ extension Components {
                 case bookingLink_manage = "booking_link.manage"
                 case bookingLink_copy = "booking_link.copy"
                 case accessLog_read = "access_log.read"
+                case client_export = "client.export"
+                case workspace_export = "workspace.export"
                 case invoices_manage = "invoices.manage"
                 case commerce_offers_manage = "commerce.offers.manage"
                 case calendar_read = "calendar.read"
@@ -549,6 +551,8 @@ extension Components {
                 case bookingLink_manage = "booking_link.manage"
                 case bookingLink_copy = "booking_link.copy"
                 case accessLog_read = "access_log.read"
+                case client_export = "client.export"
+                case workspace_export = "workspace.export"
                 case invoices_manage = "invoices.manage"
                 case commerce_offers_manage = "commerce.offers.manage"
                 case calendar_read = "calendar.read"
@@ -907,7 +911,7 @@ extension Components {
                 case sessionTypes
             }
         }
-        /// A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s or a private session’s participants and is left out for Open Gym.
+        /// A session the signed-in account is the current trainer of, in one of its workspaces, or a date a substitute took over from it (`takenOverBy`). `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s or a private session’s participants and is left out for Open Gym.
         ///
         /// - Remark: Generated from `#/components/schemas/PersonalSession`.
         public struct PersonalSession: Codable, Hashable, Sendable {
@@ -976,6 +980,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/PersonalSession/clients`.
             public var clients: [Components.Schemas.PersonalSessionClient]?
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/substituteFor`.
+            public var substituteFor: Components.Schemas.SubstituteFor?
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/takenOverBy`.
+            public var takenOverBy: Components.Schemas.TakenOverBy?
             /// `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym.
             ///
             /// - Remark: Generated from `#/components/schemas/PersonalSession/attendanceOpen`.
@@ -999,6 +1007,8 @@ extension Components {
             ///   - location:
             ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart.
             ///   - clients: The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds.
+            ///   - substituteFor:
+            ///   - takenOverBy:
             ///   - attendanceOpen: `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym.
             ///   - attendance:
             public init(
@@ -1016,6 +1026,8 @@ extension Components {
                 location: Components.Schemas.Location? = nil,
                 clientName: Swift.String? = nil,
                 clients: [Components.Schemas.PersonalSessionClient]? = nil,
+                substituteFor: Components.Schemas.SubstituteFor? = nil,
+                takenOverBy: Components.Schemas.TakenOverBy? = nil,
                 attendanceOpen: Swift.Bool? = nil,
                 attendance: Components.Schemas.AttendanceSummary? = nil
             ) {
@@ -1033,6 +1045,8 @@ extension Components {
                 self.location = location
                 self.clientName = clientName
                 self.clients = clients
+                self.substituteFor = substituteFor
+                self.takenOverBy = takenOverBy
                 self.attendanceOpen = attendanceOpen
                 self.attendance = attendance
             }
@@ -1051,6 +1065,8 @@ extension Components {
                 case location
                 case clientName
                 case clients
+                case substituteFor
+                case takenOverBy
                 case attendanceOpen
                 case attendance
             }
@@ -1236,6 +1252,62 @@ extension Components {
             }
             public enum CodingKeys: String, CodingKey {
                 case clientId
+                case name
+            }
+        }
+        /// The trainer the account replaces on this date (F024): “Je valt in voor Sarah”. Left out when the date is no substitution, and for a date taken over (`takenOverBy`).
+        ///
+        /// - Remark: Generated from `#/components/schemas/SubstituteFor`.
+        public struct SubstituteFor: Codable, Hashable, Sendable {
+            /// The team-member ID of the trainer the date’s trainer replaces, as in `GET …/trainers` (`trainer.id` of the date before the substitution).
+            ///
+            /// - Remark: Generated from `#/components/schemas/SubstituteFor/id`.
+            public var id: Swift.String
+            /// The trainer profile of that trainer, what the date remembers.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SubstituteFor/trainerProfileId`.
+            public var trainerProfileId: Swift.String
+            /// The account’s name; empty when it has none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SubstituteFor/name`.
+            public var name: Swift.String
+            /// Creates a new `SubstituteFor`.
+            ///
+            /// - Parameters:
+            ///   - id: The team-member ID of the trainer the date’s trainer replaces, as in `GET …/trainers` (`trainer.id` of the date before the substitution).
+            ///   - trainerProfileId: The trainer profile of that trainer, what the date remembers.
+            ///   - name: The account’s name; empty when it has none.
+            public init(
+                id: Swift.String,
+                trainerProfileId: Swift.String,
+                name: Swift.String
+            ) {
+                self.id = id
+                self.trainerProfileId = trainerProfileId
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case trainerProfileId
+                case name
+            }
+        }
+        /// Who took the date over from the account (F024): “Overgenomen door Mike”. The date is listed, dimmed, without actions, and is not counted in `summary`, not *Straks*, not in the free gap, the route or the tomorrow line; it has no attendance fields. Left out for a date the account teaches.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TakenOverBy`.
+        public struct TakenOverBy: Codable, Hashable, Sendable {
+            /// The substitute’s name; empty when the account has none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TakenOverBy/name`.
+            public var name: Swift.String
+            /// Creates a new `TakenOverBy`.
+            ///
+            /// - Parameters:
+            ///   - name: The substitute’s name; empty when the account has none.
+            public init(name: Swift.String) {
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
                 case name
             }
         }
@@ -2914,6 +2986,37 @@ extension Components {
             public var location: Components.Schemas.Location
             /// - Remark: Generated from `#/components/schemas/Session/trainer`.
             public var trainer: Components.Schemas.SessionTrainer?
+            /// - Remark: Generated from `#/components/schemas/Session/substituteFor`.
+            public struct SubstituteForPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/Session/substituteFor/value1`.
+                public var value1: Components.Schemas.SubstituteFor
+                /// The trainer this date’s trainer replaces (F024): present while the date is a substitution, left out otherwise. `trainer` is the substitute.
+                ///
+                /// - Remark: Generated from `#/components/schemas/Session/substituteFor/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SubstituteForPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The trainer this date’s trainer replaces (F024): present while the date is a substitution, left out otherwise. `trainer` is the substitute.
+                public init(
+                    value1: Components.Schemas.SubstituteFor,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/Session/substituteFor`.
+            public var substituteFor: Components.Schemas.Session.SubstituteForPayload?
             /// - Remark: Generated from `#/components/schemas/Session/cancellation`.
             public var cancellation: Components.Schemas.SessionCancellation?
             /// - Remark: Generated from `#/components/schemas/Session/groupClass`.
@@ -2939,6 +3042,7 @@ extension Components {
             ///   - version: Raised by every change; a change says the version it read. Starts at 1.
             ///   - location:
             ///   - trainer:
+            ///   - substituteFor:
             ///   - cancellation:
             ///   - groupClass:
             ///   - level:
@@ -2955,6 +3059,7 @@ extension Components {
                 version: Swift.Int,
                 location: Components.Schemas.Location,
                 trainer: Components.Schemas.SessionTrainer? = nil,
+                substituteFor: Components.Schemas.Session.SubstituteForPayload? = nil,
                 cancellation: Components.Schemas.SessionCancellation? = nil,
                 groupClass: Components.Schemas.SessionGroupClass? = nil,
                 level: Components.Schemas.ClassLevel? = nil,
@@ -2971,6 +3076,7 @@ extension Components {
                 self.version = version
                 self.location = location
                 self.trainer = trainer
+                self.substituteFor = substituteFor
                 self.cancellation = cancellation
                 self.groupClass = groupClass
                 self.level = level
@@ -2988,6 +3094,7 @@ extension Components {
                 case version
                 case location
                 case trainer
+                case substituteFor
                 case cancellation
                 case groupClass
                 case level
@@ -3996,6 +4103,31 @@ extension Components {
                 case conflicts
             }
         }
+        /// Why the substitution was refused; nothing was stored. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SubstitutionRefused`.
+        public struct SubstitutionRefused: Codable, Hashable, Sendable {
+            /// `private_session`: a private session’s trainer is changed with *Trainer wijzigen* (`scope` left out), never substituted.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SubstitutionRefused/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case privateSession = "private_session"
+            }
+            /// `private_session`: a private session’s trainer is changed with *Trainer wijzigen* (`scope` left out), never substituted.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SubstitutionRefused/code`.
+            public var code: Components.Schemas.SubstitutionRefused.CodePayload
+            /// Creates a new `SubstitutionRefused`.
+            ///
+            /// - Parameters:
+            ///   - code: `private_session`: a private session’s trainer is changed with *Trainer wijzigen* (`scope` left out), never substituted.
+            public init(code: Components.Schemas.SubstitutionRefused.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
         /// The trainer a session or a class from a date on goes to.
         ///
         /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest`.
@@ -4004,14 +4136,14 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/trainerId`.
             public var trainerId: Swift.String
-            /// For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session.
+            /// For a class date: `this` (*Alleen deze les*: a date that has no trainer gets one; on a date that has one it is a substitution, F024: the chosen trainer replaces the date’s trainer on this date alone, the date remembers whom (`substituteFor`) and the series and the other dates stay; choosing the trainer the date’s trainer replaces ends the substitution) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session, but a private session with `this` sent explicitly is a substitution that cannot be made: `422` `private_session` (its trainer is changed without a `scope`, *Trainer wijzigen*).
             ///
             /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/scope`.
             @frozen public enum ScopePayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case this = "this"
                 case following = "following"
             }
-            /// For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session.
+            /// For a class date: `this` (*Alleen deze les*: a date that has no trainer gets one; on a date that has one it is a substitution, F024: the chosen trainer replaces the date’s trainer on this date alone, the date remembers whom (`substituteFor`) and the series and the other dates stay; choosing the trainer the date’s trainer replaces ends the substitution) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session, but a private session with `this` sent explicitly is a substitution that cannot be made: `422` `private_session` (its trainer is changed without a `scope`, *Trainer wijzigen*).
             ///
             /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/scope`.
             public var scope: Components.Schemas.AssignTrainerRequest.ScopePayload?
@@ -4023,10 +4155,14 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/version`.
             public var version: Swift.Int
-            /// Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says.
+            /// Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`).
             ///
             /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/notifyClients`.
             public var notifyClients: Swift.Bool?
+            /// For a substitution (F024): whether to email the substitute EM-10, in their own language, else the workspace’s default, once per date and substitute. Left out it is `true`. Never sent when the substitution ends, for a date that has started (the substitution is recorded all the same, to say who taught) or for a date that is no substitution, whatever this says.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/notifySubstitute`.
+            public var notifySubstitute: Swift.Bool?
             /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/AssignTrainerRequest/surface`.
@@ -4042,10 +4178,11 @@ extension Components {
             ///
             /// - Parameters:
             ///   - trainerId: The new trainer’s team-member ID, from `GET …/trainers`. A team member who does not train in the workspace answers `404`, the session’s trainer already `400` on `trainerId` with the code `same_trainer`.
-            ///   - scope: For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session.
+            ///   - scope: For a class date: `this` (*Alleen deze les*: a date that has no trainer gets one; on a date that has one it is a substitution, F024: the chosen trainer replaces the date’s trainer on this date alone, the date remembers whom (`substituteFor`) and the series and the other dates stay; choosing the trainer the date’s trainer replaces ends the substitution) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session, but a private session with `this` sent explicitly is a substitution that cannot be made: `422` `private_session` (its trainer is changed without a `scope`, *Trainer wijzigen*).
             ///   - allowConflicts: Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
             ///   - version: The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
-            ///   - notifyClients: Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says.
+            ///   - notifyClients: Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`).
+            ///   - notifySubstitute: For a substitution (F024): whether to email the substitute EM-10, in their own language, else the workspace’s default, once per date and substitute. Left out it is `true`. Never sent when the substitution ends, for a date that has started (the substitution is recorded all the same, to say who taught) or for a date that is no substitution, whatever this says.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 trainerId: Swift.String,
@@ -4053,6 +4190,7 @@ extension Components {
                 allowConflicts: Swift.Bool? = nil,
                 version: Swift.Int,
                 notifyClients: Swift.Bool? = nil,
+                notifySubstitute: Swift.Bool? = nil,
                 surface: Components.Schemas.AssignTrainerRequest.SurfacePayload? = nil
             ) {
                 self.trainerId = trainerId
@@ -4060,6 +4198,7 @@ extension Components {
                 self.allowConflicts = allowConflicts
                 self.version = version
                 self.notifyClients = notifyClients
+                self.notifySubstitute = notifySubstitute
                 self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
@@ -4068,6 +4207,7 @@ extension Components {
                 case allowConflicts
                 case version
                 case notifyClients
+                case notifySubstitute
                 case surface
             }
         }
@@ -5013,6 +5153,37 @@ extension Components {
             }
             /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/trainer`.
             public var trainer: Components.Schemas.WorkspaceCalendarSession.TrainerPayload?
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/substituteFor`.
+            public struct SubstituteForPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/substituteFor/value1`.
+                public var value1: Components.Schemas.SubstituteFor
+                /// The trainer this date’s trainer replaces (F024): “⇄ Mike (vervangt Sarah)”. Left out for a date that is no substitution; `trainer` is the substitute.
+                ///
+                /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/substituteFor/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SubstituteForPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The trainer this date’s trainer replaces (F024): “⇄ Mike (vervangt Sarah)”. Left out for a date that is no substitution; `trainer` is the substitute.
+                public init(
+                    value1: Components.Schemas.SubstituteFor,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/substituteFor`.
+            public var substituteFor: Components.Schemas.WorkspaceCalendarSession.SubstituteForPayload?
             /// The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session.
             ///
             /// - Remark: Generated from `#/components/schemas/WorkspaceCalendarSession/className`.
@@ -5078,6 +5249,7 @@ extension Components {
             ///   - booked: The places taken (not cancelled), for a class date: *{booked}/{capacity} geboekt*. Left out for a private session.
             ///   - location:
             ///   - trainer:
+            ///   - substituteFor:
             ///   - className: The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session.
             ///   - level:
             ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `; `clients` has them apart.
@@ -5097,6 +5269,7 @@ extension Components {
                 booked: Swift.Int? = nil,
                 location: Components.Schemas.Location,
                 trainer: Components.Schemas.WorkspaceCalendarSession.TrainerPayload? = nil,
+                substituteFor: Components.Schemas.WorkspaceCalendarSession.SubstituteForPayload? = nil,
                 className: Swift.String? = nil,
                 level: Components.Schemas.ClassLevel? = nil,
                 clientName: Swift.String? = nil,
@@ -5116,6 +5289,7 @@ extension Components {
                 self.booked = booked
                 self.location = location
                 self.trainer = trainer
+                self.substituteFor = substituteFor
                 self.className = className
                 self.level = level
                 self.clientName = clientName
@@ -5136,6 +5310,7 @@ extension Components {
                 case booked
                 case location
                 case trainer
+                case substituteFor
                 case className
                 case level
                 case clientName

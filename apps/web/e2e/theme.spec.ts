@@ -497,6 +497,17 @@ test.describe('E020 trainer web shell', () => {
     for (const scheme of colorSchemes) {
       await page.emulateMedia({ colorScheme: scheme });
       await page.goto('/home');
+      // A person who is only a client lands on the client web (F030): the client theme's canvas.
+      await expect(
+        page.getByRole('heading', { level: 1, name: copy.clientNav.home }),
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-slot="client-layout"]'),
+        `client home in ${scheme}`,
+      ).toHaveCSS('background-color', tokenColour('bg.canvas', scheme));
+      await expectNoAxeViolations(page, `client home in ${scheme} and ${appLocale}`);
+      // A client who opens the trainer's personal pages gets the no access page, on the sidebar fill.
+      await page.goto('/me/day');
       await expect(
         page.getByRole('heading', { level: 1, name: copy.noAccess.title }),
       ).toBeVisible();

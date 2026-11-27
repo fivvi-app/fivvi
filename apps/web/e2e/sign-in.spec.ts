@@ -15,6 +15,8 @@ import { signInWithCode } from './sign-in-page';
 // the catalogs. The emails go to the fake Lettermint server (e2e/fake-lettermint.ts), which the specs read
 // the code from; every spec has an address of its own.
 const REQUESTED_QUERY = 'from=bookmark';
+/** A page behind sign-in that stays where it is (the signed-in home would redirect a client). */
+const REQUESTED_PAGE = '/my/profile';
 
 test.describe('F001 sign in on TW-10', () => {
   // Sign-in requests are limited per IP address (20 an hour) and per email address (3 in 15
@@ -35,8 +37,8 @@ test.describe('F001 sign in on TW-10', () => {
 
     // An anonymous visitor asks for a page (a bookmark, with a query string) and lands on the
     // sign-in page, which remembers it (AC13).
-    await page.goto(`/home?${REQUESTED_QUERY}`);
-    await expect(page).toHaveURL(/\/login\?returnTo=%2Fhome%3F/);
+    await page.goto(`${REQUESTED_PAGE}?${REQUESTED_QUERY}`);
+    await expect(page).toHaveURL(/\/login\?returnTo=%2Fmy%2Fprofile%3F/);
     await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
     await expectNoAxeViolations(page, `the email step in ${appLocale}`);
 
@@ -66,11 +68,12 @@ test.describe('F001 sign in on TW-10', () => {
     await page.getByLabel(copy.signIn.codeLabel).fill(signInCode(email));
     await page.getByRole('button', { name: copy.signIn.submitCode }).click();
 
-    // The page that was asked for, not just the signed-in home (a placeholder until F002 adds
-    // workspaces): the same path and query string.
-    await expect(page).toHaveURL(new RegExp(`/home\\?${REQUESTED_QUERY}$`));
-    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
-    await expect(page).toHaveTitle(copy.noAccess.title);
+    // The page that was asked for, not just the signed-in home: the same path and query string.
+    await expect(page).toHaveURL(new RegExp(`${REQUESTED_PAGE}\\?${REQUESTED_QUERY}$`));
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.clientNav.profile }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle(copy.clientNav.profile);
 
     // The data path: the sign-in session cookie this browser holds belongs to the account.
     const session = await page.request.get('/api/auth/get-session');
@@ -119,8 +122,8 @@ test.describe('F001 sign in on TW-10', () => {
     await createAccount(address);
     await page.goto(`/login?returnTo=${encodeURIComponent('https://evil.example/home')}`);
     await signInWithCode(page, copy, address);
-    await expect(page).toHaveURL(`${baseURL}/home`);
-    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
+    await expect(page).toHaveURL(`${baseURL}/my`);
+    await expect(page.getByRole('heading', { level: 1, name: copy.clientNav.home })).toBeVisible();
   });
 
   test('AC12: sign out signs this browser out', async ({
@@ -131,7 +134,8 @@ test.describe('F001 sign in on TW-10', () => {
     appLocale,
     messages: copy,
   }) => {
-    const address = newAddress('owner');
+    // The first run of an account on the allowlist is a page of the trainer web, which has Sign out in its header.
+    const address = newAllowedAddress('owner');
     await createAccount(address);
     // Two browsers of the same person, each with its own cookies and its own visitor IP address.
     const otherContext = await browser.newContext({
@@ -144,7 +148,7 @@ test.describe('F001 sign in on TW-10', () => {
       for (const [index, browserPage] of [page, otherPage].entries()) {
         await browserPage.goto('/login');
         await signInWithCode(browserPage, copy, address, index + 1);
-        await expect(browserPage).toHaveURL(`${baseURL}/home`);
+        await expect(browserPage).toHaveURL(`${baseURL}/welcome`);
       }
 
       // The sign-in session lasts 30 days: the cookie is HttpOnly, SameSite=Lax and ends in 30 days.
@@ -154,7 +158,7 @@ test.describe('F001 sign in on TW-10', () => {
       expect(Math.abs((cookie?.expires ?? 0) - (Date.now() / 1000 + thirtyDays))).toBeLessThan(120);
 
       // Sign out is on the signed-in page.
-      await expectNoAxeViolations(page, 'the signed-in home with sign out');
+      await expectNoAxeViolations(page, 'the signed-in first run with sign out');
       await page.getByRole('button', { name: copy.signOut.label }).click();
 
       // This browser is at the sign-in page, signed out, and its next trainer-web page goes to sign-in.
@@ -166,9 +170,9 @@ test.describe('F001 sign in on TW-10', () => {
 
       // The other browser is still signed in.
       await otherPage.reload();
-      await expect(otherPage).toHaveURL(`${baseURL}/home`);
+      await expect(otherPage).toHaveURL(`${baseURL}/welcome`);
       await expect(
-        otherPage.getByRole('heading', { level: 1, name: copy.noAccess.title }),
+        otherPage.getByRole('heading', { level: 1, name: copy.welcome.title }),
       ).toBeVisible();
       expect((await otherPage.request.get('/api/v1/me')).status()).toBe(200);
     } finally {
@@ -181,11 +185,11 @@ test.describe('F001 sign in on TW-10', () => {
     baseURL,
     messages: copy,
   }) => {
-    const address = newAddress('owner');
+    const address = newAllowedAddress('owner');
     await createAccount(address);
     await page.goto('/login');
     await signInWithCode(page, copy, address);
-    await expect(page).toHaveURL(`${baseURL}/home`);
+    await expect(page).toHaveURL(`${baseURL}/welcome`);
     await page.route('**/api/auth/sign-out', (route) => route.fulfill({ status: 500 }));
     const signOutButton = page.getByRole('button', { name: copy.signOut.label });
 
@@ -194,9 +198,9 @@ test.describe('F001 sign in on TW-10', () => {
     // The error is shown, the button works again and nothing signed the person out.
     await expect(page.getByRole('alert').filter({ hasText: copy.signOut.error })).toBeVisible();
     await expect(signOutButton).toBeEnabled();
-    await expect(page).toHaveURL(`${baseURL}/home`);
+    await expect(page).toHaveURL(`${baseURL}/welcome`);
     expect((await page.request.get('/api/v1/me')).status()).toBe(200);
-    await expectNoAxeViolations(page, 'the signed-in home after a failed sign out');
+    await expectNoAxeViolations(page, 'the signed-in first run after a failed sign out');
   });
 
   test('AC12: using a signed-in page renews the session and the browser gets its new cookie', async ({
@@ -208,13 +212,13 @@ test.describe('F001 sign in on TW-10', () => {
     await createAccount(address);
     await page.goto('/login');
     await signInWithCode(page, copy, address);
-    await expect(page).toHaveURL(`${baseURL}/home`);
+    await expect(page).toHaveURL(`${baseURL}/my`);
     const day = 24 * 60 * 60 * 1000;
 
     // A session that was last used 20 days ago has 10 days left. (The day after sign-in is enough
     // for a renewal; the API integration test covers the timing, this the way to the browser.)
     await setSessionExpiry(address, new Date(Date.now() + 10 * day));
-    const response = await page.goto('/home');
+    const response = await page.goto('/my');
 
     // The page answer carries the new cookie: HttpOnly, SameSite=Lax, 30 days.
     const cookies = (await response?.headersArray())?.filter(
@@ -227,7 +231,7 @@ test.describe('F001 sign in on TW-10', () => {
     // And the stored session ends 30 days from this use.
     const [expiry] = await sessionExpiries(address);
     expect(Math.abs((expiry?.getTime() ?? 0) - (Date.now() + 30 * day))).toBeLessThan(120_000);
-    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: copy.clientNav.home })).toBeVisible();
   });
 
   test('AC7 (code): a wrong code shows the neutral message and keeps the code step', async ({
@@ -256,8 +260,8 @@ test.describe('F001 sign in on TW-10', () => {
     // The right code still works: one typo doesn't cost a new email (AC6 allows a few tries).
     await page.getByLabel(copy.signIn.codeLabel).fill(signInCode(email));
     await page.getByRole('button', { name: copy.signIn.submitCode }).click();
-    await expect(page).toHaveURL(/\/home$/);
-    await expect(page).toHaveTitle(copy.noAccess.title);
+    await expect(page).toHaveURL(/\/my$/);
+    await expect(page).toHaveTitle(copy.clientNav.home);
   });
 
   test('AC4 (code): resending sends a new email whose code replaces the old one', async ({
@@ -297,8 +301,8 @@ test.describe('F001 sign in on TW-10', () => {
     await expect(page.getByRole('status')).toHaveCount(0);
     await code.fill(signInCode(second));
     await page.getByRole('button', { name: copy.signIn.submitCode }).click();
-    await expect(page).toHaveURL(/\/home$/);
-    await expect(page).toHaveTitle(copy.noAccess.title);
+    await expect(page).toHaveURL(/\/my$/);
+    await expect(page).toHaveTitle(copy.clientNav.home);
     expect(await emailsTo(address)).toHaveLength(2);
   });
 
@@ -412,11 +416,13 @@ test.describe('F001 sign in on TW-10', () => {
     await createAccount(address);
     // The sign-in page remembers the page asked for and sends it with the email request, so the
     // emailed link carries it (#207), as the code step ends there.
-    await page.goto(`/login?returnTo=${encodeURIComponent(`/home?${REQUESTED_QUERY}`)}`);
+    await page.goto(
+      `/login?returnTo=${encodeURIComponent(`${REQUESTED_PAGE}?${REQUESTED_QUERY}`)}`,
+    );
     await page.getByLabel(copy.signIn.emailLabel).fill(address);
     await page.getByRole('button', { name: copy.signIn.sendCode }).click();
     const link = signInLink(await waitForEmail(address));
-    expect(new URL(link).searchParams.get('returnTo')).toBe(`/home?${REQUESTED_QUERY}`);
+    expect(new URL(link).searchParams.get('returnTo')).toBe(`${REQUESTED_PAGE}?${REQUESTED_QUERY}`);
     const masked = `${address[0]}***@${address.split('@')[1]}`;
     const signedInAs = async () => {
       const session = await page.request.get('/api/auth/get-session');
@@ -447,9 +453,11 @@ test.describe('F001 sign in on TW-10', () => {
     await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
 
     // The browser that opened the link is signed in, as the account of the address.
-    await expect(page).toHaveURL(new RegExp(`/home\\?${REQUESTED_QUERY}$`));
-    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
-    await expect(page).toHaveTitle(copy.noAccess.title);
+    await expect(page).toHaveURL(new RegExp(`${REQUESTED_PAGE}\\?${REQUESTED_QUERY}$`));
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.clientNav.profile }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle(copy.clientNav.profile);
     expect(await signedInAs()).toBe(address);
     expect(await emailsTo(address)).toHaveLength(1);
   });
@@ -470,8 +478,8 @@ test.describe('F001 sign in on TW-10', () => {
     await page.goto(link);
     await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
 
-    await expect(page).toHaveURL(/\/home$/);
-    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
+    await expect(page).toHaveURL(/\/my$/);
+    await expect(page.getByRole('heading', { level: 1, name: copy.clientNav.home })).toBeVisible();
   });
 
   test('AC9 (link): an allowed address without an account signs in with the link and gets its account in the page language', async ({
@@ -523,7 +531,7 @@ test.describe('F001 sign in on TW-10', () => {
     // The link signs in once ...
     await page.goto(link);
     await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
-    await expect(page).toHaveURL(/\/home$/);
+    await expect(page).toHaveURL(/\/my$/);
 
     // ... and when it is opened again (a second tab) it no longer works.
     const second = await page.context().newPage();
