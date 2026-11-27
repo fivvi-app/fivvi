@@ -288,6 +288,22 @@ export {
   InvalidDeletionLogEntryError,
   type InvalidDeletionLogEntryField,
 } from './privacy/deletion-log.ts';
+export {
+  type ClientLink,
+  CSV_BOM,
+  csvLine,
+  type ExportColumn,
+  type ExportFile,
+  type ExportKind,
+  type ExportValue,
+  exportColumnNames,
+  exportFileKey,
+  exportFilesFor,
+  exportReadme,
+  exportRecord,
+  localInstant,
+  type ReadmeFile,
+} from './privacy/export.ts';
 export { renderPrivacyInventory } from './privacy/inventory.ts';
 export {
   declaredTable,
@@ -472,6 +488,17 @@ export {
   weekdayOf,
   weeklyRule,
 } from './scheduling/series-rule.ts';
+export {
+  endSubstitution,
+  isSubstitution,
+  type SubstitutionChange,
+  type SubstitutionDate,
+  type SubstitutionDecision,
+  type SubstitutionRefusal,
+  sendsSubstitutionNotice,
+  substitute,
+  substitutionLanguage,
+} from './scheduling/substitution.ts';
 export {
   findTrainerConflicts,
   type TrainerBusySession,

@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * allowlist: the first-run screen of one who has no workspace yet, and, from the scope switcher's
  * *Nieuwe werkruimte*, the way to another (F012). The signed-in home sends only an account
  * without a workspace here. Anyone not on the allowlist goes where the signed-in home sends them:
- * to their workspace's home (AC4) or the no-access page (AC5), so it never sees this screen. The
+ * to their workspace's home (AC4) or the client web (F030 AC5), so it never sees this screen. The
  * route guard (`proxy.ts`) is the first gate.
  */
 export default async function WelcomePage() {

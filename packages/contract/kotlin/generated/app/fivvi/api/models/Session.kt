@@ -30,6 +30,7 @@ import app.fivvi.api.models.SessionGroupClass
 import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionSeries
 import app.fivvi.api.models.SessionTrainer
+import app.fivvi.api.models.SubstituteFor
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -49,6 +50,7 @@ import kotlinx.serialization.Contextual
  * @param location 
  * @param participants The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5).
  * @param trainer 
+ * @param substituteFor The trainer this date’s trainer replaces (F024): present while the date is a substitution, left out otherwise. `trainer` is the substitute.
  * @param cancellation 
  * @param groupClass 
  * @param level 
@@ -99,6 +101,10 @@ data class Session (
 
     @SerialName(value = "trainer")
     val trainer: SessionTrainer? = null,
+
+    /* The trainer this date’s trainer replaces (F024): present while the date is a substitution, left out otherwise. `trainer` is the substitute. */
+    @SerialName(value = "substituteFor")
+    val substituteFor: SubstituteFor? = null,
 
     @SerialName(value = "cancellation")
     val cancellation: SessionCancellation? = null,

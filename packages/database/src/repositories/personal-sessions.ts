@@ -1,5 +1,7 @@
-import { and, asc, eq, gte, inArray, isNull, lt, min } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, min, or, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import {
+  authUsers,
   clients,
   groupClasses,
   locations,
@@ -11,7 +13,13 @@ import {
 } from '../schema/index.ts';
 import { executorOf, type TenantScope, type WorkspaceScope } from '../tenant-scope.ts';
 import { type LocationView, locationColumns, toLocationView } from './locations.ts';
-import type { AttendanceStatus, SessionLevel, SessionStatus, SessionType } from './sessions.ts';
+import type {
+  AttendanceStatus,
+  SessionLevel,
+  SessionStatus,
+  SessionSubstituteForView,
+  SessionType,
+} from './sessions.ts';
 
 // The personal read model of a trainer (F013, spec #457): the sessions whose current trainer is
 // the signed-in account, in the workspaces it trains in. No new tables. The queries here are
@@ -94,6 +102,13 @@ export interface PersonalSessionRow {
    */
   readonly classNameNl: string | null;
   readonly classNameEn: string | null;
+  /** The trainer the account replaces on this date (F024), when the account is the substitute. */
+  readonly substituteFor: SessionSubstituteForView | null;
+  /**
+   * Who took the date over from the account (F024): the date's current trainer, when the account
+   * is the trainer it replaced. The date is the account's no more; it stays in the list, dimmed.
+   */
+  readonly takenOverBy: { readonly name: string } | null;
 }
 
 /**
@@ -122,15 +137,26 @@ function myTrainerProfile(scope: WorkspaceScope) {
 
 /**
  * The sessions the scope's account is the current trainer of in the scope's workspace, starting
- * from `window.from` up to, not including, `window.to`, in time order. Cancelled ones stay (the
- * calendars show them struck through). Two queries: the sessions with their location and class, and
- * their participants.
+ * from `window.from` up to, not including, `window.to`, in time order, and the dates it was
+ * replaced on by a substitute (F024: `takenOverBy`, the substitute's name). Cancelled ones stay
+ * (the calendars show them struck through). Two queries: the sessions with their location, class
+ * and trainers, and their participants.
  */
 export async function listMySessions(
   scope: WorkspaceScope,
   window: { readonly from: Date; readonly to: Date },
 ): Promise<PersonalSessionRow[]> {
   const db = executorOf(scope);
+  const mine = (await myTrainerProfile(scope)).map((profile) => profile.id);
+  if (mine.length === 0) return [];
+  // The current trainer and the one a substitution replaces, each by name (a trainer who left
+  // keeps their profile, F023).
+  const current = alias(trainerProfiles, 'current_profile');
+  const currentMember = alias(teamMembers, 'current_member');
+  const currentAccount = alias(authUsers, 'current_account');
+  const original = alias(trainerProfiles, 'substituted_profile');
+  const originalMember = alias(teamMembers, 'substituted_member');
+  const originalAccount = alias(authUsers, 'substituted_account');
   const rows = await db
     .select({
       id: sessions.id,
@@ -143,6 +169,15 @@ export async function listMySessions(
       location: locationColumns,
       classNameNl: groupClasses.nameNl,
       classNameEn: groupClasses.nameEn,
+      trainerProfileId: sessions.trainerProfileId,
+      trainerName: sql<string | null>`coalesce(${currentAccount.name}, ${current.removedName})`,
+      substituteForProfileId: sessions.substituteForTrainerProfileId,
+      substituteForId: sql<
+        string | null
+      >`coalesce(${originalMember.id}, ${original.removedTeamMemberId})`,
+      substituteForName: sql<
+        string | null
+      >`coalesce(${originalAccount.name}, ${original.removedName})`,
     })
     .from(sessions)
     .innerJoin(
@@ -159,10 +194,47 @@ export async function listMySessions(
         eq(groupClasses.id, sessions.groupClassId),
       ),
     )
+    .leftJoin(
+      current,
+      and(
+        eq(current.organizationId, sessions.organizationId),
+        eq(current.id, sessions.trainerProfileId),
+      ),
+    )
+    .leftJoin(
+      currentMember,
+      and(
+        eq(currentMember.organizationId, current.organizationId),
+        eq(currentMember.id, current.teamMemberId),
+      ),
+    )
+    .leftJoin(currentAccount, eq(currentAccount.id, currentMember.accountId))
+    .leftJoin(
+      original,
+      and(
+        eq(original.organizationId, sessions.organizationId),
+        eq(original.id, sessions.substituteForTrainerProfileId),
+      ),
+    )
+    .leftJoin(
+      originalMember,
+      and(
+        eq(originalMember.organizationId, original.organizationId),
+        eq(originalMember.id, original.teamMemberId),
+      ),
+    )
+    .leftJoin(originalAccount, eq(originalAccount.id, originalMember.accountId))
     .where(
       and(
         eq(sessions.organizationId, scope.workspaceId),
-        inArray(sessions.trainerProfileId, myTrainerProfile(scope)),
+        or(
+          inArray(sessions.trainerProfileId, mine),
+          // Dates the account was replaced on, while somebody teaches them.
+          and(
+            inArray(sessions.substituteForTrainerProfileId, mine),
+            isNotNull(sessions.trainerProfileId),
+          ),
+        ),
         gte(sessions.startsAt, window.from),
         lt(sessions.startsAt, window.to),
       ),
@@ -173,11 +245,33 @@ export async function listMySessions(
     scope,
     rows.map((row) => row.id),
   );
-  return rows.map(({ location, ...row }) => ({
-    ...row,
-    ...placesShown(row.type, places.get(row.id) ?? []),
-    location: toLocationView(location),
-  }));
+  return rows.map(
+    ({
+      location,
+      trainerProfileId,
+      trainerName,
+      substituteForProfileId,
+      substituteForId,
+      substituteForName,
+      ...row
+    }) => {
+      const takenOver = trainerProfileId !== null && !mine.includes(trainerProfileId);
+      return {
+        ...row,
+        ...placesShown(row.type, places.get(row.id) ?? []),
+        location: toLocationView(location),
+        substituteFor:
+          !takenOver && substituteForProfileId && substituteForId
+            ? {
+                id: substituteForId,
+                trainerProfileId: substituteForProfileId,
+                name: substituteForName ?? '',
+              }
+            : null,
+        takenOverBy: takenOver ? { name: trainerName ?? '' } : null,
+      };
+    },
+  );
 }
 
 /** A client's place in a session, as the calendars read it. */

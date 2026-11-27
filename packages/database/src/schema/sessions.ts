@@ -62,6 +62,11 @@ export const attendanceStatus = pgEnum('attendance_status', [
  *   (`ON DELETE SET NULL (trainer_profile_id)`, which only clears that column; the migration
  *   writes the column list, Drizzle cannot): history stays and removing a team member is never
  *   blocked by their sessions. Reassigning is the Owner's call (F026 follow-up).
+ * - `substitute_for_trainer_profile_id` (F024) is the trainer a substitution replaces on this date:
+ *   `trainer_profile_id` is the substitute then, and the original stays here for the labels (*Mike
+ *   (vervangt Sarah)*, *Overgenomen door Mike*). It keeps the first original when a substitute is
+ *   replaced again, and is cleared when the original teaches again. Cleared the same way as the
+ *   trainer when that profile goes (`ON DELETE SET NULL (substitute_for_trainer_profile_id)`).
  * - `created_by_team_member_id` is who planned it, cleared the same way when that team member is
  *   removed.
  * - `updated_by_team_member_id` is who changed a private session last: the planner at first, then
@@ -97,6 +102,7 @@ export const sessions = businessTable(
     type: sessionType('type').notNull(),
     status: sessionStatus('status').notNull().default('scheduled'),
     trainerProfileId: uuid('trainer_profile_id'),
+    substituteForTrainerProfileId: uuid('substitute_for_trainer_profile_id'),
     locationId: uuid('location_id').notNull(),
     startsAt: instant('starts_at').notNull(),
     endsAt: instant('ends_at').notNull(),
@@ -134,6 +140,12 @@ export const sessions = businessTable(
     foreignKey({
       name: 'sessions_trainer_profile_fk',
       columns: [table.organizationId, table.trainerProfileId],
+      foreignColumns: [trainerProfiles.organizationId, trainerProfiles.id],
+    }),
+    // The trainer this date's trainer replaces (F024): the same workspace-consistent key.
+    foreignKey({
+      name: 'sessions_substitute_for_fk',
+      columns: [table.organizationId, table.substituteForTrainerProfileId],
       foreignColumns: [trainerProfiles.organizationId, trainerProfiles.id],
     }),
     foreignKey({

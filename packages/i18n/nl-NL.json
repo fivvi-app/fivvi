@@ -365,6 +365,30 @@
     "label": "Hoofdnavigatie",
     "profile": "Profiel"
   },
+  "clientWeb": {
+    "language": {
+      "enName": "English",
+      "enShort": "EN",
+      "error": "Je taal is niet opgeslagen. Probeer het opnieuw.",
+      "label": "Taal",
+      "nlName": "Nederlands",
+      "nlShort": "NL"
+    },
+    "noWorkspace": {
+      "haveLink": "Heb je de link al? Open hem en vraag daar om lid te worden."
+    },
+    "studios": {
+      "add": "Studio toevoegen",
+      "addExplain": "Vraag je studio om de Fivvi-link, of scan de QR-code bij de balie. Je vraagt dan om mee te doen. Zodra ze je goedkeuren, staat de studio hier.",
+      "addHint": "Met de link of QR-code van je studio",
+      "close": "Sluiten",
+      "current": "Gekozen",
+      "done": "Klaar",
+      "switcher": "Studio: {name}",
+      "title": "Mijn studio's",
+      "yours": "Je studio's"
+    }
+  },
   "clients": {
     "add": "Klant toevoegen",
     "addDialog": {
@@ -554,6 +578,15 @@
       "preview": "Gebruik code {code} om in te loggen bij Fivvi.",
       "subject": "Je inlogcode voor Fivvi",
       "validity": "De code en de inloglink werken {minutes, plural, one {# minuut} other {# minuten}}."
+    },
+    "substitution": {
+      "button": "In Fivvi bekijken",
+      "intro": "Je valt in voor {original}: {class} bij {workspace}.",
+      "introNoOriginal": "Je valt in: {class} bij {workspace}.",
+      "preview": "Je valt in bij {class} op {date} om {start}.",
+      "subject": "Je valt in: {class} op {date}",
+      "when": "Wanneer: {date}, {start} tot {end}",
+      "where": "Waar: {location}"
     },
     "trainerChange": {
       "classDatesPreview": "{class} heeft vanaf {date} een andere {word}.",
@@ -907,6 +940,7 @@
   },
   "noAccess": {
     "body": "Je hebt nog geen toegang tot een werkruimte.",
+    "clientHint": "Ben je klant? Gebruik de app Fivvi.",
     "title": "Nog geen toegang"
   },
   "noPermission": {
@@ -947,6 +981,48 @@
   },
   "personal": {
     "timeZoneHint": "Tijden in Nederlandse tijd"
+  },
+  "privacyExport": {
+    "files": {
+      "accessLog": "het toegangslog: wie welke klant exporteerde, verwijderde of terugzette",
+      "bookingLinks": "boekingslinks (zonder de code)",
+      "classSeries": "wekelijkse reeksen van een les",
+      "clientBillingDetails": "de factuurgegevens van een klant",
+      "clients": "het klantprofiel: naam, e-mailadres en taal",
+      "groupClasses": "lessen",
+      "locations": "locaties",
+      "organizations": "de werkruimte zelf: naam, URL-naam, taal en tijdzone",
+      "paymentChargebacks": "terugboekingen door de bank",
+      "paymentCustomers": "de klant bij de betaalprovider (alleen een verwijzing)",
+      "paymentRefundStatusChanges": "de statusgeschiedenis van terugbetalingen",
+      "paymentRefunds": "terugbetalingen",
+      "paymentStatusChanges": "de statusgeschiedenis van betalingen",
+      "payments": "betalingen: bedrag, status en verwijzingen",
+      "sessionParticipantStatusChanges": "de geschiedenis van de aanwezigheid per plek",
+      "sessionParticipants": "plekken in sessies en aanwezigheid",
+      "sessions": "sessies: tijd, wie ze geeft, locatie en status",
+      "teamMembers": "het team: wie welke rol heeft",
+      "trainerInvitations": "uitnodigingen voor het team",
+      "trainerProfiles": "wie sessies geeft, ook wie het team heeft verlaten",
+      "workspaceInvoiceDetails": "de factuurgegevens van de werkruimte"
+    },
+    "readme": {
+      "conventionCsv": "- De CSV-bestanden zijn UTF-8 met een BOM, gescheiden door komma's, zodat Excel de accenten goed toont. Tekst die met = + - of @ begint krijgt een apostrof ervoor, zodat een spreadsheet er geen formule van maakt.",
+      "conventionEmpty": "- Een leeg veld betekent: geen waarde.",
+      "conventionId": "- id en velden die op _id eindigen: een uniek nummer (UUID). Een veld als client_id verwijst naar de regel met dat id in een ander bestand.",
+      "conventionLocal": "- Elk tijdstip heeft ernaast een veld met _local erachter: hetzelfde moment in de tijdzone van de werkruimte ({timeZone}), met het verschil met UTC.",
+      "conventionMoney": "- Velden die op _cents eindigen zijn bedragen in euro-centen.",
+      "conventionTime": "- Velden die op _at eindigen zijn tijdstippen in UTC, in de vorm 2026-07-15T10:00:00.000Z.",
+      "conventionsHeading": "Zo lees je de velden",
+      "created": "Gemaakt op {date} (UTC). Tijdzone van de werkruimte: {timeZone}.",
+      "dataJson": "alle gegevens in één JSON-bestand, per soort gegeven een lijst",
+      "fieldsHeading": "Velden per bestand (de kolommen van het CSV-bestand)",
+      "filesHeading": "Bestanden",
+      "introClient": "Deze ZIP bevat alle gegevens die {workspace} in Fivvi bewaart over één klant. Alleen de gegevens van deze werkruimte zitten erin.",
+      "introWorkspace": "Deze ZIP bevat alle gegevens van de werkruimte {workspace} in Fivvi die in het privacyregister staan.",
+      "records": "{count, plural, one {# regel} other {# regels}}",
+      "title": "Gegevens exporteren"
+    }
   },
   "profile": {
     "error": "Je werkruimtes konden niet worden geladen.",

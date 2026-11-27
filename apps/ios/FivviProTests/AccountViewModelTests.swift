@@ -159,6 +159,17 @@ final class AccountViewModelTests: XCTestCase {
         }
     }
 
+    /// F030 AC9: the no-access state points a client to the Fivvi app, in both languages, from the shared catalog.
+    func test_F030_AC9_clientInFivviProIsPointedToFivvi_catalog() {
+        let words = [(Components.Schemas.Locale.nlNL, "Ben je klant? Gebruik de app Fivvi."),
+                     (.en, "Are you a client? Use the Fivvi app.")]
+        for (locale, line) in words {
+            let catalog = Catalog(locale: locale)
+            XCTAssertEqual(catalog[.noAccessClientHint], line)
+            XCTAssertEqual(catalog[.noAccessClientHint], TestCatalog(locale)["noAccess.clientHint"])
+        }
+    }
+
     func test_F002_AC10_aFailedAnswerDecidesNothing() async {
         let api = StubAPI()
         await api.answerMe(with: .account(email: "owner@example.com", workspaces: ["John's Gym"]))
