@@ -31,7 +31,8 @@ const SITE_SHARE_IMAGES = '/site-og';
  * visitor with a valid one to sign in and back). Everything else is a
  * trainer-web page that needs sign-in, so a new page is guarded until it is listed here. Keep this
  * list in step with the `(signed-in)` route group (`app/(app)/(signed-in)/layout.tsx`), which holds
- * the pages that need sign-in and show *Sign out*.
+ * the pages that need sign-in and show *Sign out*. The client web (`app/(app)/my`, F030) is
+ * guarded the same way and has its own *Sign out*, on *Profiel*.
  */
 const PUBLIC_PREFIXES = [
   SIGN_IN_PAGE,

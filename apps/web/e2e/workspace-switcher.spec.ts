@@ -328,8 +328,8 @@ test.describe('F012 the scope switcher on the web', () => {
 
     await leaveTeam(sarah, gymSlug);
     await page.goto('/home');
-    await expect(page).toHaveURL(/\/home$/);
-    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
+    await expect(page).toHaveURL(/\/my$/);
+    await expect(page.getByRole('heading', { level: 1, name: copy.clientNav.home })).toBeVisible();
   });
 
   test('AC8: New workspace opens TW-11 and creates a second workspace', async ({

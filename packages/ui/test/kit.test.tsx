@@ -740,6 +740,22 @@ describe('E020 web kit', () => {
       expect(markup).toMatch(/<header[^>]*class="[^"]*\bglass\b/);
       expect(markup).toMatch(/<header[^>]*>[\s\S]*Fivvi[\s\S]*<\/header>/);
       expect(markup).toMatch(/<main[^>]*>[\s\S]*Rooster[\s\S]*<\/main>/);
+      expect(markup).not.toContain('data-slot="client-tabs"');
+    });
+
+    it('F030: the tabs sit in a glass bar fixed to the bottom, after the page, and the page leaves room for them', () => {
+      const markup = html(
+        <ClientLayout header={<span>Fivvi</span>} tabs={<nav>Tabs</nav>}>
+          <p>Home</p>
+        </ClientLayout>,
+      );
+
+      expect(markup).toMatch(/<main[^>]*>[\s\S]*Home[\s\S]*<\/main>/);
+      expect(markup).toMatch(/<\/main><div[^>]*data-slot="client-tabs"[^>]*>[\s\S]*<nav>Tabs<\/nav>/);
+      expect(classesOf(markup, 'data-slot="client-tabs"')).toEqual(
+        expect.arrayContaining(['glass', 'fixed', 'inset-x-0', 'bottom-0']),
+      );
+      expect(markup).toMatch(/<main[^>]*class="[^"]*\bpb-28\b/);
     });
   });
 });
@@ -799,6 +815,9 @@ describe('E020 web kit stylesheet', () => {
       <Avatar key="av1" initials="x" />,
       <Avatar key="av2" initials="x" size="lg" />,
       <ClientLayout key="k" header="x">
+        x
+      </ClientLayout>,
+      <ClientLayout key="k2" header="x" tabs="x">
         x
       </ClientLayout>,
       <WeekGrid

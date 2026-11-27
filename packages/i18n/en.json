@@ -365,6 +365,19 @@
     "label": "Main navigation",
     "profile": "Profile"
   },
+  "clientWeb": {
+    "language": {
+      "enName": "English",
+      "enShort": "EN",
+      "error": "Your language wasn't saved. Try again.",
+      "label": "Language",
+      "nlName": "Nederlands",
+      "nlShort": "NL"
+    },
+    "noWorkspace": {
+      "haveLink": "Got the link? Open it and ask to join there."
+    }
+  },
   "clients": {
     "add": "Add client",
     "addDialog": {

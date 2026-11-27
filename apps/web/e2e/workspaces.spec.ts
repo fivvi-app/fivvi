@@ -204,7 +204,7 @@ test.describe('F002 first run and the signed-in home', () => {
     await expect(page).toHaveURL(new RegExp(`/w/${SEEDED_SLUG}$`));
   });
 
-  test('AC5: an account that may not set up a workspace sees the no-access page, never TW-11', async ({
+  test('AC5 (F030): an account that may not set up a workspace lands on the client home, never TW-11', async ({
     page,
     appLocale,
     messages: copy,
@@ -215,16 +215,15 @@ test.describe('F002 first run and the signed-in home', () => {
     await page.goto('/login');
     await signInWithCode(page, copy, address);
 
-    await expect(page).toHaveURL(/\/home$/);
-    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
-    await expect(page.getByText(copy.noAccess.body)).toBeVisible();
-    await expect(page.getByRole('button', { name: copy.signOut.label })).toBeVisible();
-    await expectNoAxeViolations(page, `the no-access page in ${appLocale}`);
-    // TW-11 is out of reach: /welcome shows the no-access page, so do other people's workspaces ...
+    await expect(page).toHaveURL(/\/my$/);
+    await expect(page.getByRole('heading', { level: 1, name: copy.clientNav.home })).toBeVisible();
+    await expect(page.getByText(copy.noWorkspace.title)).toBeVisible();
+    await expectNoAxeViolations(page, `the client home in ${appLocale}`);
+    // TW-11 is out of reach: /welcome leads to the client home, so do other people's workspaces ...
     for (const path of ['/welcome', `/w/${SEEDED_SLUG}`]) {
       await page.goto(path);
-      await expect(page).toHaveURL(/\/home$/);
-      await expect(page.getByText(copy.noAccess.body)).toBeVisible();
+      await expect(page).toHaveURL(/\/my$/);
+      await expect(page.getByText(copy.noWorkspace.title)).toBeVisible();
       await expect(page.getByText(copy.welcome.title)).toHaveCount(0);
     }
     // ... and the API says no to creating one.

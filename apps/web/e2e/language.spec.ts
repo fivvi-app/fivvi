@@ -423,8 +423,8 @@ test.describe('F010 language switch on the sign-in page', () => {
     // The stored language wins for the email (ADR-019).
     await signInWithCode(page, other, chooser);
 
-    await expect(page).toHaveURL(`${baseURL}/home`);
-    await expect(page.getByRole('heading', { level: 1, name: other.noAccess.title })).toBeVisible();
+    await expect(page).toHaveURL(`${baseURL}/client`);
+    await expect(page.getByRole('heading', { level: 1, name: other.clientNav.home })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', formattingLocales[otherLocale]);
     expect(await storedLanguage(page)).toBe(otherLocale);
 
@@ -444,7 +444,7 @@ test.describe('F010 language switch on the sign-in page', () => {
       ).toBeVisible();
       await signInWithCode(quietPage, copy, address);
       await expect(
-        quietPage.getByRole('heading', { level: 1, name: other.noAccess.title }),
+        quietPage.getByRole('heading', { level: 1, name: other.clientNav.home }),
       ).toBeVisible();
       expect(await storedLanguage(quietPage)).toBe(otherLocale);
     } finally {
@@ -459,11 +459,12 @@ test.describe('F010 language switch on the sign-in page', () => {
     messages: copy,
   }) => {
     const other = messages[otherLocale];
-    const address = newAddress('leaver');
+    // On the allowlist, so the first run is a trainer-web page, which has Sign out in its header.
+    const address = newAllowedAddress('leaver');
     await createAccount(address, otherLocale);
     await page.goto('/login');
     await signInWithCode(page, copy, address);
-    await expect(page.getByRole('heading', { level: 1, name: other.noAccess.title })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: other.welcome.title })).toBeVisible();
 
     await page.getByRole('button', { name: other.signOut.label }).click();
 
