@@ -423,7 +423,7 @@ test.describe('F010 language switch on the sign-in page', () => {
     // The stored language wins for the email (ADR-019).
     await signInWithCode(page, other, chooser);
 
-    await expect(page).toHaveURL(`${baseURL}/client`);
+    await expect(page).toHaveURL(`${baseURL}/my`);
     await expect(page.getByRole('heading', { level: 1, name: other.clientNav.home })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', formattingLocales[otherLocale]);
     expect(await storedLanguage(page)).toBe(otherLocale);

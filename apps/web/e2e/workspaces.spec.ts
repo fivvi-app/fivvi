@@ -232,6 +232,8 @@ test.describe('F002 first run and the signed-in home', () => {
     const me = (await (await page.request.get('/api/v1/me')).json()) as Me;
     expect(me).toMatchObject({ canCreateWorkspace: false, workspaces: [] });
 
+    // Uitloggen is on Profiel.
+    await page.goto('/my/profile');
     await page.getByRole('button', { name: copy.signOut.label }).click();
     await expect(page).toHaveURL(/\/login$/);
   });

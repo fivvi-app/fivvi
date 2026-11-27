@@ -122,7 +122,7 @@ test.describe('F001 sign in on TW-10', () => {
     await createAccount(address);
     await page.goto(`/login?returnTo=${encodeURIComponent('https://evil.example/home')}`);
     await signInWithCode(page, copy, address);
-    await expect(page).toHaveURL(`${baseURL}/client`);
+    await expect(page).toHaveURL(`${baseURL}/my`);
     await expect(page.getByRole('heading', { level: 1, name: copy.clientNav.home })).toBeVisible();
   });
 
@@ -212,7 +212,7 @@ test.describe('F001 sign in on TW-10', () => {
     await createAccount(address);
     await page.goto('/login');
     await signInWithCode(page, copy, address);
-    await expect(page).toHaveURL(`${baseURL}/client`);
+    await expect(page).toHaveURL(`${baseURL}/my`);
     const day = 24 * 60 * 60 * 1000;
 
     // A session that was last used 20 days ago has 10 days left. (The day after sign-in is enough
