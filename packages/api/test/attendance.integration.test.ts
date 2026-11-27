@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import {
+  authUsers,
   createDatabase,
   type DatabaseClient,
   sessionParticipantStatusChanges,
@@ -331,7 +332,7 @@ describe('F025 attendance through the API', () => {
     expect(shown.status).toBe('cancelled');
   });
 
-  it('AC7: current trainer or Owner only (the substitute is F024’s #552): another Trainer gets 403, the Owner may for every session', async () => {
+  it('AC7: current trainer or Owner only: another Trainer gets 403, the Owner may for every session', async () => {
     const w = await world();
     w.now('10:05');
     const tom = await put(w, w.privateSession.id, w.anna.id, w.tom, { status: 'attended' });
@@ -363,6 +364,50 @@ describe('F025 attendance through the API', () => {
     expect(asSarah.canTakeAttendance).toBe(true);
     const asJohn = (await (await list(w, w.privateSession.id, w.john)).json()) as AttendanceBody;
     expect(asJohn.canTakeAttendance).toBe(true);
+  });
+
+  it('AC7 (F024, #552): with Kracht substituted, Mike (the substitute) takes attendance and Sarah gets 403; Sarah keeps her private session', async () => {
+    const w = await world();
+    const mikeAccount = await createAccount(admin.db, { label: 'mike-substitute' });
+    await admin.db.update(authUsers).set({ name: 'Mike' }).where(eq(authUsers.id, mikeAccount.id));
+    const mike = await addTeamRole(admin.db, {
+      workspaceId: w.workspaceId,
+      accountId: mikeAccount.id,
+    });
+    w.now('17:00');
+    // John substitutes Mike for Sarah on this Tuesday's Kracht, as CO-02 does (no email asked for).
+    const substituted = await call(
+      w.server,
+      'POST',
+      `/v1/workspaces/${w.workspaceId}/sessions/${w.kracht.id}/trainer`,
+      w.john,
+      { trainerId: mike.id, scope: 'this', version: 1, notifySubstitute: false },
+    );
+    expect(substituted.status).toBe(200);
+    w.now('18:10');
+
+    const sarah = await put(w, w.kracht.id, w.bram.id, w.sarah, { status: 'attended' });
+    expect(sarah.status).toBe(403);
+    expect(await sarah.json()).toEqual({ code: 'forbidden' });
+    expect(await historySize(w.kracht.id)).toBe(0);
+    expect(
+      ((await (await list(w, w.kracht.id, w.sarah)).json()) as AttendanceBody).canTakeAttendance,
+    ).toBe(false);
+
+    const asMike = await put(w, w.kracht.id, w.bram.id, mikeAccount, { status: 'attended' });
+    expect(asMike.status).toBe(200);
+    expect(await statusOf(w, w.kracht.id, w.bram.id)).toBe('attended');
+    expect((await everyone(w, w.kracht.id, mikeAccount)).status).toBe(200);
+    expect(
+      ((await (await list(w, w.kracht.id, mikeAccount)).json()) as AttendanceBody)
+        .canTakeAttendance,
+    ).toBe(true);
+    expect((await everyone(w, w.kracht.id, w.sarah)).status).toBe(403);
+    // Sarah's own private session is still hers.
+    w.now('10:05');
+    expect(
+      (await put(w, w.privateSession.id, w.anna.id, w.sarah, { status: 'attended' })).status,
+    ).toBe(200);
   });
 
   it('AC8: the same client request ID stores one change and answers the current list', async () => {

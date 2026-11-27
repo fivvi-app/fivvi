@@ -608,3 +608,42 @@ describe('TD-01: the places still ahead, each once in a row', () => {
     expect(mergePersonalDay([day], NOW, AMSTERDAM).placesAhead).toEqual([PARK]);
   });
 });
+
+describe('F024 AC4: a date a substitute took over', () => {
+  const NOW = zonedTime('2026-10-20T08:00');
+  const taken = {
+    ...item(GYM, 'Kracht', '2026-10-20T18:00', '2026-10-20T19:00'),
+    takenOver: true,
+  };
+  const mine = item(GYM, 'Anna', '2026-10-20T12:00', '2026-10-20T13:00');
+
+  it('AC4: it stays in the day, dimmed, and is not counted, not Straks, not in the route or the free gap', () => {
+    const day = mergePersonalDay([[taken, mine]], NOW, AMSTERDAM);
+
+    expect(labels(day.items)).toEqual(['Anna', 'Kracht']);
+    expect(day.summary).toEqual({
+      count: 1,
+      done: 0,
+      firstStartsAt: mine.startsAt,
+      lastEndsAt: mine.endsAt,
+    });
+    expect(day.next?.sessionId).toBe(mine.sessionId);
+    expect(day.placesAhead).toEqual([]);
+    expect(day.freeGap?.endsAt).toEqual(mine.startsAt);
+  });
+
+  it('AC4: with nothing else on the day there is no Straks and no summary', () => {
+    const day = mergePersonalDay([[taken]], NOW, AMSTERDAM);
+
+    expect(labels(day.items)).toEqual(['Kracht']);
+    expect(day.summary).toEqual({ count: 0, done: 0, firstStartsAt: null, lastEndsAt: null });
+    expect(day.next).toBeNull();
+    expect(day.freeGap).toBeNull();
+  });
+
+  it('AC4: it is not part of tomorrow’s line', () => {
+    const day = mergePersonalDay([[taken]], zonedTime('2026-10-19T20:00'), AMSTERDAM);
+
+    expect(day.tomorrow).toBeNull();
+  });
+});

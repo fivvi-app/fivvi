@@ -6551,7 +6551,7 @@ public struct Client: APIProtocol {
     }
     /// Assign or change the trainer of a session
     ///
-    /// Gives a private session or a class date another trainer, or a class date without one its first (the Owner only: a Trainer gets `403`). For a class date `scope` is `this` (a date without a trainer; the date is marked as changed from its series) or `following` (the series’ regular trainer from this date on: dates with a change of their own keep it, earlier dates keep theirs, later dates the calendar fills get the new trainer); for a private session it is ignored. `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` (`session_changed`) with the session as it is now. A cancelled session answers `409` `session_cancelled`. The new trainer is checked for double booking (`409` `trainer_conflict` with the sessions, unless `allowConflicts` is `true`, PS-07). After the change is committed the clients with a booked place get EM-13, one email each listing their dates, unless `notifyClients` is `false` or the session has started. No other participant and no email address of the trainer is in it. A session or trainer that is not in the workspace answers `404`.
+    /// Gives a private session or a class date another trainer, or a class date without one its first (the Owner only: a Trainer gets `403`). For a class date `scope` is `this` (a date without a trainer; the date is marked as changed from its series) or `following` (the series’ regular trainer from this date on: dates with a change of their own keep it, earlier dates keep theirs, later dates the calendar fills get the new trainer); for a private session it is ignored. On a class date that has a trainer, `this` is a substitution (F024): only that date gets the substitute, the date remembers whom they replace, and the substitute gets EM-10 after the commit unless `notifySubstitute` is `false` or the date has started (a past date is recorded without an email). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` (`session_changed`) with the session as it is now. A cancelled session answers `409` `session_cancelled`. The new trainer is checked for double booking (`409` `trainer_conflict` with the sessions, unless `allowConflicts` is `true`, PS-07). After the change is committed the clients with a booked place get EM-13, one email each listing their dates, unless `notifyClients` is `false` or the session has started. No other participant and no email address of the trainer is in it. A session or trainer that is not in the workspace answers `404`.
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer/post(assignTrainer)`.
@@ -6721,6 +6721,28 @@ public struct Client: APIProtocol {
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
                     return .conflict(.init(body: body))
+                case 422:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.AssignTrainer.Output.UnprocessableContent.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.SubstitutionRefused.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unprocessableContent(.init(body: body))
                 case 500:
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.AssignTrainer.Output.InternalServerError.Body

@@ -95,6 +95,7 @@ describe('F049 AC1: the email catalog', () => {
     expect(templateOf('EM-05')).toBe('cancellation');
     expect(templateOf('EM-08')).toBe('sign-in');
     expect(templateOf('EM-09')).toBe('trainer-invitation');
+    expect(templateOf('EM-10')).toBe('substitution');
     expect(templateOf('EM-11')).toBe('private-session');
     expect(templateOf('EM-13')).toBe('trainer-change');
     expect(templateOf('EM-34')).toBe('email-change-code');
@@ -110,6 +111,7 @@ describe('F049 AC1: the email catalog', () => {
       'EM-05',
       'EM-08',
       'EM-09',
+      'EM-10',
       'EM-11',
       'EM-13',
       'EM-34',
@@ -122,7 +124,6 @@ describe('F049 AC1: the email catalog', () => {
       'EM-03',
       'EM-06',
       'EM-07',
-      'EM-10',
       'EM-12',
       'EM-14',
       'EM-15',

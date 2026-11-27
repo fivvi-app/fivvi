@@ -99,6 +99,42 @@ describe('F020 sessions and session participants tables', () => {
     return { gym, sarah, profileId: profile.id };
   }
 
+  it('F024: the trainer a date replaces stays inside the workspace and clears with that profile, keeping the substitute', async () => {
+    const { gym, profileId: sarahProfile } = await gymWithSarah();
+    const { profileId: otherProfile } = await gymWithSarah();
+    const mike = await addTeamRole(admin.db, {
+      workspaceId: gym.id,
+      accountId: (await createAccount(admin.db, { label: 'mike' })).id,
+    });
+    const [mikeProfile] = await admin.db
+      .select({ id: trainerProfiles.id })
+      .from(trainerProfiles)
+      .where(eq(trainerProfiles.teamMemberId, mike.id));
+    const date = await addSession(admin.db, {
+      workspaceId: gym.id,
+      type: 'group',
+      trainerProfileId: mikeProfile?.id ?? null,
+      participant: false,
+    });
+    const replaces = (trainerProfileId: string) => (tx: DatabaseExecutor) =>
+      tx
+        .update(sessions)
+        .set({ substituteForTrainerProfileId: trainerProfileId })
+        .where(eq(sessions.id, date.id));
+
+    expect(await violated(replaces(otherProfile))).toBe('sessions_substitute_for_fk');
+    expect(await violated(replaces(sarahProfile))).toBeUndefined();
+
+    // Sarah stops training: the date keeps Mike and forgets whom he replaced.
+    await replaces(sarahProfile)(admin.db);
+    await admin.db.delete(trainerProfiles).where(eq(trainerProfiles.id, sarahProfile));
+    const [row] = await admin.db.select().from(sessions).where(eq(sessions.id, date.id));
+    expect(row).toMatchObject({
+      trainerProfileId: mikeProfile?.id,
+      substituteForTrainerProfileId: null,
+    });
+  });
+
   it('AC9: a group session needs its class; the other kinds do not', async () => {
     const { gym } = await gymWithSarah();
     const insert = (type: 'private' | 'group' | 'open_gym', groupClassId: string | null) =>

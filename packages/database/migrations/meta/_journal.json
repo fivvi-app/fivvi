@@ -323,6 +323,13 @@
       "when": 1795569918277,
       "tag": "0046_class_level",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1795807141204,
+      "tag": "0047_substitution",
+      "breakpoints": true
     }
   ]
 }
