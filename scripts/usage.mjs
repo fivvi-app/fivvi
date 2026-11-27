@@ -1233,8 +1233,11 @@ const change = (before, after) => {
 };
 // `missing` is what a side without the number says: "n/a" by default, "not measured" for a number an older snapshot
 // never took (which is not the same as zero).
-const row = (label, before, after, kind, missing) =>
-  `  ${label.padEnd(38)}${format(before, kind, missing).padStart(8)} → ${format(after, kind, missing).padEnd(8)} ${change(before, after)}`.trimEnd();
+// `missing` may be one text or a [before, after] pair, for a side that measured it and a side that did not.
+const row = (label, before, after, kind, missing) => {
+  const [missingBefore, missingAfter] = Array.isArray(missing) ? missing : [missing, missing];
+  return `  ${label.padEnd(38)}${format(before, kind, missingBefore).padStart(8)} → ${format(after, kind, missingAfter).padEnd(8)} ${change(before, after)}`.trimEnd();
+};
 
 const present = (list, f) => list.map(f).filter((v) => v !== null && v !== undefined);
 const share = (list, f) => {
@@ -1390,12 +1393,38 @@ const compareFlow = (before, after) => {
   }
 
   out.push('', 'Flow: conflicts with main');
-  const measured = (label, path, kind) => out.push(row(label, ...both(path), kind, 'not measured'));
+  // A snapshot without the conflicts block never measured these: "not measured", never zero. One with the block
+  // measured them, so a number that is null there (no merged PR to divide by) is "n/a".
+  const measured = (label, path, kind) =>
+    out.push(
+      row(
+        label,
+        ...both(path),
+        kind,
+        [b, a].map((f) => (f?.conflicts ? 'n/a' : 'not measured')),
+      ),
+    );
   measured('refreshes', 'conflicts.refreshes', 'int');
   measured('PRs refreshed', 'conflicts.refreshedPrs', 'int');
   measured('refreshes per merged PR', 'conflicts.refreshesPerMergedPr', 'ratio');
   measured('conflicting PRs', 'conflicts.conflictingPrs', 'int');
-  measured('queue removals by merge_conflict', 'conflicts.queueRemovalsMergeConflict', 'int');
+  // The merge_conflict removals were also counted by reason in the CI section, before the conflicts block existed:
+  // a snapshot without the block but with ci.removalsByReason measured them (a missing reason is zero).
+  const mergeConflictRemovals = (f) =>
+    f?.conflicts
+      ? (f.conflicts.queueRemovalsMergeConflict ?? null)
+      : f?.ci?.removalsByReason
+        ? (f.ci.removalsByReason.merge_conflict ?? 0)
+        : null;
+  out.push(
+    row(
+      'queue removals by merge_conflict',
+      mergeConflictRemovals(b),
+      mergeConflictRemovals(a),
+      'int',
+      [b, a].map((f) => (f?.conflicts || f?.ci?.removalsByReason ? 'n/a' : 'not measured')),
+    ),
+  );
 
   out.push('', 'Flow: bugs and quality');
   add('bugs opened', 'quality.bugs.total', 'int');

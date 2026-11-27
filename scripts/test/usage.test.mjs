@@ -1956,9 +1956,46 @@ describe('usage.mjs', () => {
           assert.match(out, /^\s+refreshes\s+not measured → 12\s+n\/a$/m);
           assert.match(out, /^\s+PRs refreshed\s+not measured → 8\s+n\/a$/m);
           assert.match(out, /^\s+conflicting PRs\s+not measured → 10\s+n\/a$/m);
-          assert.match(out, /^\s+queue removals by merge_conflict\s+not measured → 6\s+n\/a$/m);
           const section = out.split('Flow: conflicts with main')[1].split('\n\n')[0];
           assert.doesNotMatch(section, /\b0 →/);
+        });
+
+        it('takes the merge_conflict removals of a baseline without the block from ci.removalsByReason', () => {
+          // flow() has no conflicts block but counts merge_conflict 10 by reason in its CI section
+          const after = fast();
+          after.conflicts = conflicts();
+          const out = compare(
+            { ...snap('full', [ticket()]), flow: flow() },
+            { ...snap('fast', [ticket()]), flow: after },
+          );
+          assert.match(out, /^\s+queue removals by merge_conflict\s+10 → 6\s+-40%$/m);
+          assert.match(out, /^\s+refreshes\s+not measured → 12\s+n\/a$/m);
+          assert.match(out, /^\s+conflicting PRs\s+not measured → 10\s+n\/a$/m);
+        });
+
+        it('counts a reason missing from a measured removalsByReason as zero, and none measured as not measured', () => {
+          const before = flow();
+          before.ci.removalsByReason = { failed_checks: 30 };
+          const noCi = fast();
+          delete noCi.ci.removalsByReason;
+          const out = compare(
+            { ...snap('full', [ticket()]), flow: before },
+            { ...snap('fast', [ticket()]), flow: noCi },
+          );
+          assert.match(out, /^\s+queue removals by merge_conflict\s+0 → not measured\s+n\/a$/m);
+        });
+
+        it('says "n/a", not "not measured", for a measured window without a merged PR', () => {
+          const before = flow();
+          before.conflicts = conflicts({ refreshes: 0, refreshesPerMergedPr: null });
+          const after = fast();
+          after.conflicts = conflicts();
+          const out = compare(
+            { ...snap('full', [ticket()]), flow: before },
+            { ...snap('fast', [ticket()]), flow: after },
+          );
+          assert.match(out, /^\s+refreshes per merged PR\s+n\/a → 0\.12\s+n\/a$/m);
+          assert.match(out, /^\s+refreshes\s+0 → 12\s+n\/a$/m);
         });
 
         it('says "not measured" on the after side too, and measured zero stays a zero', () => {
