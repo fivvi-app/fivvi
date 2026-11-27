@@ -27,7 +27,7 @@ describe('E014 export: which files an export holds', () => {
     expect(tables).not.toContain('deletion_log');
   });
 
-  it('the client export holds her profile, her places in sessions with their history, and the sessions', () => {
+  it('the client export holds her profile, her spots in sessions with their history, and the sessions', () => {
     const files = exportFilesFor('client');
     const tables = files.map((file) => file.table);
     expect(tables).toContain('clients');
@@ -175,6 +175,33 @@ describe('E014 export: the read-me', () => {
     expect(text).toContain('starts_at_local');
     expect(text).toContain('sessions.csv');
     expect(text).not.toContain('Gegevens exporteren');
+  });
+
+  it('AC9: the workspace export’s read-me is in Dutch for a Dutch Owner, with its own introduction', () => {
+    const text = exportReadme({
+      kind: 'workspace',
+      locale: 'nl-NL',
+      workspaceName: "John's Gym",
+      timeZone: 'Europe/Amsterdam',
+      exportedAt: new Date('2026-11-27T09:00:00.000Z'),
+      files,
+    });
+    expect(text).toContain('Gegevens exporteren');
+    expect(text).toContain(
+      "Deze ZIP bevat alle gegevens van de werkruimte John's Gym in Fivvi die in het privacyregister staan.",
+    );
+    expect(text).not.toContain('Deze ZIP bevat alle gegevens die');
+    expect(text).not.toContain('Export data');
+    expect(text).not.toContain('This ZIP holds');
+  });
+
+  it('words a place in a session as the glossary does: a spot, een plek, never place or plaats', () => {
+    const words = (locale: 'nl-NL' | 'en') =>
+      Object.values(messages[locale].privacyExport.files as Record<string, string>).join('\n');
+    expect(words('en')).toContain('spots in sessions');
+    expect(words('en')).not.toMatch(/\bplaces?\b/i);
+    expect(words('nl-NL')).toContain('plekken in sessies');
+    expect(words('nl-NL')).not.toMatch(/\bplaats(en)?\b/i);
   });
 
   it('says what each file is, for every table of the registry that is exported, in both languages', () => {

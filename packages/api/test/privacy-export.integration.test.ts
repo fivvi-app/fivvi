@@ -224,7 +224,7 @@ describe('E014 the Owner exports data', () => {
     expect(response.headers.get('cache-control')).toBe('no-store');
     const files = await unpack(response);
 
-    // README.txt in John's language, data.json, and a CSV for the profile and for her places in sessions.
+    // README.txt in John's language, data.json, and a CSV for the profile and for her spots in sessions.
     expect(Object.keys(files).sort()).toEqual(
       ['README.txt', 'clients.csv', 'data.json', 'session_participants.csv', 'sessions.csv'].sort(),
     );
@@ -319,6 +319,20 @@ describe('E014 the Owner exports data', () => {
     expect(JSON.parse(files['data.json'] as string).tables.clients[0].name).toBe(
       'José Müller-Jansen',
     );
+  });
+
+  it('AC9: a Dutch Owner gets the workspace export’s read-me in Dutch', async () => {
+    const w = await world('nl-NL');
+
+    const response = await exportWorkspace(w.gym.id, w.john);
+    const files = await unpack(response);
+
+    expect(response.status).toBe(200);
+    expect(files['README.txt']).toContain('Gegevens exporteren');
+    expect(files['README.txt']).toContain('Deze ZIP bevat alle gegevens van de werkruimte');
+    expect(files['README.txt']).toContain('plekken in sessies');
+    expect(files['README.txt']).not.toContain('Export data');
+    expect(files['README.txt']).not.toContain('This ZIP holds');
   });
 
   it('a spreadsheet does not run a client name as a formula', async () => {
