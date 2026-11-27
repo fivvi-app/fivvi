@@ -376,6 +376,17 @@
     },
     "noWorkspace": {
       "haveLink": "Heb je de link al? Open hem en vraag daar om lid te worden."
+    },
+    "studios": {
+      "add": "Studio toevoegen",
+      "addExplain": "Vraag je studio om de Fivvi-link, of scan de QR-code bij de balie. Je vraagt dan om mee te doen. Zodra ze je goedkeuren, staat de studio hier.",
+      "addHint": "Met de link of QR-code van je studio",
+      "close": "Sluiten",
+      "current": "Gekozen",
+      "done": "Klaar",
+      "switcher": "Studio: {name}",
+      "title": "Mijn studio's",
+      "yours": "Je studio's"
     }
   },
   "clients": {

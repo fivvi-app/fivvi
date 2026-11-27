@@ -49,7 +49,7 @@
   /* "Je studio's": switch, or add one through its link (no search for studios, ADR-026) */
   function wsSheet() {
     var c = C(), add = c.wsheet === "add", t = add ? "Studio toevoegen" : "Je studio's", body;
-    if (add) body = '<div class="c-addws">' + '<span class="c-mark lg add" aria-hidden="true">' + ic("plus") + "</span><p>Vraag je studio of trainer om hun Fivvi-link, of scan de QR-code bij de balie. Je vraagt dan om mee te doen. Zodra ze je goedkeuren, staat de studio hier.</p></div>" +
+    if (add) body = '<div class="c-addws">' + '<span class="c-mark lg add" aria-hidden="true">' + ic("plus") + "</span><p>Vraag je studio om de Fivvi-link, of scan de QR-code bij de balie. Je vraagt dan om mee te doen. Zodra ze je goedkeuren, staat de studio hier.</p></div>" +
       (multi() ? "" : '<div class="card c-proto"><b>Prototype</b><span>Doe alsof je de link van Yoga Loft opent en wordt goedgekeurd:</span>' + cbtn("Yoga Loft toevoegen", "c-wsjoin", { k: "sec" }) + "</div>") + cfam("join") +
       '<div style="margin-top:12px">' + K.btn("Klaar", { k: "ghost", blk: true, a: "c-wsclose" }) + "</div>";
     else body = K.grp(studios().map(function (ws) { var on = ws === cws(); return K.row({ a: "c-ws", d: { v: ws }, lead: sMark(ws, "lg"), title: esc(sName(ws)), sub: esc(balText(ws) || shortLoc(ws === "yl" ? YL.location : D.workspaces.sf.location)), tr: on ? '<span class="c-cur" aria-label="Gekozen">' + ic("check") + "</span>" : "", chev: false, cls: "c-row" }); })
@@ -1263,6 +1263,8 @@
   ATAB.home = function () {
     var c = C(), anna = c.who === "anna", first = anna ? "Anna" : (c.name || "Kim de Graaf").split(" ")[0], up = upcoming();
     var b = K.lt(F.longDate(F.NOW), "Hoi " + esc(first), "");
+    /* the client web lists the client's studios, each opening Boeken at that studio (#480, F030 #792) */
+    if (F.PREF.plat === "client") b += K.sh("Mijn studio's", "", "small") + '<div class="pad">' + K.grp(studios().map(function (ws) { return K.row({ a: "c-wsopen", d: { v: ws }, lead: sMark(ws, "lg"), title: esc(sName(ws)), cls: "c-row" }); }), "--inset:68px") + "</div>";
     if (up.length) b += nextHero(up[0], up[0][1].type === "priv" ? "Je volgende sessie" : "Je volgende les");
     if (anna) {
       if (renewCard()) b += '<div class="pad" style="margin-top:14px">' + renewCard() + "</div>";
@@ -1461,6 +1463,7 @@
   A["c-wsheet"] = function (d) { C().wsheet = d.v || "list"; R(); };
   A["c-wsclose"] = function () { C().wsheet = null; R(); };
   A["c-ws"] = function (d) { var c = C(); c.cws = d.v; c.wsheet = null; c.detail = null; R(); };
+  A["c-wsopen"] = function (d) { var c = C(); c.cws = d.v; c.atab = "boeken"; c.detail = null; R(); };
   A["c-wsjoin"] = function () { var c = C(); c.studios = studios().concat(["yl"]); c.cws = "yl"; c.wsheet = null; F.toast("Yoga Loft heeft je goedgekeurd"); };
   /* booking and joining the waitlist always ask first (owner, 5 Nov 2026), from the list and from the class page */
   A["c-book"] = function () { var c = C(); c.dialog = "book"; c.dlgId = c.detail; R(); };

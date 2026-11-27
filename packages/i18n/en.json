@@ -376,6 +376,17 @@
     },
     "noWorkspace": {
       "haveLink": "Got the link? Open it and ask to join there."
+    },
+    "studios": {
+      "add": "Add a studio",
+      "addExplain": "Ask your studio for its Fivvi link, or scan the QR code at the front desk. You then ask to join. Once they approve you, the studio shows up here.",
+      "addHint": "With your studio's link or QR code",
+      "close": "Close",
+      "current": "Selected",
+      "done": "Done",
+      "switcher": "Studio: {name}",
+      "title": "My studios",
+      "yours": "Your studios"
     }
   },
   "clients": {
