@@ -389,6 +389,64 @@ describe('ADR-033 flow.sh start --slice', () => {
     assert.match(result.stdout, /#9206 waits for #64 \(migration\): left out of the slice/);
   });
 
+  // A hold is reported only for a ticket the pick could take but for the open PR: not one blocked by an open ticket
+  // outside the slice, and not one past the cap of five.
+  it('reports no hold for a held ticket that is also blocked outside the slice, and the refusal names the real reason', () => {
+    const result = start(
+      ['9000', 'backend'],
+      [
+        ticketFacts(9102, '[F055] The credit plan route (API, domain)', {
+          blockedBy: blockedBy(9999),
+        }),
+      ],
+      {},
+      openPrs({ number: 60, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 1);
+    assert.doesNotMatch(result.stdout, /waits for/);
+    assert.doesNotMatch(result.stderr, /waits for an open PR/);
+    assert.match(result.stderr, /no ready, unblocked ticket/);
+    assert.deepEqual(claimed(), []);
+  });
+
+  it('reports no hold for the held ticket blocked outside the slice, and still holds the one that could join', () => {
+    const result = start(
+      ['9000', 'backend'],
+      [
+        ticketFacts(9101, '[F055] The credit plan route (API, domain)', {
+          blockedBy: blockedBy(9999),
+        }),
+        ticketFacts(9102, '[F055] The invoice route (API, domain)'),
+        ticketFacts(9103, '[F055] The expiry pass (domain, cron)'),
+      ],
+      {},
+      openPrs({ number: 60, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9103]);
+    assert.doesNotMatch(result.stdout, /#9101 waits/);
+    assert.match(result.stdout, /#9102 waits for #60 \(API contract\): left out of the slice/);
+  });
+
+  it('reports no hold for a held ticket past the cap of five', () => {
+    const result = start(
+      ['9000', 'backend'],
+      [
+        ticketFacts(9201, '[F056] The first read (domain)'),
+        ticketFacts(9202, '[F056] The second read (domain)'),
+        ticketFacts(9203, '[F056] The third read (domain)'),
+        ticketFacts(9204, '[F056] The fourth read (domain)'),
+        ticketFacts(9205, '[F056] The fifth read (domain)'),
+        ticketFacts(9206, '[F056] The invoice route (API, domain)'),
+      ],
+      {},
+      openPrs({ number: 63, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9201, 9202, 9203, 9204, 9205]);
+    assert.doesNotMatch(result.stdout, /waits for/);
+  });
+
   it('AC8: takes every ticket once that PR is merged or closed', () => {
     const result = start(
       ['9000', 'backend'],

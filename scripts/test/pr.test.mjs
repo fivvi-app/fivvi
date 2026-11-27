@@ -2824,6 +2824,17 @@ describe('#1485 pr.sh create warns on hot files another open PR changes', () => 
     assert.equal(result.pushed, true);
   });
 
+  it('warns and pushes when the hot files of the branch cannot be worked out', () => {
+    prepare([CONTRACT]);
+    writeFileSync(join(repo, 'scripts/hot-files.mjs'), 'process.exit(1);\n');
+    const result = create([pr(61, [CONTRACT])]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /integer expression/);
+    assert.match(result.stderr, /could not check this branch for hot files/);
+    assert.match(result.stderr, /The push goes on/);
+    assert.equal(result.pushed, true);
+  });
+
   it('does not count the branch’s own PR, or a PR of the same ticket', () => {
     prepare([CONTRACT]);
     const result = create(

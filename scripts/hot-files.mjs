@@ -135,7 +135,9 @@ export const overlap = (prs, changed, own) => {
 };
 
 const usage = () => {
-  console.error('Usage: hot-files.mjs tagged | holds | overlap  (JSON on stdin, see the header)');
+  console.error(
+    'Usage: hot-files.mjs tagged | holds | hot | overlap  (JSON on stdin, see the header)',
+  );
   process.exit(2);
 };
 

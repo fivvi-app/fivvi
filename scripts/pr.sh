@@ -208,10 +208,17 @@ warn_if_large() {
 # the PR of the same ticket or slice ($1: their issues, space-separated). A warning, never a refusal: the push goes on,
 # also when the open PRs can't be read (GitHub is not needed to push, only to warn).
 warn_if_shared_hot_files() {
-  local prs changed issues found
+  local prs changed issues found hot
   changed="$(git diff --name-only "origin/$(default_branch)...HEAD" 2>/dev/null)" || return 0
   # A branch without a hot file has nothing to collide on: no GitHub read.
-  [ "$(jq -Rnc '[inputs]' <<<"$changed" | node "$ROOT/scripts/hot-files.mjs" hot | jq 'length')" -gt 0 ] || return 0
+  hot="$(jq -Rnc '[inputs]' <<<"$changed" | node "$ROOT/scripts/hot-files.mjs" hot | jq 'length')" || hot=""
+  case "$hot" in
+    ''|*[!0-9]*)
+      echo "⚠ could not check this branch for hot files another open PR changes. The push goes on." >&2
+      return 0
+      ;;
+  esac
+  [ "$hot" -gt 0 ] || return 0
   prs="$(open_prs_json)" || {
     echo "⚠ could not read the open PRs, so this branch was not checked for hot files another PR changes. The push goes on." >&2
     return 0

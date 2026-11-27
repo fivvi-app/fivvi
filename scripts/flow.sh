@@ -1207,6 +1207,19 @@ pick_slice() {
     'include "slice"; pick($platform; $max) | .[]' <<<"$1"
 }
 
+# The holds ($3, the hot-files `holds` JSON) of the tickets the pick could take but for their hold: a held ticket stays
+# when the pick over the candidates ($1) without the other holds would take it (a pure jq pick, nothing is read).
+reported_holds() {
+  local entry others picked out="[]"
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    others="$(jq -c --argjson me "$entry" '[.[] | select(.number as $n | $me.number != $n)]' <<<"$3")" || return 1
+    picked="$(pick_slice "$(jq -c --argjson holds "$others" '[.[] | select(.number as $n | $holds | map(.number) | index($n) | not)]' <<<"$1")" "$2")" || return 1
+    if grep -qxF "$(jq -r .number <<<"$entry")" <<<"$picked"; then out="$(jq -c --argjson e "$entry" '. + [$e]' <<<"$out")"; fi
+  done < <(jq -c '.[]' <<<"$3")
+  echo "$out"
+}
+
 # flow.sh start --slice <spec> <platform>: see the header. $3 is the branch type ("" for the default), $4 --force.
 cmd_start_slice() {
   local spec="$1" platform="$2" type="$3" force="$4" max login candidates picked n t title labels branch wt hint d spec_labels holds entry
@@ -1227,6 +1240,9 @@ cmd_start_slice() {
     holds="$(hold_tickets "$(jq -c -L "$ROOT/scripts" --arg platform "$platform" \
       'include "slice"; [.[] | select(platform == $platform) | {number, title}]' <<<"$candidates")")" \
       || die "could not read the open PRs to check the slice against them (pass --force to start anyway)"
+    # Only a hold that cost the slice a ticket is reported: a held ticket the pick could never take anyway (blocked by an
+    # open ticket outside the slice, or past the cap of five) is left out for that reason, not for the open PR.
+    holds="$(reported_holds "$candidates" "$platform" "$holds")" || die "could not pick the tickets of the slice"
     while IFS= read -r entry; do
       echo "⏳ #$(jq -r .number <<<"$entry") $(wait_text "$entry"): left out of the slice"
     done < <(jq -c '.[]' <<<"$holds")

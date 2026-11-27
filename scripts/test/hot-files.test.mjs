@@ -232,5 +232,6 @@ describe('the CLI', () => {
     assert.equal(bad.status, 1);
     assert.match(bad.stderr, /not JSON/);
     assert.equal(run('nothing', {}).status, 2);
+    assert.match(run('nothing', {}).stderr, /tagged \| holds \| hot \| overlap/);
   });
 });
