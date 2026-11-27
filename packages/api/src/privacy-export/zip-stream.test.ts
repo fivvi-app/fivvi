@@ -100,6 +100,12 @@ describe('E014 export: the producer starts only when it may, and never waits for
   it('ends the stream with an error, and stops the producer, when the reader stalls', async () => {
     let producerError: unknown;
     const reported: unknown[] = [];
+    // The stall can only begin once the producer has filled the stream's queue, and how long that
+    // takes depends on the machine; so the test waits for the error itself, not for a fixed time.
+    let ended: () => void = () => {};
+    const stalled = new Promise<void>((resolve) => {
+      ended = resolve;
+    });
     const stream = streamZip(
       new Date(),
       async (zip) => {
@@ -115,12 +121,18 @@ describe('E014 export: the producer starts only when it may, and never waits for
           throw error;
         }
       },
-      { stallTimeoutMs: 30, onError: (error) => reported.push(error) },
+      {
+        stallTimeoutMs: 30,
+        onError: (error) => {
+          reported.push(error);
+          ended();
+        },
+      },
     );
     const reader = stream.getReader();
     await reader.read();
     // The reader reads nothing more: the producer is held back, then given up on.
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await stalled;
 
     expect(producerError).toBeInstanceOf(Error);
     expect((producerError as Error).message).toMatch(/not read/);
@@ -143,7 +155,7 @@ describe('E014 export: the producer starts only when it may, and never waits for
           })(),
         );
       },
-      { stallTimeoutMs: 200 },
+      { stallTimeoutMs: 5_000 },
     );
     const reader = stream.getReader();
     let total = 0;
