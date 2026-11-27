@@ -19,6 +19,7 @@ import {
   createClassCancelledSender,
   createDemoRequestSender,
   createPrivateSessionSender,
+  createSubstitutionSender,
   createTrainerChangeSender,
   createTrainerInvitationSender,
 } from '@fivvi/email';
@@ -121,6 +122,18 @@ function sendTrainerChange(...[mail]: Parameters<ReturnType<typeof createTrainer
   return trainerChangeSender(mail);
 }
 
+let substitutionSender: ReturnType<typeof createSubstitutionSender> | undefined;
+
+/**
+ * EM-10, the notice to the trainer who covers a class date (F024): sent through the provider of the
+ * environment (Lettermint or the log for `@example.com` outside production). Created on first use,
+ * so `next build` runs without the email settings.
+ */
+function sendSubstitution(...[mail]: Parameters<ReturnType<typeof createSubstitutionSender>>) {
+  substitutionSender ??= createSubstitutionSender({ sendEmail: sendEmail() });
+  return substitutionSender(mail);
+}
+
 let demoRequestSender: ReturnType<typeof createDemoRequestSender> | undefined;
 
 /**
@@ -160,6 +173,8 @@ export const apiHandler = createApiHandler({
   sendClassCancelled,
   // Emails the notice of a new trainer to the clients (F023), after the change is committed.
   sendTrainerChange,
+  // Emails the notice to the trainer who covers a class date (F024), after the substitution is committed.
+  sendSubstitution,
   // Emails the website's demo requests to Fivvi's support address (F064).
   sendDemoRequest,
   // Where "now" comes from: the expiry and the daily limit of an invitation (F011), the past of a session (F020).

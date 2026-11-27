@@ -71,6 +71,11 @@ export {
   type SendEmailResult,
   type SentEvent,
 } from './send.ts';
+export type { SubstitutionMail } from './substitution-mail.ts';
+export {
+  createSubstitutionSender,
+  type SubstitutionSenderOptions,
+} from './substitution-sender.ts';
 export {
   type CancellationEmailProps,
   cancellationEmail,
@@ -87,7 +92,9 @@ export {
   privateSessionEmail,
   privateSessionMovedEmail,
   type SignInEmailProps,
+  type SubstitutionEmailProps,
   signInEmail,
+  substitutionEmail,
   type TrainerChangeEmailDate,
   type TrainerChangeEmailProps,
   type TrainerInvitationEmailProps,

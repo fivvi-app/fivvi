@@ -371,6 +371,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     SessionReschedule: 'type of the session repository (F020)',
     SessionSeriesView: 'type of the session repository (F022)',
     SessionStatus: 'type of the session repository (F020)',
+    SessionSubstituteForView: 'type of the session repository (F024)',
     SessionTrainerAssignment: 'type of the session repository (F023)',
     SessionTrainerView: 'type of the session repository (F020)',
     SessionType: 'type of the session repository (F020)',
@@ -470,6 +471,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     findTrainer: 'repository of the trainer profiles, takes the workspace scope (F020)',
     findTrainerProfileId:
       'repository of the trainer profiles, takes the workspace scope; answers an ID (F023)',
+    findTrainerRecipient:
+      'repository of the trainer profiles, takes the workspace scope; reads the address and language of EM-10 (F024)',
     findWorkspace: 'repository of workspaces, takes the workspace scope (F002)',
     getOrCreateBookingLink: 'repository of booking links, takes the workspace scope (F037)',
     hasMySession:
