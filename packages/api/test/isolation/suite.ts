@@ -19,6 +19,7 @@ import {
   splitAddedGroups,
   type TokenOwner,
   type XAccess,
+  withoutNewLogEntries,
 } from './expectations.ts';
 import { adminPool, type World } from './harness.ts';
 import type { IsolationCase } from './isolation-cases.ts';
@@ -491,14 +492,14 @@ export async function runIsolationSuite(
       // A call that changed nothing leaves the ledger as it was: no need to build it again.
       if (sameSnapshots(beforeState.snaps, afterState.snaps)) afterState.ledger = ledger;
       stored = afterState;
-      // A route that logs access (E014) may add entries to its own workspace's access log when it
-      // succeeds, and changes nothing else; a refusal may change nothing at all.
+      // A route that logs access (E014) may add entries to the access log of the workspace of the
+      // path when it succeeds, and changes nothing else; a refusal may change nothing at all.
       const logsAccess =
         isolationCase.logsAccess && response.status >= 200 && response.status < 300;
-      const withoutLog = (state: Stored) =>
-        snapshots(state.rows.filter((row) => row.table !== 'access_log'));
-      const before = logsAccess ? withoutLog(beforeState) : beforeState.snaps;
-      const after = logsAccess ? withoutLog(afterState) : afterState.snaps;
+      const before = beforeState.snaps;
+      const after = logsAccess
+        ? snapshots(withoutNewLogEntries(beforeState.rows, afterState.rows, planned.workspaceId))
+        : afterState.snaps;
       result.calls += 1;
 
       // 1. The status, and a refusal's body.
