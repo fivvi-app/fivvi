@@ -228,7 +228,8 @@ describe('ADR-033 flow.sh start --slice', () => {
   afterEach(() => rmSync(sandbox.base, { recursive: true, force: true }));
   after(() => gh.cleanup());
 
-  const rules = (tickets = TICKETS, spec = {}) => [
+  const rules = (tickets = TICKETS, spec = {}, extra = []) => [
+    ...extra,
     { match: '^api user', out: { login: 'thekeyvan' } },
     {
       match: '^issue view 9000 ',
@@ -248,11 +249,11 @@ describe('ADR-033 flow.sh start --slice', () => {
     { match: '^issue edit ', out: '' },
     { match: '^pr list ', out: [] },
   ];
-  const start = (args, tickets, spec) =>
+  const start = (args, tickets, spec, extra) =>
     spawnSync(join(sandbox.repo, 'scripts/flow.sh'), ['start', '--slice', ...args], {
       cwd: sandbox.repo,
       encoding: 'utf8',
-      env: gh.env(rules(tickets, spec)),
+      env: gh.env(rules(tickets, spec, extra)),
     });
   const claimed = () =>
     gh
@@ -298,6 +299,238 @@ describe('ADR-033 flow.sh start --slice', () => {
     const backend = start(['9000', 'backend']);
     assert.equal(backend.status, 0, backend.stderr);
     assert.deepEqual(claimed(), [9005]);
+  });
+
+  // #1485: tickets tagged API or DB wait for the open PR that changes the contract or adds a migration.
+  const CONTRACT = 'packages/contract/openapi.json';
+  const MIGRATION = 'packages/database/migrations/0042_hold.sql';
+  const openPrs = (...prs) => [
+    {
+      match: '^pr list .*--state open',
+      out: prs.map(({ number, files, branch = 'docs/no-issue', closing = [] }) => ({
+        number,
+        title: `[E001] PR ${number}`,
+        headRefName: branch,
+        headRefOid: 'a'.repeat(40),
+        mergeable: 'MERGEABLE',
+        closingIssuesReferences: closing.map((n) => ({ number: n })),
+        files: files.map((path) => ({ path })),
+      })),
+    },
+  ];
+  const BACKEND = [
+    ticketFacts(9101, '[F055] The credit plan tables (DB, domain)'),
+    ticketFacts(9102, '[F055] The credit plan route (API, domain)'),
+    ticketFacts(9103, '[F055] The expiry pass (domain, cron)'),
+    ticketFacts(9104, '[F055] The plan list reads (domain)', { blockedBy: blockedBy(9102) }),
+    ticketFacts(9105, '[F055] The renewal job (domain, cron)', { blockedBy: blockedBy(9101) }),
+  ];
+
+  it('AC8: leaves an API-tagged ticket, and the ticket blocked by it, out of the slice while an open PR changes openapi.json', () => {
+    const result = start(
+      ['9000', 'backend'],
+      BACKEND,
+      {},
+      openPrs({ number: 60, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9101, 9103, 9105]);
+    assert.match(result.stdout, /#9102 waits for #60 \(API contract\): left out of the slice/);
+    assert.doesNotMatch(result.stdout, /#9104 waits/);
+  });
+
+  it('AC9: leaves a DB-tagged ticket, and what is blocked by it, out of the slice while an open PR adds a migration', () => {
+    const result = start(
+      ['9000', 'backend'],
+      BACKEND,
+      {},
+      openPrs({ number: 61, files: [MIGRATION] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9102, 9103, 9104]);
+    assert.match(result.stdout, /#9101 waits for #61 \(migration\): left out of the slice/);
+  });
+
+  // The hold check covers every candidate of the platform, not only the first five: a later ticket tagged API or DB that
+  // the second pick would add is held too.
+  const SEVEN = (second, sixth) => [
+    ticketFacts(9201, '[F056] The first read (domain)'),
+    ticketFacts(9202, second),
+    ticketFacts(9203, '[F056] The second read (domain)'),
+    ticketFacts(9204, '[F056] The third read (domain)'),
+    ticketFacts(9205, '[F056] The fourth read (domain)'),
+    ticketFacts(9206, sixth),
+    ticketFacts(9207, '[F056] The fifth read (domain)'),
+  ];
+
+  it('AC8: a later API-tagged ticket that the second pick would add is held too', () => {
+    const result = start(
+      ['9000', 'backend'],
+      SEVEN('[F056] The plan route (API, domain)', '[F056] The invoice route (API, domain)'),
+      {},
+      openPrs({ number: 63, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9201, 9203, 9204, 9205, 9207]);
+    assert.match(result.stdout, /#9202 waits for #63 \(API contract\): left out of the slice/);
+    assert.match(result.stdout, /#9206 waits for #63 \(API contract\): left out of the slice/);
+  });
+
+  it('AC9: a later DB-tagged ticket that the second pick would add is held too', () => {
+    const result = start(
+      ['9000', 'backend'],
+      SEVEN('[F056] The plan tables (DB, domain)', '[F056] The invoice tables (DB, domain)'),
+      {},
+      openPrs({ number: 64, files: [MIGRATION] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9201, 9203, 9204, 9205, 9207]);
+    assert.match(result.stdout, /#9202 waits for #64 \(migration\): left out of the slice/);
+    assert.match(result.stdout, /#9206 waits for #64 \(migration\): left out of the slice/);
+  });
+
+  // A hold is reported only for a ticket the pick could take but for the open PR: not one blocked by an open ticket
+  // outside the slice, and not one past the cap of five.
+  it('reports no hold for a held ticket that is also blocked outside the slice, and the refusal names the real reason', () => {
+    const result = start(
+      ['9000', 'backend'],
+      [
+        ticketFacts(9102, '[F055] The credit plan route (API, domain)', {
+          blockedBy: blockedBy(9999),
+        }),
+      ],
+      {},
+      openPrs({ number: 60, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 1);
+    assert.doesNotMatch(result.stdout, /waits for/);
+    assert.doesNotMatch(result.stderr, /waits for an open PR/);
+    assert.match(result.stderr, /no ready, unblocked ticket/);
+    assert.deepEqual(claimed(), []);
+  });
+
+  it('reports no hold for the held ticket blocked outside the slice, and still holds the one that could join', () => {
+    const result = start(
+      ['9000', 'backend'],
+      [
+        ticketFacts(9101, '[F055] The credit plan route (API, domain)', {
+          blockedBy: blockedBy(9999),
+        }),
+        ticketFacts(9102, '[F055] The invoice route (API, domain)'),
+        ticketFacts(9103, '[F055] The expiry pass (domain, cron)'),
+      ],
+      {},
+      openPrs({ number: 60, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9103]);
+    assert.doesNotMatch(result.stdout, /#9101 waits/);
+    assert.match(result.stdout, /#9102 waits for #60 \(API contract\): left out of the slice/);
+  });
+
+  it('reports no hold for a held ticket past the cap of five', () => {
+    const result = start(
+      ['9000', 'backend'],
+      [
+        ticketFacts(9201, '[F056] The first read (domain)'),
+        ticketFacts(9202, '[F056] The second read (domain)'),
+        ticketFacts(9203, '[F056] The third read (domain)'),
+        ticketFacts(9204, '[F056] The fourth read (domain)'),
+        ticketFacts(9205, '[F056] The fifth read (domain)'),
+        ticketFacts(9206, '[F056] The invoice route (API, domain)'),
+      ],
+      {},
+      openPrs({ number: 63, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9201, 9202, 9203, 9204, 9205]);
+    assert.doesNotMatch(result.stdout, /waits for/);
+  });
+
+  it('AC8: takes every ticket once that PR is merged or closed', () => {
+    const result = start(
+      ['9000', 'backend'],
+      BACKEND,
+      {},
+      openPrs({ number: 62, files: ['apps/web/page.tsx'] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9101, 9102, 9103, 9104, 9105]);
+    assert.doesNotMatch(result.stdout, /waits for/);
+  });
+
+  it('AC9: a slice of tickets without API or DB tags is never held', () => {
+    const result = start(
+      ['9000', 'android'],
+      undefined,
+      undefined,
+      openPrs({ number: 60, files: [CONTRACT, MIGRATION] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9001, 9002, 9003, 9007, 9008]);
+    assert.doesNotMatch(result.stdout, /waits for/);
+  });
+
+  it('refuses a slice whose every ticket waits, naming the PR, and starts nothing', () => {
+    const result = start(
+      ['9000', 'backend'],
+      [ticketFacts(9102, '[F055] The credit plan route (API, domain)')],
+      {},
+      openPrs({ number: 60, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /waits for an open PR/);
+    assert.match(result.stdout, /#9102 waits for #60 \(API contract\)/);
+    assert.deepEqual(claimed(), []);
+    assert.equal(existsSync(join(sandbox.repo, '.work/9102')), false);
+  });
+
+  it('the PR of the slice itself, or one that closes a ticket of it, does not hold it', () => {
+    const own = start(
+      ['9000', 'backend'],
+      BACKEND,
+      {},
+      openPrs({ number: 60, files: [CONTRACT], closing: [9102] }),
+    );
+    assert.equal(own.status, 0, own.stderr);
+    assert.deepEqual(claimed(), [9101, 9102, 9103, 9104, 9105]);
+  });
+
+  it('--force starts the slice with the tickets that wait', () => {
+    const result = start(
+      ['9000', 'backend', '--force'],
+      BACKEND,
+      {},
+      openPrs({ number: 60, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9101, 9102, 9103, 9104, 9105]);
+  });
+
+  it('refuses when the open PRs cannot be read, rather than starting colliding work on a guess', () => {
+    const result = start(['9000', 'backend'], BACKEND, {}, [
+      { match: '^pr list .*--state open', out: '', status: 1 },
+    ]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /could not read the open PRs/);
+    assert.match(result.stderr, /--force/);
+    assert.deepEqual(claimed(), []);
+  });
+
+  it('AC12: behaves the same with ci: full and review: per-pr', () => {
+    writeFileSync(
+      join(sandbox.repo, '.github/pipeline.json'),
+      JSON.stringify({ ci: 'full', review: 'per-pr' }),
+    );
+    const result = start(
+      ['9000', 'backend'],
+      BACKEND,
+      {},
+      openPrs({ number: 60, files: [CONTRACT] }),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9101, 9103, 9105]);
+    assert.match(result.stdout, /#9102 waits for #60 \(API contract\)/);
   });
 
   it('prints the FEATURES.md hint of each ticket of the slice', () => {
