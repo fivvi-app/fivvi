@@ -9,6 +9,7 @@ import {
   mayShow,
   mustShow,
   splitAddedGroups,
+  withoutNewLogEntries,
   type XAccess,
 } from './expectations.ts';
 
@@ -355,5 +356,57 @@ describe('@isolation the markers in a text', () => {
     expect(markersIn('xnote-1a2b3c4d_y')).toEqual([]);
     expect(markersIn('0197c0de-1234-7000-8000-000000000001')).toEqual([]);
     expect(markersIn('word-seven-segments-aaaa')).toEqual([]);
+  });
+});
+
+describe('@isolation E014 a route that logs access may add log entries of its own workspace, nothing else', () => {
+  const entry = (workspaceId: string, id: string, action = 'client.exported') => ({
+    table: 'access_log',
+    workspaceId,
+    row: { id, action },
+  });
+  const client = { table: 'clients', workspaceId: 'a', row: { id: 'c1' } };
+
+  it('drops the entries that were added in the workspace of the path, and only those', () => {
+    const before = [client, entry('a', 'old')];
+    const after = [client, entry('a', 'old'), entry('a', 'new')];
+
+    expect(withoutNewLogEntries(before, after, 'a')).toEqual([client, entry('a', 'old')]);
+  });
+
+  it('keeps an entry added to another workspace’s log, so the change is seen', () => {
+    const before = [entry('a', 'old'), entry('b', 'theirs')];
+    const after = [
+      entry('a', 'old'),
+      entry('a', 'new'),
+      entry('b', 'theirs'),
+      entry('b', 'sneaky'),
+    ];
+
+    expect(withoutNewLogEntries(before, after, 'a')).toEqual([
+      entry('a', 'old'),
+      entry('b', 'theirs'),
+      entry('b', 'sneaky'),
+    ]);
+  });
+
+  it('keeps an entry that was changed, so the change is seen', () => {
+    const before = [entry('a', 'old'), entry('b', 'theirs')];
+    const after = [entry('a', 'old', 'client.restored'), entry('b', 'theirs', 'client.deleted')];
+
+    expect(withoutNewLogEntries(before, after, 'a')).toEqual(after);
+  });
+
+  it('keeps a log without an entry that was deleted, so the deletion is seen', () => {
+    const before = [entry('a', 'old'), entry('b', 'theirs')];
+    const after = [entry('a', 'old')];
+
+    expect(withoutNewLogEntries(before, after, 'a')).toEqual(after);
+  });
+
+  it('drops no row of any other table', () => {
+    const after = [client, { table: 'clients', workspaceId: 'a', row: { id: 'c2' } }];
+
+    expect(withoutNewLogEntries([client], after, 'a')).toEqual(after);
   });
 });

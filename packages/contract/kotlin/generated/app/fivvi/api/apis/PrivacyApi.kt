@@ -4,6 +4,7 @@ import app.fivvi.api.infrastructure.CollectionFormats.*
 import retrofit2.http.*
 import retrofit2.Response
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -14,6 +15,65 @@ import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.ValidationError
 
 interface PrivacyApi {
+
+    /**
+    * enum for parameter surface
+    */
+    @Serializable
+    enum class SurfaceExportClient(val value: kotlin.String) {
+        @SerialName(value = "ios") IOS("ios"),
+        @SerialName(value = "android") ANDROID("android")
+    }
+
+    /**
+     * GET v1/workspaces/{workspaceId}/clients/{clientId}/export
+     * Export everything the workspace holds about one client
+     * Downloads a ZIP named &#x60;fivvi-{workspace-slug}-{client-id}-{date}.zip&#x60; (the Owner only; a Trainer gets &#x60;403&#x60;) with the client’s profile, her sessions and bookings with attendance, and, as later features add them, the rest of her records, all from this workspace only. &#x60;README.txt&#x60; in the Owner’s language (their stored language, else &#x60;Accept-Language&#x60;, else English) says what each file is and what the field names mean; &#x60;data.json&#x60; holds every record; each kind of record is also a CSV in UTF-8 with a byte order mark, so Excel opens it with the accents intact. The field names are English and stable. Every time is given in UTC and, next to it, in the workspace time zone (&#x60;…_local&#x60;). It is generated for this request and streamed: the server stores no file. It writes one entry in the access log. A client who is not in this workspace answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The ZIP.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param clientId The client ID.
+     * @param surface The app that sends the request: &#x60;ios&#x60; or &#x60;android&#x60;. A request with a bearer token records the &#x60;data_exported&#x60; event with this platform; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. (optional)
+     * @return [ResponseBody]
+     */
+    @GET("v1/workspaces/{workspaceId}/clients/{clientId}/export")
+    suspend fun exportClient(@Path("workspaceId") workspaceId: java.util.UUID, @Path("clientId") clientId: java.util.UUID, @Query("surface") surface: SurfaceExportClient? = null): Response<ResponseBody>
+
+
+    /**
+    * enum for parameter surface
+    */
+    @Serializable
+    enum class SurfaceExportWorkspace(val value: kotlin.String) {
+        @SerialName(value = "ios") IOS("ios"),
+        @SerialName(value = "android") ANDROID("android")
+    }
+
+    /**
+     * GET v1/workspaces/{workspaceId}/export
+     * Export everything the workspace holds
+     * Downloads a ZIP named &#x60;fivvi-{workspace-slug}-{date}.zip&#x60; (the Owner only; a Trainer gets &#x60;403&#x60;) with every record of the workspace that the privacy registry declares, for when the workspace leaves. &#x60;README.txt&#x60; in the Owner’s language (their stored language, else &#x60;Accept-Language&#x60;, else English) says what each file is and what the field names mean; &#x60;data.json&#x60; holds every record; each kind of record is also a CSV in UTF-8 with a byte order mark, so Excel opens it with the accents intact. The field names are English and stable. Every time is given in UTC and, next to it, in the workspace time zone (&#x60;…_local&#x60;). It is generated for this request and streamed: the server stores no file. It writes one entry in the access log.
+     * Responses:
+     *  - 200: The ZIP.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param surface The app that sends the request: &#x60;ios&#x60; or &#x60;android&#x60;. A request with a bearer token records the &#x60;data_exported&#x60; event with this platform; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. (optional)
+     * @return [ResponseBody]
+     */
+    @GET("v1/workspaces/{workspaceId}/export")
+    suspend fun exportWorkspace(@Path("workspaceId") workspaceId: java.util.UUID, @Query("surface") surface: SurfaceExportWorkspace? = null): Response<ResponseBody>
+
 
     /**
     * enum for parameter action

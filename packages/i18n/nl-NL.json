@@ -982,6 +982,48 @@
   "personal": {
     "timeZoneHint": "Tijden in Nederlandse tijd"
   },
+  "privacyExport": {
+    "files": {
+      "accessLog": "het toegangslog: wie welke klant exporteerde, verwijderde of terugzette",
+      "bookingLinks": "boekingslinks (zonder de code)",
+      "classSeries": "wekelijkse reeksen van een les",
+      "clientBillingDetails": "de factuurgegevens van een klant",
+      "clients": "het klantprofiel: naam, e-mailadres en taal",
+      "groupClasses": "lessen",
+      "locations": "locaties",
+      "organizations": "de werkruimte zelf: naam, URL-naam, taal en tijdzone",
+      "paymentChargebacks": "terugboekingen door de bank",
+      "paymentCustomers": "de klant bij de betaalprovider (alleen een verwijzing)",
+      "paymentRefundStatusChanges": "de statusgeschiedenis van terugbetalingen",
+      "paymentRefunds": "terugbetalingen",
+      "paymentStatusChanges": "de statusgeschiedenis van betalingen",
+      "payments": "betalingen: bedrag, status en verwijzingen",
+      "sessionParticipantStatusChanges": "de geschiedenis van de aanwezigheid per plek",
+      "sessionParticipants": "plekken in sessies en aanwezigheid",
+      "sessions": "sessies: tijd, wie ze geeft, locatie en status",
+      "teamMembers": "het team: wie welke rol heeft",
+      "trainerInvitations": "uitnodigingen voor het team",
+      "trainerProfiles": "wie sessies geeft, ook wie het team heeft verlaten",
+      "workspaceInvoiceDetails": "de factuurgegevens van de werkruimte"
+    },
+    "readme": {
+      "conventionCsv": "- De CSV-bestanden zijn UTF-8 met een BOM, gescheiden door komma's, zodat Excel de accenten goed toont. Tekst die met = + - of @ begint krijgt een apostrof ervoor, zodat een spreadsheet er geen formule van maakt.",
+      "conventionEmpty": "- Een leeg veld betekent: geen waarde.",
+      "conventionId": "- id en velden die op _id eindigen: een uniek nummer (UUID). Een veld als client_id verwijst naar de regel met dat id in een ander bestand.",
+      "conventionLocal": "- Elk tijdstip heeft ernaast een veld met _local erachter: hetzelfde moment in de tijdzone van de werkruimte ({timeZone}), met het verschil met UTC.",
+      "conventionMoney": "- Velden die op _cents eindigen zijn bedragen in euro-centen.",
+      "conventionTime": "- Velden die op _at eindigen zijn tijdstippen in UTC, in de vorm 2026-07-15T10:00:00.000Z.",
+      "conventionsHeading": "Zo lees je de velden",
+      "created": "Gemaakt op {date} (UTC). Tijdzone van de werkruimte: {timeZone}.",
+      "dataJson": "alle gegevens in één JSON-bestand, per soort gegeven een lijst",
+      "fieldsHeading": "Velden per bestand (de kolommen van het CSV-bestand)",
+      "filesHeading": "Bestanden",
+      "introClient": "Deze ZIP bevat alle gegevens die {workspace} in Fivvi bewaart over één klant. Alleen de gegevens van deze werkruimte zitten erin.",
+      "introWorkspace": "Deze ZIP bevat alle gegevens van de werkruimte {workspace} in Fivvi die in het privacyregister staan.",
+      "records": "{count, plural, one {# regel} other {# regels}}",
+      "title": "Gegevens exporteren"
+    }
+  },
   "profile": {
     "error": "Je werkruimtes konden niet worden geladen.",
     "language": "Taal",

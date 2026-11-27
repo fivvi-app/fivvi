@@ -237,6 +237,14 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   email_changed: {
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // E014: an Owner exported a client's data (`client`) or the whole workspace (`workspace`). The
+  // workspace ID, the kind and the platform only (the Owner's account UUID is the distinct ID): no
+  // client ID, name or email address, and nothing of what the file holds.
+  data_exported: {
+    workspace_id: property.uuid(),
+    kind: property.enum(['client', 'workspace']),
+    platform: property.enum(['web', 'ios', 'android']),
+  },
   // F010: someone chose their interface language. The language and the surface only: the distinct
   // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no
   // name or email address is recorded.

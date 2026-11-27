@@ -19,6 +19,7 @@
     "@fivvi/domain": "workspace:*",
     "@fivvi/i18n": "workspace:*",
     "@fivvi/observability": "workspace:*",
+    "fflate": "catalog:",
     "hono": "catalog:",
     "zod": "catalog:"
   },

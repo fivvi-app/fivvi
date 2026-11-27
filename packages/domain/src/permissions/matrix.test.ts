@@ -47,6 +47,8 @@ describe('@permission F004 permission matrix', () => {
       'booking_link.manage',
       'booking_link.copy',
       'access_log.read',
+      'client.export',
+      'workspace.export',
       'invoices.manage',
       'commerce.offers.manage',
       'calendar.read',
@@ -95,6 +97,9 @@ describe('@permission F004 permission matrix', () => {
     expect(rolesWith('booking_link.copy')).toEqual(['owner', 'trainer']);
     // E014: only the Owner reads the access log (AC6; retention-policy.md §3.4).
     expect(rolesWith('access_log.read')).toEqual(['owner']);
+    // E014: only the Owner exports a client's data or the whole workspace (AC6).
+    expect(rolesWith('client.export')).toEqual(['owner']);
+    expect(rolesWith('workspace.export')).toEqual(['owner']);
     // F059: only the Owner keeps the invoice details and edits a client's billing details.
     expect(rolesWith('invoices.manage')).toEqual(['owner']);
     // F052: only the Owner lists, reads, creates and changes the workspace's offers; money stays with the Owner.
