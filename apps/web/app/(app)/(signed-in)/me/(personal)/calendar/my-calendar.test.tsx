@@ -323,4 +323,41 @@ describe.each(locales)('F013 Mijn agenda in %s', (locale) => {
     expect(view('week')).toContain('href="/me/calendar?date=2026-09-29&amp;view=week"');
     expect(view('week')).toContain('href="/me/calendar?date=2026-09-15&amp;view=week"');
   });
+
+  // F024 (spec #461, ticket #554): Mike covers Sarah's Kracht; Sarah's keeps it, dimmed.
+  describe('F024 covering and taken over', () => {
+    const covering: Item = {
+      ...kracht,
+      substituteFor: { id: 'm-sarah', trainerProfileId: 'p-sarah', name: 'Sarah' },
+    };
+    const takenOver: Item = { ...kracht, takenOverBy: { name: 'Mike' } };
+    const only = (item: Item) => ({ items: [item] });
+
+    it.each(['week', 'day', 'list'] as const)(
+      'AC4: the %s view says "Je valt in voor Sarah" for the substitute and "Overgenomen door Mike" for the replaced trainer',
+      (shown) => {
+        expect(view(shown, only(covering))).toContain(
+          escapeHtml(copy.coveringFor.replace('{name}', 'Sarah')),
+        );
+        expect(view(shown, only(takenOver))).toContain(
+          escapeHtml(copy.takenOverBy.replace('{name}', 'Mike')),
+        );
+        expect(view(shown, only(kracht))).not.toContain(
+          escapeHtml(copy.coveringFor.split('{name}')[0] ?? '??'),
+        );
+      },
+    );
+
+    it('AC4: the accessible name of the block carries the line, and the replaced trainer’s block is dimmed', () => {
+      expect(names(view('week', only(covering)))).toEqual([
+        expect.stringContaining(copy.coveringFor.replace('{name}', 'Sarah')),
+      ]);
+      expect(names(view('week', only(takenOver)))).toEqual([
+        expect.stringContaining(copy.takenOverBy.replace('{name}', 'Mike')),
+      ]);
+      expect(view('week', only(takenOver))).not.toContain('bg-session-group-bg');
+      expect(view('week', only(takenOver))).toContain('bg-muted');
+      expect(view('week', only(covering))).toContain('bg-session-group-bg');
+    });
+  });
 });

@@ -81,12 +81,14 @@ export function OwnerDashboard({
     item.type === 'private' ? shared('typePrivate') : shared('typeGroup');
   const nameOf = (item: Shown) =>
     (item.type === 'private' ? item.clientName : item.className) ?? typeOf(item);
-  const trainerOf = (item: Shown) =>
-    item.trainer
-      ? item.trainer.id === teamMemberId
-        ? calendar('you')
-        : item.trainer.name
-      : calendar('noTrainerMark', { ...trainerWord });
+  const trainerOf = (item: Shown) => {
+    if (!item.trainer) return calendar('noTrainerMark', { ...trainerWord });
+    const name = item.trainer.id === teamMemberId ? calendar('you') : item.trainer.name;
+    // F024: "Mike (vervangt Sarah)" on a substituted date.
+    return item.substituteFor
+      ? calendar('substituteLabel', { substitute: name, original: item.substituteFor.name })
+      : name;
+  };
   const href = (item: Shown) => `/w/${slug}/sessions/${item.id}` as Route;
   const timeRange = (item: Shown) =>
     shared('timeRange', { start: when.time(item.startsAt), end: when.time(item.endsAt) });

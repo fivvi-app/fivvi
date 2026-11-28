@@ -433,4 +433,40 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
       expect(rows(html).map(([href]) => href)).toContain('/w/johns-gym/sessions/s-kracht');
     });
   });
+
+  // F024 (spec #461, ticket #554): Mike covers Sarah's Kracht; Sarah's keeps the item, dimmed.
+  describe('F024 covering and taken over', () => {
+    const sarahOnKracht = { id: 'm-sarah', trainerProfileId: 'p-sarah', name: 'Sarah' };
+    const covering: Item = { ...kracht, substituteFor: sarahOnKracht };
+    const takenOver: Item = { ...kracht, takenOverBy: { name: 'Mike' } };
+
+    it('AC4: the substitute’s row says "Je valt in voor Sarah", in the row and in the phrase a screen reader gets', () => {
+      const html = view({ items: [covering] });
+      const label = copy.coveringFor.replace('{name}', 'Sarah');
+
+      expect(seen(html)).toContain(escapeHtml(label));
+      expect(html).toMatch(new RegExp(`aria-label="[^"]*${escapeHtml(label)}[^"]*"`));
+      expect(seen(view({ items: [kracht] }))).not.toContain(escapeHtml(label));
+    });
+
+    it('AC4: the replaced trainer’s row stays, dimmed, with "Overgenomen door Mike" and no nudge', () => {
+      const html = view({
+        items: [{ ...takenOver, attendanceOpen: true }],
+        next: undefined,
+      });
+      const label = copy.takenOverBy.replace('{name}', 'Mike');
+
+      expect(seen(html)).toContain(escapeHtml(label));
+      expect(html).toMatch(/<a[^>]*class="[^"]*text-muted-foreground[^"]*"/);
+      expect(html).not.toContain('<button');
+      expect(html).not.toContain(escapeHtml(messages[locale].attendance.nudge));
+    });
+
+    it('AC4: a row that is neither has neither line', () => {
+      const html = seen(view());
+
+      expect(html).not.toContain(escapeHtml(copy.coveringFor.split('{name}')[0] ?? '??'));
+      expect(html).not.toContain(escapeHtml(copy.takenOverBy.split('{name}')[0] ?? '??'));
+    });
+  });
 });

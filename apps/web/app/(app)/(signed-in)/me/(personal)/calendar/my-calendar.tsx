@@ -128,12 +128,20 @@ export function MyCalendarView({
     return (item.type === 'private' ? item.clientName : item.className) ?? typeOf(item);
   }
 
+  /** F024: "Je valt in voor Sarah" for the substitute, "Overgenomen door Mike" for the trainer replaced. */
+  function substitution(item: ShownItem) {
+    if (item.substituteFor) return t('coveringFor', { name: item.substituteFor.name });
+    if (item.takenOverBy) return t('takenOverBy', { name: item.takenOverBy.name });
+    return undefined;
+  }
+
   /** "Privé · Anna, 09:00 tot 10:00, John's Gym, Geannuleerd": the block as one phrase, starting with the type. */
   function spoken(item: ShownItem) {
     const parts = [
       t('block', { type: typeOf(item), name: nameOf(item) }),
       t('spokenTime', { start: when.time(item.startsAt), end: when.time(item.endsAt) }),
       several ? item.workspace.name : undefined,
+      substitution(item),
       item.status === 'cancelled' ? t('cancelled') : undefined,
     ].filter((part): part is string => Boolean(part));
     return parts.reduce((first, next) => t('spokenJoin', { first, next }));
@@ -149,7 +157,9 @@ export function MyCalendarView({
       <Link
         href={sessionHref(item)}
         aria-label={spoken(item)}
-        className={sessionBlockVariants({ tone: cancelled ? 'cancelled' : item.type })}
+        className={sessionBlockVariants({
+          tone: cancelled ? 'cancelled' : item.takenOverBy ? 'dimmed' : item.type,
+        })}
       >
         <span className={`truncate font-semibold ${cancelled ? 'line-through' : ''}`}>
           {t('block', { type: typeOf(item), name: nameOf(item) })}
@@ -160,6 +170,7 @@ export function MyCalendarView({
           </span>
         ) : null}
         {several ? <span className="truncate">{item.workspace.name}</span> : null}
+        {substitution(item) ? <span className="truncate">{substitution(item)}</span> : null}
         {cancelled ? <span className="truncate">{t('cancelled')}</span> : null}
       </Link>
     );
@@ -407,14 +418,16 @@ export function MyCalendarView({
                       <th scope="row" className="px-3 py-2 text-start font-medium">
                         <Link
                           href={sessionHref(item)}
-                          className={`inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0 ${cancelled ? 'line-through' : ''}`}
+                          className={`inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0 ${cancelled ? 'line-through' : ''}${item.takenOverBy ? ' text-muted-foreground' : ''}`}
                         >
                           {nameOf(item)}
                         </Link>
                       </th>
                       <td className="px-3 py-2">{typeOf(item)}</td>
                       {several ? <td className="px-3 py-2">{item.workspace.name}</td> : null}
-                      <td className="px-3 py-2">{cancelled ? t('cancelled') : null}</td>
+                      <td className="px-3 py-2">
+                        {cancelled ? t('cancelled') : (substitution(item) ?? null)}
+                      </td>
                     </tr>
                   );
                 })}

@@ -291,12 +291,21 @@ export function WorkspaceCalendarView({
     item.type === 'private' ? shared('typePrivate') : shared('typeGroup');
   const nameOf = (item: Shown) =>
     (item.type === 'private' ? item.clientName : item.className) ?? typeOf(item);
-  const trainerOf = (item: Shown) =>
+  /** The trainer's name, *Jij* for the signed-in person. */
+  const trainerName = (item: Shown) =>
     item.trainer
       ? item.trainer.id === access.teamMemberId
         ? t('you')
         : item.trainer.name
       : undefined;
+  /** F024: "Mike (vervangt Sarah)" for a substituted date, the name otherwise. */
+  const trainerOf = (item: Shown) =>
+    item.substituteFor
+      ? t('substituteLabel', {
+          substitute: trainerName(item) ?? '',
+          original: item.substituteFor.name,
+        })
+      : trainerName(item);
 
   /** "Groep · Kracht, dinsdag 22 september, 10:00 tot 11:00, Sarah, 7 van 8 geboekt": the block as one phrase. */
   function spoken(item: Shown) {
@@ -328,7 +337,15 @@ export function WorkspaceCalendarView({
           {shared('block', { type: typeOf(item), name: nameOf(item) })}
         </span>
         <span className="truncate">
-          {trainerOf(item) ?? t('noTrainerMark', { ...trainerWord })}
+          {item.substituteFor ? (
+            // `⇄` and the substitute; the tooltip says whom they replace (the block's name does too).
+            <span title={trainerOf(item) ?? ''}>
+              <span aria-hidden="true">⇄ </span>
+              {trainerName(item)}
+            </span>
+          ) : (
+            (trainerOf(item) ?? t('noTrainerMark', { ...trainerWord }))
+          )}
           {item.type === 'group'
             ? ` · ${shared('blockBooked', { booked: item.booked ?? 0, capacity: item.capacity })}`
             : null}
@@ -591,6 +608,12 @@ export function WorkspaceCalendarView({
             ))}
             <li className="text-sm">{t('legendScheduled')}</li>
             <li className="text-sm line-through">{shared('cancelled')}</li>
+            <li className="text-sm">
+              <span aria-hidden="true" className="font-semibold">
+                ⇄{' '}
+              </span>
+              {t('legendSubstitute')}
+            </li>
             <li className="text-sm">
               <span aria-hidden="true" className="font-semibold">
                 !{' '}

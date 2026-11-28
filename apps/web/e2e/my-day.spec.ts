@@ -10,6 +10,13 @@ import {
   signInWithSession,
 } from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
+import {
+  seedClassDate,
+  seedKrachtClass,
+  storedSession,
+  team,
+  wording,
+} from './trainer-assignment-world';
 
 // F013 (spec #457, ticket #522): *Mijn dag* / *My day* on the web, the Trainer's home. Copy comes
 // from the catalogs. Each spec has accounts and workspaces of its own (see language.spec.ts):
@@ -432,5 +439,63 @@ test.describe('F013 Mijn dag on the web', () => {
       ).toContainText('09:00–10:00');
       await expectNoAxeViolations(page, 'Mijn dag in New York');
     });
+  });
+
+  // F024 (spec #461, ticket #554): Mike covers Sarah's Kracht today; John (Owner) substitutes through the API.
+  test('AC4: covering and taken over on My day and My calendar: Mike’s row says who he covers, Sarah’s stays, dimmed, without actions, out of the count and not Straks', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const w = await team(page, context);
+    const text = wording(appLocale, copy);
+    const classId = await seedKrachtClass(page.request, w.base, w.trainer('Sarah'));
+    const date = await seedClassDate(page.request, w.base, classId, today(), w.trainer('Sarah'));
+    const { version } = await storedSession(page.request, w.base, date);
+    const substituted = await page.request.post(`${w.base}/sessions/${date}/trainer`, {
+      data: {
+        trainerId: w.trainer('Mike'),
+        version,
+        scope: 'this',
+        notifySubstitute: false,
+        notifyParticipants: false,
+      },
+    });
+    expect(substituted.status()).toBe(200);
+    const covering = copy.myDay.coveringFor.replace('{name}', 'Sarah');
+    const takenOver = copy.myDay.takenOverBy.replace('{name}', 'Mike');
+
+    // Mike: "Je valt in voor Sarah", counted.
+    await context.clearCookies();
+    await signInWithSession(context, w.mike);
+    await page.goto('/me/day');
+    const mikes = page.getByRole('main').getByRole('link', { name: new RegExp(text.kracht) });
+    await expect(mikes).toContainText(covering);
+    await expect(page.getByRole('main')).not.toContainText(copy.myDay.summaryNone);
+    await expectNoAxeViolations(page, `Mijn dag of the substitute in ${appLocale}`);
+    await page.goto(`/me/calendar?view=day&date=${today()}`);
+    await expect(page.getByRole('main').getByRole('link', { name: covering })).toBeVisible();
+    await expectNoAxeViolations(page, `Mijn agenda of the substitute in ${appLocale}`);
+
+    // Sarah: the item stays, dimmed, "Overgenomen door Mike", no actions, not counted, not Straks.
+    await context.clearCookies();
+    await signInWithSession(context, w.sarah);
+    await page.goto('/me/day');
+    const hers = page.getByRole('main').getByRole('link', { name: new RegExp(text.kracht) });
+    await expect(hers).toContainText(takenOver);
+    await expect(hers).toHaveClass(/text-muted-foreground/);
+    await expect(hers).not.toContainText(covering);
+    await expect(page.getByRole('main').getByText(copy.myDay.summaryNone)).toBeVisible();
+    await expect(page.getByRole('main').getByRole('button')).toHaveCount(0);
+    await expect(
+      page.getByRole('main').getByText(copy.myDay.nextUpcoming.split('{minutes}')[0] ?? '??'),
+    ).toHaveCount(0);
+    await expect(page.getByRole('main').getByText(copy.myDay.nextInProgress)).toHaveCount(0);
+    await expectNoAxeViolations(page, `Mijn dag of the replaced trainer in ${appLocale}`);
+    await page.goto(`/me/calendar?view=day&date=${today()}`);
+    await expect(page.getByRole('main').getByRole('link', { name: takenOver })).toBeVisible();
+    await expectNoAxeViolations(page, `Mijn agenda of the replaced trainer in ${appLocale}`);
   });
 });

@@ -59,6 +59,11 @@ export function MyDayView({
 
   function row(item: Item) {
     const cancelled = item.status === 'cancelled';
+    // F024: the item of the trainer a substitute replaced stays, dimmed, with who took it over.
+    const takenOver = item.takenOverBy ? t('takenOverBy', { name: item.takenOverBy.name }) : null;
+    const covering = item.substituteFor
+      ? t('coveringFor', { name: item.substituteFor.name })
+      : null;
     const past = new Date(item.endsAt) <= now;
     const isPrivate = item.type === 'private';
     const title = (isPrivate ? item.clientName : item.className) ?? typeOf(item);
@@ -76,9 +81,9 @@ export function MyDayView({
     const link = (
       <Link
         href={sessionHref as Route}
-        className={`${rowClass} ${past || cancelled ? 'text-muted-foreground' : ''}`}
+        className={`${rowClass} ${past || cancelled || takenOver ? 'text-muted-foreground' : ''}`}
         // One screen-reader element per row, with a pause between its parts (`02-trainer-today.md`).
-        aria-label={spoken(item, title, detail, cancelled)}
+        aria-label={spoken(item, title, detail, cancelled, covering ?? takenOver)}
       >
         <span className="w-24 shrink-0 pt-px text-sm font-medium tabular-nums">
           {t('timeRange', { start: when.time(item.startsAt), end: when.time(item.endsAt) })}
@@ -89,12 +94,15 @@ export function MyDayView({
           {day.workspaceCount > 1 ? (
             <span className="truncate text-sm text-muted-foreground">{item.workspace.name}</span>
           ) : null}
+          {covering ? <span className="text-sm font-medium">{covering}</span> : null}
+          {takenOver ? <span className="text-sm">{takenOver}</span> : null}
           {cancelled ? <span className="text-sm font-medium">{t('cancelled')}</span> : null}
         </span>
       </Link>
     );
-    // The nudge sits under the row, not in its link: the buttons are not part of a link.
-    if (!item.attendanceOpen) return link;
+    // The nudge sits under the row, not in its link: the buttons are not part of a link. A date that
+    // was taken over has no actions for the replaced trainer (F024).
+    if (!item.attendanceOpen || takenOver) return link;
     const client = isPrivate && item.clients?.length === 1 ? item.clients[0] : undefined;
     return (
       <div>
@@ -110,13 +118,20 @@ export function MyDayView({
   }
 
   /** "09:00 tot 10:00, Anna, privésessie, Studio Zuid, Sarah Personal Training": the row as one phrase. */
-  function spoken(item: Item, title: string, detail: string | undefined, cancelled: boolean) {
+  function spoken(
+    item: Item,
+    title: string,
+    detail: string | undefined,
+    cancelled: boolean,
+    substitution: string | null,
+  ) {
     const parts = [
       t('spokenTime', { start: when.time(item.startsAt), end: when.time(item.endsAt) }),
       title,
       typeOf(item),
       detail,
       day.workspaceCount > 1 ? item.workspace.name : undefined,
+      substitution ?? undefined,
       cancelled ? t('cancelled') : undefined,
     ].filter((part): part is string => Boolean(part));
     return parts.reduce((first, next) => t('spokenJoin', { first, next }));
