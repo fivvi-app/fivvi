@@ -92,6 +92,8 @@ final class ClassDateSubstitutionTests: XCTestCase {
         XCTAssertEqual(
             owner.substituteText, String(format: catalog["sessions.trainerDialog.titleSubstitute"], words.word)
         )
+        // #1642: an NL action is an infinitive with the object first (GLOSSARY §5.1).
+        XCTAssertEqual(owner.substituteText, language == .nlNL ? "De trainer vervangen" : "Substitute the trainer")
         XCTAssertNil(owner.manageOnWebText)
 
         owner.substituteTapped()

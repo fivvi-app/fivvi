@@ -15374,7 +15374,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vervang de %1$@"
+            "value" : "De %1$@ vervangen"
           }
         }
       }

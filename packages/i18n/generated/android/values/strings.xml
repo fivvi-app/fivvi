@@ -1057,7 +1057,7 @@
     <string name="sessions_trainer_dialog_subtitle_private">%1$s · Privésessie</string>
     <string name="sessions_trainer_dialog_title_assign">Wijs %1$s toe</string>
     <string name="sessions_trainer_dialog_title_change">Wijzig de %1$s</string>
-    <string name="sessions_trainer_dialog_title_substitute">Vervang de %1$s</string>
+    <string name="sessions_trainer_dialog_title_substitute">De %1$s vervangen</string>
     <string name="sessions_trainer_dialog_who_assign">Wie geeft deze les?</string>
     <string name="sessions_trainer_dialog_who_substitute">Wie neemt het over?</string>
     <!-- Shown on TW-08 when saving failed for any other reason. Nothing was changed. -->

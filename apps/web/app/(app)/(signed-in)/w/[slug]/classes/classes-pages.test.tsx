@@ -736,6 +736,8 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
       const html = view({ ...date, series });
 
       expect(html).toContain(title('titleSubstitute'));
+      // #1642: an NL button is an infinitive with the object first (GLOSSARY §5.1).
+      expect(html).toContain(locale === 'en' ? 'Substitute the trainer' : 'De trainer vervangen');
       expect(html).not.toContain(title('titleAssign'));
     });
 

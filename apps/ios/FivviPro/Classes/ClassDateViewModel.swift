@@ -204,7 +204,7 @@ final class ClassDateViewModel {
     var hasMenu: Bool { canManage && !isCancelled }
     var editText: String { catalog[.classDateEdit] }
 
-    /// *Vervang de trainer* (F024): substituting is managed on the web, and the screen says so.
+    /// *De trainer vervangen* (F024): substituting is managed on the web, and the screen says so.
     func substituteTapped() { manageOnWebText = catalog[.classDateManageOnWeb] }
 
     /// *Les wijzigen*: the class is managed on the web, and the screen says so.
