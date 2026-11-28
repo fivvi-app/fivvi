@@ -263,6 +263,16 @@ final class TodayViewModel {
         return parts.compactMap { $0 }.joined(separator: " · ")
     }
 
+    /// *Je valt in voor Sarah* (F024): the card's line when the next item is a date the person covers. The next item is
+    /// not in the rows, so the card is the one place that says it.
+    var nextDetail: String? { next?.row.substitutionText }
+
+    /// What VoiceOver says of the card: its caption and the row's one name, with the substitution in it.
+    func nextSpokenLabel(at date: Date) -> String {
+        guard let next else { return "" }
+        return catalog.string(.todaySpokenJoin, nextCaption(at: date), next.row.spokenLabel)
+    }
+
     /// Every other item of today in time order; the next one is not repeated.
     var rows: [PersonalRow] {
         let nextID = day?.next?.sessionId

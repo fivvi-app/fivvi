@@ -228,7 +228,8 @@ struct TodayView: View {
         TimelineView(.periodic(from: .now, by: 30)) { _ in
             NextCard(
                 tone: tone, caption: model.nextCaption(at: model.clockNow), title: row.title,
-                subtitle: model.nextSubtitle
+                subtitle: model.nextSubtitle, detail: model.nextDetail,
+                spokenLabel: model.nextSpokenLabel(at: model.clockNow)
             ) {
                 NextCardButton(title: catalog[.todayOpen]) { onOpen(row) }
                     .accessibilityIdentifier("today.next.open")
