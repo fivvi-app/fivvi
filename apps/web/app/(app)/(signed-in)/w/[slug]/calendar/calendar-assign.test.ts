@@ -56,13 +56,13 @@ describe('F023 WC-03: dragging a block to another trainer’s column', () => {
     ).toBe('tom');
   });
 
-  it('a one-off class date that has a trainer is not offered it until F024', () => {
+  it('F024 AC1: a one-off class date that has a trainer can be substituted by dragging too', () => {
     expect(
       drop({
         item: { ...boxing, trainer: { id: 'sarah', name: 'Sarah' } },
         fromColumnKey: 'sarah',
       }),
-    ).toBeUndefined();
+    ).toBe('tom');
   });
 
   it('nothing is asked in the week view, on the same column, on Geen trainer or on a former trainer’s column', () => {

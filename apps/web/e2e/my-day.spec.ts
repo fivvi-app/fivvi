@@ -32,6 +32,23 @@ function today(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam' }).format(new Date());
 }
 
+/**
+ * The Dutch-time `HH:MM` at which a class of 55 minutes is under way right now, whatever the hour:
+ * ten minutes ago, between 00:00 and 23:00. A class that has not started or has ended is neither
+ * *Nu bezig* nor *Straks*, which would leave a check that a date is not offered there proving nothing.
+ */
+function startedMinutesAgo(): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Amsterdam',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const part = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  const start = Math.min(Math.max(part('hour') * 60 + part('minute') - 10, 0), 23 * 60);
+  return `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}`;
+}
+
 interface PlannedSession {
   id: string;
 }
@@ -451,8 +468,16 @@ test.describe('F013 Mijn dag on the web', () => {
     test.slow();
     const w = await team(page, context);
     const text = wording(appLocale, copy);
-    const classId = await seedKrachtClass(page.request, w.base, w.trainer('Sarah'));
-    const date = await seedClassDate(page.request, w.base, classId, today(), w.trainer('Sarah'));
+    // Under way now, so that before the substitution it is Sarah's *Nu bezig* at any hour.
+    const classId = await seedKrachtClass(page.request, w.base, w.trainer('Sarah'), 55);
+    const date = await seedClassDate(
+      page.request,
+      w.base,
+      classId,
+      today(),
+      w.trainer('Sarah'),
+      startedMinutesAgo(),
+    );
     const { version } = await storedSession(page.request, w.base, date);
     const substituted = await page.request.post(`${w.base}/sessions/${date}/trainer`, {
       data: {
@@ -474,6 +499,11 @@ test.describe('F013 Mijn dag on the web', () => {
     const mikes = page.getByRole('main').getByRole('link', { name: new RegExp(text.kracht) });
     await expect(mikes).toContainText(covering);
     await expect(page.getByRole('main')).not.toContainText(copy.myDay.summaryNone);
+    // The class is under way, so for the trainer who teaches it it is *Nu bezig*: the control that
+    // makes Sarah's missing label below mean something.
+    await expect(
+      page.getByRole('main').getByRole('heading', { level: 2, name: copy.myDay.nextInProgress }),
+    ).toBeVisible();
     await expectNoAxeViolations(page, `Mijn dag of the substitute in ${appLocale}`);
     await page.goto(`/me/calendar?view=day&date=${today()}`);
     await expect(page.getByRole('main').getByRole('link', { name: covering })).toBeVisible();
@@ -492,7 +522,9 @@ test.describe('F013 Mijn dag on the web', () => {
     await expect(
       page.getByRole('main').getByText(copy.myDay.nextUpcoming.split('{minutes}')[0] ?? '??'),
     ).toHaveCount(0);
-    await expect(page.getByRole('main').getByText(copy.myDay.nextInProgress)).toHaveCount(0);
+    await expect(
+      page.getByRole('main').getByRole('heading', { level: 2, name: copy.myDay.nextInProgress }),
+    ).toHaveCount(0);
     await expectNoAxeViolations(page, `Mijn dag of the replaced trainer in ${appLocale}`);
     await page.goto(`/me/calendar?view=day&date=${today()}`);
     await expect(page.getByRole('main').getByRole('link', { name: takenOver })).toBeVisible();

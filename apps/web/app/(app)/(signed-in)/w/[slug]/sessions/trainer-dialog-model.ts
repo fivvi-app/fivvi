@@ -45,6 +45,20 @@ export function substitutionOf(session: Assignable, scope: AssignScope | undefin
 }
 
 /**
+ * The name of the regular trainer the save replaced, or `null` when it was no substitution (F024):
+ * the done text "{substitute} vervangt {original}" is for *Alleen deze les* on a date that had a
+ * trainer. *Deze en alle volgende lessen* on an already substituted date leaves that date
+ * substituted (the API keeps it) but changes the series, so it gets the plain done text.
+ */
+export function substitutedFor(
+  session: Assignable,
+  scope: AssignScope | undefined,
+  saved: Pick<Session, 'substituteFor'>,
+): string | null {
+  return substitutionOf(session, scope) ? (saved.substituteFor?.name ?? null) : null;
+}
+
+/**
  * The candidates in the order the dialog lists them: on a substituted date the regular trainer, the
  * one the date's trainer replaces, comes first (*(vaste trainer)*); the API's order otherwise.
  */

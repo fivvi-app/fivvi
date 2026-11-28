@@ -396,7 +396,7 @@ describe.each(locales)('F023 the trainer dialog in %s', (locale) => {
       expect(text(html)).toContain(t('notifySubstitute', { trainer: 'Mike' }));
     });
 
-    it('AC7: with Deze en alle volgende lessen the substitute’s box is gone and the usual notify box counts every date', () => {
+    it('AC6: with Deze en alle volgende lessen the substitute’s box is gone and the usual notify box counts every date', () => {
       const html = substitution({ initialTrainerId: 'mike', initialScope: 'following' });
 
       expect(text(html)).not.toContain(t('notifySubstitute', { trainer: 'Mike' }));

@@ -632,6 +632,8 @@
   }
   function bad(f, msg) { var w = W(); w.err = {}; w.err[f] = msg; F.toast(msg, "err"); return true; }
   function inp(f, type, ph) { return '<input class="w-input" data-wf="' + f + '" type="' + (type || "text") + '" value="' + esc(W().form[f] || "") + '" placeholder="' + esc(ph || "") + '">'; }
+  /* who can take over (F024): the regular trainer of a substituted date first, marked; everyone but the one teaching it */
+  function subOptions(it) { var cur = who(it), reg = typeof it.subFor === "string" ? it.subFor : ""; return (reg ? [[reg, reg + " (vaste trainer)"]] : []).concat(D.trainers.sf.filter(function (x) { return x !== cur && x !== reg; }).map(function (x) { return [x, x]; })); }
   function selF(f, opts) { return '<select class="w-input" data-wf="' + f + '">' + opts.map(function (o) { var v = Array.isArray(o) ? o[0] : o, l = Array.isArray(o) ? o[1] : o; return '<option value="' + esc(v) + '"' + (String(W().form[f]) === String(v) ? " selected" : "") + ">" + esc(l) + "</option>"; }).join("") + "</select>"; }
   function dialog() {
     var w = W(), d = w.dialog, it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null, t, b, ok, kind = "", cancel = "Annuleren";
@@ -640,7 +642,15 @@
     else if (d.n === "cancelpriv" && it.duo) { t = "Wie annuleer je?"; b = fld("Annuleren voor", selF("who", [["first", "Alleen " + F.CLIENT[it.client].name.split(" ")[0]], ["second", "Alleen " + F.CLIENT[it.duo].name.split(" ")[0]], ["both", "Hele sessie"]])) + "<p>Annuleer je één klant, dan gaat de sessie door met de ander. Beiden krijgen een e-mail.</p>"; ok = "Annuleren"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "cancelpriv") { t = "Sessie annuleren?"; b = "<p>" + esc(F.CLIENT[it.client].name.split(" ")[0]) + " krijgt een e-mail dat de sessie van " + it.s + " niet doorgaat.</p>"; ok = "Sessie annuleren"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "move") { t = "Verplaatsen"; b = fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + '<p class="w-muted">' + (it.type === "priv" ? "De klant krijgt" : "Geboekte klanten krijgen") + " een e-mail met de nieuwe tijd.</p>"; ok = "Opslaan"; }
-    else if (d.n === "sub") { t = "Trainer vervangen"; b = fld("Wie valt in?", selF("trainer", D.trainers.sf.filter(function (x) { return x !== who(it); }))) + '<p class="w-muted">De invaller krijgt een e-mail. Klanten zien de nieuwe naam bij de les.</p>'; ok = "Vervangen"; }
+    else if (d.n === "sub") {
+      /* CO-02 as built (F024): who takes over (the regular trainer first), Voor, then the two email boxes; ending it asks only the participants */
+      var si = (w.sheet ? F.findItem(w.sheet) : F.findItem(w.kid)) || {}, pick = w.form.trainer, ends = typeof it.subFor === "string" && pick === it.subFor, count = it.people.length, begun = F.isPast(it, si.day), box = function (l) { return '<label class="w-check"><input type="checkbox" checked> <span>' + esc(l) + "</span></label>"; };
+      t = "Vervang de trainer";
+      b = '<p class="w-muted">' + esc(it.title) + " \u00b7 " + F.longDate(F.parse(si.day)) + ", " + it.s + "\u2013" + it.e + '</p><p class="w-muted">Nu: ' + esc(who(it)) + "</p>" + fld("Wie neemt het over?", selF("trainer", subOptions(it))) +
+        '<div class="w-field"><span>Voor</span><label class="w-check"><input type="radio" name="subscope" checked> <span>Alleen deze les</span></label><label class="w-check"><input type="radio" name="subscope"> <span>Deze en alle volgende lessen</span></label></div>' +
+        (begun || ends ? "" : box(pick.split(" ")[0] + " een e-mail sturen")) + (begun || !count ? "" : box(count + (count === 1 ? " deelnemer" : " deelnemers") + " informeren per e-mail"));
+      ok = "Vervangen";
+    }
     else if (d.n === "editclass") { t = "Les wijzigen"; b = fld("Begin", inp("start", "time")) + fld("Eind", inp("end", "time")) + fld("Plekken", inp("cap", "number")) + fld("Niveau", selF("level", [["", "Geen"]].concat(D.LEVELS.map(function (l) { return [l, l]; })))) + '<p class="w-muted">Alleen deze datum. De reeks verandert niet.</p>'; ok = "Opslaan"; }
     else if (d.n === "wlremove") { t = "Van de wachtlijst halen?"; b = "<p>" + esc(waitNames(it)[d.i]) + " krijgt een e-mail en staat niet meer op de wachtlijst.</p>"; ok = "Verwijderen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "renew") { t = "Link vernieuwen?"; b = "<p>De oude link en QR-code werken daarna niet meer. Hangt de QR-code ergens, vervang die dan ook.</p>"; ok = "Vernieuwen"; kind = "dng"; }
@@ -771,7 +781,7 @@
     if (d.n === "offer-del") { openDlg("offer-del", {}, { id: d.id }); return; }
     if (d.n === "offer") { var ag = d.ag ? D.billing[W().cid].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; openDlg("offer", { offer: F.offerStart(F.OPENOFFERS(), ag), start: "after" }, { ag: d.ag || "" }); return; }
     if (d.n === "cash") { openDlg("cash", { offer: F.offerStart(D.onOffers()), how: "Contant", date: F.TODAY }); return; }
-    if (d.n === "refund") { var pay = D.billing[W().cid].payments[+d.i]; openDlg("refund", { amount: pay[2] }, { i: +d.i }); return; } var w = W(), it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null; openDlg(d.n, it ? { start: it.s, end: it.e, cap: String(it.cap || ""), level: F.level(it), date: w.sheet ? F.findItem(w.sheet).day : F.TODAY, trainer: D.trainers.sf.filter(function (x) { return !it || x !== who(it); })[0] } : {}, { i: d.i }); };
+    if (d.n === "refund") { var pay = D.billing[W().cid].payments[+d.i]; openDlg("refund", { amount: pay[2] }, { i: +d.i }); return; } var w = W(), it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null; openDlg(d.n, it ? { start: it.s, end: it.e, cap: String(it.cap || ""), level: F.level(it), date: w.sheet ? F.findItem(w.sheet).day : F.TODAY, trainer: d.n === "sub" ? subOptions(it)[0][0] : D.trainers.sf.filter(function (x) { return !it || x !== who(it); })[0] } : {}, { i: d.i }); };
   A["w-decline"] = function (d) { openDlg("decline", {}, { id: d.id }); };
   A["w-new-priv"] = function () { openDlg("newpriv", { client: "anna", loc: D.locations[0] }); };
   A["w-plan"] = function (d) { openDlg("newpriv", { client: d.id, date: F.key(F.add(F.NOW, 1)), start: "10:30", loc: D.locations[0] }); };
@@ -795,7 +805,12 @@
     else if (d.n === "cancelpriv" && it.duo && (f.who || "first") !== "both") { msg = F.cancelDuoPart(it, (f.who || "first") === "first"); }
     else if (d.n === "cancelclass" || d.n === "cancelpriv") { it.cancelled = true; msg = d.n === "cancelpriv" ? "Sessie geannuleerd" : "Les geannuleerd. Klanten krijgen een e-mail."; }
     else if (d.n === "move") { var dur = F.mins(it.e) - F.mins(it.s); it.s = f.start; it.e = F.hm(F.mins(f.start) + dur); msg = "Verplaatst naar " + f.start; }
-    else if (d.n === "sub") { it.trainer = f.trainer; it.subFor = true; msg = f.trainer + " valt in"; }
+    else if (d.n === "sub") {
+      /* "Mike vervangt Sarah op di 20 okt."; the regular trainer again ends it ("Sarah geeft Kracht op di 20 okt."); the regular trainer is remembered in subFor */
+      var sd = (w.sheet ? F.findItem(w.sheet) : F.findItem(w.kid)).day, sw = typeof it.subFor === "string" ? it.subFor : who(it), on = " op " + F.shortDate(F.parse(sd)) + ".";
+      if (f.trainer === sw) { it.trainer = sw; it.subFor = false; msg = sw + " geeft " + it.title + on; }
+      else { it.trainer = f.trainer; it.subFor = sw; msg = f.trainer + " vervangt " + sw + on; }
+    }
     else if (d.n === "editclass") { it.s = f.start; it.e = f.end; it.cap = +f.cap || it.cap; it.level = f.level || ""; }
     else if (d.n === "wlremove") { it.waitlist = Math.max(0, (it.waitlist || 0) - 1); msg = "Van de wachtlijst gehaald"; }
     else if (d.n === "offer-edit") {
@@ -1484,7 +1499,7 @@
   function onInput(t) {
     if (t.dataset.wset) { var q = t.dataset.wset.split(","); W().wedit.ex[+q[0]].sets[+q[1]].v[+q[2]] = t.value; return true; }
     if (t.dataset.wrow) { var p = t.dataset.wrow.split(","); W().rows[+p[0]][+p[1]] = t.value; return true; }
-    if (t.dataset.wf) { W().form[t.dataset.wf] = t.value; clearErr(t, W().err); if (t.dataset.wf === "kind") W().form.tpl = ""; if (t.dataset.wf === "kind" || t.dataset.wf === "end") R(); return true; }
+    if (t.dataset.wf) { W().form[t.dataset.wf] = t.value; clearErr(t, W().err); if (t.dataset.wf === "kind") W().form.tpl = ""; if (t.dataset.wf === "kind" || t.dataset.wf === "end" || (t.dataset.wf === "trainer" && W().dialog && W().dialog.n === "sub")) R(); return true; }
     if (t.dataset.win === "q") { W().q = t.value; var el = document.getElementById("w-sr"); if (el) { el.innerHTML = searchResults(); if (window.FIVVI_I18N) window.FIVVI_I18N.apply(el, F.PREF.lang); } return true; }
     if (t.dataset.sv) { C().self.v[t.dataset.sv] = t.value; return true; }
     if (t.dataset.cexq) { C().exq = t.value; var cl = document.getElementById("cexlist"); if (cl) { cl.innerHTML = cexList(); if (window.FIVVI_I18N) window.FIVVI_I18N.apply(cl, F.PREF.lang); } return true; }

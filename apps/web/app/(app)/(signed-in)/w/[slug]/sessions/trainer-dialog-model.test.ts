@@ -6,6 +6,7 @@ import {
   orderedCandidates,
   scopesOffered,
   startedBy,
+  substitutedFor,
   substitutionOf,
 } from './trainer-dialog-model';
 
@@ -115,5 +116,40 @@ describe('F024 substitution in the dialog', () => {
     const startsAt = '2026-10-06T16:00:00.000Z';
     expect(startedBy({ startsAt }, new Date('2026-10-06T16:00:00.000Z'))).toBe(true);
     expect(startedBy({ startsAt }, new Date('2026-10-06T15:59:59.000Z'))).toBe(false);
+  });
+
+  describe('which done text a save gets (substitutedFor)', () => {
+    const regular = { id: 'sarah', trainerProfileId: 'p-sarah', name: 'Sarah' };
+
+    it('AC1: Alleen deze les on a date with a trainer: the substitute replaces the regular trainer', () => {
+      const date = { ...base, type: 'group', series, trainer: sarah } as const;
+      expect(substitutedFor(date, 'this', { substituteFor: regular })).toBe('Sarah');
+    });
+
+    it('AC5: choosing the regular trainer again ends it: no substitution text', () => {
+      const date = {
+        ...base,
+        type: 'group',
+        series,
+        trainer: { id: 'mike', name: 'Mike' },
+      } as const;
+      expect(substitutedFor(date, 'this', {})).toBeNull();
+    });
+
+    it('AC6: Deze en alle volgende lessen on an already substituted date keeps that date substituted, but is no substitution', () => {
+      const date = {
+        ...base,
+        type: 'group',
+        series,
+        trainer: { id: 'mike', name: 'Mike' },
+      } as const;
+      expect(substitutedFor(date, 'following', { substituteFor: regular })).toBeNull();
+    });
+
+    it('a date without a trainer is assigned, not substituted', () => {
+      expect(
+        substitutedFor({ ...base, type: 'group', series }, 'this', { substituteFor: regular }),
+      ).toBeNull();
+    });
   });
 });

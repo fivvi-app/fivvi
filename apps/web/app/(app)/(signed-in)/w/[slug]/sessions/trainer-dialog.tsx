@@ -21,7 +21,7 @@ import {
   loadTrainerCandidates,
   type TrainerCandidates,
 } from './trainer-assignment-client';
-import { assignKind } from './trainer-dialog-model';
+import { assignKind, substitutedFor } from './trainer-dialog-model';
 import { type TrainerChoice, TrainerForm, type TrainerFormClient } from './trainer-form';
 import { useSessionFormat } from './use-session-format';
 
@@ -137,16 +137,17 @@ export function TrainerDialog({
     });
     if (result.ok) {
       const trainer = name(picked.trainerId);
+      const original = substitutedFor(current, picked.scope, result.session);
       return onAssigned({
         session: result.session,
         message:
           current.type === 'private'
             ? t('donePrivate', { ...trainerWord, trainer })
-            : result.session.substituteFor
-              ? // F024: "Mike vervangt Sarah op di 20 okt."; choosing the regular trainer again ends it ("Sarah geeft Kracht op …").
+            : original
+              ? // F024: "Mike vervangt Sarah op di 20 okt."; choosing the regular trainer again ends it ("Sarah geeft Kracht op …"), and Deze en alle volgende lessen is no substitution.
                 t('doneSubstitute', {
                   substitute: trainer,
-                  original: result.session.substituteFor.name,
+                  original,
                   date: when.day(current.startsAt),
                 })
               : t('doneClass', { trainer, class: className, date: when.day(current.startsAt) }),

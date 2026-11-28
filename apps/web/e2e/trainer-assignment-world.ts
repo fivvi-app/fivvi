@@ -231,30 +231,36 @@ export async function trainerChangeEmail(address: string, trainer: string) {
 export const inDays = (days: number) => isoDay(Date.now() + days * DAY);
 
 /** A Kracht class with `trainerId` as its trainer and no dates yet. */
-export async function seedKrachtClass(request: APIRequestContext, base: string, trainerId: string) {
+export async function seedKrachtClass(
+  request: APIRequestContext,
+  base: string,
+  trainerId: string,
+  durationMinutes = 60,
+) {
   return (
     (await created(request, `${base}/group-classes`, {
       nameNl: 'Kracht',
       nameEn: 'Strength',
       capacity: 12,
-      durationMinutes: 60,
+      durationMinutes,
       trainerId,
     })) as { groupClass: { id: string } }
   ).groupClass.id;
 }
 
-/** One date of the class at 18:00, with `trainerId` teaching. */
+/** One date of the class at `localStart` (18:00 unless given), with `trainerId` teaching. */
 export async function seedClassDate(
   request: APIRequestContext,
   base: string,
   classId: string,
   localDate: string,
   trainerId: string,
+  localStart = '18:00',
 ) {
   return (
     (await created(request, `${base}/group-classes/${classId}/dates`, {
       localDate,
-      localStart: '18:00',
+      localStart,
       trainerId,
     })) as { id: string }
   ).id;
