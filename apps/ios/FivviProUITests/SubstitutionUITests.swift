@@ -24,6 +24,18 @@ final class SubstitutionUITests: PrivateSessionUITestCase {
         return AppLaunch.launch(against: server, session: .signedIn, startTab: nil, now: now)
     }
 
+    /// Taps the Agenda tab once the tab bar is up and the tab can be hit: right after launch the bar can be on screen
+    /// before its buttons match their identifiers ("Automation type mismatch", #1643), and a tap then fails the test.
+    private func openAgenda(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        let tab = app.tabBars.buttons["tab.calendar"]
+        XCTAssertTrue(tab.waitUntilExists(timeout: timeout), requestLog, file: file, line: line)
+        XCTAssertTrue(
+            Polling.until(timeout: timeout, condition: { tab.isHittable }), "tab.calendar is not hittable",
+            file: file, line: line
+        )
+        tab.tap()
+    }
+
     private func coveringText(_ name: String = StubPersonalRoutes.coveredTrainerName) -> String {
         String(format: catalog["myDay.coveringFor"], name)
     }
@@ -50,7 +62,7 @@ final class SubstitutionUITests: PrivateSessionUITestCase {
 
     func test_F024_AC4_agendaShowsTheSameLabelsAndTheDimmedDateHasNoDot() throws {
         let mike = try launchPersonal(covering, as: StubPersonalRoutes.substituteName, now: "2026-10-20T08:35:00+02:00")
-        mike.tabBars.buttons["tab.calendar"].tap()
+        openAgenda(mike)
         let coveringRow = mike.buttons["calendar.row.\(StubPersonalRoutes.krachtOctober20)"]
         XCTAssertTrue(coveringRow.waitUntilExists(timeout: timeout), requestLog)
         XCTAssertTrue(coveringRow.label.contains(coveringText()), coveringRow.label)
@@ -60,7 +72,7 @@ final class SubstitutionUITests: PrivateSessionUITestCase {
         let sarah = try launchPersonal(
             takenOver, as: StubPersonalRoutes.coveredTrainerName, now: "2026-10-20T08:35:00+02:00"
         )
-        sarah.tabBars.buttons["tab.calendar"].tap()
+        openAgenda(sarah)
         let away = sarah.buttons["calendar.row.\(StubPersonalRoutes.krachtOctober20)"]
         XCTAssertTrue(away.waitUntilExists(timeout: timeout), requestLog)
         XCTAssertTrue(away.label.contains(takenOverText()), away.label)
