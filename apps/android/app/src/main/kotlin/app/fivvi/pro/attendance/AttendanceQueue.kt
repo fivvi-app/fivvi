@@ -133,6 +133,12 @@ data class QueueState(
     val online: Boolean = true,
     /** Counts every request that left the queue, sent or refused, so a screen can read again. */
     val revision: Int = 0,
+    /**
+     * How many requests were dropped when the account was adopted because they were made before it was known, under another
+     * sign-in (a 401 ended it): nobody can say whose they were, so they cannot be sent. Vandaag says so once, until it is
+     * dismissed ([AttendanceQueue.dismissDroppedTaps]).
+     */
+    val droppedTaps: Int = 0,
 ) {
     fun pending(sessionId: UUID) = entries.filter { it.sessionId == sessionId }
 
@@ -156,7 +162,7 @@ data class QueueState(
  * account ([adopt]): what an earlier account left is never sent and is deleted. A tap made before `GET /v1/me` answered (an
  * app opened offline, a tap before the answer) has no account yet: it is this account's only if it was made under this very
  * sign-in; one of another sign-in could be anybody's (a 401 ended that one before the account was known), so it is deleted
- * and never sent. The file is read when the queue is made and nothing is sent until [adopt] names the account; what another
+ * and never sent, and the screens say so once ([QueueState.droppedTaps]). The file is read when the queue is made and nothing is sent until [adopt] names the account; what another
  * sign-in left shows nowhere (not in the sign-out warning, not on TD-02 and CO-05) and is kept in the file until [adopt]
  * decides, so no write overwrites it. The sign-out clears the queue ([clear], in memory and on disk) after the screens
  * warned; a token the API rejects (a 401) does not: the taps of an account stay on disk and are sent when the same account
@@ -244,10 +250,14 @@ class AttendanceQueue(
             // The list is in the order it was tapped (what an earlier sign-in left first): keep the account's, make what this
             // sign-in tapped before the account was known the account's too, and drop the rest.
             val earlier = held.filter { it.accountId == account }
+            // What no account can be named for is lost; the person is told once (the owner's decision (a) on #549).
+            val dropped = held.count { it.accountId == UNKNOWN }
             val own = _state.value.entries.filter { it.accountId == account || it.accountId == UNKNOWN }
                 .map { if (it.accountId == UNKNOWN) it.copy(accountId = account) else it }
             held = emptyList()
-            _state.update { it.copy(entries = (earlier + own).distinctBy(QueueEntry::id)) }
+            _state.update {
+                it.copy(entries = (earlier + own).distinctBy(QueueEntry::id), droppedTaps = it.droppedTaps + dropped)
+            }
             save()
         }
         flush()
@@ -280,6 +290,9 @@ class AttendanceQueue(
             },
         )
     }
+
+    /** The person read the notice that taps from before could not be sent: it does not come back. */
+    fun dismissDroppedTaps() = _state.update { it.copy(droppedTaps = 0) }
 
     fun forgetAnswer(sessionId: UUID) = _state.update { it.copy(answers = it.answers - sessionId) }
 

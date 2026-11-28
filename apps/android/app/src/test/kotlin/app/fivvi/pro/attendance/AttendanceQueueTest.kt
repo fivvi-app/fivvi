@@ -513,9 +513,10 @@ class AttendanceQueueTest {
         )
     }
 
-    // The account was learned before the 401 stamped the tap: the same account signing in again sends it.
+    // The account was learned (the tap was stamped with it) before the 401: the same account signing in again sends it, and
+    // there is nothing to warn about.
     @Test
-    fun test_F025_1620_aNoAccountTapThenA401ThenTheSameAccountSignsInAgainSendsTheTap() {
+    fun test_F025_1620_aTapStampedWithTheAccountBeforeThe401IsSentWhenTheSameAccountSignsInAgain() {
         val phone = FakeConnectivity(false)
         val sarah = queue(account = null, online = phone)
         sarah.tap("Anna de Vries", AttendanceStatus.ATTENDED)
@@ -528,6 +529,73 @@ class AttendanceQueueTest {
 
         assertEquals(listOf(participantIdOf("Anna de Vries")), server.sent.map { it.clientId })
         assertTrue(again.state.value.entries.isEmpty())
+        assertEquals("nothing was dropped, so nothing to say", 0, again.state.value.droppedTaps)
+    }
+
+    // The owner's decision (a) on #549: the taps made before the account was known, then a 401, then the same person signs in
+    // again, cannot be sent (nobody can say they are hers): the app says so, once, with the count.
+    @Test
+    fun test_F025_1620_theTapsDroppedBeforeTheAccountWasKnownAreCountedForTheNoticeAfterTheNextSignIn() {
+        val sarah = queue(account = null, online = FakeConnectivity(false))
+        sarah.tap("Anna de Vries", AttendanceStatus.ATTENDED)
+        sarah.tap("Bram Jansen", AttendanceStatus.NO_SHOW)
+        sarah.enqueue(workspace, kracht, QueueAction.Everyone(listOf(participantIdOf("Chris Bakker"))))
+        signedIn = false // `GET /v1/me` answers 401: the session ends before an account is known
+
+        signedIn = true
+        signIn = "sign-in-2"
+        val again = queue(account = null, online = FakeConnectivity(false))
+        assertEquals("nothing to say before the account is known", 0, again.state.value.droppedTaps)
+        again.adopt("sarah")
+
+        assertEquals("three requests, each counted once", 3, again.state.value.droppedTaps)
+        assertEquals(emptyList<SentAttendance>(), server.sent)
+        assertTrue(again.state.value.entries.isEmpty())
+    }
+
+    // Once: the notice goes when it is dismissed and is not made again, not by a later answer of `GET /v1/me`, not after the app
+    // is opened again (the file no longer holds the taps).
+    @Test
+    fun test_F025_1620_theDroppedTapsNoticeShowsOnceAndDoesNotComeBack() {
+        queue(account = null, online = FakeConnectivity(false)).tap("Anna de Vries", AttendanceStatus.ATTENDED)
+        signIn = "sign-in-2"
+        val again = queue(account = "sarah")
+        assertEquals(1, again.state.value.droppedTaps)
+
+        again.adopt("sarah")
+        assertEquals("a later answer does not count them twice", 1, again.state.value.droppedTaps)
+        again.dismissDroppedTaps()
+        assertEquals(0, again.state.value.droppedTaps)
+
+        assertEquals("the app is opened again", 0, queue(account = "sarah").state.value.droppedTaps)
+        assertEquals(0, queue(account = null).state.value.droppedTaps)
+    }
+
+    // Only a tap with no account is warned about: another account's own taps are not (#1618: another account's sign-in deletes
+    // them), and a tap of the account itself is kept and sent.
+    @Test
+    fun test_F025_1620_theDroppedTapsNoticeCountsOnlyTapsMadeBeforeTheAccountWasKnown() {
+        queue(account = "sarah", online = FakeConnectivity(false)).tap("Anna de Vries", AttendanceStatus.ATTENDED)
+        queue(account = null, online = FakeConnectivity(false)).tap("Bram Jansen", AttendanceStatus.NO_SHOW)
+
+        signIn = "sign-in-2"
+        val john = queue(account = "john")
+
+        assertEquals("only Bram's tap, which had no account", 1, john.state.value.droppedTaps)
+        assertEquals(emptyList<SentAttendance>(), server.sent)
+    }
+
+    // The sign-out the person chose clears the notice with everything else.
+    @Test
+    fun test_F025_1620_theSignOutClearsTheDroppedTapsNotice() {
+        queue(account = null, online = FakeConnectivity(false)).tap("Anna de Vries", AttendanceStatus.ATTENDED)
+        signIn = "sign-in-2"
+        val again = queue(account = "sarah")
+        assertEquals(1, again.state.value.droppedTaps)
+
+        again.clear()
+
+        assertEquals(0, again.state.value.droppedTaps)
     }
 
     // The taps another sign-in left stay on disk, out of sight, until the account is known; then those of the same account go

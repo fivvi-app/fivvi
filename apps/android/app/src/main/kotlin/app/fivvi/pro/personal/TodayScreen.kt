@@ -84,6 +84,10 @@ object TodayTags {
     const val OFFLINE = "today.offline"
     const val NOTICE = "today.notice"
     const val NOTICE_DISMISS = "today.notice.dismiss"
+
+    /** The notice that attendance taps made before the account was known could not be sent (F025). */
+    const val DROPPED_TAPS = "today.droppedTaps"
+    const val DROPPED_TAPS_DISMISS = "today.droppedTaps.dismiss"
     const val TIME_ZONE_HINT = "today.timeZoneHint"
     const val CARD = "today.card"
     const val CARD_GAP = "today.card.gap"
@@ -121,6 +125,8 @@ class TodayActions(
     val onMark: (PersonalRow, AttendanceStatus) -> Unit = { _, _ -> },
     /** The line *Aanwezigheid nog invullen* of an ended class opens CO-05 (F025). */
     val onOpenAttendance: (PersonalRow) -> Unit = {},
+    /** The notice that taps from before the account was known could not be sent was read (F025). */
+    val onDismissDroppedTaps: () -> Unit = {},
 )
 
 /**
@@ -182,7 +188,7 @@ fun TodayScreen(
                 )
             }
             // The personal day's own states belong to Mijn dag: the studio shows its own.
-            item { Banners(state, actions, deviceZone, now, personal = !isStudio) }
+            item { Banners(state, actions, deviceZone, now, queue.droppedTaps, personal = !isStudio) }
             if (studio != null && showsToggle) {
                 item { StudioScopeControl(studio, summary = if (state.day != null) summaryText(content) else null) }
             }
@@ -273,9 +279,31 @@ private fun Banners(
     actions: TodayActions,
     deviceZone: ZoneId,
     now: Instant,
+    droppedTaps: Int,
     personal: Boolean = true,
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.space2)) {
+        // Of the app, not of the day: it shows in *Hele studio* too. Once, until it is dismissed.
+        if (droppedTaps > 0) {
+            Row(
+                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondaryContainer),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    pluralStringResource(R.plurals.attendance_app_dropped_taps, droppedTaps, droppedTaps),
+                    modifier = Modifier.weight(1f).padding(horizontal = Spacing.space4, vertical = Spacing.space2)
+                        .testTag(TodayTags.DROPPED_TAPS).semantics { liveRegion = LiveRegionMode.Polite },
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    style = MaterialTheme.typography.body,
+                )
+                TextButton(
+                    onClick = actions.onDismissDroppedTaps,
+                    modifier = Modifier.testTag(TodayTags.DROPPED_TAPS_DISMISS),
+                ) {
+                    Text(stringResource(R.string.my_day_app_dismiss))
+                }
+            }
+        }
         state.notices.forEach { name ->
             Row(
                 Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondaryContainer),

@@ -24,6 +24,7 @@
       "cancelled": "Cancelled.",
       "caughtUp": "All caught up",
       "chip": "Attendance · {name} {start}",
+      "droppedTaps": "{count, plural, one {# attendance change made earlier could not be sent.} other {# attendance changes made earlier could not be sent.}}",
       "from": "From {time}.",
       "open": "Open",
       "participantsCount": "Participants · {count}",

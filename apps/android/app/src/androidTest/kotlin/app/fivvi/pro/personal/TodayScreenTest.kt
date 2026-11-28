@@ -34,6 +34,7 @@ import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.theme.FivviTheme
 import app.fivvi.pro.FivviApplication
+import app.fivvi.pro.attendance.QueueState
 import app.fivvi.pro.home.NewMenu
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.personal.PersonalFixtures.at
@@ -64,6 +65,7 @@ class TodayScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
     private val tomorrows = mutableListOf<String>()
     private val routes = mutableListOf<String>()
     private var dismissed = 0
+    private var droppedDismissed = 0
     private var refreshed = 0
     private val amsterdam = ZoneId.of("Europe/Amsterdam")
 
@@ -99,6 +101,7 @@ class TodayScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
         onPlan = if (canPlan) ({ planned += it }) else null,
         onOpenTomorrow = { tomorrows += it },
         onDismissNotices = { dismissed++ },
+        onDismissDroppedTaps = { droppedDismissed++ },
     )
 
     // The phone is tall enough for the whole day: a list shows only what is on screen.
@@ -107,9 +110,12 @@ class TodayScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
         actions: TodayActions = actions(),
         device: ZoneId = amsterdam,
         now: Instant = PersonalFixtures.now,
+        queue: QueueState = QueueState(),
     ) = compose.setContent {
         DeviceConfigurationOverride(DeviceConfigurationOverride.Locales(LocaleList(language.tag))) {
-            FivviTheme { Box(Modifier.size(360.dp, 2600.dp)) { TodayScreen(state, actions, device, now) } }
+            FivviTheme {
+                Box(Modifier.size(360.dp, 2600.dp)) { TodayScreen(state, actions, device, now, queue = queue) }
+            }
         }
     }
 
@@ -427,6 +433,34 @@ class TodayScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
             TodayTags.NOTICE_DISMISS,
         ).assertTextEquals(string(R.string.my_day_app_dismiss)).performClick()
         assertEquals(1, dismissed)
+    }
+
+    // F025 (#549, the owner's decision (a)): taps made before the account was known could not be sent after a 401 and a new
+    // sign-in; Vandaag says how many, with a button to dismiss it, and says nothing when none were dropped.
+    @Test
+    fun test_F025_1620_droppedTapsNoticeSaysHowManyAndGoesWhenDismissed() {
+        show(loaded(), queue = QueueState(droppedTaps = 3))
+
+        tag(TodayTags.DROPPED_TAPS).assertTextEquals(plural(R.plurals.attendance_app_dropped_taps, 3, 3))
+        compose.onNodeWithTag(
+            TodayTags.DROPPED_TAPS_DISMISS,
+        ).assertTextEquals(string(R.string.my_day_app_dismiss)).performClick()
+        assertEquals(1, droppedDismissed)
+        assertEquals("the removed-workspace notice has its own button", 0, dismissed)
+    }
+
+    @Test
+    fun test_F025_1620_droppedTapsNoticeSaysOneInTheSingular() {
+        show(loaded(), queue = QueueState(droppedTaps = 1))
+
+        tag(TodayTags.DROPPED_TAPS).assertTextEquals(plural(R.plurals.attendance_app_dropped_taps, 1, 1))
+    }
+
+    @Test
+    fun test_F025_1620_noDroppedTapsNoNotice() {
+        show(loaded())
+
+        tag(TodayTags.DROPPED_TAPS).assertDoesNotExist()
     }
 
     @Test

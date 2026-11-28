@@ -18,6 +18,10 @@
     <string name="attendance_app_cancelled">Geannuleerd.</string>
     <string name="attendance_app_caught_up">Alles bijgewerkt</string>
     <string name="attendance_app_chip">Aanwezigheid · %1$s %2$s</string>
+    <plurals name="attendance_app_dropped_taps">
+        <item quantity="one">%1$d eerder gemaakte wijziging van de aanwezigheid kon niet worden verstuurd.</item>
+        <item quantity="other">%1$d eerder gemaakte wijzigingen van de aanwezigheid konden niet worden verstuurd.</item>
+    </plurals>
     <string name="attendance_app_from">Vanaf %1$s.</string>
     <string name="attendance_app_open">Open</string>
     <string name="attendance_app_participants_count">Deelnemers · %1$s</string>

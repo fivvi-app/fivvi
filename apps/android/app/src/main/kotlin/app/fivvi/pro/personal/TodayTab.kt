@@ -120,6 +120,7 @@ fun TodayTab(
                 }
             },
             onOpenAttendance = onOpenAttendance,
+            onDismissDroppedTaps = { attendance?.dismissDroppedTaps() },
         ),
         deviceZone = zone,
         now = now,
