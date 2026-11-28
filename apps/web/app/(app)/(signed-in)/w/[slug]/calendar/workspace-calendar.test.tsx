@@ -382,6 +382,74 @@ describe.each(locales)('F014 Agenda in %s', (locale) => {
       expect.stringContaining('Eva de Vries'),
     );
   });
+
+  // F024 (spec #461, ticket #554): Mike covers Sarah's Kracht on Tuesday 22 September.
+  describe('F024 a substituted date', () => {
+    const sarahOnKracht = { id: 'm-sarah', trainerProfileId: 'p-sarah', name: 'Sarah' };
+    const substituted: Item = {
+      ...kracht,
+      trainer: { id: 'm-mike', name: 'Mike' },
+      substituteFor: sarahOnKracht,
+    };
+    const label = (substitute: string, original: string) =>
+      t.substituteLabel.replace('{substitute}', substitute).replace('{original}', original);
+    const team = [
+      { id: 'm-sarah', name: 'Sarah' },
+      { id: 'm-mike', name: 'Mike' },
+    ];
+    const withSubstitution = (shown: CalendarView) =>
+      render(
+        locale,
+        <WorkspaceCalendarView
+          calendar={{ ...week, items: [substituted] }}
+          date="2026-09-22"
+          today="2026-09-22"
+          initialView={shown}
+          trainers={team}
+          slug="pilot-gym"
+          workspaceId="w1"
+          workspaceName="Pilot Gym"
+          accountId="a1"
+          access={access}
+          trainerWord={words}
+        />,
+      );
+
+    it('AC3: the week block shows ⇄ and the substitute, its accessible name and tooltip say who they replace', () => {
+      const html = withSubstitution('week');
+
+      expect(names(html)).toEqual([expect.stringContaining(label('Mike', 'Sarah'))]);
+      expect(html).toContain(`title="${escapeHtml(label('Mike', 'Sarah'))}"`);
+      expect(html).toMatch(/<span[^>]*aria-hidden="true"[^>]*>⇄ <\/span>Mike/);
+    });
+
+    it('AC3: the day view puts the block in the substitute’s column, not in the regular trainer’s', () => {
+      const html = withSubstitution('day');
+
+      const columns = html.split('data-column="').slice(1);
+      const mike = columns.find((column) => column.startsWith('m-mike'));
+      const sarah = columns.find((column) => column.startsWith('m-sarah'));
+      expect(mike).toContain(escapeHtml(label('Mike', 'Sarah')));
+      expect(sarah).not.toContain('⇄');
+    });
+
+    it('AC3: the list says "Mike (vervangt Sarah)" in the trainer column', () => {
+      expect(withSubstitution('list')).toContain(escapeHtml(label('Mike', 'Sarah')));
+    });
+
+    it('AC3: the legend lists vervanger / substitute', () => {
+      const legend =
+        withSubstitution('week').match(
+          /aria-label="[^"]*"[^>]*class="flex flex-wrap items-center[^>]*>.*?<\/ul>/,
+        )?.[0] ?? '';
+      expect(legend).toContain(t.legendSubstitute);
+    });
+
+    it('a date that is no substitution has no ⇄ on its block, only the legend has it', () => {
+      expect(view('week').match(/⇄/g)).toHaveLength(1);
+      expect(withSubstitution('week').match(/⇄/g)).toHaveLength(2);
+    });
+  });
 });
 
 describe.each(locales)('F014 the sidebar of a workspace in %s', (locale) => {

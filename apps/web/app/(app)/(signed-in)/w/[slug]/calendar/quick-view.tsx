@@ -170,7 +170,18 @@ function QuickViewBody({
         {cancelled ? <li className="font-medium">{shared('cancelled')}</li> : null}
         <li>
           {item.trainer
-            ? t('trainerLine', { ...trainerWord, name: own ? t('you') : item.trainer.name })
+            ? t('trainerLine', {
+                ...trainerWord,
+                // F024: "Mike (vervangt Sarah)" on a substituted date.
+                name: item.substituteFor
+                  ? t('substituteLabel', {
+                      substitute: own ? t('you') : item.trainer.name,
+                      original: item.substituteFor.name,
+                    })
+                  : own
+                    ? t('you')
+                    : item.trainer.name,
+              })
             : t('noTrainerMark', { ...trainerWord })}
         </li>
         {isPrivate ? null : (

@@ -98,8 +98,9 @@ test.describe('F023 CO-02 and Trainer wijzigen on the web', () => {
     const dialog = page.getByRole('dialog', { name: text.titleSubstitute });
     await expect(dialog.getByText(text.t('currently', { name: 'Sarah' }))).toBeVisible();
     await expect(dialog.getByText(text.t('whoSubstitute'))).toBeVisible();
-    // Alleen deze les is F024's: only Deze en alle volgende lessen is offered for a date with a trainer.
-    await expect(dialog.getByRole('radio', { name: text.t('scopeThis') })).toHaveCount(0);
+    // Alleen deze les is F024's substitution and the default; Deze en alle volgende lessen is this one.
+    await expect(dialog.getByRole('radio', { name: text.t('scopeThis') })).toBeChecked();
+    await dialog.getByRole('radio', { name: text.t('scopeFollowing') }).check();
     // The current trainer is not among the choices.
     await expect(dialog.getByRole('radio', { name: 'Sarah' })).toHaveCount(0);
     await dialog.getByRole('radio', { name: 'Mike' }).check();
@@ -165,6 +166,7 @@ test.describe('F023 CO-02 and Trainer wijzigen on the web', () => {
     // Tom has nothing then: no hint on his row.
     await expect(dialog.getByRole('radio', { name: 'Tom', exact: true })).toHaveCount(1);
     await dialog.getByRole('radio', { name: /Mike/ }).check();
+    await dialog.getByRole('radio', { name: text.t('scopeFollowing') }).check();
     await expect(
       dialog.getByText(text.t('laterConflicts', { trainer: 'Mike', count: 1 })),
     ).toBeVisible();
@@ -449,10 +451,15 @@ test.describe('F023 CO-02 and Trainer wijzigen on the web', () => {
     await other.close();
     await dialog.getByRole('button', { name: text.t('submitAssign') }).click();
 
-    await expect(dialog.getByText(text.t('errors.changedBy', { name: 'John' }))).toBeVisible();
-    // The dialog now holds the session as it is: Sarah teaches it, so there is nobody to choose for this one-off date.
-    await expect(dialog.getByRole('radio')).toHaveCount(0);
-    await expect(dialog.getByRole('button', { name: text.t('submitAssign') })).toHaveCount(0);
+    await expect(
+      page.getByRole('dialog').getByText(text.t('errors.changedBy', { name: 'John' })),
+    ).toBeVisible();
+    // The dialog now holds the session as it is: Sarah teaches it, so Trainer vervangen (F024) is what it offers: Alleen deze les.
+    const now = page.getByRole('dialog', { name: text.titleSubstitute });
+    await expect(now.getByText(text.t('currently', { name: 'Sarah' }))).toBeVisible();
+    // A one-off date has only itself: Voor says Alleen deze les, no radio.
+    await expect(now.getByText(text.t('scopeThis'))).toBeVisible();
+    await expect(now.getByRole('button', { name: text.t('submitAssign') })).toHaveCount(0);
     expect((await storedSession(page.request, w.base, boxing.sessionId)).trainer?.name).toBe(
       'Sarah',
     );
@@ -480,6 +487,7 @@ test.describe('F023 CO-02 and Trainer wijzigen on the web', () => {
 
     await page.getByRole('button', { name: text.titleSubstitute }).click();
     const dialog = page.getByRole('dialog', { name: text.titleSubstitute });
+    await dialog.getByRole('radio', { name: text.t('scopeFollowing') }).check();
     await dialog.getByRole('radio', { name: 'Mike' }).check();
     const notify = dialog.getByRole('checkbox', { name: text.t('notifyClass', { count: 2 }) });
     await expect(notify).toBeChecked();
@@ -503,6 +511,7 @@ test.describe('F023 CO-02 and Trainer wijzigen on the web', () => {
     await expect(page.getByRole('main').getByText('Mike', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: text.titleSubstitute }).click();
     const again = page.getByRole('dialog', { name: text.titleSubstitute });
+    await again.getByRole('radio', { name: text.t('scopeFollowing') }).check();
     await again.getByRole('radio', { name: 'Tom' }).check();
     await again.getByRole('checkbox', { name: text.t('notifyClass', { count: 2 }) }).uncheck();
     const silent = page.waitForResponse(

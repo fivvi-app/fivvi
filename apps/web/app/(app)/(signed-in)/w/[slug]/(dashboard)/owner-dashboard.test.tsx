@@ -407,4 +407,19 @@ describe.each(locales)('F014 the Owner’s Dashboard in %s', (locale) => {
     );
     expect(text(html)).not.toMatch(/\b(?:trainer|trainers)\b/i);
   });
+
+  it('F024 AC3: the Dashboard says "Mike (vervangt Sarah)" for a substituted class, and the substitute’s name elsewhere', () => {
+    const covering: Item = {
+      ...kracht,
+      trainer: { id: 'm-mike', name: 'Mike' },
+      substituteFor: { id: 'm-sarah', trainerProfileId: 'p-sarah', name: 'Sarah' },
+    };
+    const html = draw({ items: [mark, covering] });
+    const label = calendar.substituteLabel
+      .replace('{substitute}', 'Mike')
+      .replace('{original}', 'Sarah');
+
+    expect(text(html)).toContain(label);
+    expect(text(draw())).not.toContain(label);
+  });
 });

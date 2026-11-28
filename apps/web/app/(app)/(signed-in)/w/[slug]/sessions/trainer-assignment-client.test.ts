@@ -118,6 +118,33 @@ describe('F023 trainer assignment client: assigning', () => {
     });
   });
 
+  it('F024 AC1, AC16: a substitution sends both email boxes next to the scope this, each on its own', async () => {
+    const fetchFn = reply(200, { session, clientsNotified: 0, keptDates: 0 });
+
+    await assignTrainer(
+      'w1',
+      's1',
+      {
+        trainerId: 'mike',
+        scope: 'this',
+        version: 2,
+        notifyClients: false,
+        notifySubstitute: true,
+        notifyParticipants: false,
+      },
+      fetchFn,
+    );
+
+    expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toEqual({
+      trainerId: 'mike',
+      scope: 'this',
+      version: 2,
+      notifyClients: false,
+      notifySubstitute: true,
+      notifyParticipants: false,
+    });
+  });
+
   it('AC5: Toch opslaan sends the same request again with allowConflicts', async () => {
     const fetchFn = reply(200, { session, clientsNotified: 0, keptDates: 0 });
 

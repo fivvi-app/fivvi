@@ -739,11 +739,26 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
       expect(html).not.toContain(title('titleAssign'));
     });
 
-    it('a one-off date that has a trainer has neither until F024', () => {
+    it('F024 AC1: a one-off date that has a trainer has Trainer vervangen too (Alleen deze les)', () => {
       const html = view(date);
 
-      expect(html).not.toContain(title('titleSubstitute'));
+      expect(html).toContain(title('titleSubstitute'));
       expect(html).not.toContain(title('titleAssign'));
+    });
+
+    it('F024 AC3: a substituted date says "Mike (vervangt Sarah)" as its trainer, and a regular one just the name', () => {
+      const substitute = copy.classes.date.substitute
+        .replace('{substitute}', 'Mike')
+        .replace('{original}', 'Sarah');
+      const html = view({
+        ...date,
+        series,
+        trainer: { id: 'm-mike', name: 'Mike' },
+        substituteFor: { id: 'm-sarah', trainerProfileId: 'p-sarah', name: 'Sarah' },
+      });
+
+      expect(html).toContain(escapeHtml(substitute));
+      expect(view({ ...date, series })).not.toContain(escapeHtml(substitute));
     });
 
     it('a cancelled date has neither', () => {

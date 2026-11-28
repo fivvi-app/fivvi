@@ -45,6 +45,10 @@ export interface AssignInput {
   version: number;
   /** The box *{n} deelnemers informeren per e-mail* / *{client} informeren per e-mail*. */
   notifyClients: boolean;
+  /** For a substitution (F024): the box *{trainer} een e-mail sturen* (EM-10). */
+  notifySubstitute?: boolean;
+  /** For a substitution (F024): the box *{n} deelnemers informeren per e-mail*, also when it ends. */
+  notifyParticipants?: boolean;
   /** *Toch opslaan* (PS-07): save although the trainer has something then. Left out, the API warns. */
   allowConflicts?: boolean;
 }
@@ -85,6 +89,8 @@ export async function assignTrainer(
     notifyClients: input.notifyClients,
   };
   if (input.scope) body.scope = input.scope;
+  if (input.notifySubstitute !== undefined) body.notifySubstitute = input.notifySubstitute;
+  if (input.notifyParticipants !== undefined) body.notifyParticipants = input.notifyParticipants;
   if (input.allowConflicts) body.allowConflicts = true;
   let response: Response;
   try {
