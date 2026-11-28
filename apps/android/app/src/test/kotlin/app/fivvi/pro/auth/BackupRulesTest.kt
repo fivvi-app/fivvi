@@ -58,4 +58,23 @@ class BackupRulesTest {
             )
         }
     }
+
+    // F025: the attendance taps still waiting hold client IDs, so they are kept out of every backup too.
+    private val excludeAttendance = Regex(
+        """<exclude\s+domain="file"\s+path="${app.fivvi.pro.ATTENDANCE_DIRECTORY}/?"\s*/>""",
+    )
+
+    @Test
+    fun test_F025_everyBackupLeavesOutTheAttendanceQueue() {
+        assertTrue(excludeAttendance.containsMatchIn(source("main/res/xml/backup_rules.xml")))
+        val rules = source("main/res/xml/data_extraction_rules.xml")
+
+        for (section in listOf("cloud-backup", "device-transfer")) {
+            val body = Regex("""<$section[^>]*>(.*?)</$section>""", RegexOption.DOT_MATCHES_ALL).find(rules)
+            assertTrue(
+                "$section has no exclusion of the attendance queue",
+                body != null && excludeAttendance.containsMatchIn(body.value),
+            )
+        }
+    }
 }

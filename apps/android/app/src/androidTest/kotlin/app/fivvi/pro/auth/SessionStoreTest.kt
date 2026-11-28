@@ -205,6 +205,29 @@ class SessionStoreTest {
         assertArrayEquals(before, file.readBytes())
     }
 
+    // #1620: an opaque ID of the sign-in is stored with the token: new with every save, kept by a restart, gone with the token.
+    @Test
+    fun test_F025_1620_theSignInIdIsNewWithEverySaveAndKeptByANewStore() {
+        store.save(TOKEN)
+        val first = store.signInId()
+
+        assertEquals(first, KeystoreSessionStore(context).signInId())
+        assertFalse("the ID is not the token", first.orEmpty().contains(TOKEN))
+
+        store.save(TOKEN)
+        assertNotEquals(first, store.signInId())
+    }
+
+    @Test
+    fun test_F025_1620_theSignInIdGoesWithTheToken() {
+        store.save(TOKEN)
+
+        store.delete()
+
+        assertNull(store.signInId())
+        assertNull(KeystoreSessionStore(context).signInId())
+    }
+
     private companion object {
         const val TOKEN = "fake-session-token-for-tests"
     }

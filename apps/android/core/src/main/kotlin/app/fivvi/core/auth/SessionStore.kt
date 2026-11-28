@@ -7,6 +7,7 @@ import android.util.AtomicFile
 import java.io.File
 import java.io.IOException
 import java.security.KeyStore
+import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -21,6 +22,13 @@ interface SessionStore {
     fun save(token: String)
 
     fun delete()
+
+    /**
+     * An opaque ID of the sign-in that holds the stored token: new with every [save], the same until the token is deleted,
+     * `null` when there is no token or the store keeps none. It is a random value, never made from the token or from anything
+     * personal; what a screen keeps for one sign-in (F025's offline queue) is tied to it. Not a secret.
+     */
+    fun signInId(): String? = null
 }
 
 /**
@@ -35,6 +43,7 @@ interface SessionStore {
  */
 class KeystoreSessionStore(context: Context) : SessionStore {
     private val file = AtomicFile(File(File(context.filesDir, DIRECTORY), FILE_NAME))
+    private val signInFile = AtomicFile(File(File(context.filesDir, DIRECTORY), SIGN_IN_FILE_NAME))
 
     @Synchronized
     override fun read(): String? {
@@ -66,22 +75,51 @@ class KeystoreSessionStore(context: Context) : SessionStore {
             }
         }
         file.baseFile.parentFile?.mkdirs()
-        val stream = file.startWrite()
+        // The ID goes first: a token is never stored without one, and an ID without a token is read as none.
+        write(signInFile, UUID.randomUUID().toString().toByteArray(Charsets.UTF_8))
+        write(file, encrypted)
+    }
+
+    @Synchronized
+    override fun delete() {
+        file.delete()
+        signInFile.delete()
+    }
+
+    @Synchronized
+    override fun signInId(): String? {
+        if (!file.baseFile.exists()) return null
+        val stored = try {
+            String(signInFile.readFully(), Charsets.UTF_8).takeIf { it.isNotBlank() }
+        } catch (_: IOException) {
+            null
+        }
+        if (stored != null) return stored
+        // A token with no ID (stored before IDs existed): it gets one now, and keeps it.
+        val created = UUID.randomUUID().toString()
+        return try {
+            write(signInFile, created.toByteArray(Charsets.UTF_8))
+            created
+        } catch (_: IOException) {
+            null
+        }
+    }
+
+    private fun write(target: AtomicFile, bytes: ByteArray) {
+        val stream = target.startWrite()
         try {
-            stream.write(encrypted)
-            file.finishWrite(stream)
+            stream.write(bytes)
+            target.finishWrite(stream)
         } catch (error: IOException) {
-            file.failWrite(stream)
+            target.failWrite(stream)
             throw error
         }
     }
 
-    @Synchronized
-    override fun delete() = file.delete()
-
     // Drops the file and the key entry, so that the next save makes a new key. Best effort: there's nothing else to do.
     private fun reset() {
         file.delete()
+        signInFile.delete()
         try {
             keyStore().deleteEntry(KEY_ALIAS)
         } catch (_: Exception) {
@@ -126,6 +164,7 @@ class KeystoreSessionStore(context: Context) : SessionStore {
         const val DIRECTORY = "session"
         const val KEY_ALIAS = "app.fivvi.pro.session"
         const val FILE_NAME = "token.enc"
+        const val SIGN_IN_FILE_NAME = "sign-in-id"
         private const val KEYSTORE = "AndroidKeyStore"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val KEY_BITS = 256

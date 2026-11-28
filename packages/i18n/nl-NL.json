@@ -24,6 +24,7 @@
       "cancelled": "Geannuleerd.",
       "caughtUp": "Alles bijgewerkt",
       "chip": "Aanwezigheid · {name} {start}",
+      "droppedTaps": "{count, plural, one {# eerder gemaakte wijziging van de aanwezigheid kon niet worden verstuurd.} other {# eerder gemaakte wijzigingen van de aanwezigheid konden niet worden verstuurd.}}",
       "from": "Vanaf {time}.",
       "open": "Open",
       "participantsCount": "Deelnemers · {count}",
@@ -32,6 +33,7 @@
       "signOutConfirm": "Toch uitloggen",
       "signOutMessage": "{count, plural, one {# wijziging van de aanwezigheid is nog niet verstuurd en gaat verloren als je uitlogt.} other {# wijzigingen van de aanwezigheid zijn nog niet verstuurd en gaan verloren als je uitlogt.}}",
       "signOutTitle": "Aanwezigheid nog niet verstuurd",
+      "subtitle": "{class} · {start}–{end}",
       "take": "Aanwezigheid invullen",
       "todo": "Te doen",
       "waiting": "Wacht op verbinding"

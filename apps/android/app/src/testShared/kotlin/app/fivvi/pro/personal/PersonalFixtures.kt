@@ -11,6 +11,7 @@ import app.fivvi.api.models.MyDayPlace
 import app.fivvi.api.models.MyDaySummary
 import app.fivvi.api.models.MyDayTomorrow
 import app.fivvi.api.models.PersonalSession
+import app.fivvi.api.models.PersonalSessionClient
 import app.fivvi.api.models.PersonalWorkspace
 import app.fivvi.api.models.PersonalWorkspaceSessionTypes
 import app.fivvi.api.models.SubstituteFor
@@ -68,6 +69,10 @@ object PersonalFixtures {
         day: String = DAY,
         type: PersonalSession.Type? = null,
         level: ClassLevel? = null,
+        /** F025: the session has ended with a participant still *Geboekt*. */
+        attendanceOpen: Boolean? = null,
+        /** F025: the client of a private session, as the API lists it. */
+        clientId: java.util.UUID? = null,
         /** The trainer the account replaces on this date (F024): the substitute's own row. */
         substituteFor: String? = null,
         /** The substitute who took the date over from the account (F024): the replaced trainer's row. */
@@ -86,6 +91,8 @@ object PersonalFixtures {
         level = level,
         location = place?.let { place(it) },
         clientName = client,
+        clients = clientId?.let { listOf(PersonalSessionClient(it, client.orEmpty())) },
+        attendanceOpen = attendanceOpen,
         substituteFor = substituteFor?.let {
             SubstituteFor(
                 UUID.nameUUIDFromBytes("member:$it".toByteArray()),

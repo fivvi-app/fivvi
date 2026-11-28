@@ -73,6 +73,8 @@ class TodayViewModel(
     private val refreshAccount: suspend () -> List<PersonalCache.Workspace>? = { null },
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val stillSignedIn: () -> Boolean = { true },
+    /** Told each time the day was read fresh: the answers the attendance queue kept for the nudges are in it now (F025). */
+    private val onDayRead: () -> Unit = {},
 ) : ViewModel() {
     private val cache = PersonalCache(store)
     private val _state = MutableStateFlow(TodayState(now = clock()))
@@ -128,6 +130,7 @@ class TodayViewModel(
                 updatedAt = at,
             )
         }
+        onDayRead()
         withContext(io) { whileSignedIn { cache.day = PersonalCache.Day(fresh, at) } }
     }
 

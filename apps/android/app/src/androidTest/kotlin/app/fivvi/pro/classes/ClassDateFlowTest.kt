@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.models.ClassLevel
@@ -107,7 +108,8 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         show(MeWorkspace.Capabilities.values().toList(), MeWorkspace.Role.OWNER)
 
         compose.onNodeWithTag(ClassDateTags.MENU).assertIsDisplayed()
-        compose.onNodeWithTag(ClassDateTags.OWNER_NOTE).assertIsDisplayed()
+        // The note is the last thing of the screen, below *Aanwezigheid invullen* (F025).
+        compose.onNodeWithTag(ClassDateTags.OWNER_NOTE).performScrollTo().assertIsDisplayed()
     }
 
     // F024 AC4: the covering Trainer (no class.manage) reads the banner and Jij, and has no menu; nothing in the flow lets her

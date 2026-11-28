@@ -712,3 +712,11 @@ input:focus,select:focus,textarea:focus{outline:none}
 .sw-att.open.lead .set{transform:translateX(96px)}
 .sw-att.open.trail .set{transform:translateX(-96px)}
 .ios .grp>.row+.sw-att .row::before,.ios .grp>.sw-att+.row::before,.ios .grp>.sw-att+.sw-att .row::before{content:"";position:absolute;top:0;left:var(--inset,16px);right:0;height:.5px;background:var(--sep)}
+
+/* Android's attendance buttons (F025): Aanwezig | Niet verschenen as the M3 segmented button of at least 48 dp with a check on the
+   selected one, under the name on CO-05 and the nudge, and the three-way control of TD-02 (flow 02 and 06, platform notes) */
+.android .seg.txt,.android .row .seg.txt{min-height:48px}
+.android .seg.txt button,.android .row .seg.txt button{min-height:48px;height:auto;width:auto;padding:0 8px;display:flex;align-items:center;justify-content:center;gap:6px;white-space:normal;line-height:1.15}
+.android .seg.txt button.on::before,.android .row .seg.txt button.on::before{display:block;content:"";width:16px;height:16px;flex:none;background:currentColor;-webkit-mask:var(--check) center/contain no-repeat;mask:var(--check) center/contain no-repeat}
+.android .row .seg.txt button.on[data-v],.android .row .seg.txt button.on[data-v]:hover{background:var(--m-sc);color:var(--m-on);box-shadow:none}
+.android .att-row .m .seg.txt,.android .row .m .seg.txt{margin-top:8px}

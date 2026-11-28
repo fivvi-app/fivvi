@@ -180,6 +180,7 @@ window.FIVVI_I18N = (function () {
     [/^(\S+) was aanwezig$/, "$1 attended"],
     [/^(\d+) aanwezig · (\d+) niet verschenen · (\d+) open$/, "$1 attended · $2 no-show · $3 open"],
     [/^Aanwezigheid: (\d+) aanwezig · (\d+) niet verschenen · (\d+) open$/, "Attendance: $1 attended · $2 no-show · $3 open"],
+    [/^Aanwezigheid van (.+)$/, "Attendance of $1"],
     [/^Aanwezigheid: Aanwezig$/, "Attendance: Attended"],
     [/^Aanwezigheid: Niet verschenen$/, "Attendance: No-show"],
     [/^Aanwezigheid: Nog niet ingevuld$/, "Attendance: Not filled in yet"],

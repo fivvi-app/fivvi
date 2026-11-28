@@ -210,6 +210,67 @@
         }
       }
     },
+    "attendance.app.droppedTaps" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg attendance change made earlier could not be sent."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg attendance changes made earlier could not be sent."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg eerder gemaakte wijziging van de aanwezigheid kon niet worden verstuurd."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg eerder gemaakte wijzigingen van de aanwezigheid konden niet worden verstuurd."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "attendance.app.from" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -386,6 +447,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aanwezigheid nog niet verstuurd"
+          }
+        }
+      }
+    },
+    "attendance.app.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %3$@–%2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %3$@–%2$@"
           }
         }
       }

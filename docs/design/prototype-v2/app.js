@@ -218,7 +218,14 @@
   function grp(rows, style) { return '<div class="grp"' + (style ? ' style="' + style + '"' : "") + ">" + rows.join("") + "</div>"; }
   function sh(t, link, cls) { return '<div class="sh ' + (cls || "") + '"><h2>' + t + "</h2>" + (link || "") + "</div>"; }
   function btn(label, o) { o = o || {}; return '<button class="btn ' + (o.k || "pri") + (o.blk ? " blk" : "") + (o.sm ? " sm" : "") + '"' + (o.a ? ' data-a="' + o.a + '"' : "") + dattrs(o.d) + (o.dis ? " disabled" : "") + ">" + (o.i ? ic(o.i) : "") + label + "</button>"; }
-  function seg(opts, val, a, extra) { return '<div class="seg" role="group">' + opts.map(function (o) { return '<button data-a="' + a + '" data-v="' + o[0] + '"' + dattrs(extra) + (o[2] ? " disabled" : "") + ' class="' + (o[0] === val ? "on" : "") + '" aria-pressed="' + (o[0] === val) + '">' + o[1] + "</button>"; }).join("") + "</div>"; }
+  function seg(opts, val, a, extra, cls) { return '<div class="seg ' + (cls || "") + '" role="group">' + opts.map(function (o) { return '<button data-a="' + a + '" data-v="' + o[0] + '"' + dattrs(extra) + (o[2] ? " disabled" : "") + ' class="' + (o[0] === val ? "on" : "") + '" aria-pressed="' + (o[0] === val) + '">' + o[1] + "</button>"; }).join("") + "</div>"; }
+  /* Android's inline attendance buttons (F025): Aanwezig | Niet verschenen as the M3 segmented button, at least 48 dp high, a check on the
+     selected one (none on the nudge), under the name; a = the action, d = what it needs, val = the selected answer */
+  function attSeg(a, d, val, it, off, label) {
+    return '<div class="seg txt" role="group" aria-label="' + esc(label || "Aanwezigheid") + '">' + [["yes", "Aanwezig"], ["no", "Niet verschenen"]].map(function (o) {
+      return '<button data-a="' + a + '"' + dattrs(d) + ' data-v="' + o[0] + '" class="' + (o[0] === val ? "on" : "") + '" aria-pressed="' + (o[0] === val) + '"' + (off ? " disabled" : "") + ">" + o[1] + "</button>";
+    }).join("") + "</div>";
+  }
   function lt(eb, h, sub) { return '<div class="lt">' + (eb ? '<p class="eb">' + eb + "</p>" : "") + "<h1>" + h + "</h1>" + (sub ? '<div class="sub">' + sub + "</div>" : "") + "</div>"; }
   function foot(t) { return '<div class="foot">' + t + "</div>"; }
   function fld(label, input, cls) {
@@ -275,7 +282,7 @@
       } else if (!it.att) {
         /* a tap the API refused brings the buttons back with its message */
         extra = '<small class="nudge">' + ic("warn") + "Aanwezigheid nog invullen</small>" + (it.attMsg ? '<small class="nudge-msg">' + it.attMsg + "</small>" : "") +
-          '<div class="att">' + btn("Aanwezig", { k: "sec", a: "att", d: { id: it.id, v: "yes" } }) + btn("Niet verschenen", { k: "sec", a: "att", d: { id: it.id, v: "no" } }) + "</div>";
+          (PREF.plat === "android" ? attSeg("att", { id: it.id }, "", it, false, "Aanwezigheid van " + esc(title(it))) : '<div class="att">' + btn("Aanwezig", { k: "sec", a: "att", d: { id: it.id, v: "yes" } }) + btn("Niet verschenen", { k: "sec", a: "att", d: { id: it.id, v: "no" } }) + "</div>");
         swipe = PREF.plat === "ios" && !opt.noSwipe;
       }
     } else if (it.type === "group" && past && !it.cancelled && !opt.noNudge && attOpenCount(it) > 0) {
@@ -630,7 +637,7 @@
     body += sh("Notities", '<button data-a="note" data-id="' + c.id + '">+ Notitie</button>', "small");
     body += '<div class="pad">' + (notes.length ? grp(notes.slice(0, 3).map(function (n) { return row({ title: '<span translate="no">' + esc(n.t) + "</span>", small: n.d + " · " + esc(n.by), cls: "wrap" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen notities.</span></div></div></div>') + "</div>" + foot("Alleen voor trainers. Notities zie je nooit in meldingen of widgets.");
     var can = attOpen(it, k) && !it.cancelled;
-    body += sh("Aanwezigheid", "", "small") + '<div class="pad">' + seg([["", "Geboekt", !can], ["yes", "Aanwezig", !can], ["no", "Niet verschenen", !can]], (it.duo ? (it.attD || {})[cid] : it.att) || "", "satt", { id: it.id, c: cid }) + "</div>" + (can ? (it.attWait ? foot("Wacht op verbinding") : "") : foot(it.cancelled ? "Geannuleerd." : "Vanaf " + hm(mins(it.s) - 30) + "."));
+    body += sh("Aanwezigheid", "", "small") + '<div class="pad">' + seg([["", "Geboekt", !can], ["yes", "Aanwezig", !can], ["no", "Niet verschenen", !can]], (it.duo ? (it.attD || {})[cid] : it.att) || "", "satt", { id: it.id, c: cid }, "txt") + "</div>" + (can ? (it.attWait ? foot("Wacht op verbinding") : "") : foot(it.cancelled ? "Geannuleerd." : "Vanaf " + hm(mins(it.s) - 30) + "."));
     return { title: title(it), body: body, trailing: [{ i: "more", a: "session-menu", label: "Meer", d: { id: it.id } }] };
   };
 
@@ -686,10 +693,11 @@
     body += sh("Deelnemers", "", "small");
     body += '<div class="pad">' + grp(it.people.map(function (p, i) {
       var nm = person(p), cx = attCx(it, i), line = cx ? "Geannuleerd" : mode === "refused" && i === 0 ? "Deze les is geannuleerd. Aanwezigheid is niet nodig." : wait[i] ? "Wacht op verbinding" : "";
-      var btns = cx || cancelled ? "" : '<span class="seg" style="width:auto">' +
+      var btns = cx || cancelled ? "" : PREF.plat === "android" ? "" : '<span class="seg" style="width:auto">' +
         '<button class="' + (am[i] === "yes" ? "on" : "") + '" data-a="att-one" data-id="' + it.id + '" data-i="' + i + '" data-v="yes" aria-label="' + esc(nm) + ' aanwezig"' + (early ? " disabled" : "") + ">" + ic("check") + "</button>" +
         '<button class="' + (am[i] === "no" ? "on" : "") + '" data-a="att-one" data-id="' + it.id + '" data-i="' + i + '" data-v="no" aria-label="' + esc(nm) + ' niet verschenen"' + (early ? " disabled" : "") + ">" + ic("x") + "</button></span>";
-      return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), small: line ? '<span class="' + (mode === "refused" && i === 0 ? "att-msg" : "") + '">' + line + "</span>" : "", tr: btns, cls: "att-row" });
+      var under = PREF.plat === "android" && !cx && !cancelled ? attSeg("att-one", { id: it.id, i: i }, am[i] || "", it, early, "Aanwezigheid van " + nm) : "";
+      return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), small: line ? '<span class="' + (mode === "refused" && i === 0 ? "att-msg" : "") + '">' + line + "</span>" : "", extra: under, tr: btns, cls: "att-row" });
     }), "--inset:68px") + "</div>";
     return { title: "Aanwezigheid", body: body };
   };

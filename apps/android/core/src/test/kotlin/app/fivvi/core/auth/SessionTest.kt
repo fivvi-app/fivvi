@@ -1,6 +1,7 @@
 package app.fivvi.core.auth
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -180,5 +181,29 @@ class SessionTest {
         session.expire("old")
 
         assertEquals(0, clears)
+    }
+
+    // #1618, #1620: what a screen keeps for a sign-in (the offline queue of attendance) is tied to an ID that is new with
+    // every sign-in and the same across a restart of the app, so one sign-in's data is never read as another's.
+    @Test
+    fun test_F025_1620_everySignInHasAnIdOfItsOwnThatSurvivesARestart() {
+        val store = InMemorySessionStore()
+        val session = Session(store)
+        session.signIn("a")
+        val first = session.signInId()
+
+        assertEquals("a restart of the app keeps the sign-in", first, Session(store).signInId())
+
+        session.expire("a")
+        session.signIn("a")
+        assertNotEquals("the same token again is still a new sign-in", first, session.signInId())
+    }
+
+    @Test
+    fun test_F025_1620_theSignInIdIsOpaqueAndNotTheToken() {
+        val session = Session(InMemorySessionStore())
+        session.signIn("secret-token")
+
+        assertEquals(false, session.signInId().contains("secret-token"))
     }
 }

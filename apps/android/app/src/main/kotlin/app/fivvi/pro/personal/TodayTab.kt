@@ -17,6 +17,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.fivvi.core.ui.OnForeground
+import app.fivvi.pro.attendance.AttendanceQueue
+import app.fivvi.pro.attendance.QueueAction
+import app.fivvi.pro.attendance.QueueState
 import java.time.DateTimeException
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -81,8 +84,13 @@ fun TodayTab(
     onOpenTomorrow: (String) -> Unit,
     menu: @Composable (offline: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    /** The offline queue of attendance (F025): the nudges follow it and a tap on one goes through it; `null` shows none. */
+    attendance: AttendanceQueue? = null,
+    /** The line *Aanwezigheid nog invullen* of an ended class opens CO-05. */
+    onOpenAttendance: (PersonalRow) -> Unit = {},
 ) {
     val state by model.state.collectAsStateWithLifecycle()
+    val queued = attendance?.state?.collectAsStateWithLifecycle()?.value ?: QueueState()
     val studioState by studio.state.collectAsStateWithLifecycle()
     val zone = rememberDeviceZone {
         model.load()
@@ -105,10 +113,19 @@ fun TodayTab(
             onOpenTomorrow = onOpenTomorrow,
             onDismissNotices = model::dismissNotices,
             menu = menu,
+            onMark = { row, status ->
+                // A nudge marks the client of its row.
+                row.nudge?.let {
+                    attendance?.enqueue(row.workspaceId, row.id, QueueAction.Set(it.clientId, status))
+                }
+            },
+            onOpenAttendance = onOpenAttendance,
+            onDismissDroppedTaps = { attendance?.dismissDroppedTaps() },
         ),
         deviceZone = zone,
         now = now,
         modifier = modifier,
         studio = studioWorkspace?.let { StudioUi(studioState, it, studio::select) },
+        queue = queued,
     )
 }

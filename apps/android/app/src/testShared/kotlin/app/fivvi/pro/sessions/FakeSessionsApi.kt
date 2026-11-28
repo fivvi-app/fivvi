@@ -28,6 +28,7 @@ import app.fivvi.api.models.TrainerConflict
 import app.fivvi.api.models.TrainerConflictItem
 import app.fivvi.api.models.UpcomingSessions
 import app.fivvi.api.models.UpdateLocationRequest
+import app.fivvi.pro.attendance.FakeAttendanceServer
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -230,21 +231,24 @@ class FakeSessionsApi : SessionsApi {
     override suspend fun listTrainerCandidates(workspaceId: UUID, sessionId: UUID): Response<TrainerCandidates> =
         error("FakeSessionsApi.listTrainerCandidates is not expected in this test")
 
+    /** The attendance routes (F025): the participants of each session and the rules of the API. */
+    val attendance = FakeAttendanceServer()
+
     override suspend fun listSessionParticipants(workspaceId: UUID, sessionId: UUID): Response<Attendance> =
-        error("FakeSessionsApi.listSessionParticipants is not expected in this test")
+        attendance.list(sessionId)
 
     override suspend fun setParticipantAttendance(
         workspaceId: UUID,
         sessionId: UUID,
         clientId: UUID,
         setAttendanceRequest: SetAttendanceRequest,
-    ): Response<Attendance> = error("FakeSessionsApi.setParticipantAttendance is not expected in this test")
+    ): Response<Attendance> = attendance.set(workspaceId, sessionId, clientId, setAttendanceRequest)
 
     override suspend fun markEveryoneAttended(
         workspaceId: UUID,
         sessionId: UUID,
         markEveryoneAttendedRequest: MarkEveryoneAttendedRequest,
-    ): Response<Attendance> = error("FakeSessionsApi.markEveryoneAttended is not expected in this test")
+    ): Response<Attendance> = attendance.everyone(workspaceId, sessionId, markEveryoneAttendedRequest)
 
     override suspend fun listClientUpcomingSessions(workspaceId: UUID, clientId: UUID): Response<UpcomingSessions> {
         upcomingRead += clientId

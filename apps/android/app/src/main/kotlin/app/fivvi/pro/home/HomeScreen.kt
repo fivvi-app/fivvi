@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -51,6 +54,8 @@ object HomeTags {
     const val ERROR = "home.error"
     const val RETRY = "home.retry"
     const val SIGN_OUT = "home.signOut"
+    const val SIGN_OUT_CONFIRM = "home.signOut.confirm"
+    const val SIGN_OUT_CANCEL = "home.signOut.cancel"
     const val SIGNING_OUT = "home.signingOut"
     const val WORKSPACE_NAME = "home.workspaceName"
     const val SET_UP_ON_WEB = "home.setUpOnWeb"
@@ -92,6 +97,8 @@ fun HomeScreen(
     onNewPrivateSession: (() -> Unit)? = null,
     onNewGroupClass: (() -> Unit)? = null,
     groupClassNoteWorkspace: String? = null,
+    /** How many attendance requests wait in the offline queue (F025): *Uitloggen* asks first while any does. */
+    waitingAttendance: Int = 0,
 ) {
     // One scroll for the whole screen, so the account block can't squeeze what is above it at the largest font scale.
     Column(
@@ -159,7 +166,7 @@ fun HomeScreen(
                 }
             }
         }
-        SignOut(signingOut, onSignOut)
+        SignOut(signingOut, waitingAttendance, onSignOut)
     }
 }
 
@@ -276,8 +283,11 @@ private fun Destination(me: MeState, onOpenWeb: () -> Unit) {
     }
 }
 
+// *Uitloggen* (F001) with the warning of F025: attendance still waiting for a connection is lost at sign-out, so the button asks
+// first ("Aanwezigheid nog niet verstuurd") while something waits.
 @Composable
-private fun SignOut(signingOut: Boolean, onSignOut: () -> Unit) {
+private fun SignOut(signingOut: Boolean, waiting: Int, onSignOut: () -> Unit) {
+    var confirming by rememberSaveable { mutableStateOf(false) }
     if (signingOut) {
         val label = stringResource(R.string.common_loading)
         CircularProgressIndicator(
@@ -290,9 +300,38 @@ private fun SignOut(signingOut: Boolean, onSignOut: () -> Unit) {
         PillButtonStack {
             PillButton(
                 text = stringResource(R.string.sign_out_label),
-                onClick = onSignOut,
+                onClick = { if (waiting == 0) onSignOut() else confirming = true },
                 modifier = Modifier.testTag(HomeTags.SIGN_OUT),
                 style = PillButtonStyle.Tonal,
+            )
+        }
+        if (confirming && waiting > 0) {
+            AlertDialog(
+                onDismissRequest = { confirming = false },
+                modifier = Modifier.testTagsAsIds(),
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            confirming = false
+                            onSignOut()
+                        },
+                        modifier = Modifier.testTag(HomeTags.SIGN_OUT_CONFIRM),
+                    ) {
+                        Text(
+                            stringResource(R.string.attendance_app_sign_out_confirm),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        confirming = false
+                    }, modifier = Modifier.testTag(HomeTags.SIGN_OUT_CANCEL)) {
+                        Text(stringResource(R.string.common_cancel))
+                    }
+                },
+                title = { Text(stringResource(R.string.attendance_app_sign_out_title)) },
+                text = { Text(pluralStringResource(R.plurals.attendance_app_sign_out_message, waiting, waiting)) },
             )
         }
     }

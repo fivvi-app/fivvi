@@ -111,6 +111,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031
 - **Description** with *Meer / Minder*.
 - **Booked:** n of capacity, with a bar.
 - **Attendance** per participant, with *Iedereen aanwezig*: bulk attendance is in the MVP (owner, 6 November 2026), with F025. Offline, *Iedereen aanwezig* joins the offline queue like a single tap, as one queued request, and reverts with the message if the sync rejects it (owner, 9 November 2026).
+- **Taps that cannot be sent:** a tap made offline before the app knew the account, followed by a rejected sign-in (a 401), cannot be proven to belong to the person who signs in again, so it is not sent. After that sign-in Vandaag says once that N attendance taps from before could not be sent (*3 eerder gemaakte wijzigingen van de aanwezigheid konden niet worden verstuurd.*), with *Sluiten* to dismiss it (owner, 27 November 2026, #549).
 - **Below:** participants, then attendance.
 - **Owner ⋯ menu:** *Boekingslink delen*; *Trainer vervangen* and *Les wijzigen* (both point to the web); *Les annuleren*.
 

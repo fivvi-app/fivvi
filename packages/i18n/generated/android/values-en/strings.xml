@@ -13,6 +13,10 @@
     <string name="attendance_app_cancelled">Cancelled.</string>
     <string name="attendance_app_caught_up">All caught up</string>
     <string name="attendance_app_chip">Attendance · %1$s %2$s</string>
+    <plurals name="attendance_app_dropped_taps">
+        <item quantity="one">%1$d attendance change made earlier could not be sent.</item>
+        <item quantity="other">%1$d attendance changes made earlier could not be sent.</item>
+    </plurals>
     <string name="attendance_app_from">From %1$s.</string>
     <string name="attendance_app_open">Open</string>
     <string name="attendance_app_participants_count">Participants · %1$s</string>
@@ -24,6 +28,7 @@
         <item quantity="other">%1$d attendance changes have not been sent yet and will be lost if you sign out.</item>
     </plurals>
     <string name="attendance_app_sign_out_title">Attendance not sent yet</string>
+    <string name="attendance_app_subtitle">%1$s · %3$s–%2$s</string>
     <string name="attendance_app_take">Take attendance</string>
     <string name="attendance_app_todo">To do</string>
     <string name="attendance_app_waiting">Waiting for connection</string>

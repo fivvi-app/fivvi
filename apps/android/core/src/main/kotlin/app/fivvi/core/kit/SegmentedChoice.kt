@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -80,13 +81,19 @@ private fun segmentedChoiceShape(index: Int, count: Int): Shape =
  * label is measured, would push it out of the segment and cut it off. A wrapped label never leaves its segment's edge;
  * at the two outer ends it keeps 4 dp from the edge and, as a rule, clear of the curve. The tip of a descender on a
  * nearly full line can still come to within about 1 dp of the curve, in an unselected first or a last segment.
+ *
+ * [selected] is `null` when no option is; tapping the selected option calls [onSelect] again, so the host decides whether that
+ * takes the choice back. [enabled] off greys every segment and takes their taps; [minHeight] makes every segment at least that
+ * high (48 dp for the attendance buttons, which are tapped between sessions).
  */
 @Composable
 fun <T> SegmentedChoice(
     options: List<SegmentedOption<T>>,
-    selected: T,
+    selected: T?,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    minHeight: Dp = Dp.Unspecified,
 ) {
     require(SegmentedChoiceRules.fits(options.size)) {
         "A segmented button has two to five options, not ${options.size}"
@@ -105,7 +112,9 @@ fun <T> SegmentedChoice(
                 selected = isSelected,
                 onClick = { onSelect(option.value) },
                 shape = segmentedChoiceShape(index, options.size),
-                modifier = Modifier.fillMaxHeight().let { base -> option.tag?.let { base.testTag(it) } ?: base },
+                enabled = enabled,
+                modifier = Modifier.defaultMinSize(minHeight = minHeight).fillMaxHeight()
+                    .let { base -> option.tag?.let { base.testTag(it) } ?: base },
                 // Material's slot for the check is left empty: see above.
                 icon = {},
                 contentPadding = padding,

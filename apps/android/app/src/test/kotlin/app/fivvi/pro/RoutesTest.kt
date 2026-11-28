@@ -76,4 +76,20 @@ class RoutesTest {
         val stack = Routes.push(Routes.push("", route), Routes.inWorkspace(workspace, Routes.client(id)))
         assertEquals(listOf(route, "@$workspace:client/$id"), Routes.of(stack))
     }
+
+    @Test
+    fun test_F025_aClassDatesAttendanceIsARouteOfItsOwnThatGoesBackToTheDate() {
+        val workspace = UUID.nameUUIDFromBytes("John's Gym".toByteArray())
+        val stack = Routes.push(
+            Routes.push("", Routes.inWorkspace(workspace, Routes.classDate(id, added = null))),
+            Routes.inWorkspace(workspace, Routes.attendance(id)),
+        )
+
+        assertEquals(id, Routes.attendanceOf(Routes.unscoped(Routes.of(stack).last())))
+        assertEquals(workspace, Routes.workspaceOf(Routes.of(stack).last()))
+        assertEquals(listOf("@$workspace:classDate/$id"), Routes.of(Routes.pop(stack)))
+        assertNull(Routes.attendanceOf(Routes.classDate(id, added = null)))
+        assertNull(Routes.classDateOf(Routes.attendance(id)))
+        assertNull(Routes.sessionId(Routes.attendance(id)))
+    }
 }
