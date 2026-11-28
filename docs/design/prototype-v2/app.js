@@ -195,6 +195,8 @@
     Object.keys(D.history).forEach(function (k) { delete D.history[k]; }); var h0 = JSON.parse(HIST0); Object.keys(h0).forEach(function (k) { D.history[k] = h0[k]; });
     Object.keys(DAYCACHE).forEach(function (k) { DAYCACHE[k].forEach(function (it) { if (WST0[it.id]) it.wstate = WST0[it.id]; }); });
     Object.keys(DAYCACHE).forEach(function (k) { DAYCACHE[k].forEach(function (it) { var a = ATT0[it.id]; if (!a) return; var o = JSON.parse(a); it.att = o.att; if (o.attMap) it.attMap = o.attMap; else delete it.attMap; if (o.attD) it.attD = o.attD; else delete it.attD; delete it.attWait; delete it.attMsg; }); });
+    /* F024: the substituted class goes back to "Je valt in voor Mike" */
+    var subIt = findItem("s5"); if (subIt) { subIt.it.sub = "Mike"; delete subIt.it.by; }
     var duoIt = findItem("s6"); if (duoIt) { duoIt.it.client = "lisa"; duoIt.it.duo = "eva"; duoIt.it.cancelled = false; }
     D.resetBilling();
     S = { signedIn: true, signStep: "email", email: "", code: "", tab: "today", stacks: { today: [], agenda: [], clients: [], profile: [] },
@@ -263,6 +265,8 @@
     if (opt.multi !== false && !opt.hideWs && !SOLO()) smalls.push(wsLine(it.ws));
     if (opt.who) smalls.push(it.trainer ? esc(it.trainer) : "Jij"); else if (it.trainer) smalls.push(esc(it.trainer));
     if (it.sub) smalls.push("Je valt in voor " + esc(it.sub));
+    /* F024: the trainer a substitute replaced keeps the item, dimmed, with who took it over; it is not counted and has no actions */
+    if (it.by) smalls.push("Overgenomen door " + esc(it.by));
     var extra = "", swipe = false;
     if (it.type === "priv" && past && !it.cancelled && !opt.noNudge) {
       if (it.att && it.attWait) {
@@ -280,7 +284,7 @@
     }
     var pill = it.cancelled ? '<span class="pill">Geannuleerd</span>' : full ? '<span class="pill strong">Vol</span>' : it.cap ? '<span class="pill">' + booked + "/" + it.cap + "</span>" : "";
     var o = { a: it.type === "priv" ? "open-session" : "open-class", d: { id: it.id }, title: esc(title(it)) + lvlTag(it, true), sub: sub, small: smalls.join(" · "), extra: extra,
-      cls: (past && !extra ? "past " : "") + (it.cancelled ? "cx" : ""), style: "--c:" + c };
+      cls: (it.by || past && !extra ? "past " : "") + (it.cancelled ? "cx" : ""), style: "--c:" + c };
     if (PREF.plat === "ios") {
       o.lead = '<div class="t"><b>' + it.s + "</b><span>" + it.e + '</span></div><i class="bar"></i>';
       o.tr = it.type === "priv" ? "" : pill;
@@ -655,7 +659,7 @@
     body += (booked ? '<div class="pad">' + grp(ppl.map(function (p, i) { var nm = person(p); return row({ lead: avatar(nm, CLIENT[p] ? CLIENT[p].c : "#8E8E93"), title: esc(nm), tr: '<span class="pill' + (am[i] === "yes" ? " tint\" style=\"--c:var(--ok)" : am[i] === "no" ? " tint\" style=\"--c:var(--danger)" : "") + '">' + (am[i] === "yes" ? "Aanwezig" : am[i] === "no" ? "Niet verschenen" : "Geboekt") + "</span>" }); }), "--inset:68px") + "</div>" : "");
     body += '<div class="pad" style="margin-top:14px">' + btn("Boekingslink delen", { k: "sec", blk: true, a: "toast", d: { m: "Boekingslink gekopieerd" }, i: "link" }) + "</div>";
     if (isOwner(it.ws) && !it.cancelled) body += foot("Les wijzigen, een vaste reeks en trainers beheer je op het web.");
-    return { title: it.title, body: body, trailing: isOwner(it.ws) || it.sub ? [{ i: "more", a: "class-menu", label: "Meer", d: { id: it.id } }] : [] };
+    return { title: it.title, body: body, trailing: isOwner(it.ws) ? [{ i: "more", a: "class-menu", label: "Meer", d: { id: it.id } }] : [] };
   };
 
   /* a participant who cancelled: read-only, "Geannuleerd" (the last one of the demo state) */
@@ -1301,7 +1305,7 @@
       S.sheet = null; toast("Sessie verplaatst naar " + shortDate(parse(f.date)) + " " + f.start);
     },
     "session-menu": function (d) { S.menu = { items: [{ t: "Verplaatsen", i: "clock", a: "move", d: { id: d.id } }, { t: "Klantprofiel", i: "me", a: "menu-client", d: { id: d.id } }, "-", { t: "Sessie annuleren", i: "x", a: "alert", d: { n: "cancelSession", id: d.id }, dng: true }] }; render(); },
-    "class-menu": function (d) { S.menu = { items: [{ t: "Boekingslink delen", i: "link", a: "toast", d: { m: "Boekingslink gekopieerd" } }, { t: "Trainer vervangen", i: "swap", a: "web-only" }, { t: "Les wijzigen", i: "pencil", a: "web-only" }, "-", { t: "Les annuleren", i: "x", a: "alert", d: { n: "cancelClass", id: d.id }, dng: true }] }; render(); },
+    "class-menu": function (d) { S.menu = { items: [{ t: "Boekingslink delen", i: "link", a: "toast", d: { m: "Boekingslink gekopieerd" } }, { t: "Vervang de trainer", i: "swap", a: "web-only" }, { t: "Les wijzigen", i: "pencil", a: "web-only" }, "-", { t: "Les annuleren", i: "x", a: "alert", d: { n: "cancelClass", id: d.id }, dng: true }] }; render(); },
     "close-menu": function () { S.menu = null; render(); },
     move: function (d) { var x = findItem(d.id); S.menu = null; S.form = { id: d.id, date: x.day, start: x.it.s, dur: String(mins(x.it.e) - mins(x.it.s)) }; S.sheet = "reschedule"; S.anim = "up"; render(); },
     "menu-client": function (d) { S.menu = null; push({ n: "client", id: findItem(d.id).it.client }); },
@@ -1547,6 +1551,7 @@
       ["Duosessie: schema kiezen", "F042", function () { fresh(); S.stacks.today = [{ n: "session", id: "s6" }]; S.scrollTo = "sess"; A["sess-tpl-pick"]({ id: "s6", c: "eva" }); }, true],
       ["Duosessie: één klant annuleren", "#586", function () { fresh(); S.stacks.today = [{ n: "session", id: "s6" }]; S.alert = { n: "cancelSession", id: "s6" }; }, true],
       ["Duosessie loggen", "nieuw", function () { fresh(); S.stacks.today = [{ n: "session", id: "s6" }]; openLogger("s6", "log", "Full body"); S.logs.s6 = S.log; findItem("s6").it.wstate = "running"; S.anim = null; }, true],
+      ["Vandaag: les overgenomen door een vervanger", "TD-01", function () { fresh(); PREF.setup = "team"; var o = findItem("s5").it; delete o.sub; o.by = "Mike"; }],
       ["Groepsles (invallen)", "TD-03", function () { fresh(); PREF.setup = "team"; S.stacks.today = [{ n: "klass", id: "s5" }]; }, true],
       ["Aanwezigheid les", "CO-05", function () { fresh(); PREF.setup = "team"; var it = findItem("s2").it; it.attDraft = null; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
       ["Nieuw (+)", "TD-05", function () { fresh(); S.sheet = "new"; }],

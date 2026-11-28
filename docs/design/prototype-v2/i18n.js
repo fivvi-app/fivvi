@@ -144,6 +144,7 @@ window.FIVVI_I18N = (function () {
 [/^Oefeningen · (\d+)$/, "Exercises · $1"],
     [/^Straks · over (\d+) min$/, "Up next · in $1 min"],
     [/^Je valt in voor (.+?)(\.?)$/, "Covering for $1$2"],
+    [/^Overgenomen door (.+?)(\.?)$/, "Taken over by $1$2"],
     [/^(\d+) sessies, eerste om (\d\d:\d\d)$/, "$1 sessions, first at $2"],
     [/^(.+) krijgt een e-mail dat de sessie van (\d\d:\d\d) niet doorgaat\.$/, "$1 will get an email that the $2 session is off."],
     [/^(.+) krijgt een e-mail met de nieuwe tijd\.$/, "$1 will get an email with the new time."],
@@ -434,7 +435,7 @@ window.FIVVI_I18N = (function () {
     "Geboekt": "Booked", "geboekt": "booked", "1 plek vrij": "1 spot left", "Deelnemers": "Participants", "Nog niemand geboekt.": "No bookings yet.",
     "Boekingslink delen": "Share booking link", "Boekingslink gekopieerd": "Booking link copied", "Les wijzigen, een vaste reeks en trainers beheer je op het web.": "Editing a class, a series and trainers happens on the web.",
     "Verplaatsen": "Reschedule", "Sessie verplaatsen": "Reschedule session", "Sessie annuleren?": "Cancel session?", "Sessie annuleren": "Cancel session", "Sessie geannuleerd": "Session cancelled", "Sessie gepland": "Session planned",
-    "Les annuleren?": "Cancel class?", "Les annuleren": "Cancel class", "Les geannuleerd": "Class cancelled", "Les wijzigen": "Edit class", "Trainer vervangen": "Substitute trainer", "Route": "Route",
+    "Les annuleren?": "Cancel class?", "Les annuleren": "Cancel class", "Les geannuleerd": "Class cancelled", "Les wijzigen": "Edit class", "Trainer vervangen": "Substitute trainer", "Vervang de trainer": "Substitute the trainer", "Vandaag: les overgenomen door een vervanger": "Today: class taken over by a substitute", "Route": "Route",
     "Opent de route in Kaarten": "Opens the route in Maps",
     /* new */
     "Een sessie met één klant.": "A session with one client.", "Bij Studio Fit": "At Studio Fit", "Een naam is genoeg. Het e-mailadres kan later.": "A name is enough. The email address can come later.",
@@ -614,7 +615,7 @@ window.FIVVI_I18N = (function () {
   var OWN = /\uE000([^\uE001]*)\uE001/g, OWNMARK = /[\uE000\uE001]/g;
   function P(s) {
     /* one pass per position: protect replaced text so "Agenda" → "Calendar" isn't touched again */
-    var marks = [], out = s.replace(OWN, function (m, own) { marks.push(own); return "\u0001" + (marks.length - 1) + "\u0002"; }).replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at ");
+    var marks = [], out = s.replace(OWN, function (m, own) { marks.push(own); return "\u0001" + (marks.length - 1) + "\u0002"; }).replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Overgenomen door /g, "Taken over by ").replace(/Bezig · gestart om /g, "In progress · started at ");
     TYPEDL.concat(PHL).forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
     out = out.replace(/(\d)\.(\d{3}),(\d{2})/g, "$1\u0003$2.$3").replace(/(\d),(\d)/g, "$1.$2").replace(/\u0003/g, ",");
     return out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
