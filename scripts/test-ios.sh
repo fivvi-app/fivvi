@@ -16,8 +16,8 @@
 #                 catalog sync leaves the generated catalogs unchanged, then one build-for-testing and one run of the
 #                 unit and UI tests in nl and en without building again (one result bundle, both locales), on the newest
 #                 iPhone simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one by name). Both
-#                 locales run on one simulator here (two on one 3-core machine were slower; CI runs the two languages in two
-#                 jobs, each on its own runner and simulator, see `test-ios.sh test` below);
+#                 locales run on one simulator here (two on one 3-core machine were slower; CI runs the two languages in six
+#                 jobs (three parts a language), each on its own runner and simulator, see `test-ios.sh test` below);
 #                 IOS_PARALLEL=1 runs one run per locale at the same time on two. Prints the durations of its steps, the
 #                 build timing summary and the slowest tests per locale (also in the job summary on CI); when tests fail, the names and
 #                 messages of the failed tests from the result bundle (#290). Shuts down the

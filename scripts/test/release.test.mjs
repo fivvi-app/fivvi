@@ -870,6 +870,9 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
       /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/3\)$/m,
     );
     assert.match(tests, /^ {6}fail-fast: false$/m);
+    // #1614: five macOS jobs run at once on GitHub Free; the sixth part waits in the matrix queue, because a macOS job that
+    // gets no runner is cancelled after about 15 minutes and the release does not retry it.
+    assert.match(tests, /^ {6}max-parallel: 5$/m);
     assert.match(tests, /^ {8}locale: \[nl, en\]$/m);
     assert.match(tests, /^ {8}shard: \[1, 2, 3\]$/m);
     // The same matrix as the one of CI, whose parts the two lanes deal out the same way.

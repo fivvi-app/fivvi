@@ -180,7 +180,7 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
     );
   });
 
-  // The retry of a test pass (#1268, #1447): "iOS tests (<locale> <shard>/2) (retry)" runs for a part that got no runner,
+  // The retry of a test pass (#1268, #1447): "iOS tests (<locale> <shard>/3) (retry)" runs for a part that got no runner,
   // from the bundle already built; the gate takes that part's result from it.
   it('#1268 takes a part from its retry when the retry passed, and says the first try had no runner', () => {
     const result = run(

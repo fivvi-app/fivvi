@@ -1084,6 +1084,13 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(iosTests, /needs: \[changes, ios-build, ios-build-retry\]\n/);
     assert.match(iosTests, /matrix:\n +locale: \[nl, en\]\n +shard: \[1, 2, 3\]/);
     assert.match(iosTests, /fail-fast: false/);
+    // #1614: GitHub Free runs five macOS jobs at once, so the sixth leg waits in the matrix queue and not for a runner, which
+    // GitHub cancels after about 15 minutes.
+    assert.match(
+      iosTests,
+      /^ {6}max-parallel: 5$/m,
+      'the sixth part waits in the matrix, not for a runner',
+    );
     assert.match(
       iosTests,
       /uses: actions\/download-artifact@[^\n]*\n +with:\n +name: ios-test-bundle\n +path: apps\/ios\/\.build\n/,
@@ -3241,7 +3248,7 @@ esac`,
         });
       }
 
-      // #1403: the release runs each language in two parts too, each with the retry of #1433. The retry counts the tests of
+      // #1403: the release runs each language in three parts too, each with the retry of #1433. The retry counts the tests of
       // the part (what select_shard counted), not of the whole language, and keeps the bundles of the part apart.
       describe('#1403: --shard together with --retry-failed retries the failed UI tests of the part', () => {
         const X1 = 'XUITests/test1';

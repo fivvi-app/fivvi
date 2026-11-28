@@ -110,6 +110,10 @@ jobs:
     strategy:
       # All six parts always run: a failing one doesn't hide the others' results.
       fail-fast: false
+      # GitHub Free runs five macOS jobs at once: the sixth part waits here, in the matrix queue, not for a runner. GitHub
+      # cancels a macOS job that gets no runner after about 15 minutes, and the release does not retry it (`release.sh
+      # runners` fails the run on an unacquired part, RELEASE.md §6).
+      max-parallel: 5
       matrix:
         locale: [nl, en]
         shard: [1, 2, 3]
@@ -561,7 +565,7 @@ jobs:
       - name: Did the iOS jobs get a runner
         env:
           GH_TOKEN: ${{ github.token }}
-          # The result of a matrix job is the aggregate of its legs, so each part (a language and its half) is looked up by
+          # The result of a matrix job is the aggregate of its legs, so each part (a language and its third) is looked up by
           # its own job name (ios-parts.sh job), whatever the aggregate says: a leg that failed does not hide another that
           # got no runner.
           TESTS: ${{ needs.ios-tests.result }}

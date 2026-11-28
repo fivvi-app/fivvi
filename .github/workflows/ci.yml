@@ -741,7 +741,7 @@ jobs:
             report Playwright "$PLAYWRIGHT_LISTED" "$E2E" "$E2E_STATUS" "$RUNNER_TEMP/quarantine-playwright.log" '^((apps|packages)/[^ ]+ [^ ]+: )? +[0-9]+\) \['
           fi
 
-  # iOS (E008, E002, #293). Three kinds of jobs and the gate "iOS": one job builds once and packs the test bundle, six jobs run
+  # iOS (E008, E002, #293). Seven jobs and the gate "iOS": one job builds once and packs the test bundle, and six test jobs run
   # the Dutch and the English test passes from it (each language in three parts, #1447, #1614) at the same time, each on its own
   # simulator (a cold run was 16 of 21 minutes of tests in a row). They start only when the app, its generated inputs or
   # its own scripts changed (in a PR, a merge group or a push to main), or on demand (scripts/native-jobs.sh), to keep
@@ -968,9 +968,9 @@ jobs:
     # skipped retry would skip this job.
     if: ${{ !cancelled() && github.event_name != 'push' && (needs.ios-build.result == 'success' || needs.ios-build-retry.result == 'success') }}
     # Parts 2 and 3 of a language have nothing to run in a run without UI tests (ADR-034, see the test steps below): it runs on
-    # Linux then and takes no macOS runner (the parts that run would otherwise make six macOS jobs where main has two,
-    # GitHub Free runs five at once, and a part 2 or 3 that got no runner would be retried and could fail "iOS" with no test
-    # involved). The job still passes as a part, so the gate and the retry plan read it as before.
+    # Linux then and takes no macOS runner (the parts that run would otherwise make six macOS jobs where main has two, and
+    # a part 2 or 3 that got no runner would be retried and could fail "iOS" with no test involved). The job still passes as
+    # a part, so the gate and the retry plan read it as before.
     runs-on: ${{ (needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1) && 'macos-15' || 'ubuntu-24.04' }}
     continue-on-error: ${{ github.event_name == 'push' }}
     # A healthy run takes 14-21 min (#393), of which the simulator boot and settle is up to 4 min (xcodebuild 11-17). A test that hangs fails
@@ -988,10 +988,12 @@ jobs:
     # no longer enough: in the nightly run of 28 November 2026 (46131663275) they took 1735 to 2055 s of the 2100 s deadline
     # (82 to 97 %), and `nl 1/2` lost to the job's 44 minutes (1998 s of Fivvi Pro, 237 s of Fivvi and the count). A part is
     # a third of the test classes by their weight (scripts/test-ios.sh, `--shard`), about 1300 to 1400 s on a slow runner,
-    # so the deadline and the timeout stay as they are and a part has room to grow to 85 % of them. Six test jobs and the
-    # build make seven macOS jobs in a run with UI tests, where GitHub Free runs five at once: the sixth waits for a
-    # runner that is free (the wait is not part of a job's timeout), which a nightly run can bear. The matrix is the one in
-    # scripts/ios-parts.sh (the names of the parts, which the gate and the retry read); a test keeps the three in step.
+    # so the deadline and the timeout stay as they are and a part has room to grow to 85 % of them. The six test parts start
+    # after the build has ended, and GitHub Free runs five macOS jobs at once: `max-parallel: 5` makes the sixth leg wait
+    # inside the matrix, not for a runner, because GitHub cancels a macOS job that gets no runner after about 15 minutes (the
+    # #413 and #1268 cases, which the retry below exists for). It counts every leg, the Linux ones of a run without UI tests
+    # too, which end in seconds and free their place. The matrix is the one in scripts/ios-parts.sh (the names of the parts,
+    # which the gate and the retry read); a test keeps the three in step.
     #
     # The count of the part's tests before the run (`--shard`, IOS_ENUMERATE_DEADLINE) is not in the 310 s: those were
     # measured on 3 November 2026 (#393), before `select_shard` counted anything (19 November). It is 240 s since #1580
@@ -1007,6 +1009,8 @@ jobs:
     strategy:
       # All parts always run: a failing one doesn't hide the others' results.
       fail-fast: false
+      # GitHub Free runs five macOS jobs at once: the sixth leg waits here, in the matrix queue, not for a runner (see above).
+      max-parallel: 5
       matrix:
         locale: [nl, en]
         shard: [1, 2, 3]
