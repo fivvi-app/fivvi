@@ -85,7 +85,7 @@ final class ClassDateViewModel {
 
     private var timeZone: TimeZone { session.flatMap { TimeZone(identifier: $0.timeZone) } ?? workspace.timeZone }
     private var format: SessionFormat { SessionFormat(locale: catalog.formattingLocale, timeZone: timeZone) }
-    private var words: TrainerWordForms { TrainerWordForms(workspace.trainerWord, catalog: catalog) }
+    var words: TrainerWordForms { TrainerWordForms(workspace.trainerWord, catalog: catalog) }
 
     /// What the confirmation of *Les annuleren* tells.
     struct CancelAsk: Equatable {
@@ -125,10 +125,14 @@ final class ClassDateViewModel {
     var trainerLabel: String { catalog.string(.classDateTrainerLabel, words.wordCap) }
     var bookedLabel: String { catalog[.classDateBookedLabel] }
 
-    /// The trainer: *Jij* for the person looking, else the name, or *Trainer nodig* without one.
+    /// The trainer: *Jij* for the person looking, else the name, or *Trainer nodig* without one. On a substituted date
+    /// (F024) everyone but the substitute reads *Mike (vervangt Sarah)*.
     var trainerText: String {
         guard let trainer = session?.trainer else { return catalog.string(.classFormTrainerNeeded, words.wordCap) }
-        return trainer.id == workspace.teamMemberId ? catalog[.sessionPageYou] : trainer.name
+        if trainer.id == workspace.teamMemberId { return catalog[.sessionPageYou] }
+        guard let original = originalTrainer else { return trainer.name }
+        // Placeholders in the order of their names: original, substitute.
+        return catalog.string(.classDateSubstituteLabel, original, trainer.name)
     }
 
     /// The places taken: the clients who have not cancelled.
@@ -195,9 +199,13 @@ final class ClassDateViewModel {
 
     // MARK: The ⋯ menu
 
-    /// The Owner's menu, until the date is cancelled; a Trainer who is not substituting has none (F024 adds the substitute's).
+    /// The Owner's menu, until the date is cancelled; a Trainer has none, a covering one neither: only the Owner substitutes
+    /// (Q40), and on the web.
     var hasMenu: Bool { canManage && !isCancelled }
     var editText: String { catalog[.classDateEdit] }
+
+    /// *Vervang de trainer* (F024): substituting is managed on the web, and the screen says so.
+    func substituteTapped() { manageOnWebText = catalog[.classDateManageOnWeb] }
 
     /// *Les wijzigen*: the class is managed on the web, and the screen says so.
     func editTapped() { manageOnWebText = catalog[.classDateManageOnWeb] }

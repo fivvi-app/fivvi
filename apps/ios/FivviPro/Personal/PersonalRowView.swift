@@ -79,7 +79,7 @@ struct PersonalRowView: View {
                     }
                 }
                 .insetRowLayout()
-                .opacity(row.isPast || row.isCancelled ? 0.55 : 1)
+                .opacity(row.isPast || row.isCancelled || row.isTakenOver ? 0.55 : 1)
             }
             .buttonStyle(.insetRow)
             .accessibilityElement(children: .ignore)
@@ -180,6 +180,7 @@ struct PersonalRowView: View {
                     secondary(workspace)
                 }
             }
+            if let substitution = row.substitutionText { substitutionLine(substitution) }
             if row.isCancelled { secondary(catalog[.todayCancelled]) }
         }
         .multilineTextAlignment(.leading)
@@ -193,6 +194,13 @@ struct PersonalRowView: View {
             .strikethrough(row.isCancelled)
             .foregroundStyle(Tokens.Colors.textPrimary)
         return LevelIcon.row(name: name, level: row.level, scale: barsScale)
+    }
+
+    /// *Je valt in voor Sarah* in the accent colour, or *Overgenomen door Mike* (F024): the row is dimmed as a whole then.
+    private func substitutionLine(_ text: String) -> some View {
+        Text(text)
+            .font(.system(Tokens.TextStyle.subhead, weight: row.isTakenOver ? .regular : .semibold))
+            .foregroundStyle(row.isTakenOver ? Tokens.Colors.textSecondary : Tokens.Colors.accentText)
     }
 
     private func secondary(_ text: String) -> some View {

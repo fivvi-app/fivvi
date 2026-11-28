@@ -45,6 +45,8 @@ extension StringKey {
     static let classDateInDutch = StringKey("classes.app.descriptionInDutch")
     static let classDateEdit = StringKey("classes.app.edit")
     static let classDateManageOnWeb = StringKey("classes.app.manageOnWeb")
+    static let classDateSubstituteLabel = StringKey("classes.date.substitute")
+    static let classDateSubstituteAction = StringKey("sessions.trainerDialog.titleSubstitute")
     static let classDateOwnerNote = StringKey("classes.app.ownerNote")
     static let classDateCancelledBanner = StringKey("classes.date.cancelledBanner")
     static let classDateCancelledBannerUnknown = StringKey("classes.date.cancelledBannerUnknown")

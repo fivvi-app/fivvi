@@ -205,7 +205,9 @@ final class TodayViewModel {
     /// *Te doen*: a chip "Aanwezigheid · Anna 09:00" for each item that waits for attendance, in time order.
     private var todo: Todo {
         let chips: [TodoChip] = items.compactMap { item in
-            guard nudges?.isOpen(sessionID: item.sessionId, attendanceOpen: item.attendanceOpen) == true else {
+            // A date taken over by a substitute has no actions (F024).
+            guard item.takenOverBy == nil,
+                  nudges?.isOpen(sessionID: item.sessionId, attendanceOpen: item.attendanceOpen) == true else {
                 return nil
             }
             let row = rowBuilder.row(item)
@@ -215,9 +217,11 @@ final class TodayViewModel {
         return Todo(title: catalog[chips.isEmpty ? .attendanceCaughtUp : .attendanceTodo], chips: chips)
     }
 
-    /// A row of the list with its nudge (F025), when its private session waits for attendance.
+    /// A row of the list with its nudge (F025), when its private session waits for attendance. A date taken over by a
+    /// substitute has none (F024).
     private func decorated(_ item: PersonalItem) -> PersonalRow {
         let row = rowBuilder.row(item)
+        guard item.takenOverBy == nil else { return row }
         return nudges?.decorate(
             row, sessionID: item.sessionId, attendanceOpen: item.attendanceOpen, isPrivate: item._type == ._private,
             clients: item.clients

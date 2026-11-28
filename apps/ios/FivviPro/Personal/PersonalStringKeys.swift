@@ -53,6 +53,8 @@ extension StringKey {
     static let todayNextInProgress = StringKey("myDay.nextInProgress")
     static let todayTomorrow = StringKey("myDay.tomorrow")
     static let todayCancelled = StringKey("myDay.cancelled")
+    static let todayCoveringFor = StringKey("myDay.coveringFor")
+    static let todayTakenOverBy = StringKey("myDay.takenOverBy")
     static let todayTypePrivate = StringKey("myDay.typePrivate")
     static let todayTypeGroup = StringKey("myDay.typeGroup")
     static let todaySpokenTime = StringKey("myDay.spokenTime")

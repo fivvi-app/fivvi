@@ -76,7 +76,7 @@ struct DayTimelineView: View {
             }
             .frame(width: columnWidth - 3, height: metrics.height, alignment: .leading)
             .background(tone.fill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .opacity(block.row.isPast || block.row.isCancelled ? 0.55 : 1)
+            .opacity(block.row.isPast || block.row.isCancelled || block.row.isTakenOver ? 0.55 : 1)
             // A block under 44 pt is touched on 44 pt where there is room: above and below, never over the block beside
             // it; the look stays on the scale.
             .padding(.top, metrics.touchAbove)
@@ -93,10 +93,11 @@ struct DayTimelineView: View {
         .accessibilityIdentifier("calendar.block.\(block.row.id)")
     }
 
-    /// *11:00*, and *Geannuleerd* for a cancelled one, where a class says how many places are taken.
+    /// *11:00*, and *Geannuleerd* for a cancelled one, where a class says how many places are taken; the substitution
+    /// (*Je valt in voor Sarah*, *Overgenomen door Mike*, F024) takes the place of the count.
     private func startLine(_ row: PersonalRow) -> String {
         if row.isCancelled { return "\(row.startText) · \(catalog[.todayCancelled])" }
-        return [row.startText, row.pill].compactMap { $0 }.joined(separator: " · ")
+        return [row.startText, row.substitutionText ?? row.pill].compactMap { $0 }.joined(separator: " · ")
     }
 
     private struct Tone {

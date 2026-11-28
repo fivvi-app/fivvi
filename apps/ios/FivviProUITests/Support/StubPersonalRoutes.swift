@@ -18,6 +18,15 @@ final class StubPersonalRoutes: @unchecked Sendable {
     static let kracht = StubSessionRoutes.seededClassDateID
     static let krachtCancelled = "8a0b1c2e-8a54-4b51-9a42-0000000000b4"
 
+    /// A substitution on the class "Kracht" of the day (22 September) and of 20 October (F024): Mike covers it for Sarah
+    /// (`covering`, Mike's lists) or took it over from her (`takenOver`, Sarah's lists).
+    enum Substitution: Sendable {
+        case covering, takenOver
+    }
+
+    static let coveredTrainerName = "Sarah Visser"
+    static let substituteName = "Mike Bakker"
+
     private let lock = NSLock()
     /// Whether the session waits for attendance (F025): wired to the session routes, which know its participants.
     var attendanceOpen: @Sendable (String) -> Bool = { _ in false }
@@ -38,6 +47,34 @@ final class StubPersonalRoutes: @unchecked Sendable {
     var day: Day {
         get { lock.withLock { served } }
         set { lock.withLock { served = newValue } }
+    }
+
+    private var substituted: Substitution?
+
+    /// The substitution the lists carry, or none.
+    var substitution: Substitution? {
+        get { lock.withLock { substituted } }
+        set { lock.withLock { substituted = newValue } }
+    }
+
+    /// The item with the labels of the API (`substituteFor`, `takenOverBy`) when it is one of the substituted dates.
+    private func substituting(_ item: [String: Any]) -> [String: Any] {
+        guard let id = item["sessionId"] as? String, id == Self.kracht || id == Self.krachtOctober20,
+              let substitution
+        else { return item }
+        var next = item
+        switch substitution {
+        case .covering:
+            next["substituteFor"] = [
+                "id": StubSessionRoutes.otherMemberID, "trainerProfileId": "6e1c2d3e-0000-4000-8000-0000000000b1",
+                "name": Self.coveredTrainerName
+            ]
+        case .takenOver:
+            // The API leaves the attendance fields out of a date that was taken over.
+            next["takenOverBy"] = ["name": Self.substituteName]
+            next["attendanceOpen"] = nil
+        }
+        return next
     }
 
     private static func instant(_ time: String, _ day: String = day) -> String {
@@ -101,11 +138,14 @@ final class StubPersonalRoutes: @unchecked Sendable {
             Self.item(Self.krachtCancelled, johns, "18:00", "19:00", className: "Kracht", cancelled: true)
         ]
         let shown = (which == .solo ? Array(items.prefix(2)) : items).map(markCancelled).map(withAttendance)
+            .map(substituting)
+        // The summary counts what she teaches: not the date that was taken over (F024).
+        let counted = shown.filter { $0["takenOverBy"] == nil }.count
         let nextIsCancelled = isCancelled(Self.anna)
         var answer: [String: Any] = [
             "date": date, "timeZone": StubSessionRoutes.zone, "workspaceCount": which == .solo ? 1 : 2,
             "items": shown,
-            "summary": ["count": shown.count, "done": 0, "firstStartsAt": Self.instant("09:00"),
+            "summary": ["count": counted, "done": 0, "firstStartsAt": Self.instant("09:00"),
                         "lastEndsAt": Self.instant(which == .solo ? "12:00" : "19:00")],
             "freeGap": ["startsAt": Self.instant("12:00"), "endsAt": Self.instant("13:30")],
             "placesAhead": (which == .solo ? ["John's Gym"] : ["TrainMore Zuid", "John's Gym"]).map { ["name": $0] },
@@ -192,7 +232,7 @@ final class StubPersonalRoutes: @unchecked Sendable {
             .filter { which == .sarah || $0.json["type"] as? String == "private" }
         return (200, [
             "from": first, "to": last, "timeZone": StubSessionRoutes.zone, "workspaceCount": which == .solo ? 1 : 2,
-            "items": shown.map { markCancelled($0.json) }
+            "items": shown.map { substituting(markCancelled($0.json)) }
         ].merging(Self.sessionTypes(which)) { $1 })
     }
 

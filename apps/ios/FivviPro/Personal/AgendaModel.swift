@@ -234,7 +234,8 @@ final class AgendaModel {
     private func start(of day: String) -> Date { calendar.start(of: day) ?? now }
 
     private func cell(_ day: String, letter: String) -> DayCell {
-        let sessions = items(on: day).filter { $0.status != .cancelled }
+        // A date a substitute took over is not one she teaches (F024): no dot, no count.
+        let sessions = items(on: day).filter { $0.status != .cancelled && $0.takenOverBy == nil }
         let name = format.weekdayDay(start(of: day))
         let isToday = day == calendar.day(of: now)
         return DayCell(
