@@ -49,7 +49,7 @@ export interface SuiteResult {
   operations: string[];
 }
 
-interface StoredRow {
+export interface StoredRow {
   table: string;
   workspaceId: string;
   row: Record<string, unknown>;
@@ -73,7 +73,7 @@ function clientOf(table: string, row: Record<string, unknown>): string | undefin
  * connection, not once per call. Planned again each time it took about three times as long as
  * running it, and a planner waiting for a CPU is what a busy machine slows most (#678).
  */
-async function readRows(world: World, tables: readonly string[]): Promise<StoredRow[]> {
+export async function readRows(world: World, tables: readonly string[]): Promise<StoredRow[]> {
   if (tables.length === 0) return [];
   // The names come from the catalog, not from a request; quoted all the same.
   const text = tables
@@ -109,7 +109,7 @@ async function textOf(response: Response): Promise<string> {
 }
 
 /** `organizations` and every table in `public` with an `organization_id`, including probe tables. */
-async function businessTables(world: World): Promise<string[]> {
+export async function businessTables(world: World): Promise<string[]> {
   const { rows } = await world.admin.db.execute(
     sql`select distinct table_name from information_schema.columns
         where table_schema = 'public' and column_name = 'organization_id'`,
@@ -121,7 +121,7 @@ async function businessTables(world: World): Promise<string[]> {
  * Whose a token is. One owner, except for the tokens of an account that has a place in several
  * workspaces (Sam): its id appears in the rows of each, and each is an owner of it.
  */
-type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
+export type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
 
 /**
  * The ids and markers of every record of every workspace, and whose they are: a row's uuids,
@@ -131,7 +131,7 @@ type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
  * account id appears. A record shared by two workspaces is an error in the scenario; only an
  * account may appear in several.
  */
-function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
+export function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
   const ledger: Ledger = new Map();
   const accountIds = new Set(scenario.accounts.map((account) => account.id));
   const claim = (
