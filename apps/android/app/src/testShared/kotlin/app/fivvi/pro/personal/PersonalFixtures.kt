@@ -13,6 +13,8 @@ import app.fivvi.api.models.MyDayTomorrow
 import app.fivvi.api.models.PersonalSession
 import app.fivvi.api.models.PersonalWorkspace
 import app.fivvi.api.models.PersonalWorkspaceSessionTypes
+import app.fivvi.api.models.SubstituteFor
+import app.fivvi.api.models.TakenOverBy
 import app.fivvi.core.me.workspaceIdOf
 import java.time.Instant
 import java.time.LocalDate
@@ -66,6 +68,10 @@ object PersonalFixtures {
         day: String = DAY,
         type: PersonalSession.Type? = null,
         level: ClassLevel? = null,
+        /** The trainer the account replaces on this date (F024): the substitute's own row. */
+        substituteFor: String? = null,
+        /** The substitute who took the date over from the account (F024): the replaced trainer's row. */
+        takenOverBy: String? = null,
     ) = PersonalSession(
         sessionId = sessionIdOf(id),
         workspace = workspace,
@@ -80,6 +86,14 @@ object PersonalFixtures {
         level = level,
         location = place?.let { place(it) },
         clientName = client,
+        substituteFor = substituteFor?.let {
+            SubstituteFor(
+                UUID.nameUUIDFromBytes("member:$it".toByteArray()),
+                UUID.nameUUIDFromBytes("profile:$it".toByteArray()),
+                it,
+            )
+        },
+        takenOverBy = takenOverBy?.let { TakenOverBy(it) },
     )
 
     val anna = session("anna", sarahPT, "09:00", "10:00", client = "Anna de Vries", place = "TrainMore Zuid")
@@ -148,6 +162,33 @@ object PersonalFixtures {
             capacity = 8,
             day = "2026-10-27",
         ),
+    )
+
+    /**
+     * Kracht on Tuesday 20 October 2026 at 18:00 as the substitution of F024 shows it (spec #461 AC4): Mike Bakker covers it
+     * for Sarah Visser, so Mike's account lists [covering] and Sarah's lists the same date as [takenOver].
+     */
+    val covering: PersonalSession = session(
+        "kracht-20",
+        johns,
+        "18:00",
+        "19:00",
+        className = "Kracht",
+        booked = 2,
+        capacity = 8,
+        day = "2026-10-20",
+        substituteFor = "Sarah Visser",
+    )
+    val takenOver: PersonalSession = session(
+        "kracht-20",
+        johns,
+        "18:00",
+        "19:00",
+        className = "Kracht",
+        booked = 2,
+        capacity = 8,
+        day = "2026-10-20",
+        takenOverBy = "Mike Bakker",
     )
 
     /**
