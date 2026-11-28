@@ -1,5 +1,5 @@
 import { formattingLocales, type Locale, type Messages, trainerWordForms } from '@fivvi/i18n';
-import type { APIRequestContext, Page } from '@playwright/test';
+import type { APIRequestContext, Locator, Page } from '@playwright/test';
 import { createTranslator } from 'next-intl';
 import {
   createAccount,
@@ -41,6 +41,9 @@ export interface SessionBody {
   status?: string;
   startsAt: string;
   trainer?: { id: string; name: string };
+  /** F024: the trainer a substitute replaces on this date. */
+  substituteFor?: { id: string; name: string };
+  participants?: { clientId: string; attendanceStatus: string }[];
 }
 
 export interface World {
@@ -179,6 +182,11 @@ export function wording(appLocale: Locale, copy: Messages) {
     messages: copy,
     namespace: 'classes',
   });
+  const calendar = createTranslator({
+    locale: formattingLocales[appLocale],
+    messages: copy,
+    namespace: 'workspaceCalendar',
+  });
   const day = (instant: string) =>
     new Intl.DateTimeFormat(formattingLocales[appLocale], {
       timeZone: 'Europe/Amsterdam',
@@ -196,6 +204,7 @@ export function wording(appLocale: Locale, copy: Messages) {
     word,
     t: dialog,
     classes,
+    calendar,
     day,
     longDate,
     titleAssign: dialog('titleAssign', { ...word }),
@@ -249,4 +258,34 @@ export async function seedClassDate(
       trainerId,
     })) as { id: string }
   ).id;
+}
+
+/** The blocks of the calendar: each opens the quick view. */
+export const blocks = (page: Page) =>
+  page.getByRole('main').locator('button[aria-haspopup="dialog"]');
+/** The columns of the grid, in order. */
+export const gridColumns = (page: Page) =>
+  page.locator('[data-slot="week-grid-body"] > [data-column]');
+
+/** Drags the block sideways, to the middle of `column` and the minute it is at. */
+export async function dragToColumn(page: Page, block: Locator, column: Locator) {
+  const from = await block.boundingBox();
+  await column.scrollIntoViewIfNeeded();
+  const to = await column.boundingBox();
+  if (!from || !to) throw new Error('The block or the column is not on the page.');
+  const y = from.y + Math.min(from.height / 2, 20);
+  const x = from.x + from.width / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move((x + to.x + to.width / 2) / 2, y, { steps: 6 });
+  await page.mouse.move(to.x + to.width / 2, y, { steps: 8 });
+  await page.mouse.up();
+}
+
+/** The column of the day view headed `label`. */
+export async function columnOf(page: Page, label: string) {
+  const headers = await page.locator('[data-slot="week-grid-header"] > div').allInnerTexts();
+  const index = headers.findIndex((header) => header.trim() === label);
+  if (index < 0) throw new Error(`No column ${label} in ${headers.join(', ')}.`);
+  return gridColumns(page).nth(index);
 }

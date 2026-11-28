@@ -127,6 +127,12 @@ export function TrainerDialog({
       ...(picked.scope ? { scope: picked.scope } : {}),
       version: current.version,
       notifyClients: picked.notifyClients,
+      ...(picked.notifySubstitute !== undefined
+        ? { notifySubstitute: picked.notifySubstitute }
+        : {}),
+      ...(picked.notifyParticipants !== undefined
+        ? { notifyParticipants: picked.notifyParticipants }
+        : {}),
       ...(allowConflicts ? { allowConflicts } : {}),
     });
     if (result.ok) {
@@ -136,7 +142,14 @@ export function TrainerDialog({
         message:
           current.type === 'private'
             ? t('donePrivate', { ...trainerWord, trainer })
-            : t('doneClass', { trainer, class: className, date: when.day(current.startsAt) }),
+            : result.session.substituteFor
+              ? // F024: "Mike vervangt Sarah op di 20 okt."; choosing the regular trainer again ends it ("Sarah geeft Kracht op …").
+                t('doneSubstitute', {
+                  substitute: trainer,
+                  original: result.session.substituteFor.name,
+                  date: when.day(current.startsAt),
+                })
+              : t('doneClass', { trainer, class: className, date: when.day(current.startsAt) }),
       });
     }
     setPending(false);

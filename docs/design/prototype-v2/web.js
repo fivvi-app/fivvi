@@ -246,7 +246,7 @@
         var cl = []; its.forEach(function (it) { var c = 0; while (cl[c] && cl[c].some(function (o) { return F.mins(o.s) < F.mins(it.e) && F.mins(it.s) < F.mins(o.e); })) c++; (cl[c] = cl[c] || []).push(it); it._c = c; });
         var blocks = its.map(function (it) {
           var n = 1; cl.forEach(function (col, ci) { if (col.some(function (o) { return F.mins(o.s) < F.mins(it.e) && F.mins(it.s) < F.mins(o.e); })) n = Math.max(n, ci + 1); });
-          return '<button class="w-ev' + (it.cancelled ? " cx" : "") + (F.isPast(it, k) ? " past" : "") + '" data-a="w-ev" data-id="' + it.id + '" style="--c:' + F.CV[it.type] + ";top:" + ((F.mins(it.s) - H0 * 60) / 60 * HH) + "px;height:" + ((F.mins(it.e) - F.mins(it.s)) / 60 * HH - 2) + "px;left:calc(" + (it._c / n * 100) + "% + 2px);width:calc(" + (100 / n) + '% - 4px)"><b>' + esc(itemTitle(it)) + "</b><span>" + it.s + (it.trainer && !mine ? " · " + esc(it.trainer.split(" ")[0]) : "") + "</span></button>";
+          return '<button class="w-ev' + (it.cancelled ? " cx" : "") + (F.isPast(it, k) ? " past" : "") + '" data-a="w-ev" data-id="' + it.id + '" style="--c:' + F.CV[it.type] + ";top:" + ((F.mins(it.s) - H0 * 60) / 60 * HH) + "px;height:" + ((F.mins(it.e) - F.mins(it.s)) / 60 * HH - 2) + "px;left:calc(" + (it._c / n * 100) + "% + 2px);width:calc(" + (100 / n) + '% - 4px)"><b>' + esc(itemTitle(it)) + "</b><span>" + it.s + (it.trainer && !mine ? " · " + (it.subFor ? "\u21c4 " : "") + esc(it.trainer.split(" ")[0]) : "") + "</span></button>";
         }).join("");
         return '<div class="w-wcol' + (k === F.TODAY ? " today" : "") + '">' + blocks + (k === F.TODAY ? '<i class="w-wnow" style="top:' + ((F.mins(F.NOWT) - H0 * 60) / 60 * HH) + 'px"></i>' : "") + "</div>";
       }).join("");

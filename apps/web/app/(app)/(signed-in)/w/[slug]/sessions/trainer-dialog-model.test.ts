@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { Session } from './sessions-client';
-import { assignKind, notifyCount, scopesOffered } from './trainer-dialog-model';
+import {
+  assignKind,
+  notifyCount,
+  orderedCandidates,
+  scopesOffered,
+  startedBy,
+  substitutionOf,
+} from './trainer-dialog-model';
 
 const base = { status: 'scheduled' } as const;
 const series = {
@@ -22,8 +29,8 @@ describe('F023 which trainer dialog a session gets', () => {
     expect(assignKind({ ...base, type: 'group', series, trainer: sarah })).toBe('substitute');
   });
 
-  it('a one-off class date that has a trainer is not offered the dialog until F024', () => {
-    expect(assignKind({ ...base, type: 'group', trainer: sarah })).toBeNull();
+  it('F024 AC1: a one-off class date that has a trainer is substituted too', () => {
+    expect(assignKind({ ...base, type: 'group', trainer: sarah })).toBe('substitute');
   });
 
   it('AC8: a private session is changed: Trainer wijzigen, with or without a trainer', () => {
@@ -47,10 +54,15 @@ describe('F023 the dates the dialog is for (Voor)', () => {
     expect(scopesOffered({ ...base, type: 'group' })).toEqual(['this']);
   });
 
-  it('AC2: a date with a trainer (the substitution is F024): only Deze en alle volgende lessen', () => {
+  it('F024 AC1: a date of a series with a trainer: Alleen deze les (the substitution) first, then Deze en alle volgende lessen', () => {
     expect(scopesOffered({ ...base, type: 'group', series, trainer: sarah })).toEqual([
+      'this',
       'following',
     ]);
+  });
+
+  it('F024 AC1: a one-off date with a trainer: only this date', () => {
+    expect(scopesOffered({ ...base, type: 'group', trainer: sarah })).toEqual(['this']);
   });
 
   it('a private session has no scope', () => {
@@ -68,5 +80,40 @@ describe('F023 how many clients the email would reach', () => {
   it('Alleen deze les and a private session count the one session', () => {
     expect(notifyCount({ participantsToNotify }, 'this')).toBe(1);
     expect(notifyCount({ participantsToNotify }, undefined)).toBe(1);
+  });
+});
+
+describe('F024 substitution in the dialog', () => {
+  const mike = { id: 'mike', name: 'Mike', conflicts: [], laterConflictingDates: 0 };
+  const sarahCandidate = { id: 'sarah', name: 'Sarah', conflicts: [], laterConflictingDates: 0 };
+  const lisa = { id: 'lisa', name: 'Lisa', conflicts: [], laterConflictingDates: 0 };
+
+  it('AC1: Alleen deze les on a date that has a trainer is a substitution; Deze en alle volgende lessen is not', () => {
+    const date = { ...base, type: 'group', series, trainer: sarah } as const;
+    expect(substitutionOf(date, 'this')).toBe(true);
+    expect(substitutionOf(date, 'following')).toBe(false);
+  });
+
+  it('AC1: a date without a trainer is assigned, not substituted, and a private session never is', () => {
+    expect(substitutionOf({ ...base, type: 'group', series }, 'this')).toBe(false);
+    expect(substitutionOf({ ...base, type: 'private', trainer: sarah }, 'this')).toBe(false);
+  });
+
+  it('AC5: on a substituted date the regular trainer comes first, the others keep their order', () => {
+    expect(
+      orderedCandidates([lisa, sarahCandidate, mike], { substituteFor: { id: 'sarah' } }).map(
+        ({ id }) => id,
+      ),
+    ).toEqual(['sarah', 'lisa', 'mike']);
+  });
+
+  it('a date that is no substitution keeps the order of the API', () => {
+    expect(orderedCandidates([lisa, mike], {}).map(({ id }) => id)).toEqual(['lisa', 'mike']);
+  });
+
+  it('AC8: a date has started once its start is not after now', () => {
+    const startsAt = '2026-10-06T16:00:00.000Z';
+    expect(startedBy({ startsAt }, new Date('2026-10-06T16:00:00.000Z'))).toBe(true);
+    expect(startedBy({ startsAt }, new Date('2026-10-06T15:59:59.000Z'))).toBe(false);
   });
 });
