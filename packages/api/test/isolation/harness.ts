@@ -24,6 +24,7 @@ import {
   createSubstitutionSender,
   createTrainerChangeSender,
   createTrainerInvitationSender,
+  type MemoryTransport,
 } from '@fivvi/email';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import type { OpenAPIHono } from '@hono/zod-openapi';
@@ -49,6 +50,11 @@ export interface World {
   app: DatabaseClient;
   /** Every tenant scope the API opened, in order, with the context Postgres held for it. */
   observed: Observed[];
+  /**
+   * What the API emailed for a trainer assignment (F023, F024), kept in memory: EM-10 to a substitute
+   * and EM-13 to the booked participants. Every other email goes to a transport nobody reads.
+   */
+  outbox: { substitution: MemoryTransport; trainerChange: MemoryTransport };
   api: OpenAPIHono;
   /** Calls the API as `account` (anonymous when undefined). */
   request(
@@ -98,6 +104,10 @@ export async function createWorld(options: WorldOptions = {}): Promise<World> {
   const admin = createDatabase({ url: database.url, maxConnections: 2 });
   const app = createDatabase({ url: database.appUrl, maxConnections: 4 });
   const observed: Observed[] = [];
+  const outbox = {
+    substitution: createMemoryTransport(),
+    trainerChange: createMemoryTransport(),
+  };
   const emails = new Map<string, SignedInAccount>();
 
   const real = createTenantScopes(() => app.db);
@@ -157,10 +167,10 @@ export async function createWorld(options: WorldOptions = {}): Promise<World> {
         replyTo: { email: 'support@example.com' },
       }),
     }),
-    // The assignment route emails EM-13 (F023): into memory, never out.
+    // The assignment route emails EM-13 (F023): into memory, never out; the isolation tests read it.
     sendTrainerChange: createTrainerChangeSender({
       sendEmail: createSendEmail({
-        transport: createMemoryTransport(),
+        transport: outbox.trainerChange,
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
         replyTo: { email: 'support@example.com' },
       }),
@@ -168,7 +178,7 @@ export async function createWorld(options: WorldOptions = {}): Promise<World> {
     // The assignment route emails EM-10 to a substitute (F024): into memory, never out.
     sendSubstitution: createSubstitutionSender({
       sendEmail: createSendEmail({
-        transport: createMemoryTransport(),
+        transport: outbox.substitution,
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
         replyTo: { email: 'support@example.com' },
       }),
@@ -192,6 +202,7 @@ export async function createWorld(options: WorldOptions = {}): Promise<World> {
     admin,
     app,
     observed,
+    outbox,
     api,
     request: (account, path, init = {}) => {
       if (account && !emails.has(account.id)) {
