@@ -488,7 +488,7 @@
   /* Mijn dag: what the list below doesn't tell you. Open tasks, the next free gap (with a button to plan in it) and
      the places still ahead today. */
   function dayCard(items) {
-    var act = items.filter(function (i) { return !i.cancelled; }), rows = [];
+    var act = items.filter(function (i) { return !i.cancelled && !i.by; }), rows = [];
     var todo = [];
     act.forEach(function (i) {
       if (!isPast(i, TODAY)) return;

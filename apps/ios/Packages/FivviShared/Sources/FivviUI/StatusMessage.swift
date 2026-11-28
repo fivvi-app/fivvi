@@ -37,11 +37,7 @@ public struct StatusMessage: View {
         .padding(Tokens.Spacing.space3)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            let shape = RoundedRectangle(cornerRadius: Tokens.Radius.md, style: .continuous)
-            shape.fill(background)
-            if kind == .accent {
-                shape.fill(Tokens.Colors.accentFill.opacity(0.14))
-            }
+            RoundedRectangle(cornerRadius: Tokens.Radius.md, style: .continuous).fill(background)
         }
     }
 
@@ -59,7 +55,7 @@ public struct StatusMessage: View {
         case .error: Tokens.Colors.statusDangerBg
         case .success: Tokens.Colors.statusSuccessBg
         case .info: Tokens.Colors.statusNeutralBg
-        case .accent: Tokens.Colors.bgSurface
+        case .accent: Tokens.Colors.accentTint
         }
     }
 }
