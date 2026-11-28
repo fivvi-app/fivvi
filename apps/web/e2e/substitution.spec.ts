@@ -110,6 +110,60 @@ test.describe('F024 Substitute trainer on the web', () => {
     }
   });
 
+  test('AC3: calendar labels, day column and legend: ⇄ Mike, "Mike (vervangt Sarah)" as name, tooltip, quick view and CO-01, Mike’s own column in the day view', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    await page.setViewportSize({ width: 1280, height: 1500 });
+    const w = await team(page, context);
+    const text = wording(appLocale, copy);
+    const kracht = await seedKracht(page.request, w.base, w.trainer('Sarah'));
+    const second = kracht.dates[1];
+    if (!second) throw new Error('Kracht has fewer than two dates.');
+    await substitute(page.request, w.base, second, w.trainer('Mike'));
+    const date = shift(tuesday(), 7);
+    const label = text.calendar('substituteLabel', { substitute: 'Mike', original: 'Sarah' });
+
+    // The week: ⇄ and the substitute on the block, the accessible name and the tooltip say whom.
+    await page.goto(`/w/${w.slug}/calendar?date=${date}&view=week`);
+    const block = blocks(page).filter({ hasText: 'Mike' });
+    await expect(block).toHaveCount(1);
+    await expect(block).toContainText('⇄');
+    await expect(block).toHaveAccessibleName(new RegExp(label.replace(/[()]/g, '\\$&')));
+    await expect(block.getByTitle(label)).toBeVisible();
+    // The legend lists vervanger.
+    const legend = page.getByRole('list', { name: copy.myCalendar.legend });
+    await expect(legend.getByText(text.calendar('legendSubstitute'))).toBeVisible();
+    await expectNoAxeViolations(page, `the week with a substitution in ${appLocale}`);
+
+    // The day view puts the block in Mike's column and not in Sarah's.
+    await page.goto(`/w/${w.slug}/calendar?date=${date}&view=day`);
+    const mike = await columnOf(page, 'Mike');
+    await expect(mike.locator('button[aria-haspopup="dialog"]')).toContainText('⇄');
+    await expect(
+      (await columnOf(page, 'Sarah')).locator('button[aria-haspopup="dialog"]'),
+    ).toHaveCount(0);
+
+    // The list says it in words.
+    await page.goto(`/w/${w.slug}/calendar?date=${date}&view=list`);
+    await expect(page.getByRole('main').getByRole('table').getByText(label)).toBeVisible();
+
+    // The quick view and CO-01.
+    await page.goto(`/w/${w.slug}/calendar?date=${date}&view=week`);
+    await blocks(page).filter({ hasText: 'Mike' }).click();
+    const quick = page.getByRole('dialog');
+    await expect(
+      quick.getByText(text.calendar('trainerLine', { ...text.word, name: label })),
+    ).toBeVisible();
+    await expectNoAxeViolations(page, `the quick view of a substitution in ${appLocale}`);
+    await quick.getByRole('link', { name: copy.workspaceCalendar.open }).click();
+    await expect(page.getByRole('main').getByText(label)).toBeVisible();
+    await expectNoAxeViolations(page, `CO-01 of a substitution in ${appLocale}`);
+  });
+
   test('AC5: Tom replaces Mike and the date still says it replaces Sarah; choosing Sarah (vaste trainer) ends it', async ({
     page,
     context,
@@ -343,5 +397,113 @@ test.describe('F024 Substitute trainer on the web', () => {
       data: { trainerId: w.trainer('Tom'), version: 1, scope: 'this' },
     });
     expect(refused.status()).toBe(403);
+  });
+
+  test('AC16: CO-02 counts the participants: "2 deelnemers informeren per e-mail", on by default; unchecked saves notifyParticipants false', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const w = await team(page, context);
+    const text = wording(appLocale, copy);
+    const kracht = await seedKracht(page.request, w.base, w.trainer('Sarah'));
+    const [, second, third] = kracht.dates;
+    if (!second || !third) throw new Error('Kracht has fewer than three dates.');
+    const anna = await seedClient(page.request, w.base, 'Anna de Vries', 'nl-NL');
+    const mark = await seedClient(page.request, w.base, 'Mark Jansen', 'en');
+    for (const date of [second, third]) {
+      await bookParticipant(date, anna.id);
+      await bookParticipant(date, mark.id);
+    }
+
+    // Both boxes checked: Anna and Mark are told, each by email, and neither names the other.
+    await page.goto(`/w/${w.slug}/classes/${kracht.classId}/${second}`);
+    await page.getByRole('button', { name: text.titleSubstitute }).click();
+    const dialog = page.getByRole('dialog', { name: text.titleSubstitute });
+    await dialog.getByRole('radio', { name: 'Mike', exact: true }).check();
+    const participants = dialog.getByRole('checkbox', {
+      name: text.t('notifyClass', { count: 2 }),
+    });
+    await expect(participants).toBeChecked();
+    await expectNoAxeViolations(page, `CO-02 with participants in ${appLocale}`);
+    const sent = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' && request.url().endsWith(`/sessions/${second}/trainer`),
+    );
+    await dialog.getByRole('button', { name: text.t('submitSubstitute') }).click();
+    expect((await sent).postDataJSON()).toMatchObject({
+      scope: 'this',
+      notifySubstitute: true,
+      notifyParticipants: true,
+    });
+    const forAnna = await trainerChangeEmail(anna.email, 'Mike');
+    const forMark = await trainerChangeEmail(mark.email, 'Mike');
+    expect(forAnna.text).not.toContain('Mark');
+    expect(forMark.text).not.toContain('Anna');
+
+    // Unchecked, only the substitute's own box is sent as true.
+    await page.goto(`/w/${w.slug}/classes/${kracht.classId}/${third}`);
+    await page.getByRole('button', { name: text.titleSubstitute }).click();
+    const again = page.getByRole('dialog', { name: text.titleSubstitute });
+    await again.getByRole('radio', { name: 'Tom', exact: true }).check();
+    await again.getByRole('checkbox', { name: text.t('notifyClass', { count: 2 }) }).uncheck();
+    const silent = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' && request.url().endsWith(`/sessions/${third}/trainer`),
+    );
+    await again.getByRole('button', { name: text.t('submitSubstitute') }).click();
+    expect((await silent).postDataJSON()).toMatchObject({
+      scope: 'this',
+      notifySubstitute: true,
+      notifyParticipants: false,
+    });
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect((await storedSession(page.request, w.base, third)).trainer?.name).toBe('Tom');
+  });
+
+  test('AC17: ending a substitution shows the participants’ box, on by default, and not the substitute’s', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    test.slow();
+    const w = await team(page, context);
+    const text = wording(appLocale, copy);
+    const kracht = await seedKracht(page.request, w.base, w.trainer('Sarah'));
+    const second = kracht.dates[1];
+    if (!second) throw new Error('Kracht has fewer than two dates.');
+    const anna = await seedClient(page.request, w.base, 'Anna de Vries', 'nl-NL');
+    const mark = await seedClient(page.request, w.base, 'Mark Jansen', 'en');
+    await bookParticipant(second, anna.id);
+    await bookParticipant(second, mark.id);
+    await substitute(page.request, w.base, second, w.trainer('Mike'));
+    await page.goto(`/w/${w.slug}/classes/${kracht.classId}/${second}`);
+
+    await page.getByRole('button', { name: text.titleSubstitute }).click();
+    const dialog = page.getByRole('dialog', { name: text.titleSubstitute });
+    await dialog
+      .getByRole('radio', { name: text.t('regularTrainer', { ...text.word, name: 'Sarah' }) })
+      .check();
+    await expect(
+      dialog.getByRole('checkbox', { name: text.t('notifyClass', { count: 2 }) }),
+    ).toBeChecked();
+    await expect(dialog.getByRole('checkbox')).toHaveCount(1);
+    await expectNoAxeViolations(page, `CO-02 ending a substitution in ${appLocale}`);
+    const sent = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' && request.url().endsWith(`/sessions/${second}/trainer`),
+    );
+    await dialog.getByRole('button', { name: text.t('submitSubstitute') }).click();
+    expect((await sent).postDataJSON()).toMatchObject({ scope: 'this', notifyParticipants: true });
+    // Anna and Mark get the trainer-change email naming Sarah.
+    await trainerChangeEmail(anna.email, 'Sarah');
+    await trainerChangeEmail(mark.email, 'Sarah');
+    await expect
+      .poll(async () => (await storedSession(page.request, w.base, second)).trainer?.name)
+      .toBe('Sarah');
+    expect((await storedSession(page.request, w.base, second)).substituteFor).toBeUndefined();
   });
 });
