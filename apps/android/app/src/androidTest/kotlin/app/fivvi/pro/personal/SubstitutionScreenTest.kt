@@ -7,8 +7,10 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.Locales
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -23,6 +25,7 @@ import app.fivvi.core.AppLanguage
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.theme.FivviTheme
+import app.fivvi.pro.UI_TIMEOUT_MILLIS
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.personal.PersonalFixtures.at
 import app.fivvi.pro.waitUntilTagExists
@@ -65,12 +68,16 @@ class SubstitutionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
         day = "2026-10-20",
     )
 
-    private fun day(kracht: PersonalSession, counted: Int): MyDay = PersonalFixtures.sarah(
-        items = listOf(mark, kracht),
+    private fun day(
+        kracht: PersonalSession,
+        counted: Int,
+        items: List<PersonalSession> = listOf(mark, kracht),
+    ): MyDay = PersonalFixtures.sarah(
+        items = items,
         workspaceCount = 1,
     ).copy(
         date = "2026-10-20",
-        summary = MyDaySummary(counted, 0, mark.startsAt, kracht.endsAt),
+        summary = MyDaySummary(counted, 0, items.first().startsAt, items.last().endsAt),
         tomorrow = null,
     )
 
@@ -146,6 +153,43 @@ class SubstitutionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
         texts(coveringText).assertCountAtLeastOne()
         assertTrue("one name for TalkBack: ${row.names()}", row.names().contains(coveringText))
         assertFalse(row.names().contains(takenOverText))
+    }
+
+    // What TalkBack reads for the card: the content descriptions inside the next card.
+    private fun nextCardNames() = compose.onAllNodes(
+        hasAnyAncestor(
+            hasTestTag(TodayTags.NEXT),
+        ).and(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription)),
+        useUnmergedTree = true,
+    ).fetchSemanticsNodes().flatMap { it.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty() }
+
+    @Test
+    fun test_F024_AC4_1649_theNextCardOfTheCoveringTrainerSaysJeValtInVoorAndTalkBackReadsIt() {
+        // Kracht (18:00) is Mike's only item and so the next one: the card is where Vandaag shows it (#1649).
+        showToday(day(PersonalFixtures.covering, counted = 1, items = listOf(PersonalFixtures.covering)))
+        compose.waitUntilTagExists(TodayTags.NEXT)
+        compose.waitUntil(UI_TIMEOUT_MILLIS) { texts(coveringText).fetchSemanticsNodes().isNotEmpty() }
+
+        tag(TodayTags.NEXT).assertIsDisplayed()
+        assertFalse(
+            "the next item is not repeated as a row",
+            exists(TodayTags.row(PersonalFixtures.covering.sessionId)),
+        )
+        texts(coveringText).assertCountAtLeastOne()
+        compose.waitUntil(UI_TIMEOUT_MILLIS) { nextCardNames().any { it.contains(coveringText) } }
+        assertTrue("part of the card's name: ${nextCardNames()}", nextCardNames().any { it.contains(coveringText) })
+        assertFalse(nextCardNames().any { it.contains(takenOverText) })
+        tag(TodayTags.NEXT_OPEN).assertIsDisplayed()
+    }
+
+    @Test
+    fun test_F024_AC4_1649_theNextCardOfADateWithoutASubstitutionHasNoLine() {
+        showToday(day(PersonalFixtures.kracht, counted = 1, items = listOf(PersonalFixtures.kracht)))
+        compose.waitUntilTagExists(TodayTags.NEXT)
+
+        tag(TodayTags.NEXT).assertIsDisplayed()
+        assertTrue(texts(coveringText).fetchSemanticsNodes().isEmpty())
+        assertFalse(nextCardNames().any { it.contains(coveringText) })
     }
 
     @Test

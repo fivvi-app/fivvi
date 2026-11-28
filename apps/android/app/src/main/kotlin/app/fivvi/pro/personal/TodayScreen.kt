@@ -557,16 +557,20 @@ private fun NextUp(next: PersonalNext, now: Instant, actions: TodayActions) {
         row.location,
         row.workspaceName.takeIf { row.showsWorkspace },
     ).joinToString(" · ")
+    val caption = if (minutes == null) {
+        stringResource(R.string.my_day_next_in_progress)
+    } else {
+        stringResource(R.string.my_day_next_upcoming, minutes.toString())
+    }
     NextCard(
         type = if (row.isGroup) SessionType.Group else SessionType.Private,
-        caption = if (minutes == null) {
-            stringResource(R.string.my_day_next_in_progress)
-        } else {
-            stringResource(R.string.my_day_next_upcoming, minutes.toString())
-        },
+        caption = caption,
         title = row.title,
         modifier = Modifier.testTag(TodayTags.NEXT),
         subtitle = subtitle,
+        // F024: *Je valt in voor Sarah* under the card's subtitle, and part of its one name for TalkBack.
+        detail = substitutionText(row),
+        description = stringResource(R.string.my_day_spoken_join, caption, spokenLabel(row)),
     ) {
         NextCardButton(
             text = stringResource(R.string.my_day_app_open),

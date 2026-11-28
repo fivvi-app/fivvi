@@ -387,6 +387,8 @@
     if (next) {
       var inMin = mins(next.s) - mins(NOWT), cap = isLive(next, TODAY) ? "Nu bezig" : "Straks · over " + inMin + " min";
       body += '<div class="hero" style="--c:' + CV[next.type] + '"><div class="cap">' + cap + "</div><h3>" + esc(title(next)) + "</h3><p>" + next.s + "–" + next.e + (MIXED() ? " · " + TYPE[next.type] : "") + " · " + esc(next.loc) + "</p>" +
+        /* F024: the substitute's next card says whom she replaces, as her rows do (#1649) */
+        (next.sub ? '<p style="margin-top:2px">Je valt in voor ' + esc(next.sub) + "</p>" : "") +
         (ws ? '<p style="margin-top:2px">Trainer: ' + (next.trainer ? esc(next.trainer) : "jij") + "</p>" : "") +
         (next.type === "priv" && pair(next).some(function (x) { return sessTpl(next, x); }) ? '<p style="margin-top:2px">Schema: ' + pair(next).map(function (x) { return sessTpl(next, x); }).filter(function (t, i, a) { return t && a.indexOf(t) === i; }).map(esc).join(", ") + "</p>" : "") +
         '<div class="acts">' + (next.type === "priv" ? '<button class="gl glass" data-a="start-workout" data-id="' + next.id + '">' + ic("play") + (S.logs[next.id] ? "Doorgaan met training" : "Training starten") + "</button>" : "") +
