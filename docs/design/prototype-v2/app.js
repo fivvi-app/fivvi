@@ -1306,7 +1306,7 @@
       S.sheet = null; toast("Sessie verplaatst naar " + shortDate(parse(f.date)) + " " + f.start);
     },
     "session-menu": function (d) { S.menu = { items: [{ t: "Verplaatsen", i: "clock", a: "move", d: { id: d.id } }, { t: "Klantprofiel", i: "me", a: "menu-client", d: { id: d.id } }, "-", { t: "Sessie annuleren", i: "x", a: "alert", d: { n: "cancelSession", id: d.id }, dng: true }] }; render(); },
-    "class-menu": function (d) { S.menu = { items: [{ t: "Boekingslink delen", i: "link", a: "toast", d: { m: "Boekingslink gekopieerd" } }, { t: "Vervang de trainer", i: "swap", a: "web-only" }, { t: "Les wijzigen", i: "pencil", a: "web-only" }, "-", { t: "Les annuleren", i: "x", a: "alert", d: { n: "cancelClass", id: d.id }, dng: true }] }; render(); },
+    "class-menu": function (d) { S.menu = { items: [{ t: "Boekingslink delen", i: "link", a: "toast", d: { m: "Boekingslink gekopieerd" } }, { t: "De trainer vervangen", i: "swap", a: "web-only" }, { t: "Les wijzigen", i: "pencil", a: "web-only" }, "-", { t: "Les annuleren", i: "x", a: "alert", d: { n: "cancelClass", id: d.id }, dng: true }] }; render(); },
     "close-menu": function () { S.menu = null; render(); },
     move: function (d) { var x = findItem(d.id); S.menu = null; S.form = { id: d.id, date: x.day, start: x.it.s, dur: String(mins(x.it.e) - mins(x.it.s)) }; S.sheet = "reschedule"; S.anim = "up"; render(); },
     "menu-client": function (d) { S.menu = null; push({ n: "client", id: findItem(d.id).it.client }); },

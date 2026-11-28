@@ -2,7 +2,7 @@ import FivviAPI
 import FivviStrings
 
 /// TD-03 of a substituted date (F024): who the date's trainer replaces, the covering trainer's banner and the Owner's
-/// *Vervang de trainer*, which points to the web (`substituteTapped`).
+/// *De trainer vervangen*, which points to the web (`substituteTapped`).
 extension ClassDateViewModel {
     /// Whom the date's trainer replaces, when the API says and gives a name.
     var originalTrainer: String? {
@@ -16,7 +16,7 @@ extension ClassDateViewModel {
         return catalog.string(.todayCoveringFor, original)
     }
 
-    /// *Vervang de trainer* is in the menu of a date that has a trainer to replace.
+    /// *De trainer vervangen* is in the menu of a date that has a trainer to replace.
     var showsSubstitute: Bool { hasMenu && session?.trainer != nil }
     var substituteText: String { catalog.string(.classDateSubstituteAction, words.word) }
 }

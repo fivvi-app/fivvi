@@ -10,7 +10,7 @@ import FivviUI
 /// *Meer* / *Minder*, a group with the location and the trainer (*Trainer nodig* without one), *{booked}/{capacity}
 /// geboekt* with *Nog geen boekingen.*, and for the Owner the footnote that editing, a fixed series and the trainers are
 /// managed on the web. The Owner's ⋯ menu starts with *Boekingslink delen* (F037, "Boekingslink gekopieerd" in a toast; also a button below the booked card,
-/// for the Owner and the Trainers, not on a cancelled or past date), has *Vervang de trainer* (F024, on a date that has a
+/// for the Owner and the Trainers, not on a cancelled or past date), has *De trainer vervangen* (F024, on a date that has a
 /// trainer) and *Les wijzigen*, which both say it is managed on the web, and below
 /// a divider the destructive *Les annuleren* (F026): a native confirmation that says how many booked clients get an
 /// email; a Trainer has no menu.

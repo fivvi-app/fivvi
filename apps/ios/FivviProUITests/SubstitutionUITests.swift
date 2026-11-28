@@ -2,7 +2,7 @@ import XCTest
 
 /// The substitution labels of F024 (iOS), in nl and en, against the stub server: Mike (Bakker) covers Kracht for Sarah
 /// (Visser), who sees it dimmed as taken over (synthetic people). *Vandaag* and *Agenda* of both (AC4), TD-03 of the covered
-/// date and the Owner's ⋯ menu, whose *Vervang de trainer* says substituting is managed on the web (design). The Owner is
+/// date and the Owner's ⋯ menu, whose *De trainer vervangen* says substituting is managed on the web (design). The Owner is
 /// John; the substitution itself is made on the web only.
 @MainActor
 final class SubstitutionUITests: PrivateSessionUITestCase {
