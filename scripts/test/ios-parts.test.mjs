@@ -37,9 +37,9 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
   };
   const calls = () => gh.calls();
   const jobs = (...list) => [{ match: JOBS, out: { jobs: list } }];
-  // The tests are four jobs, two parts of each language (#1447). `tests(conclusion, {part: conclusion})` lists them, the
+  // The tests are six jobs, three parts of each language (#1447, #1614). `tests(conclusion, {part: conclusion})` lists them, the
   // named parts with their own conclusion; `parts(result, {part: result})` is what the gate is given for them.
-  const PARTS = ['nl 1/2', 'nl 2/2', 'en 1/2', 'en 2/2'];
+  const PARTS = ['nl 1/3', 'nl 2/3', 'nl 3/3', 'en 1/3', 'en 2/3', 'en 3/3'];
   const T = (part) => `iOS tests (${part})`;
   const tests = (conclusion, own = {}) =>
     PARTS.map((part) => ran(T(part), own[part] ?? conclusion));
@@ -57,15 +57,15 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
       ['success', 'cancelled'],
       jobs(
         ran('iOS build', 'success'),
-        ...PARTS.map((part) => (part === 'en 2/2' ? unacquired(T(part)) : ran(T(part), 'success'))),
+        ...PARTS.map((part) => (part === 'en 2/3' ? unacquired(T(part)) : ran(T(part), 'success'))),
       ),
     );
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.parts, [
       'iOS build=success',
-      ...parts('success', { 'en 2/2': 'unacquired' }),
+      ...parts('success', { 'en 2/3': 'unacquired' }),
     ]);
-    assert.match(result.stderr, /iOS tests \(en 2\/2\): no hosted runner picked it up/);
+    assert.match(result.stderr, /iOS tests \(en 2\/3\): no hosted runner picked it up/);
     assert.match(result.stderr, /cancelled before one did/);
   });
 
@@ -79,12 +79,12 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
       ['success', 'failure'],
       jobs(
         ran('iOS build', 'success'),
-        ...tests('success', { 'nl 2/2': 'cancelled', 'en 1/2': 'failure' }),
+        ...tests('success', { 'nl 2/3': 'cancelled', 'en 1/3': 'failure' }),
       ),
     );
     assert.deepEqual(result.parts, [
       'iOS build=success',
-      ...parts('success', { 'nl 2/2': 'cancelled', 'en 1/2': 'failure' }),
+      ...parts('success', { 'nl 2/3': 'cancelled', 'en 1/3': 'failure' }),
     ]);
   });
 
@@ -187,15 +187,15 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
       ['success', 'abandoned'],
       jobs(
         ran('iOS build', 'success'),
-        ...PARTS.map((part) => (part === 'nl 1/2' ? unacquired(T(part)) : ran(T(part), 'success'))),
-        ran('iOS tests (nl 1/2) (retry)', 'success'),
+        ...PARTS.map((part) => (part === 'nl 1/3' ? unacquired(T(part)) : ran(T(part), 'success'))),
+        ran('iOS tests (nl 1/3) (retry)', 'success'),
       ),
     );
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.parts, ['iOS build=success', ...parts('success')]);
     assert.match(
       result.stderr,
-      /iOS tests \(nl 1\/2\): no hosted runner picked up the first try; the retry ran/,
+      /iOS tests \(nl 1\/3\): no hosted runner picked up the first try; the retry ran/,
     );
   });
 
@@ -205,46 +205,48 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
       jobs(
         ran('iOS build', 'success'),
         ...PARTS.map((part) =>
-          part === 'nl 1/2'
+          part === 'nl 1/3'
             ? unacquired(T(part))
-            : ran(T(part), part === 'en 1/2' ? 'failure' : 'success'),
+            : ran(T(part), part === 'en 1/3' ? 'failure' : 'success'),
         ),
-        ran('iOS tests (nl 1/2) (retry)', 'failure'),
+        ran('iOS tests (nl 1/3) (retry)', 'failure'),
       ),
     );
     assert.deepEqual(result.parts, [
       'iOS build=success',
-      'iOS tests (nl 1/2) (retry)=failure',
-      'iOS tests (nl 2/2)=success',
-      'iOS tests (en 1/2)=failure',
-      'iOS tests (en 2/2)=success',
+      'iOS tests (nl 1/3) (retry)=failure',
+      'iOS tests (nl 2/3)=success',
+      'iOS tests (nl 3/3)=success',
+      'iOS tests (en 1/3)=failure',
+      'iOS tests (en 2/3)=success',
+      'iOS tests (en 3/3)=success',
     ]);
     assert.doesNotMatch(result.stderr, /no hosted runner/);
   });
 
   it('#1268 names the retry of a part when it got no runner either, or timed out', () => {
-    const first = (part) => (part === 'nl 1/2' ? unacquired(T(part)) : ran(T(part), 'success'));
+    const first = (part) => (part === 'nl 1/3' ? unacquired(T(part)) : ran(T(part), 'success'));
     const noRunner = run(
       ['success', 'abandoned'],
-      jobs(...PARTS.map(first), unacquired('iOS tests (nl 1/2) (retry)')),
+      jobs(...PARTS.map(first), unacquired('iOS tests (nl 1/3) (retry)')),
     );
-    assert.equal(noRunner.parts[1], 'iOS tests (nl 1/2) (retry)=unacquired');
-    assert.equal(noRunner.parts[2], 'iOS tests (nl 2/2)=success');
-    assert.match(noRunner.stderr, /iOS tests \(nl 1\/2\) \(retry\): no hosted runner picked it up/);
+    assert.equal(noRunner.parts[1], 'iOS tests (nl 1/3) (retry)=unacquired');
+    assert.equal(noRunner.parts[2], 'iOS tests (nl 2/3)=success');
+    assert.match(noRunner.stderr, /iOS tests \(nl 1\/3\) \(retry\): no hosted runner picked it up/);
     assert.match(noRunner.stderr, /after the retry/);
     const timedOut = run(
       ['success', 'abandoned'],
-      jobs(...PARTS.map(first), ran('iOS tests (nl 1/2) (retry)', 'cancelled')),
+      jobs(...PARTS.map(first), ran('iOS tests (nl 1/3) (retry)', 'cancelled')),
     );
-    assert.equal(timedOut.parts[1], 'iOS tests (nl 1/2) (retry)=cancelled');
+    assert.equal(timedOut.parts[1], 'iOS tests (nl 1/3) (retry)=cancelled');
   });
 
   it('#1268 ignores a retry job that was skipped', () => {
     const result = run(
       ['success', 'failure'],
-      jobs(...tests('success', { 'nl 1/2': 'failure' }), skipped('iOS tests (nl 1/2) (retry)')),
+      jobs(...tests('success', { 'nl 1/3': 'failure' }), skipped('iOS tests (nl 1/3) (retry)')),
     );
-    assert.equal(result.parts[1], 'iOS tests (nl 1/2)=failure');
+    assert.equal(result.parts[1], 'iOS tests (nl 1/3)=failure');
   });
 
   it('#1268 labels the build retry as a retry when it failed, and the build as itself when it passed', () => {
@@ -396,29 +398,33 @@ describe('#1268 ios-parts.sh retry-parts: which parts of the tests got no runner
   it('prints the parts whose job was cancelled with no runner and no step, as a JSON array of matrix legs', () => {
     const one = run(
       ['abandoned'],
-      jobs(unacquired('iOS tests (nl 2/2)'), ran('iOS tests (en 1/2)', 'success')),
+      jobs(unacquired('iOS tests (nl 2/3)'), ran('iOS tests (en 1/3)', 'success')),
     );
     assert.equal(one.status, 0, one.stderr);
     assert.equal(one.stdout, '[{"locale":"nl","shard":2}]\n');
     const several = run(
       ['abandoned'],
       jobs(
-        unacquired('iOS tests (nl 1/2)'),
-        ran('iOS tests (nl 2/2)', 'success'),
-        unacquired('iOS tests (en 1/2)'),
-        unacquired('iOS tests (en 2/2)'),
+        unacquired('iOS tests (nl 1/3)'),
+        ran('iOS tests (nl 2/3)', 'success'),
+        unacquired('iOS tests (nl 3/3)'),
+        unacquired('iOS tests (en 1/3)'),
+        unacquired('iOS tests (en 2/3)'),
+        ran('iOS tests (en 3/3)', 'failure'),
       ),
     );
     assert.equal(
       several.stdout,
-      '[{"locale":"nl","shard":1},{"locale":"en","shard":1},{"locale":"en","shard":2}]\n',
+      '[{"locale":"nl","shard":1},{"locale":"nl","shard":3},{"locale":"en","shard":1},{"locale":"en","shard":2}]\n',
     );
+    const third = run(['abandoned'], jobs(unacquired('iOS tests (en 3/3)')));
+    assert.equal(third.stdout, '[{"locale":"en","shard":3}]\n');
   });
 
   it('retries no part that ran, whatever happened to it (a failure or a timeout is no missing runner)', () => {
     const result = run(
       ['failure'],
-      jobs(ran('iOS tests (nl 1/2)', 'cancelled'), ran('iOS tests (en 2/2)', 'failure')),
+      jobs(ran('iOS tests (nl 1/3)', 'cancelled'), ran('iOS tests (en 2/3)', 'failure')),
     );
     assert.equal(result.stdout, '[]\n');
   });

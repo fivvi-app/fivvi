@@ -71,19 +71,19 @@ jobs:
           echo "Build number $number" >>"$GITHUB_STEP_SUMMARY"
 
   ios-tests:
-    name: iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2)
+    name: iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/3)
     needs: prepare
-    # The native suite on this commit in nl and en (TESTING.md §7), one job per language and half of its tests, like
-    # CI's `iOS tests (nl 1/2)` to `(en 2/2)` (#1447): both languages on one simulator in one job outgrew the timeout (run
+    # The native suite on this commit in nl and en (TESTING.md §7), one job per language and third of its tests, like
+    # CI's `iOS tests (nl 1/3)` to `(en 3/3)` (#1447, #1614): both languages on one simulator in one job outgrew the timeout (run
     # 43699423823, 15 November 2026: the xcodebuild step was still running after 2088 s when the job's 45 minutes ended),
     # and then one language in one xcodebuild outgrew the deadline of scripts/test-ios.sh too (run 44771083761, 20
     # November 2026: `iOS tests (nl)` and `(en)` were interrupted at 2161 s of 2100, the last green run took 1437 and 1500 s
-    # on 15 November, #1403). Each job builds once (`pnpm test:ios build`, with SwiftLint and the checks) and runs its half of
-    # the tests of its language (`pnpm test:ios test <locale> --shard <part>/2 --retry-failed`: the test classes dealt out by
+    # on 15 November, #1403). Each job builds once (`pnpm test:ios build`, with SwiftLint and the checks) and runs its third of
+    # the tests of its language (`pnpm test:ios test <locale> --shard <part>/3 --retry-failed`: the test classes dealt out by
     # weight, every class to exactly one part, and a failed UI test of the part retried once, unlike in CI), as the step
     # below does.
     # No secret here, and no approval needed: the owner is asked to approve only a run whose tests passed. The release
-    # jobs `need` this one, which waits for all four parts and counts as failed when any of them failed. The image and Xcode
+    # jobs `need` this one, which waits for all six parts and counts as failed when any of them failed. The image and Xcode
     # are pinned, and the same as the iOS jobs of ci.yml (#437): the release build needs Xcode 26 and the iOS 26 SDK,
     # which App Store Connect has required since 28 April 2026, and Swift 6.0 mode and the iOS 17 target build with Xcode
     # 26.3. macos-15 queued shorter than macos-26 (E002 #242), and CI tests the app on exactly this toolchain. Go back to
@@ -91,7 +91,7 @@ jobs:
     # macos-15 has (Xcode 27).
     runs-on: macos-15
     # What the job spends: checkout and setup (3 min), SwiftLint, the checks and the build for testing with no cache of
-    # DerivedData (15 min; CI's `iOS build` has 12 with its cache), then the tests of one part as `iOS tests (nl 1/2)` of
+    # DerivedData (15 min; CI's `iOS build` has 12 with its cache), then the tests of one part as `iOS tests (nl 1/3)` of
     # ci.yml has them: its 44 minutes, which are the deadline of the xcodebuild run (2100 s) + its grace (60 s) + the
     # boot, the settle and the other steps (at most 310 s) + 2 min, 2590 s (ci.yml has the reasons), then what the release
     # budgets on top of CI's part: the count of the part's tests before the run (CI's part counts too; the release
@@ -103,16 +103,16 @@ jobs:
     # paid from the share of the run's deadline the part does not use), and the one retry of the failed UI tests that
     # `release.sh tests ios` asks for (#1433; its deadline, IOS_RETRY_DEADLINE, 600 s, + the grace, 60 s, + 60 s for its
     # reports: 720 s). The retry counts nothing again: the part was counted when it was chosen. 600 + 720 s = 22
-    # minutes, so 3 + 15 + 44 + 22 = 84 minutes for a part: a part is about half of a language (1250 s and 810 s of
-    # xcodebuild in the nightly run of 20 November), so it keeps its room to grow to 85 % of the deadline. Raising a
+    # minutes, so 3 + 15 + 44 + 22 = 84 minutes for a part: a part is about a third of a language (about 1300 to 1400 s of
+    # xcodebuild on a slow runner, 28 November), so it keeps its room to grow to 85 % of the deadline. Raising a
     # deadline in scripts/test-ios.sh means raising this; a test fails when they no longer fit.
     timeout-minutes: 84
     strategy:
-      # All four parts always run: a failing one doesn't hide the others' results.
+      # All six parts always run: a failing one doesn't hide the others' results.
       fail-fast: false
       matrix:
         locale: [nl, en]
-        shard: [1, 2]
+        shard: [1, 2, 3]
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
@@ -129,7 +129,7 @@ jobs:
       - name: Refuse a run outside main
         run: scripts/release.sh guard
 
-      - name: SwiftLint, build and tests (${{ matrix.locale }} ${{ matrix.shard }}/2)
+      - name: SwiftLint, build and tests (${{ matrix.locale }} ${{ matrix.shard }}/3)
         run: scripts/release.sh tests ios ${{ matrix.locale }} ${{ matrix.shard }}
 
       # Only on failure, or when the timeout cancels the job (as in ci.yml, #305): artifact storage counts against the
@@ -138,7 +138,7 @@ jobs:
         if: failure() || cancelled()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ios-release-test-results-${{ matrix.locale }}-${{ matrix.shard }}of2
+          name: ios-release-test-results-${{ matrix.locale }}-${{ matrix.shard }}of3
           path: |
             apps/ios/.build/TestResults-*.xcresult
             apps/ios/.build/build-for-testing.log
@@ -568,10 +568,12 @@ jobs:
           RELEASE: ${{ needs.ios.result }}
         run: |
           mapfile -t PARTS < <(
-            scripts/ios-parts.sh job "iOS tests (nl 1/2)" "$TESTS"
-            scripts/ios-parts.sh job "iOS tests (nl 2/2)" "$TESTS"
-            scripts/ios-parts.sh job "iOS tests (en 1/2)" "$TESTS"
-            scripts/ios-parts.sh job "iOS tests (en 2/2)" "$TESTS"
+            scripts/ios-parts.sh job "iOS tests (nl 1/3)" "$TESTS"
+            scripts/ios-parts.sh job "iOS tests (nl 2/3)" "$TESTS"
+            scripts/ios-parts.sh job "iOS tests (nl 3/3)" "$TESTS"
+            scripts/ios-parts.sh job "iOS tests (en 1/3)" "$TESTS"
+            scripts/ios-parts.sh job "iOS tests (en 2/3)" "$TESTS"
+            scripts/ios-parts.sh job "iOS tests (en 3/3)" "$TESTS"
             scripts/ios-parts.sh job "iOS release" "$RELEASE"
           )
           scripts/release.sh runners "${PARTS[@]}"

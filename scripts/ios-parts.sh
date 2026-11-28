@@ -5,24 +5,24 @@
 # "cancelled", like a timeout, or, since GitHub reports it so (#1268), "abandoned", which means by itself that no runner took the
 # job. This reads the jobs of the run and tells the two apart, so scripts/native-gate.sh can say
 # whether a part had no runner (or was cancelled before one picked it up: if nobody cancelled the run, re-queue the PR)
-# or failed on a runner (a build or test failure). CI runs each language's tests in two parts (#1447), so the tests are
-# four jobs, `iOS tests (nl 1/2)`, `iOS tests (nl 2/2)`, `iOS tests (en 1/2)` and `iOS tests (en 2/2)`, one matrix job
-# whose needs result is the aggregate of the four, so their own results are read too.
+# or failed on a runner (a build or test failure). CI runs each language's tests in three parts (#1447, #1614), so the tests are
+# six jobs, `iOS tests (nl 1/3)`, `iOS tests (nl 2/3)`, `iOS tests (nl 3/3)`, `iOS tests (en 1/3)`, `iOS tests (en 2/3)` and
+# `iOS tests (en 3/3)`, one matrix job whose needs result is the aggregate of the six, so their own results are read too.
 #
 #   ios-parts.sh <build> <tests> [<retry>]     (CI)
 #       the needs.<job>.result of "iOS build", of the matrix "iOS tests" and, optionally, of "iOS build (retry)", the job
 #       ci.yml runs once when "iOS build" was abandoned (#1268). Prints one part per line for
-#       native-gate.sh, `iOS build=<result>` and `iOS tests (nl 1/2)=<result>` for each of the four parts of the tests:
+#       native-gate.sh, `iOS build=<result>` and `iOS tests (nl 1/3)=<result>` for each of the six parts of the tests:
 #         build   the result it was given (labelled `iOS build (retry)` when the retry ran and did not succeed, so the gate says
 #                 it was the retry), except that abandoned becomes unacquired, and cancelled becomes unacquired when
 #                 the run's jobs show the build was cancelled with no runner and no step. When the retry ran (a result
 #                 other than skipped), the part is the retry's result, read the same way: success when the retry built
 #                 it (the first try had no runner, which is said on stderr), else unacquired or the retry's own result.
-#         tests   success for all four when the aggregate was success; otherwise each part's own job: unacquired when it
+#         tests   success for all six when the aggregate was success; otherwise each part's own job: unacquired when it
 #                 was cancelled with no runner and no step (or the aggregate is abandoned and the job is not listed),
 #                 else its conclusion; the aggregate when the job is not in
 #                 the list (a matrix that never started is not listed under its language)
-#         a part whose retry ran ("iOS tests (nl 1/2) (retry)", #1268) takes its part from the retry, read the same way
+#         a part whose retry ran ("iOS tests (nl 1/3) (retry)", #1268) takes its part from the retry, read the same way
 #       A part is turned into unacquired or into the conclusion of its own job, so this can only name a failure, never turn
 #       one into a pass: the jobs of the run are read only when the build was cancelled or the tests did not succeed.
 #       They come from the GitHub API (GH_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT; the job needs
@@ -33,13 +33,13 @@
 #   ios-parts.sh retry-parts <tests>     (CI, #1268, #1447)
 #       what ci.yml's job "iOS tests (retry plan)" runs: the parts of the tests that got no hosted runner (their job was
 #       cancelled with no runner and no step), as a compact JSON array of matrix legs, `[{"locale":"nl","shard":1}]`,
-#       `[{"locale":"nl","shard":1},{"locale":"en","shard":2}]` or `[]`, for the matrix of "iOS tests (<locale> <shard>/2)
+#       `[{"locale":"nl","shard":1},{"locale":"en","shard":3}]` or `[]`, for the matrix of "iOS tests (<locale> <shard>/3)
 #       (retry)". <tests> is the aggregate needs.ios-tests.result; the jobs are read only when it is not success or
 #       skipped. A part that ran and failed or timed out is never listed. When the jobs can't be read it says so on
 #       stderr, still exits 0 and prints `[]` (no retry: the gate then fails as it would have).
 #
 #   ios-parts.sh job <name> <result>     (Release, #437)
-#       one job of the run: <name> is its name ("iOS tests (nl 1/2)", "(nl 2/2)", "(en 1/2)", "(en 2/2)", "iOS release") and <result> the
+#       one job of the run: <name> is its name ("iOS tests (nl 1/3)", "(nl 2/3)", "(nl 3/3)", "(en 1/3)", "(en 2/3)", "(en 3/3)", "iOS release") and <result> the
 #       needs.<job>.result of the workflow job it belongs to. For a matrix job (Release's "iOS tests", one job per language and part) that
 #       is the combined result of all its legs, so the leg is looked up by its own name. Prints `<name>=unacquired` when the
 #       job named was cancelled with no runner and no step, or when the result is abandoned and the job is not listed (or
@@ -67,12 +67,12 @@ read_jobs() {
 }
 
 # jq definitions shared by both forms. A job no hosted runner picked up: cancelled, with no runner and not one step.
-# The parts of the tests are the matrix of ci.yml's "iOS tests (<locale> <shard>/2)" (#1447; a test keeps the two in step).
+# The parts of the tests are the matrix of ci.yml's "iOS tests (<locale> <shard>/3)" (#1447, #1614; a test keeps the three in step).
 # shellcheck disable=SC2016 # jq code, not shell
 JQ_DEFS='
   def unacquired: .conclusion == "cancelled" and ((.runner_name // "") == "") and ((.steps // []) | length) == 0;
   def job($name): [.jobs[] | select(.name == $name)] | first;
-  def testparts: ("nl", "en") as $l | (1, 2) as $s | {locale: $l, shard: $s, name: "iOS tests (\($l) \($s)/2)"};
+  def testparts: ("nl", "en") as $l | (1, 2, 3) as $s | {locale: $l, shard: $s, name: "iOS tests (\($l) \($s)/3)"};
 '
 
 if [ $# -eq 3 ] && [ "$1" = job ]; then
@@ -144,7 +144,7 @@ if [ "$retry" != skipped ]; then
 fi
 
 if [ "$bres" != cancelled ] && [ "$tests" = success ]; then
-  printf '%s\n' "$blabel=$bres" "iOS tests (nl 1/2)=success" "iOS tests (nl 2/2)=success" "iOS tests (en 1/2)=success" "iOS tests (en 2/2)=success"
+  printf '%s\n' "$blabel=$bres" "iOS tests (nl 1/3)=success" "iOS tests (nl 2/3)=success" "iOS tests (nl 3/3)=success" "iOS tests (en 1/3)=success" "iOS tests (en 2/3)=success" "iOS tests (en 3/3)=success"
   exit 0
 fi
 
@@ -156,7 +156,7 @@ as_given() {
 }
 
 jobs_json="$(read_jobs)" || as_given
-# A part takes its result from its retry job, "iOS tests (<locale> <shard>/2) (retry)", when that ran (it is skipped, or
+# A part takes its result from its retry job, "iOS tests (<locale> <shard>/3) (retry)", when that ran (it is skipped, or
 # not in the list, when no part needed one), else from its own job.
 parts="$(jq -r --arg bname "$bname" --arg blabel "$blabel" --arg build "$bres" --arg tests "$tests" "$JQ_DEFS"'
   def tests($name):

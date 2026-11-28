@@ -741,8 +741,8 @@ jobs:
             report Playwright "$PLAYWRIGHT_LISTED" "$E2E" "$E2E_STATUS" "$RUNNER_TEMP/quarantine-playwright.log" '^((apps|packages)/[^ ]+ [^ ]+: )? +[0-9]+\) \['
           fi
 
-  # iOS (E008, E002, #293). Five jobs and the gate "iOS": one job builds once and packs the test bundle, four jobs run
-  # the Dutch and the English test passes from it (each language in two parts, #1447) at the same time, each on its own
+  # iOS (E008, E002, #293). Three kinds of jobs and the gate "iOS": one job builds once and packs the test bundle, six jobs run
+  # the Dutch and the English test passes from it (each language in three parts, #1447, #1614) at the same time, each on its own
   # simulator (a cold run was 16 of 21 minutes of tests in a row). They start only when the app, its generated inputs or
   # its own scripts changed (in a PR, a merge group or a push to main), or on demand (scripts/native-jobs.sh), to keep
   # PR feedback fast. The UI tests run in both languages on every push. The image and Xcode are pinned, so a runner
@@ -822,7 +822,7 @@ jobs:
       - name: Record the sources' modification times
         run: node scripts/ios-mtimes.mjs save
 
-      # What the four test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
+      # What the six test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
       - name: Upload the test bundle
         if: github.event_name != 'push'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -928,7 +928,7 @@ jobs:
       - name: Record the sources' modification times
         run: node scripts/ios-mtimes.mjs save
 
-      # What the four test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
+      # What the six test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
       - name: Upload the test bundle
         if: github.event_name != 'push'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -961,15 +961,15 @@ jobs:
         run: scripts/step-timings.sh
 
   ios-tests:
-    name: iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2)
+    name: iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/3)
     # `changes` for the decision whether the UI tests run (ADR-034).
     needs: [changes, ios-build, ios-build-retry]
     # Start from whichever build succeeded (the retry runs only when the first was abandoned); !cancelled() because a
     # skipped retry would skip this job.
     if: ${{ !cancelled() && github.event_name != 'push' && (needs.ios-build.result == 'success' || needs.ios-build-retry.result == 'success') }}
-    # Part 2 of a language has nothing to run in a run without UI tests (ADR-034, see the test steps below): it runs on
-    # Linux then and takes no macOS runner (the parts that run would otherwise make four macOS jobs where main has two,
-    # GitHub Free runs five at once, and a part 2 that got no runner would be retried and could fail "iOS" with no test
+    # Parts 2 and 3 of a language have nothing to run in a run without UI tests (ADR-034, see the test steps below): it runs on
+    # Linux then and takes no macOS runner (the parts that run would otherwise make six macOS jobs where main has two,
+    # GitHub Free runs five at once, and a part 2 or 3 that got no runner would be retried and could fail "iOS" with no test
     # involved). The job still passes as a part, so the gate and the retry plan read it as before.
     runs-on: ${{ (needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1) && 'macos-15' || 'ubuntu-24.04' }}
     continue-on-error: ${{ github.event_name == 'push' }}
@@ -983,10 +983,14 @@ jobs:
     # the runners of 13-14 November 2026 (median 1650 s, the interrupted ones at 1790 s or more), and a run may use at
     # most 85 % of the deadline on a typical runner (TESTING.md §7.2).
     #
-    # Each language runs in two parts, on a runner each (#1447): the whole language took 1585 to 2112 s of xcodebuild on
-    # the runners of 16-17 November 2026, and ran past the deadline in the merge queue with no test failing. A part is
-    # half of the test classes by their weight (scripts/test-ios.sh, `--shard`), about 1000 s on a slow runner, so the
-    # deadline and the timeout stay as they are and a part has room to grow to 85 % of them. The matrix is the one in
+    # Each language runs in three parts, on a runner each (#1447, #1614): the whole language took 1585 to 2112 s of xcodebuild on
+    # the runners of 16-17 November 2026, and ran past the deadline in the merge queue with no test failing. Two parts were
+    # no longer enough: in the nightly run of 28 November 2026 (46131663275) they took 1735 to 2055 s of the 2100 s deadline
+    # (82 to 97 %), and `nl 1/2` lost to the job's 44 minutes (1998 s of Fivvi Pro, 237 s of Fivvi and the count). A part is
+    # a third of the test classes by their weight (scripts/test-ios.sh, `--shard`), about 1300 to 1400 s on a slow runner,
+    # so the deadline and the timeout stay as they are and a part has room to grow to 85 % of them. Six test jobs and the
+    # build make seven macOS jobs in a run with UI tests, where GitHub Free runs five at once: the sixth waits for a
+    # runner that is free (the wait is not part of a job's timeout), which a nightly run can bear. The matrix is the one in
     # scripts/ios-parts.sh (the names of the parts, which the gate and the retry read); a test keeps the three in step.
     #
     # The count of the part's tests before the run (`--shard`, IOS_ENUMERATE_DEADLINE) is not in the 310 s: those were
@@ -1005,7 +1009,7 @@ jobs:
       fail-fast: false
       matrix:
         locale: [nl, en]
-        shard: [1, 2]
+        shard: [1, 2, 3]
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
@@ -1022,12 +1026,12 @@ jobs:
 
       # The tests of this part of this language, from the bundle of "iOS build", without building again, on this job's own
       # simulator. Prints the slowest tests. With `ci: fast` (ADR-034) only a run with UI tests (the nightly run, on
-      # demand) runs the unit and UI tests, each part its half (#1447); every other run runs the unit tests of this
-      # language once, in part 1, and leaves the UI test target out (part 2 has nothing to run: it runs on Linux, downloads no
-      # bundle, and passes).
-      - name: Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/2)
+      # demand) runs the unit and UI tests, each part its third (#1447, #1614); every other run runs the unit tests of this
+      # language once, in part 1, and leaves the UI test target out (parts 2 and 3 have nothing to run: they run on Linux, download no
+      # bundle, and pass).
+      - name: Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/3)
         if: needs.changes.outputs.ui_tests == 'true'
-        run: scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/2
+        run: scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/3
 
       - name: Unit tests (${{ matrix.locale }}), no UI tests in this run
         if: needs.changes.outputs.ui_tests != 'true' && matrix.shard == 1
@@ -1039,7 +1043,7 @@ jobs:
         if: failure() || (cancelled() && github.event_name != 'pull_request')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ios-test-results-${{ matrix.locale }}-${{ matrix.shard }}of2
+          name: ios-test-results-${{ matrix.locale }}-${{ matrix.shard }}of3
           path: apps/ios/.build/TestResults-*.xcresult
           # .build is a hidden folder, which the action skips by default (#290). Only these paths are named.
           include-hidden-files: true
@@ -1054,7 +1058,7 @@ jobs:
         run: scripts/step-timings.sh
 
   # Which parts of the tests got no runner (#1268): reads the run's jobs once "iOS tests" ended, for the matrix of
-  # ios-tests-retry. Cheap and on Linux; it names a part (a language and its half, #1447) only when its job was
+  # ios-tests-retry. Cheap and on Linux; it names a part (a language and its third, #1447, #1614) only when its job was
   # cancelled with no runner and no step.
   ios-tests-plan:
     name: iOS tests (retry plan)
@@ -1085,7 +1089,7 @@ jobs:
   # parts the plan named, from the bundle "iOS build" (or its retry) uploaded. The gate takes those parts' results
   # from here.
   ios-tests-retry:
-    name: iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2) (retry)
+    name: iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/3) (retry)
     needs: [changes, ios-tests-plan]
     if: ${{ !cancelled() && github.event_name != 'push' && needs.ios-tests-plan.outputs.parts != '' && needs.ios-tests-plan.outputs.parts != '[]' }}
     # As "iOS tests".
@@ -1117,12 +1121,12 @@ jobs:
 
       # The tests of this part of this language, from the bundle of "iOS build", without building again, on this job's own
       # simulator. Prints the slowest tests. With `ci: fast` (ADR-034) only a run with UI tests (the nightly run, on
-      # demand) runs the unit and UI tests, each part its half (#1447); every other run runs the unit tests of this
-      # language once, in part 1, and leaves the UI test target out (part 2 has nothing to run: it runs on Linux, downloads no
-      # bundle, and passes).
-      - name: Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/2)
+      # demand) runs the unit and UI tests, each part its third (#1447, #1614); every other run runs the unit tests of this
+      # language once, in part 1, and leaves the UI test target out (parts 2 and 3 have nothing to run: they run on Linux, download no
+      # bundle, and pass).
+      - name: Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/3)
         if: needs.changes.outputs.ui_tests == 'true'
-        run: scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/2
+        run: scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/3
 
       - name: Unit tests (${{ matrix.locale }}), no UI tests in this run
         if: needs.changes.outputs.ui_tests != 'true' && matrix.shard == 1
@@ -1134,7 +1138,7 @@ jobs:
         if: failure() || (cancelled() && github.event_name != 'pull_request')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ios-test-results-${{ matrix.locale }}-${{ matrix.shard }}of2
+          name: ios-test-results-${{ matrix.locale }}-${{ matrix.shard }}of3
           path: apps/ios/.build/TestResults-*.xcresult
           # .build is a hidden folder, which the action skips by default (#290). Only these paths are named.
           include-hidden-files: true

@@ -369,9 +369,9 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         'Quarantine',
         'iOS build',
         'iOS build (retry)',
-        'iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2)',
+        'iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/3)',
         'iOS tests (retry plan)',
-        'iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2) (retry)',
+        'iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/3) (retry)',
         'Android build',
         'Android tests',
         'Android Maestro',
@@ -452,7 +452,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       const retry = job('ios-tests-retry');
       assert.match(
         retry,
-        /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/2\) \(retry\)$/m,
+        /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/3\) \(retry\)$/m,
       );
       assert.match(retry, /^ {4}needs: \[changes, ios-tests-plan\]$/m);
       const condition = field('ios-tests-retry', /^ {4}if: (.+)$/m);
@@ -474,39 +474,41 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       assert.equal(steps('ios-tests-retry'), steps('ios-tests'));
     });
 
-    // #1447: each language's tests are two parts, one job each. The parts are named in three places that must agree: the
+    // #1447: each language's tests are three parts, one job each (two until #1614). The parts are named in three places that must agree: the
     // matrix and the command of ci.yml, the names the gate and the retry plan read (ios-parts.sh), and the `--shard` the
     // runner script takes.
-    it('#1447 runs each language in two parts, which ci.yml, the retry and ios-parts.sh name alike', () => {
+    it('#1447 runs each language in three parts, which ci.yml, the retry and ios-parts.sh name alike', () => {
       const tests = job('ios-tests');
       assert.match(tests, /^ {8}locale: \[nl, en\]$/m);
-      assert.match(tests, /^ {8}shard: \[1, 2\]$/m);
+      assert.match(tests, /^ {8}shard: \[1, 2, 3\]$/m);
       assert.match(
         tests,
-        /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/2\)$/m,
+        /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/3\)$/m,
       );
       assert.match(
         tests,
-        /run: scripts\/test-ios\.sh test \$\{\{ matrix\.locale \}\} --shard \$\{\{ matrix\.shard \}\}\/2$/m,
+        /run: scripts\/test-ios\.sh test \$\{\{ matrix\.locale \}\} --shard \$\{\{ matrix\.shard \}\}\/3$/m,
       );
       assert.match(
         tests,
-        /name: ios-test-results-\$\{\{ matrix\.locale \}\}-\$\{\{ matrix\.shard \}\}of2$/m,
+        /name: ios-test-results-\$\{\{ matrix\.locale \}\}-\$\{\{ matrix\.shard \}\}of3$/m,
       );
       assert.match(
         job('ios-tests-retry'),
-        /name: ios-test-results-\$\{\{ matrix\.locale \}\}-\$\{\{ matrix\.shard \}\}of2$/m,
+        /name: ios-test-results-\$\{\{ matrix\.locale \}\}-\$\{\{ matrix\.shard \}\}of3$/m,
       );
-      // The parts ios-parts.sh names are the four the matrix makes (its success path names every one).
+      // The parts ios-parts.sh names are the six the matrix makes (its success path names every one).
       const success = spawnSync(join(SCRIPTS, 'ios-parts.sh'), ['success', 'success'], {
         encoding: 'utf8',
       });
       assert.deepEqual(success.stdout.split('\n').filter(Boolean), [
         'iOS build=success',
-        'iOS tests (nl 1/2)=success',
-        'iOS tests (nl 2/2)=success',
-        'iOS tests (en 1/2)=success',
-        'iOS tests (en 2/2)=success',
+        'iOS tests (nl 1/3)=success',
+        'iOS tests (nl 2/3)=success',
+        'iOS tests (nl 3/3)=success',
+        'iOS tests (en 1/3)=success',
+        'iOS tests (en 2/3)=success',
+        'iOS tests (en 3/3)=success',
       ]);
     });
   });
@@ -1072,7 +1074,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     );
   });
 
-  it('#293 AC14: the iOS build job builds once and uploads the test bundle; the test jobs run nl and en, in two parts each, from it', () => {
+  it('#293 AC14: the iOS build job builds once and uploads the test bundle; the test jobs run nl and en, in three parts each, from it', () => {
     assert.match(iosBuild, /run: scripts\/test-ios\.sh build\n/);
     assert.match(
       iosBuild,
@@ -1080,7 +1082,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     );
     assert.match(iosBuild, /include-hidden-files: true/);
     assert.match(iosTests, /needs: \[changes, ios-build, ios-build-retry\]\n/);
-    assert.match(iosTests, /matrix:\n +locale: \[nl, en\]\n +shard: \[1, 2\]/);
+    assert.match(iosTests, /matrix:\n +locale: \[nl, en\]\n +shard: \[1, 2, 3\]/);
     assert.match(iosTests, /fail-fast: false/);
     assert.match(
       iosTests,
@@ -1088,7 +1090,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     );
     assert.match(
       iosTests,
-      /run: scripts\/test-ios\.sh test \$\{\{ matrix\.locale \}\} --shard \$\{\{ matrix\.shard \}\}\/2\n/,
+      /run: scripts\/test-ios\.sh test \$\{\{ matrix\.locale \}\} --shard \$\{\{ matrix\.shard \}\}\/3\n/,
     );
     assert.doesNotMatch(
       iosTests,
@@ -1182,7 +1184,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
 
   it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
     for (const section of [iosBuild, iosTests]) {
-      // ios-tests runs part 2 on Linux in a run without UI tests (ci-fast-pipeline.test.mjs); every other part on macos-15.
+      // ios-tests runs parts 2 and 3 on Linux in a run without UI tests (ci-fast-pipeline.test.mjs); every other part on macos-15.
       assert.match(section, /^ {4}runs-on: (macos-15|\$\{\{ .*'macos-15'.* \}\})$/m);
       // The Xcode must be one the image installs (macos-15: 16.x and 26.0.1 to 26.3).
       assert.match(
@@ -3019,6 +3021,112 @@ esac`,
         assert.deepEqual(only(two), ['FivviProTests/AlphaTests', 'FivviProUITests/ProfileUITests']);
         assert.match(first.output, /Part 1 of 2 of the nl tests: 8 tests in 2 classes/);
         assert.match(second.output, /Part 2 of 2 of the nl tests: 27 tests in 2 classes/);
+      });
+
+      // #1614: three parts per language, because two parts took 1735 to 2055 s of the 2100 s deadline in the nightly run of 28 November.
+      it('#1614 deals the classes out in three parts, each in its own bundle, and the three together run every class once', async () => {
+        const classes = [
+          ['FivviProUITests/AUITests', 3], // weight 30
+          ['FivviProUITests/BUITests', 2], // weight 20
+          ['FivviUITests/CUITests', 2], // weight 20
+          ['FivviProUITests/DUITests', 1], // weight 10
+          ['FivviProTests/ETests', 4], // weight 4
+          ['FivviTests/FTests', 2], // weight 2
+        ];
+        const { fake, list } = await built(classes);
+
+        const first = await part(fake, list, 'nl', '1/3', 3);
+        const second = await part(fake, list, 'nl', '2/3', 3);
+        const third = await part(fake, list, 'nl', '3/3', 8);
+
+        for (const run of [first, second, third]) assert.equal(run.status, 0, run.output);
+        const [one, two, three] = runs(fake);
+        // Heaviest first onto the lightest part: A 30 -> 1, B 20 -> 2, C 20 -> 3, D 10 -> 2 (20 < 30), E 4 -> 3 (20 < 30), F 2 -> 3 (24 < 30).
+        assert.deepEqual(only(one), ['FivviProUITests/AUITests']);
+        assert.deepEqual(only(two), ['FivviProUITests/BUITests', 'FivviProUITests/DUITests']);
+        assert.deepEqual(only(three), [
+          'FivviProTests/ETests',
+          'FivviTests/FTests',
+          'FivviUITests/CUITests',
+        ]);
+        assert.deepEqual(
+          [...only(one), ...only(two), ...only(three)].sort(),
+          classes.map(([cls]) => cls).sort(),
+          'every class once',
+        );
+        assert.match(one, /-resultBundlePath \.build\/TestResults-nl-1of3\.xcresult\b/);
+        assert.match(two, /-resultBundlePath \.build\/TestResults-nl-2of3\.xcresult\b/);
+        assert.match(three, /-resultBundlePath \.build\/TestResults-nl-3of3\.xcresult\b/);
+        assert.match(first.output, /Part 1 of 3 of the nl tests: 3 tests in 1 classes/);
+        assert.match(third.output, /Part 3 of 3 of the nl tests: 8 tests in 3 classes/);
+        assert.match(third.output, /✓ iOS tests in nl, part 3 of 3/);
+      });
+
+      // The plan itself, on an enumeration the size of the real one (about 440 tests a language in 40 classes, most of them
+      // UI tests of a few tests each): shard_plan (scripts/_ios.sh) is deterministic, gives every class to exactly one of the
+      // three parts, and keeps the parts within a fifth of each other's weight.
+      it('#1614 shard_plan: every enumerated class is in exactly one of three parts, the same each time, and the parts are balanced', () => {
+        const enumeration = [];
+        const uiClasses = Array.from({ length: 22 }, (_, i) => [
+          `${i % 3 === 0 ? 'FivviUITests' : 'FivviProUITests'}/Screen${i}UITests`,
+          2 + (i % 5),
+        ]);
+        const unitClasses = Array.from({ length: 30 }, (_, i) => [
+          `${i % 4 === 0 ? 'FivviTests' : 'FivviProTests'}/Model${i}Tests`,
+          3 + ((i * 7) % 23),
+        ]);
+        const all = [...uiClasses, ...unitClasses];
+        for (const [cls, count] of all)
+          for (let n = 1; n <= count; n++) enumeration.push(`${cls}/test${n}()`);
+        const dir = mkdtempSync(join(tmpdir(), 'shard-plan-'));
+        try {
+          const file = join(dir, 'enumeration.json');
+          writeFileSync(
+            file,
+            JSON.stringify({
+              values: [{ enabledTests: enumeration.map((identifier) => ({ identifier })) }],
+            }),
+          );
+          const plan = (n) =>
+            JSON.parse(
+              execFileSync(
+                'bash',
+                [
+                  '-c',
+                  `source "${SCRIPTS}/_lib.sh"; source "${SCRIPTS}/_ios.sh"; shard_plan "$1" ${n} 3`,
+                  'bash',
+                  file,
+                ],
+                { encoding: 'utf8' },
+              ),
+            );
+          const plans = [1, 2, 3].map(plan);
+          const dealt = plans.flatMap((p) => p.classes);
+          assert.deepEqual(
+            [...dealt].sort(),
+            all.map(([cls]) => cls).sort(),
+            'every class in exactly one part',
+          );
+          assert.equal(new Set(dealt).size, dealt.length, 'no class twice');
+          assert.equal(
+            plans.reduce((sum, p) => sum + p.tests, 0),
+            enumeration.length,
+            'the tests of the parts are all the tests',
+          );
+          assert.deepEqual([1, 2, 3].map(plan), plans, 'the same plan each time');
+          const weight = (p) =>
+            p.classes.reduce((sum, cls) => {
+              const count = all.find(([name]) => name === cls)[1];
+              return sum + count * (cls.split('/')[0].endsWith('UITests') ? 10 : 1);
+            }, 0);
+          const weights = plans.map(weight);
+          assert.ok(
+            Math.max(...weights) <= Math.min(...weights) * 1.2,
+            `the parts are balanced: ${weights.join(', ')}`,
+          );
+        } finally {
+          rmSync(dir, { recursive: true, force: true });
+        }
       });
 
       it('enumerates the language once, in its configuration and without -only-testing, before the run, on the same simulator', async () => {
@@ -7918,7 +8026,7 @@ describe('#413 the iOS gate says when no hosted runner picked a part up, and has
     assert.doesNotMatch(code, /^ {2}workflow_dispatch:\n +inputs:/m);
     assert.deepEqual(
       [...code.matchAll(/runs-on: .*?'?(macos-[\w-]+)/g)].map((m) => m[1]),
-      // ios-build, its retry on the same image (#1268), ios-tests and its retry (the tests also name ubuntu-24.04, for part 2 of a run without UI tests)
+      // ios-build, its retry on the same image (#1268), ios-tests and its retry (the tests also name ubuntu-24.04, for parts 2 and 3 of a run without UI tests)
       ['macos-15', 'macos-15', 'macos-15', 'macos-15'],
     );
   });
@@ -7927,7 +8035,7 @@ describe('#413 the iOS gate says when no hosted runner picked a part up, and has
     assert.match(ci, /^ {2}ios-build:\n {4}name: iOS build$/m);
     assert.match(
       ci,
-      /^ {2}ios-tests:\n {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/2\)$/m,
+      /^ {2}ios-tests:\n {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/3\)$/m,
     );
     // The only other parts are the retries of #1268: the plan of the test retry and the retry itself.
     assert.deepEqual(
