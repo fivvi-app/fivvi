@@ -21,6 +21,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -35,7 +37,8 @@ import app.fivvi.designtokens.title2
 /**
  * The gradient "next" card (AC14): the next session in its type's colour, darker at the bottom (the tokens' 85% and 75%
  * mixes with black, so it stays in one hue), with white text. [actions] sit in a row at the bottom, usually pill buttons
- * or round controls.
+ * or round controls. [detail] is a secondary line after the [subtitle] (F024: *Je valt in voor Sarah*). With a
+ * [description] the texts are one element for TalkBack, named by it and still a heading, as the [title] is; the [actions] stay targets of their own.
  */
 @Composable
 fun NextCard(
@@ -44,6 +47,8 @@ fun NextCard(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    detail: String? = null,
+    description: String? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val colors = MaterialTheme.tokens.sessionColors(type)
@@ -56,9 +61,22 @@ fun NextCard(
                 .padding(Spacing.space5),
             verticalArrangement = Arrangement.spacedBy(Spacing.space1),
         ) {
-            Text(caption, style = MaterialTheme.typography.caption)
-            Text(title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.title2)
-            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.subhead)
+            Column(
+                modifier = if (description == null) {
+                    Modifier
+                } else {
+                    Modifier.clearAndSetSemantics {
+                        contentDescription = description
+                        heading()
+                    }
+                },
+                verticalArrangement = Arrangement.spacedBy(Spacing.space1),
+            ) {
+                Text(caption, style = MaterialTheme.typography.caption)
+                Text(title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.title2)
+                if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.subhead)
+                if (detail != null) Text(detail, style = MaterialTheme.typography.subhead)
+            }
             if (actions != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = Spacing.space3),

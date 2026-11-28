@@ -79,6 +79,28 @@ class PersonalRowSubstitutionTest {
         assertEquals(listOf(false, true), content.rows.map { it.isTakenOver })
     }
 
+    @Test
+    fun test_F024_AC4_1649_theNextCardOfTheCoveringTrainerNamesTheTrainerSheReplaces() {
+        // On 20 October before 19:00 Kracht is Mike's next class: the card is the only place Vandaag shows it (#1649).
+        // This documents the model (the row of the next item carries the substitution) and passes without the fix of
+        // #1649, which is in the screen: the regression test is SubstitutionScreenTest's Compose test of the card.
+        val day: MyDay = PersonalFixtures.sarah(items = listOf(PersonalFixtures.covering), workspaceCount = 1)
+            .copy(date = "2026-10-20")
+
+        val content = TodayContent(day, october, TestFormat.dutch)
+
+        assertEquals(PersonalFixtures.covering.sessionId, content.next?.row?.id)
+        assertEquals(PersonalSubstitution.CoveringFor("Sarah Visser"), content.next?.row?.substitution)
+        assertTrue("the rows leave the next item out", content.rows.isEmpty())
+    }
+
+    @Test
+    fun test_F024_AC4_1649_theNextCardOfADateWithoutASubstitutionHasNone() {
+        val content = TodayContent(PersonalFixtures.sarah(), PersonalFixtures.now, TestFormat.dutch)
+
+        assertNull(content.next?.row?.substitution)
+    }
+
     private fun agenda(vararg items: PersonalSession): AgendaContent {
         val base = AgendaState(mode = AgendaMode.Week, selectedDay = LocalDate.parse("2026-10-20"), now = october)
         val response = app.fivvi.api.models.MySessions(
