@@ -16,8 +16,8 @@
 #                 catalog sync leaves the generated catalogs unchanged, then one build-for-testing and one run of the
 #                 unit and UI tests in nl and en without building again (one result bundle, both locales), on the newest
 #                 iPhone simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one by name). Both
-#                 locales run on one simulator here (two on one 3-core machine were slower; CI runs the two languages in two
-#                 jobs, each on its own runner and simulator, see `test-ios.sh test` below);
+#                 locales run on one simulator here (two on one 3-core machine were slower; CI runs the two languages in six
+#                 jobs (three parts a language), each on its own runner and simulator, see `test-ios.sh test` below);
 #                 IOS_PARALLEL=1 runs one run per locale at the same time on two. Prints the durations of its steps, the
 #                 build timing summary and the slowest tests per locale (also in the job summary on CI); when tests fail, the names and
 #                 messages of the failed tests from the result bundle (#290). Shuts down the
@@ -35,8 +35,8 @@
 #   test-ios.sh test <nl|en> [--bundle <file>] [--retry-failed] [--shard <part>/<of>] [--unit-only]
 #                                unpacks that bundle (--bundle <file> names another) and runs the test plan's
 #                                configuration for one language, unit and UI tests, without building, on its own
-#                                simulator. CI's four `iOS tests` jobs run it in parallel, each language in two parts
-#                                (`--shard`), from the artifact of the build job; CI never retries a failed test, so a
+#                                simulator. CI's six `iOS tests` jobs run it in parallel, each language in three parts
+#                                (`--shard`, #1614), from the artifact of the build job; CI never retries a failed test, so a
 #                                flaky one stays visible and is quarantined (TESTING.md §8). The options come in either
 #                                order.
 #                                --shard <part>/<of> (CI passes it, #1447) runs only part <part> of <of> of that language's
@@ -45,7 +45,7 @@
 #                                together run every test once. The run says which classes it runs, and fails when it ran
 #                                fewer tests than they have. Its result bundle is TestResults-<locale>-<part>of<of>.xcresult.
 #                                Not with --unit-only; with --retry-failed it retries the failed UI tests of the part, which is
-#                                shown complete against the tests of the part (Release runs each language in two parts, #1403).
+#                                shown complete against the tests of the part (Release runs each language in three parts, #1403, #1614).
 #                                Without it the run is the whole language
 #                                --unit-only (ADR-034: part 1 of the `iOS tests` jobs passes it while .github/pipeline.json
 #                                says `ci: fast`; the nightly run and `ci: full` run the parts without it) leaves out the UI
@@ -73,7 +73,7 @@
 #                   own grace (IOS_TEST_DEADLINE_GRACE); release.yml's `ios-tests` timeout holds the first run and this
 #   IOS_BUSY_RETRY_WAIT  seconds before the run that follows a Busy simulator, default 20 (#1607)
 #   IOS_UI_LOCALES  the locales whose UI tests run, default "nl en" (what `pnpm test:ios` does). The unit tests always run
-#                   in both. CI does not set it any more (#293): its `iOS tests` parts (two per language, #1447) run every test in
+#                   in both. CI does not set it any more (#293): its `iOS tests` parts (three per language, #1447, #1614) run every test in
 #                   both languages in a run with UI tests. With "nl", the nl run is everything in nl and a second run is the unit tests in en, one
 #                   result bundle per locale (E002 #242)
 set -euo pipefail
@@ -111,7 +111,7 @@ case "${1:-}" in
       esac
       shift
     done
-    # --unit-only has no UI tests to deal out: CI runs it in part 1 and leaves part 2 without a step.
+    # --unit-only has no UI tests to deal out: CI runs it in part 1 and leaves parts 2 and 3 without a step.
     ! $UNIT_ONLY || [ -z "$SHARD_OF" ] || die "--shard and --unit-only don't go together"
     ;;
   *) usage_of "$0" ;;

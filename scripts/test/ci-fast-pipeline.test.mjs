@@ -191,7 +191,7 @@ describe('ADR-034 iOS tests', () => {
   for (const name of ['ios-tests', 'ios-tests-retry']) {
     describe(name, () => {
       const job = jobs[name];
-      const full = stepNamed(job, 'Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/2)');
+      const full = stepNamed(job, 'Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/3)');
       const fast = stepNamed(job, 'Unit tests (${{ matrix.locale }}), no UI tests in this run');
 
       it('waits for Detect changes too, for its decision', () => {
@@ -202,15 +202,15 @@ describe('ADR-034 iOS tests', () => {
         assert.equal(stepIf(full), UI);
         assert.equal(
           runOf(full),
-          'scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/2',
+          'scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/3',
         );
         assert.equal(stepIf(fast), `${NO_UI} && matrix.shard == 1`);
         assert.equal(runOf(fast), 'scripts/test-ios.sh test ${{ matrix.locale }} --unit-only');
       });
 
-      // Part 2 has nothing to run without UI tests: it takes no macOS runner (4 macOS jobs a run would be twice main's 2, and
-      // GitHub Free runs 5 at once), downloads no bundle and passes on Linux.
-      it('runs part 2 on Linux, without the bundle, when the run has no UI tests; every other part on macos-15', () => {
+      // Parts 2 and 3 have nothing to run without UI tests: they take no macOS runner (the macOS jobs of a run would be
+      // many more than main's 2, and GitHub Free runs 5 at once), download no bundle and pass on Linux.
+      it('runs parts 2 and 3 on Linux, without the bundle, when the run has no UI tests; every other part on macos-15', () => {
         assert.equal(
           job.match(/^ {4}runs-on: (.+)$/m)?.[1],
           "${{ (needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1) && 'macos-15' || 'ubuntu-24.04' }}",
@@ -228,12 +228,12 @@ describe('ADR-034 iOS tests', () => {
       it('keeps the matrix, the timeout and the name of a part', () => {
         assert.match(
           job,
-          /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/2\)( \(retry\))?$/m,
+          /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/3\)( \(retry\))?$/m,
         );
         assert.match(job, /^ {4}timeout-minutes: 44$/m);
         assert.match(
           job,
-          /^ {8}(locale: \[nl, en\]\n {8}shard: \[1, 2\]|include: \$\{\{ fromJSON)/m,
+          /^ {8}(locale: \[nl, en\]\n {8}shard: \[1, 2, 3\]|include: \$\{\{ fromJSON)/m,
         );
       });
     });
