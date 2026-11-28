@@ -140,7 +140,7 @@ class HomeViewModel(
         viewModelScope.launch {
             var wasOnline = connectivity.online.value
             connectivity.online.collect { online ->
-                if (online && !wasOnline && _state.value == MeState.Failed) load()
+                if (online && !wasOnline && _state.value == MeState.Failed && stillSignedIn()) load()
                 wasOnline = online
             }
         }

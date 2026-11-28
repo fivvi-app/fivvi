@@ -750,6 +750,23 @@ class HomeViewModelTest {
         assertEquals(2, api.calls)
     }
 
+    // A screen of an ended sign-in that is stuck on Failed must not read `GET /v1/me` with the next sign-in's token.
+    @Test
+    fun test_F025_1620_aReconnectionAfterTheSignOutDoesNotReadTheAccount() {
+        connectivity.setOnline(false)
+        api.answers += { throw IOException("offline") }
+        val viewModel = viewModel()
+        assertEquals(MeState.Failed, viewModel.state.value)
+        session.expire("tok-1")
+        api.answerAccount(workspaces = listOf("John's Gym"))
+
+        connectivity.setOnline(true)
+
+        assertEquals(MeState.Failed, viewModel.state.value)
+        assertEquals("no second read", 1, api.calls)
+        assertEquals(emptyList<String>(), identified)
+    }
+
     @Test
     fun test_F025_AC8_aReconnectionDoesNotReadAnAccountThatIsLoaded() {
         api.answerAccount(workspaces = listOf("John's Gym"))
