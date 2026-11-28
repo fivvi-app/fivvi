@@ -62,7 +62,8 @@ class ClassDateScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     ): ClassDateState {
         val shown = groupClass ?: groupClassOf("Mobility", "Mobility flow", "Rustig.", "Gentle.", sarah)
         return ClassDateState(
-            myTeamMemberId = if (trainerIsMe) sarah.id else UUID.randomUUID(),
+            // "Me" is the date's trainer, whoever that is (Mike, when he covers).
+            myTeamMemberId = if (trainerIsMe) (trainer?.id ?: sarah.id) else UUID.randomUUID(),
             canManage = canManage,
             added = added,
             load = ClassDateLoad.Loaded,
@@ -260,7 +261,7 @@ class ClassDateScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         mobility,
         canManage = canManage,
         trainerIsMe = me,
-        trainer = if (me) sarah else mike,
+        trainer = mike,
         substituteFor = "Sarah Visser",
     )
 
@@ -279,8 +280,9 @@ class ClassDateScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     fun test_F024_AC4_everyoneElseReadsMikeVervangtSarahInTheTrainerRowAndHasNoBanner() {
         show(substituted(me = false, canManage = true))
 
+        // The literal of the catalog, not built from it with the code's own argument order.
         compose.onNodeWithTag(ClassDateTags.TRAINER)
-            .assertTextEquals(string(R.string.classes_date_substitute, "Sarah Visser", "Mike"))
+            .assertTextEquals(if (dutch) "Mike (vervangt Sarah Visser)" else "Mike (covering for Sarah Visser)")
         compose.onNodeWithTag(ClassDateTags.SUBSTITUTION).assertDoesNotExist()
     }
 

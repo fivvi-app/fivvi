@@ -133,33 +133,33 @@ class SubstitutionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
     private fun SemanticsNodeInteraction.names(): String =
         fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription).orEmpty().joinToString()
 
-    private val kracht = "kracht-20"
+    private fun todayRow(session: PersonalSession) = tag(TodayTags.row(session.sessionId))
 
-    private fun todayRow() = tag(TodayTags.row(PersonalFixtures.sessionIdOf(kracht)))
-
-    private fun agendaRow() = tag("${AgendaTags.ROWS}.row.${PersonalFixtures.sessionIdOf(kracht)}")
+    private fun agendaRow(session: PersonalSession) = tag("${AgendaTags.ROWS}.row.${session.sessionId}")
 
     @Test
     fun test_F024_AC4_todayShowsCoveringAndTakenOver() {
         showToday(day(PersonalFixtures.covering, counted = 2))
-        compose.waitUntilTagExists(TodayTags.row(PersonalFixtures.sessionIdOf(kracht)))
-        todayRow().assertIsDisplayed()
+        compose.waitUntilTagExists(TodayTags.row(PersonalFixtures.covering.sessionId))
+        val row = todayRow(PersonalFixtures.covering)
+        row.assertIsDisplayed()
         texts(coveringText).assertCountAtLeastOne()
-        assertTrue("one name for TalkBack: ${todayRow().names()}", todayRow().names().contains(coveringText))
-        assertFalse(todayRow().names().contains(takenOverText))
+        assertTrue("one name for TalkBack: ${row.names()}", row.names().contains(coveringText))
+        assertFalse(row.names().contains(takenOverText))
     }
 
     @Test
     fun test_F024_AC4_sarahsVandaagKeepsTheClassWithOvergenomenDoorMikeAndCountsOnlyHerOwn() {
         // The API leaves a date taken over out of the summary and Straks: the count is what it sent.
         showToday(day(PersonalFixtures.takenOver, counted = 1))
-        compose.waitUntilTagExists(TodayTags.row(PersonalFixtures.sessionIdOf(kracht)))
+        compose.waitUntilTagExists(TodayTags.row(PersonalFixtures.takenOver.sessionId))
 
-        todayRow().assertIsDisplayed()
+        val row = todayRow(PersonalFixtures.takenOver)
+        row.assertIsDisplayed()
         texts(takenOverText).assertCountAtLeastOne()
-        assertTrue("one name for TalkBack: ${todayRow().names()}", todayRow().names().contains(takenOverText))
-        assertFalse(todayRow().names().contains(coveringText))
-        assertFalse("no action on it", exists("today.nudge.${PersonalFixtures.sessionIdOf(kracht)}"))
+        assertTrue("one name for TalkBack: ${row.names()}", row.names().contains(takenOverText))
+        assertFalse(row.names().contains(coveringText))
+        assertFalse("no action on it", exists("today.nudge.${PersonalFixtures.takenOver.sessionId}"))
         val summary = tag(TodayTags.SUMMARY).fetchSemanticsNode().config
             .getOrNull(SemanticsProperties.Text).orEmpty().joinToString()
         assertTrue("1 session counted: $summary", summary.startsWith("1 "))
@@ -168,9 +168,9 @@ class SubstitutionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
     @Test
     fun test_F024_AC4_agendaShowsTheSameLabelsAndTheDimmedDateHasNoDot() {
         showAgenda(PersonalFixtures.covering)
-        compose.waitUntilTagExists("${AgendaTags.ROWS}.row.${PersonalFixtures.sessionIdOf(kracht)}")
+        compose.waitUntilTagExists("${AgendaTags.ROWS}.row.${PersonalFixtures.covering.sessionId}")
         texts(coveringText).assertCountAtLeastOne()
-        assertTrue(agendaRow().names().contains(coveringText))
+        assertTrue(agendaRow(PersonalFixtures.covering).names().contains(coveringText))
         val dots = AgendaTags.dots(LocalDate.parse("2026-10-20"), listOf(AgendaKind.Private, AgendaKind.Group))
         assertTrue("the class she covers is a dot", exists(dots))
     }
@@ -178,10 +178,10 @@ class SubstitutionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
     @Test
     fun test_F024_AC4_agendaOfTheReplacedTrainerHasTheLabelButNoDotOrCountForThatDate() {
         showAgenda(PersonalFixtures.takenOver)
-        compose.waitUntilTagExists("${AgendaTags.ROWS}.row.${PersonalFixtures.sessionIdOf(kracht)}")
+        compose.waitUntilTagExists("${AgendaTags.ROWS}.row.${PersonalFixtures.takenOver.sessionId}")
 
         texts(takenOverText).assertCountAtLeastOne()
-        assertTrue(agendaRow().names().contains(takenOverText))
+        assertTrue(agendaRow(PersonalFixtures.takenOver).names().contains(takenOverText))
         assertFalse(
             "not counted as one of hers",
             exists(AgendaTags.dots(LocalDate.parse("2026-10-20"), listOf(AgendaKind.Private, AgendaKind.Group))),
@@ -197,8 +197,9 @@ class SubstitutionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
         showAgenda(PersonalFixtures.takenOver)
         tag(AgendaTags.MODE_DAY).performClick()
         compose.waitUntilTagExists(AgendaTags.TIMELINE)
+        compose.waitUntilTagExists(AgendaTags.block(PersonalFixtures.takenOver.sessionId))
 
-        val block = tag(AgendaTags.block(PersonalFixtures.sessionIdOf(kracht)))
+        val block = tag(AgendaTags.block(PersonalFixtures.takenOver.sessionId))
         block.assertExists()
         assertTrue(block.names().contains(takenOverText))
         texts("18:00 · $takenOverText").assertCountAtLeastOne()

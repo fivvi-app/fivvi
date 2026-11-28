@@ -169,7 +169,7 @@ object PersonalFixtures {
      * for Sarah Visser, so Mike's account lists [covering] and Sarah's lists the same date as [takenOver].
      */
     val covering: PersonalSession = session(
-        "kracht-20",
+        "kracht-20-covering",
         johns,
         "18:00",
         "19:00",
@@ -180,7 +180,7 @@ object PersonalFixtures {
         substituteFor = "Sarah Visser",
     )
     val takenOver: PersonalSession = session(
-        "kracht-20",
+        "kracht-20-taken-over",
         johns,
         "18:00",
         "19:00",
