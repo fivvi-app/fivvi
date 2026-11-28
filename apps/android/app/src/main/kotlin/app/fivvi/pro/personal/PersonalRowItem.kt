@@ -65,6 +65,17 @@ fun kindLabel(row: PersonalRow): String =
     stringResource(if (row.isGroup) R.string.my_day_type_group else R.string.my_day_type_private)
 
 /**
+ * *Je valt in voor Sarah* on the substitute's row, *Overgenomen door Mike* on the replaced trainer's (F024), or `null` for a
+ * date without a substitution: the API sends the names, the words are the catalog's.
+ */
+@Composable
+internal fun substitutionText(row: PersonalRow): String? = when (val substitution = row.substitution) {
+    is PersonalSubstitution.CoveringFor -> stringResource(R.string.my_day_covering_for, substitution.name)
+    is PersonalSubstitution.TakenOverBy -> stringResource(R.string.my_day_taken_over_by, substitution.name)
+    null -> null
+}
+
+/**
  * "09:00 tot 10:00, Anna de Vries, privésessie, John's Gym, Sarah Personal Training, Geannuleerd": the one name a row has for
  * TalkBack. It always names the type, whether or not the row writes it. A class with a level in the list names it right after
  * the class name, "Reformer Power, Niveau: Gevorderd" (F067): the bars after the name are not read on their own.
@@ -80,6 +91,7 @@ internal fun spokenLabel(row: PersonalRow, trainer: String? = null): String {
         row.location,
         trainer,
         row.workspaceName.takeIf { row.showsWorkspace },
+        substitutionText(row),
         stringResource(R.string.my_day_cancelled).takeIf { row.isCancelled },
     )
     return parts.reduce { all, next -> join.format(all, next) }
@@ -123,7 +135,7 @@ fun PersonalRowItem(
             modifier = Modifier
                 .weight(1f)
                 .clickable(onClick = onOpen)
-                .alpha(if (row.isPast || row.isCancelled) DIMMED else 1f)
+                .alpha(if (row.isPast || row.isCancelled || row.isTakenOver) DIMMED else 1f)
                 .padding(start = Spacing.space4, top = Spacing.space3, bottom = Spacing.space3, end = Spacing.space2)
                 .clearAndSetSemantics {
                     semanticsTestTag = "$tagPrefix.row.${row.id}"
@@ -179,6 +191,8 @@ private fun Details(row: PersonalRow, trainer: String?, tagPrefix: String, modif
                 Secondary(row.workspaceName)
             }
         }
+        // F024: a plain secondary line, as the prototype's *Groepsles (invallen)* shows; a taken-over row is dimmed as a whole.
+        substitutionText(row)?.let { Secondary(it) }
         if (row.isCancelled) Secondary(stringResource(R.string.my_day_cancelled))
     }
 }

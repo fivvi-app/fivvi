@@ -222,6 +222,27 @@ class ClassFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val langu
         compose.onNodeWithTag(ClassDateTags.OWNER_NOTE).assertIsDisplayed()
     }
 
+    // F024 Design: John's ⋯ on TD-03 has the substitute action ("De trainer vervangen"), which tells him to use the web. The
+    // menu is a popup window that does not take the test's language override, so its text is read here through the app.
+    @Test
+    fun test_F024_Design_johnsMenuOnTd03HasTheSubstituteActionWhichTellsHimToUseTheWeb() {
+        launchAsJohn()
+        openNewClass()
+        type(NewClassTags.NAME_NL, "Mobility")
+        app.hideKeyboard(compose)
+        save()
+        compose.waitUntilTagExists(ClassDateTags.MENU)
+
+        compose.onNodeWithTag(ClassDateTags.MENU).performClick()
+        compose.waitUntilTagExists(ClassDateTags.SUBSTITUTE)
+        compose.onNodeWithTag(ClassDateTags.SUBSTITUTE).assertTextEquals(
+            string(R.string.sessions_trainer_dialog_title_substitute, string(R.string.trainer_word_trainer_word)),
+        )
+        compose.onNodeWithTag(ClassDateTags.SUBSTITUTE).performClick()
+
+        compose.onNodeWithTag(ClassDateTags.MANAGE_ON_WEB).assertTextEquals(string(R.string.classes_app_manage_on_web))
+    }
+
     // F037 AC8: the first item of John's ⋯ on TD-03 is *Boekingslink delen*. The menu is a popup window that does not take
     // the test's language override, so its text is read here through the app, in both languages. The clock is fixed before
     // the date (the form's first start is the next full hour after it), so the date is still to come.

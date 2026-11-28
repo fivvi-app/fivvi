@@ -118,7 +118,9 @@ private fun Block(timeline: AgendaTimeline, block: AgendaTimeline.Block, width: 
         is PersonalPill.Booked ->
             stringResource(R.string.my_calendar_block_booked, pill.booked.toString(), pill.capacity.toString())
     }
-    val startLine = listOfNotNull(row.startText, if (row.isCancelled) cancelled else pill).joinToString(START_SEPARATOR)
+    // The substitution (*Je valt in voor Sarah*, *Overgenomen door Mike*, F024) takes the place of the count.
+    val startLine = listOfNotNull(row.startText, if (row.isCancelled) cancelled else substitutionText(row) ?: pill)
+        .joinToString(START_SEPARATOR)
     // The whole touch area is the block's button: the look is drawn inside it, so the look stays on the minute scale.
     Box(
         Modifier
@@ -135,7 +137,7 @@ private fun Block(timeline: AgendaTimeline, block: AgendaTimeline.Block, width: 
         Row(
             Modifier.fillMaxSize()
                 .padding(top = metrics.touchAbove.dp, bottom = metrics.touchBelow.dp)
-                .alpha(if (row.isPast || row.isCancelled) DIMMED else 1f)
+                .alpha(if (row.isPast || row.isCancelled || row.isTakenOver) DIMMED else 1f)
                 .background(colors.tint, RoundedCornerShape(Spacing.space2)),
         ) {
             Box(

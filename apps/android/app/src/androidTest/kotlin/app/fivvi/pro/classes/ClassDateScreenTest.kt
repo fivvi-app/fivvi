@@ -58,14 +58,24 @@ class ClassDateScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         added: Int? = null,
         series: SessionSeries? = null,
         level: ClassLevel? = null,
+        substituteFor: String? = null,
     ): ClassDateState {
         val shown = groupClass ?: groupClassOf("Mobility", "Mobility flow", "Rustig.", "Gentle.", sarah)
         return ClassDateState(
-            myTeamMemberId = if (trainerIsMe) sarah.id else UUID.randomUUID(),
+            // "Me" is the date's trainer, whoever that is (Mike, when he covers).
+            myTeamMemberId = if (trainerIsMe) (trainer?.id ?: sarah.id) else UUID.randomUUID(),
             canManage = canManage,
             added = added,
             load = ClassDateLoad.Loaded,
-            session = classDateOf(UUID.randomUUID(), shown, trainer, booked = booked, series = series, level = level),
+            session = classDateOf(
+                UUID.randomUUID(),
+                shown,
+                trainer,
+                booked = booked,
+                series = series,
+                level = level,
+                substituteFor = substituteFor,
+            ),
             groupClass = shown,
         )
     }
@@ -242,6 +252,46 @@ class ClassDateScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
 
         assertEquals(1, calls)
         compose.onNodeWithTag(ClassDateTags.MANAGE_ON_WEB).assertTextEquals(string(R.string.classes_app_manage_on_web))
+    }
+
+    // F024 AC4: TD-03 of a substituted date. Mike covers Kracht for Sarah Visser (synthetic people).
+    private val mike = trainerOf("Mike")
+
+    private fun substituted(me: Boolean, canManage: Boolean) = state(
+        mobility,
+        canManage = canManage,
+        trainerIsMe = me,
+        trainer = mike,
+        substituteFor = "Sarah Visser",
+    )
+
+    @Test
+    fun test_F024_AC4_theCoveringTrainerReadsJeValtInVoorSarahInABannerOnTheAccentTint() {
+        show(substituted(me = true, canManage = false))
+
+        compose.onNodeWithTag(ClassDateTags.SUBSTITUTION)
+            .assertTextEquals(string(R.string.my_day_covering_for, "Sarah Visser"))
+        compose.onNodeWithTag(ClassDateTags.SUBSTITUTION).assertIsDisplayed()
+        compose.onNodeWithTag(ClassDateTags.TRAINER).assertTextEquals(string(R.string.sessions_page_you))
+        compose.onNodeWithTag(ClassDateTags.MENU).assertDoesNotExist()
+    }
+
+    @Test
+    fun test_F024_AC4_everyoneElseReadsMikeVervangtSarahInTheTrainerRowAndHasNoBanner() {
+        show(substituted(me = false, canManage = true))
+
+        // The literal of the catalog, not built from it with the code's own argument order.
+        compose.onNodeWithTag(ClassDateTags.TRAINER)
+            .assertTextEquals(if (dutch) "Mike (vervangt Sarah Visser)" else "Mike (covering for Sarah Visser)")
+        compose.onNodeWithTag(ClassDateTags.SUBSTITUTION).assertDoesNotExist()
+    }
+
+    @Test
+    fun test_F024_AC4_aDateWithoutASubstitutionHasNoBannerAndTheTrainersName() {
+        show(state(mobility, trainerIsMe = false))
+
+        compose.onNodeWithTag(ClassDateTags.SUBSTITUTION).assertDoesNotExist()
+        compose.onNodeWithTag(ClassDateTags.TRAINER).assertTextEquals("Sarah")
     }
 
     // Design and AC7: a Trainer who is not substituting has no ⋯ menu and no footnote, but can read the date.

@@ -66,7 +66,8 @@ class AgendaContent(private val state: AgendaState, private val now: Instant, pr
     val weekdayLetters: List<String> = DayOfWeek.entries.map(format::weekdayLetter)
 
     private fun cell(day: LocalDate, letter: String): AgendaDayCell {
-        val sessions = items(day).filter { it.status != PersonalSession.Status.CANCELLED }
+        // A date a substitute took over is not one she teaches (F024): no dot, no count.
+        val sessions = items(day).filter { it.status != PersonalSession.Status.CANCELLED && it.takenOverBy == null }
         return AgendaDayCell(
             day = day,
             number = day.dayOfMonth,
