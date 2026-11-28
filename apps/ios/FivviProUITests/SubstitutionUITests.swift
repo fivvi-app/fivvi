@@ -12,7 +12,8 @@ final class SubstitutionUITests: PrivateSessionUITestCase {
     /// The person's *Vandaag* (22 September, 08:35) or, with `now` on 20 October, *Agenda* of that week, with the
     /// substitution as the API sends it for them.
     private func launchPersonal(
-        _ substitution: StubPersonalRoutes.Substitution, as name: String, now: String = "2026-09-22T08:35:00+02:00"
+        _ substitution: StubPersonalRoutes.Substitution, as name: String, now: String = "2026-09-22T08:35:00+02:00",
+        krachtIsNext: Bool = false
     ) throws -> XCUIApplication {
         let server = try StubServer(signIn: StubServer.SignIn(
             email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer",
@@ -20,6 +21,7 @@ final class SubstitutionUITests: PrivateSessionUITestCase {
         ))
         server.personalDay = .sarah
         server.personalSubstitution = substitution
+        server.personalKrachtIsNext = krachtIsNext
         self.server = server
         return AppLaunch.launch(against: server, session: .signedIn, startTab: nil, now: now)
     }
@@ -58,6 +60,23 @@ final class SubstitutionUITests: PrivateSessionUITestCase {
         XCTAssertTrue(away.label.contains(takenOverText()), "Overgenomen door Mike: \(away.label)")
         XCTAssertFalse(away.label.contains(coveringText()))
         XCTAssertFalse(any("today.nudge.\(StubPersonalRoutes.kracht)", in: sarah).exists, "no actions on it")
+    }
+
+    /// The API names Kracht as Mike's next item: only the top card shows it (the rows leave it out), so the card says
+    /// *Je valt in voor Sarah* (#1648), in the one VoiceOver label of its texts; Open stays a target of its own.
+    func test_F024_AC4_theNextCardSaysJeValtInVoorSarahWhileKrachtIsNext() throws {
+        let mike = try launchPersonal(covering, as: StubPersonalRoutes.substituteName, krachtIsNext: true)
+        let open = mike.buttons["today.next.open"]
+        XCTAssertTrue(open.waitUntilExists(timeout: timeout), requestLog)
+        let card = mike.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "Kracht", coveringText())
+        ).firstMatch
+        XCTAssertTrue(card.waitUntilExists(timeout: timeout), "Je valt in voor Sarah on the card\n\(requestLog)")
+        XCTAssertTrue(card.label.contains(coveringText()), card.label)
+        XCTAssertFalse(open.label.contains(coveringText()), "the Open button is a target of its own")
+        XCTAssertFalse(
+            mike.buttons["today.row.\(StubPersonalRoutes.kracht)"].exists, "the next class is not in the rows as well"
+        )
     }
 
     func test_F024_AC4_agendaShowsTheSameLabelsAndTheDimmedDateHasNoDot() throws {

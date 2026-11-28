@@ -50,6 +50,14 @@ final class StubPersonalRoutes: @unchecked Sendable {
     }
 
     private var substituted: Substitution?
+    private var krachtNext = false
+
+    /// Whether the API names the class "Kracht" as the day's next item (#1648: the covering trainer's first item of the
+    /// day), and not Anna's session.
+    var krachtIsNext: Bool {
+        get { lock.withLock { krachtNext } }
+        set { lock.withLock { krachtNext = newValue } }
+    }
 
     /// The substitution the lists carry, or none.
     var substitution: Substitution? {
@@ -153,7 +161,9 @@ final class StubPersonalRoutes: @unchecked Sendable {
             "hasSessions": true
         ].merging(Self.sessionTypes(which)) { $1 }
         // A cancelled session is no next one.
-        if !nextIsCancelled, !ended(Self.anna) {
+        if krachtIsNext {
+            answer["next"] = ["sessionId": Self.kracht, "state": "upcoming", "startsInMinutes": 385]
+        } else if !nextIsCancelled, !ended(Self.anna) {
             answer["next"] = ["sessionId": Self.anna, "state": "upcoming", "startsInMinutes": 25]
         }
         return (200, answer)

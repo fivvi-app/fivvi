@@ -190,6 +190,12 @@ final class StubServer: Sendable {
         set { responder.personalRoutes.substitution = newValue }
     }
 
+    /// The API names the class "Kracht" as the day's next item, which only the top card of Vandaag then shows (#1648).
+    var personalKrachtIsNext: Bool {
+        get { responder.personalRoutes.krachtIsNext }
+        set { responder.personalRoutes.krachtIsNext = newValue }
+    }
+
     /// The seeded class date (*Kracht*) has a trainer, and covers for another when `substituteFor` is given (F024).
     func giveSeededClassDateATrainer(
         id: String, name: String, substituteFor: String? = nil

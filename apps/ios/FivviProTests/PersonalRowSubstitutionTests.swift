@@ -24,6 +24,12 @@ final class PersonalRowSubstitutionTests: AgendaTestCase {
         )
     }
 
+    private func servedDay(_ day: PersonalDay) -> StubAPI {
+        let api = StubAPI()
+        api.myDay.serve(day)
+        return api
+    }
+
     private func builder() -> PersonalRows {
         PersonalRows(namesKinds: true, workspaceCount: 1, catalog: Catalog(locale: language), now: PersonalFixtures.now)
     }
@@ -76,6 +82,40 @@ final class PersonalRowSubstitutionTests: AgendaTestCase {
             today.summaryText, String(format: catalog["myDay.app.summary"], 3, "0", "09:00", "19:00"),
             "the summary is the API's"
         )
+    }
+
+    /// The API names the first item `next`: with Kracht as the covering trainer's next class, the card is the only place
+    /// the class shows (the rows leave it out), so the card says it (#1648).
+    func test_F024_AC4_theNextCardOfTheCoveringTrainerSaysJeValtInVoorSarahAndNamesItForVoiceOver() async {
+        let day = PersonalFixtures.sarah(items: [covering, PersonalFixtures.mark])
+        let today = TodayViewModel(
+            api: servedDay(day), catalog: Catalog(locale: language), store: MemoryPersonalStore(),
+            now: { PersonalFixtures.now }, deviceTimeZone: SessionFixtures.amsterdam
+        )
+
+        await today.load()
+
+        XCTAssertEqual(today.next?.row.title, "Kracht")
+        XCTAssertEqual(today.nextDetail, String(format: catalog["myDay.coveringFor"], "Sarah Visser"))
+        XCTAssertFalse(
+            today.nextSubtitle?.contains(today.nextDetail ?? "?") ?? true, "a line of its own, not in the subtitle"
+        )
+        XCTAssertEqual(today.rows.map(\.title), ["Mark Jansen"], "the next class is not in the rows as well")
+        XCTAssertTrue(
+            today.nextSpokenLabel(at: PersonalFixtures.now).contains(today.nextDetail ?? "?"),
+            "in what VoiceOver says of the card: \(today.nextSpokenLabel(at: PersonalFixtures.now))"
+        )
+    }
+
+    func test_F024_AC4_theNextCardOfADateSheTeachesHasNoSubstitutionLine() async {
+        let today = TodayViewModel(
+            api: servedDay(PersonalFixtures.sarah()), catalog: Catalog(locale: language), store: MemoryPersonalStore(),
+            now: { PersonalFixtures.now }, deviceTimeZone: SessionFixtures.amsterdam
+        )
+
+        await today.load()
+
+        XCTAssertNil(today.nextDetail)
     }
 
     func test_F024_AC4_agendaShowsTheSameLabelsAndCountsOnlyWhatShePersonallyTeaches() async {

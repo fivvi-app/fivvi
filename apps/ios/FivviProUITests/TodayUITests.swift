@@ -31,6 +31,13 @@ final class TodayUITests: SignInUITestCase {
         app.descendants(matching: .any)[id].firstMatch
     }
 
+    /// The text of the gradient card, which VoiceOver reads as one element (F024: with the substitution in it): what the
+    /// card's label says.
+    private func onNextCard(_ text: String, in app: XCUIApplication) -> XCUIElement {
+        any("today.next", app).descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
+    }
+
     private var log: String { (server?.requests.map { "\($0.method) \($0.path)" } ?? []).joined(separator: "\n") }
 
     /// Sends the app to the background and brings it back, as a person returning to it.
@@ -53,10 +60,10 @@ final class TodayUITests: SignInUITestCase {
         XCTAssertEqual(title.label, catalog["myDay.app.title"])
         XCTAssertTrue(app.staticTexts["largeTitle.eyebrow"].exists, "the date above the title")
         XCTAssertTrue(app.staticTexts[summary()].exists, "the summary with the done count: \(summary())")
-        XCTAssertTrue(app.staticTexts[String(format: catalog["myDay.nextUpcoming"], "25")].exists)
+        XCTAssertTrue(onNextCard(String(format: catalog["myDay.nextUpcoming"], "25"), in: app).exists)
         let next = any("today.next", app)
         XCTAssertTrue(next.exists)
-        XCTAssertTrue(app.staticTexts["Anna de Vries"].exists)
+        XCTAssertTrue(onNextCard("Anna de Vries", in: app).exists)
         XCTAssertTrue(app.buttons["today.next.open"].exists)
         let mark = app.buttons["today.row.\(StubPersonalRoutes.mark)"]
         XCTAssertTrue(mark.exists)
@@ -72,8 +79,7 @@ final class TodayUITests: SignInUITestCase {
         let (several, _) = try launch()
         XCTAssertTrue(several.staticTexts["today.title"].waitUntilExists(timeout: timeout), log)
         XCTAssertTrue(several.staticTexts["John's Gym"].exists, "every row names its workspace")
-        let onNextCard = NSPredicate(format: "label CONTAINS %@", "Sarah Personal Training")
-        XCTAssertTrue(several.staticTexts.matching(onNextCard).firstMatch.exists, "the next card too")
+        XCTAssertTrue(onNextCard("Sarah Personal Training", in: several).exists, "the next card too")
         several.terminate()
 
         let (solo, _) = try launch(day: .solo, twoWorkspaces: false)

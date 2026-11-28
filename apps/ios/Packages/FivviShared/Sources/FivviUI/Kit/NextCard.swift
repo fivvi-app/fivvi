@@ -96,37 +96,68 @@ public struct NextCardIconButton: View {
     }
 }
 
-/// The gradient "next" card (E020 AC14), such as *Volgende sessie*: a caption in capitals, a title, a line under it and,
-/// 16 pt below, the actions: `NextCardButton` and `NextCardIconButton`, glass buttons 48 pt high.
+/// One element of VoiceOver for the texts of a `NextCard`, named by `label` and a heading as its title is; the actions
+/// stay targets of their own. Without a label the texts stay the elements they are.
+private struct NextCardSpeech: ViewModifier {
+    let label: String?
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if let label {
+            content
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(label)
+                .accessibilityAddTraits(.isHeader)
+        } else {
+            content
+        }
+    }
+}
+
+/// The gradient "next" card (E020 AC14), such as *Volgende sessie*: a caption in capitals, a title, a line under it, a
+/// `detail` line after that (F024: *Je valt in voor Sarah*) and, 16 pt below, the actions: `NextCardButton` and
+/// `NextCardIconButton`, glass buttons 48 pt high. With a `spokenLabel` the texts are one element for VoiceOver, named by
+/// it and still a heading, as the title is.
 public struct NextCard<Actions: View>: View {
     public init(
-        tone: NextCardTone, caption: String, title: String, subtitle: String? = nil, @ViewBuilder actions: () -> Actions
+        tone: NextCardTone, caption: String, title: String, subtitle: String? = nil, detail: String? = nil,
+        spokenLabel: String? = nil, @ViewBuilder actions: () -> Actions
     ) {
         self.tone = tone
         self.caption = caption
         self.title = title
         self.subtitle = subtitle
+        self.detail = detail
+        self.spokenLabel = spokenLabel
         self.actions = actions()
     }
     public let tone: NextCardTone
     public let caption: String
     public let title: String
     public var subtitle: String?
+    public var detail: String?
+    public var spokenLabel: String?
     @ViewBuilder public let actions: Actions
     @ScaledMetric(relativeTo: .title2) private var titleSize = NextCardMetrics.titleSize
 
     public var body: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
-            Text(caption)
-                .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
-                .textCase(.uppercase)
-            Text(title)
-                .font(.system(size: titleSize, weight: .bold))
-                .accessibilityAddTraits(.isHeader)
-            if let subtitle {
-                Text(subtitle)
-                    .font(.system(Tokens.TextStyle.subhead))
+            VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
+                Text(caption)
+                    .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
+                    .textCase(.uppercase)
+                Text(title)
+                    .font(.system(size: titleSize, weight: .bold))
+                    .accessibilityAddTraits(.isHeader)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(Tokens.TextStyle.subhead))
+                }
+                if let detail {
+                    Text(detail)
+                        .font(.system(Tokens.TextStyle.subhead))
+                }
             }
+            .modifier(NextCardSpeech(label: spokenLabel))
             HStack(spacing: PillButtonMetrics.stackedSpacing) {
                 actions
             }
