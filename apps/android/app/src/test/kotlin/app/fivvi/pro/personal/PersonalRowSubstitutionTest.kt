@@ -82,6 +82,8 @@ class PersonalRowSubstitutionTest {
     @Test
     fun test_F024_AC4_1649_theNextCardOfTheCoveringTrainerNamesTheTrainerSheReplaces() {
         // On 20 October before 19:00 Kracht is Mike's next class: the card is the only place Vandaag shows it (#1649).
+        // This documents the model (the row of the next item carries the substitution) and passes without the fix of
+        // #1649, which is in the screen: the regression test is SubstitutionScreenTest's Compose test of the card.
         val day: MyDay = PersonalFixtures.sarah(items = listOf(PersonalFixtures.covering), workspaceCount = 1)
             .copy(date = "2026-10-20")
 

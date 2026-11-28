@@ -22,6 +22,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -31,6 +33,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -110,7 +113,7 @@ class KitComponentsTest(
     private fun show(width: Dp = phone, content: @Composable () -> Unit) =
         compose.showKit(mode, language, width = width, content = content)
 
-    private fun label(id: Int) = localizedString(language, id)
+    private fun label(id: Int, vararg formatArgs: Any) = localizedString(language, id, *formatArgs)
 
     // A card, a pill and a group show the canvas, not their fill, outside their rounded corners: the corner pixel is not
     // the fill, and a pixel a third of the radius in, on the diagonal, is.
@@ -271,6 +274,53 @@ class KitComponentsTest(
             assertFalse("$type: rounded corner", card.isFilled(0, 0, colors.gradientTop, 0.1f))
             compose.onNodeWithTag("start-$type").assertHeightIsEqualTo(PillButtonHeight).assertIsDisplayed()
         }
+    }
+
+    // F024 AC4 (#1649): with a detail line and a description the card's texts are one TalkBack element named by the
+    // description, which stays a heading (the title's role); the Open button stays a target of its own.
+    @Test
+    fun F024_AC4_1649_aNextCardWithADetailAndADescriptionIsOneNamedHeadingAndKeepsItsButton() {
+        val detail = label(app.fivvi.core.R.string.my_day_covering_for, "Sarah Visser")
+        val description = "Volgende, Kracht, 18:00, $detail"
+        show {
+            NextCard(
+                type = SessionType.Group,
+                caption = "Volgende",
+                title = "Kracht",
+                modifier = Modifier.testTag("next"),
+                subtitle = "18:00",
+                detail = detail,
+                description = description,
+                actions = { NextCardButton("Openen", onClick = {}, Modifier.testTag("open")) },
+            )
+        }
+
+        compose.onNodeWithTag("next").assertIsDisplayed()
+        compose.onAllNodes(hasContentDescription(description)).assertCountEquals(1)
+        compose.onNode(hasContentDescription(description))
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        compose.onAllNodes(hasText(detail)).assertCountEquals(0)
+        compose.onAllNodes(hasText("Kracht")).assertCountEquals(0)
+        compose.onNodeWithTag("open")
+            .assertHasClickAction()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        compose.onNodeWithTag("open").assertTextEquals("Openen")
+    }
+
+    @Test
+    fun F024_AC4_1649_aNextCardWithADetailButNoDescriptionShowsTheDetailAfterTheSubtitle() {
+        show {
+            NextCard(
+                type = SessionType.Group,
+                caption = "Volgende",
+                title = "Kracht",
+                subtitle = "18:00",
+                detail = "Je valt in voor Sarah",
+            )
+        }
+
+        compose.onNode(hasText("Je valt in voor Sarah")).assertIsDisplayed()
+        compose.onNode(hasText("Kracht")).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
     }
 
     @Test

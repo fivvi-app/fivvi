@@ -38,7 +38,7 @@ import app.fivvi.designtokens.title2
  * The gradient "next" card (AC14): the next session in its type's colour, darker at the bottom (the tokens' 85% and 75%
  * mixes with black, so it stays in one hue), with white text. [actions] sit in a row at the bottom, usually pill buttons
  * or round controls. [detail] is a secondary line after the [subtitle] (F024: *Je valt in voor Sarah*). With a
- * [description] the texts are one element for TalkBack, named by it; the [actions] stay targets of their own.
+ * [description] the texts are one element for TalkBack, named by it and still a heading, as the [title] is; the [actions] stay targets of their own.
  */
 @Composable
 fun NextCard(
@@ -65,7 +65,10 @@ fun NextCard(
                 modifier = if (description == null) {
                     Modifier
                 } else {
-                    Modifier.clearAndSetSemantics { contentDescription = description }
+                    Modifier.clearAndSetSemantics {
+                        contentDescription = description
+                        heading()
+                    }
                 },
                 verticalArrangement = Arrangement.spacedBy(Spacing.space1),
             ) {
