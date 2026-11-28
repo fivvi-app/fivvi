@@ -22,7 +22,7 @@ struct ClassDateView: View {
     /// *Aanwezigheid invullen* opens CO-05 (F025); nil where the screen has no stack to push it on.
     var onTakeAttendance: ((AttendanceRoute) -> Void)?
 
-    var catalog: Catalog { model.catalog }
+    private var catalog: Catalog { model.catalog }
 
     var body: some View {
         Group {
@@ -119,7 +119,10 @@ struct ClassDateView: View {
             }
             description
             if let substitution = model.substitutionBannerText {
-                StatusMessage(text: substitution, kind: .info, id: "classDate.substitution")
+                StatusMessage(
+                    text: substitution, kind: .accent, id: "classDate.substitution",
+                    systemImage: "arrow.left.arrow.right"
+                )
             }
             InsetGroup {
                 locationRow

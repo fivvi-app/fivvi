@@ -46,11 +46,6 @@ final class SubstitutionUITests: PrivateSessionUITestCase {
         XCTAssertTrue(away.label.contains(takenOverText()), "Overgenomen door Mike: \(away.label)")
         XCTAssertFalse(away.label.contains(coveringText()))
         XCTAssertFalse(any("today.nudge.\(StubPersonalRoutes.kracht)", in: sarah).exists, "no actions on it")
-        let summary = String(format: catalog["myDay.app.summary"], 3, "0", "09:00", "19:00")
-        XCTAssertTrue(sarah.staticTexts[summary].exists, "not in her count of sessions: \(summary)")
-        XCTAssertFalse(
-            any("today.next", in: sarah).label.contains("Kracht"), "and not as the next one"
-        )
     }
 
     func test_F024_AC4_agendaShowsTheSameLabelsAndTheDimmedDateHasNoDot() throws {

@@ -196,11 +196,10 @@ struct PersonalRowView: View {
         return LevelIcon.row(name: name, level: row.level, scale: barsScale)
     }
 
-    /// *Je valt in voor Sarah* in the accent colour, or *Overgenomen door Mike* (F024): the row is dimmed as a whole then.
+    /// *Je valt in voor Sarah* or *Overgenomen door Mike* (F024) as a plain secondary line, as the prototype's
+    /// *Groepsles (invallen)* shows; the taken-over row is dimmed as a whole.
     private func substitutionLine(_ text: String) -> some View {
-        Text(text)
-            .font(.system(Tokens.TextStyle.subhead, weight: row.isTakenOver ? .regular : .semibold))
-            .foregroundStyle(row.isTakenOver ? Tokens.Colors.textSecondary : Tokens.Colors.accentText)
+        secondary(text)
     }
 
     private func secondary(_ text: String) -> some View {

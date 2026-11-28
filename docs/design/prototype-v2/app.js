@@ -364,11 +364,12 @@
   SCREENS.today = function () {
     var ws = S.scope === "ws" && OWNER() && !SOLO();
     var items = ws ? dayItems(TODAY).filter(function (i) { return i.ws === "sf"; }).concat(EXTRA_WS).sort(function (a, b) { return mins(a.s) - mins(b.s); }) : dayItems(TODAY);
-    var live = items.filter(function (i) { return !i.cancelled && mins(i.e) > mins(NOWT); });
+    /* F024: a date a substitute took over is not hers: not Straks, not in the summary */
+    var live = items.filter(function (i) { return !i.cancelled && !i.by && mins(i.e) > mins(NOWT); });
     var next = live[0];
     /* The top of Vandaag, in the variant chosen in the panel. Each shows only what exists: no group or Open Gym
        figures for a trainer who has none. */
-    var active = items.filter(function (i) { return !i.cancelled; });
+    var active = items.filter(function (i) { return !i.cancelled && !i.by; });
     var done = active.filter(function (i) { return isPast(i, TODAY); }).length;
     var span = active.length ? active[0].s + "–" + active.reduce(function (m, i) { return mins(i.e) > mins(m) ? i.e : m; }, active[0].e) : "";
     var summary = active.length ? active.length + (active.length === 1 ? " sessie" : " sessies") + " · " + span + " · " + done + " klaar" : "Geen sessies vandaag";
@@ -402,7 +403,7 @@
       body += '<div class="wk"><span></span>' + days.map(function (d) { return '<div class="d">' + DS[d.getDay()] + "</div>"; }).join("") + "<span></span>" +
         '<button class="nav" data-a="week" data-v="-1" aria-label="Vorige week">' + ic("chevL") + "</button>" +
         days.map(function (d) {
-          var k = key(d), its = dayItems(k).filter(function (i) { return !i.cancelled; });
+          var k = key(d), its = dayItems(k).filter(function (i) { return !i.cancelled && !i.by; });
           return '<div><button class="n ' + (k === TODAY ? "today " : "") + (k === S.aday ? "sel" : "") + '" data-a="aday" data-k="' + k + '" aria-label="' + longDate(d) + '">' + d.getDate() + '</button><div class="dots">' + its.slice(0, 3).map(function (i) { return '<i style="--c:' + CV[i.type] + '"></i>'; }).join("") + "</div></div>";
         }).join("") + '<button class="nav" data-a="week" data-v="1" aria-label="Volgende week">' + ic("chevR") + "</button></div>";
       body += '<div class="wklabel">Week ' + isoWeek(mon) + " · " + mon.getDate() + " " + MS[mon.getMonth()] + " – " + add(mon, 6).getDate() + " " + MS[add(mon, 6).getMonth()] + " " + add(mon, 6).getFullYear() + "</div>";
@@ -415,7 +416,7 @@
       its.forEach(function (it) {
         var n = 1; cols.forEach(function (col, ci) { if (col.some(function (o) { return mins(o.s) < mins(it.e) && mins(it.s) < mins(o.e); })) n = Math.max(n, ci + 1); });
         var topp = 10 + (mins(it.s) - start * 60) / 60 * hh, ht = (mins(it.e) - mins(it.s)) / 60 * hh - 3;
-        h += '<button class="ev ink' + (it.cancelled ? " cx" : "") + '" data-a="' + (it.type === "priv" ? "open-session" : "open-class") + '" data-id="' + it.id + '" style="--c:' + CV[it.type] + ";top:" + topp + "px;height:" + ht + "px;left:calc(62px + (100% - 76px) * " + it._col / n + ");width:calc((100% - 76px) / " + n + ' - 3px)"><b>' + esc(title(it)) + "</b><span>" + it.s + (it.cap ? " · " + (it.cancelled ? "Geannuleerd" : it.people.length + "/" + it.cap) : " · " + esc(it.loc)) + "</span></button>";
+        h += '<button class="ev ink' + (it.cancelled ? " cx" : "") + (it.by ? " by" : "") + '" data-a="' + (it.type === "priv" ? "open-session" : "open-class") + '" data-id="' + it.id + '" style="--c:' + CV[it.type] + ";top:" + topp + "px;height:" + ht + "px;left:calc(62px + (100% - 76px) * " + it._col / n + ");width:calc((100% - 76px) / " + n + ' - 3px)"><b>' + esc(title(it)) + "</b><span>" + it.s + (it.cap ? " · " + (it.cancelled ? "Geannuleerd" : it.sub ? "Je valt in voor " + esc(it.sub) : it.by ? "Overgenomen door " + esc(it.by) : it.people.length + "/" + it.cap) : " · " + esc(it.loc)) + "</span></button>";
       });
       if (S.aday === TODAY) h += '<div class="nowl" style="top:' + (10 + (mins(NOWT) - start * 60) / 60 * hh) + 'px"></div>';
       body += '<div class="tl" style="height:' + (hours * hh + 30) + 'px">' + h + "</div>";
@@ -433,7 +434,7 @@
       for (var c2 = 0; c2 < 42; c2++) {
         var cd = add(gs, c2), ck = key(cd);
         if (c2 >= 35 && cd.getMonth() !== sel.getMonth()) break;
-        var cits = dayItems(ck).filter(function (i) { return !i.cancelled; });
+        var cits = dayItems(ck).filter(function (i) { return !i.cancelled && !i.by; });
         mh += '<button class="' + (cd.getMonth() !== sel.getMonth() ? "out " : "") + (ck === TODAY ? "today " : "") + (ck === S.aday ? "sel" : "") + '" data-a="aday" data-k="' + ck + '"><b>' + cd.getDate() + '</b><span class="dots">' + cits.slice(0, 3).map(function (i) { return '<i style="--c:' + CV[i.type] + '"></i>'; }).join("") + "</span></button>";
       }
       body += '<div class="mo">' + mh + "</div>";
@@ -1602,7 +1603,8 @@
       ["Aanwezigheid les: deelnemer geannuleerd", "F025", function () { fresh(); PREF.setup = "team"; S.attMode = "cxpart"; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
       ["Aanwezigheid les: wacht op verbinding", "F025", function () { fresh(); PREF.setup = "team"; S.attOffline = true; S.attMode = "offline"; var it = findItem("s2").it; it.attMap = { 0: "yes", 1: "yes", 2: "yes" }; S.attWait = { 0: true, 1: true, 2: true }; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
       ["Aanwezigheid les: tik geweigerd", "F025", function () { fresh(); PREF.setup = "team"; S.attMode = "refused"; var it = findItem("s2").it; it.attMap = {}; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
-      ["Uitloggen met wachtende aanwezigheid", "F025", function () { fresh(); S.attOffline = true; var it = findItem("s1").it; it.att = "yes"; it.attWait = true; S.tab = "profile"; S.alert = { n: "signoutAtt", c: 1 }; }]
+      ["Uitloggen met wachtende aanwezigheid", "F025", function () { fresh(); S.attOffline = true; var it = findItem("s1").it; it.att = "yes"; it.attWait = true; S.tab = "profile"; S.alert = { n: "signoutAtt", c: 1 }; }],
+      ["Agenda · Dag: les overgenomen door een vervanger", "TD-04", function () { fresh(); PREF.setup = "team"; var o = findItem("s5").it; delete o.sub; o.by = "Mike"; S.tab = "agenda"; S.aview = "day"; }]
     ]]
   ];
   function buildPanel() {
