@@ -742,7 +742,7 @@ jobs:
           fi
 
   # iOS (E008, E002, #293). Seven jobs and the gate "iOS": one job builds once and packs the test bundle, and six test jobs run
-  # the Dutch and the English test passes from it (each language in three parts, #1447, #1614) at the same time, each on its own
+  # the Dutch and the English test passes from it (each language in three parts, #1447, #1614), up to five at once, each on its own
   # simulator (a cold run was 16 of 21 minutes of tests in a row). They start only when the app, its generated inputs or
   # its own scripts changed (in a PR, a merge group or a push to main), or on demand (scripts/native-jobs.sh), to keep
   # PR feedback fast. The UI tests run in both languages on every push. The image and Xcode are pinned, so a runner
@@ -761,9 +761,10 @@ jobs:
     runs-on: macos-15
     continue-on-error: ${{ github.event_name == 'push' }}
     # The longest build of the last 10 green runs took 322 s (5.4 min), so 12 minutes is 2.2 times that (#393).
-    # Detect changes (5) + this (12) + iOS tests (44) + the report job (2) = 63, under the merge queue's check
-    # timeout (ADR-018). If no runner takes this job, GitHub cancels it after 15 minutes and ios-build-retry builds once
-    # more (see there for the longest chain, 154, and the queue's 160).
+    # Detect changes (5) + this (12) + iOS tests (44) + the report job (2) = 63 in a run without UI tests, under the merge
+    # queue's check timeout (ADR-018); in a run with UI tests the sixth test part waits for one of the first five (see ios-tests),
+    # so the tests take 2 x 44 and the chain is 107. If no runner takes this job, GitHub cancels it after 15 minutes and
+    # ios-build-retry builds once more (see there for the longest chains and the queue's 160).
     timeout-minutes: 12
     permissions:
       contents: read
@@ -861,8 +862,13 @@ jobs:
   # exists. Every retry may itself queue for a runner for 15 minutes, and ios-tests-plan waits for the whole ios-tests
   # matrix, so the other language may run its full 44 minutes before the plan starts. The longest chain by the timeouts
   # is therefore Detect changes 5 + (15 wait + 15 wait + 12 build) + (44 tests + 2 plan + 15 wait + 44 tests) + the gate
-  # 2 = 154 minutes, so the merge queue's check timeout is 160 (ADR-018), applied with
-  # `scripts/github-settings.sh apply`, and `pr.sh wait` gives a native run 165.
+  # 2 = 154 minutes in a run without UI tests, so the merge queue's check timeout is 160 (ADR-018), applied with
+  # `scripts/github-settings.sh apply`, and `pr.sh wait` gives a native run 165. In a run WITH UI tests (`ci: full`, the
+  # nightly run) the six test parts are two waves of 44 minutes (`max-parallel: 5` on ios-tests): the plain chain is
+  # 5 + 12 + 88 + 2 = 107, with a test part that got no runner 107 + 2 (plan) + 15 (wait) + 44 (retry) = 168, with the build
+  # retried as well 168 + 30 = 198. Those two exceed the 160 and the 165; nothing breaks while the
+  # pipeline is `ci: lean` or `fast` with `merge: direct`, but going back to `ci: full` with the queue means raising both
+  # (WORKFLOW.md §8, the owner's switch), and a test fails until then.
   ios-build-retry:
     name: iOS build (retry)
     needs: [changes, ios-build]
@@ -993,7 +999,9 @@ jobs:
     # inside the matrix, not for a runner, because GitHub cancels a macOS job that gets no runner after about 15 minutes (the
     # #413 and #1268 cases, which the retry below exists for). It counts every leg, the Linux ones of a run without UI tests
     # too, which end in seconds and free their place. The matrix is the one in scripts/ios-parts.sh (the names of the parts,
-    # which the gate and the retry read); a test keeps the three in step.
+    # which the gate and the retry read); a test keeps the three in step. In a run with UI tests that makes two waves of
+    # up to 44 minutes (the sixth part starts when one of the first five ends), so the chain by timeouts is 107 minutes, not 63
+    # (see ios-build-retry for the retried chains and the queue's 160).
     #
     # The count of the part's tests before the run (`--shard`, IOS_ENUMERATE_DEADLINE) is not in the 310 s: those were
     # measured on 3 November 2026 (#393), before `select_shard` counted anything (19 November). It is 240 s since #1580
@@ -1001,7 +1009,7 @@ jobs:
     # with its grace and a second try 600 s at worst, for a hang only, once for each app (Fivvi Pro, then Fivvi). The
     # release budgets one such count on top (release.yml); here it is paid from the 2 minutes and from the share of the
     # run's deadline the part does not use, as the 360 s of the old deadline were, because the chain of timeouts above
-    # leaves no room for more (a test pins it at 63 and 154 minutes).
+    # leaves no room for more (a test pins it at 63 and 154 minutes for a run without UI tests, 107, 168 and 198 for one with).
     timeout-minutes: 44
     permissions:
       contents: read
@@ -1106,6 +1114,8 @@ jobs:
       actions: read # scripts/step-timings.sh reads this run's step durations
     strategy:
       fail-fast: false
+      # As "iOS tests": at most five legs at once, so a sixth never waits for a macOS runner (the plan names the parts that had none, so five or fewer in practice).
+      max-parallel: 5
       matrix:
         # The legs the plan named, `[{"locale":"nl","shard":1}, ...]`. The fallback only keeps the expression valid when the plan was skipped (no outputs); the `if` above then skips this job.
         include: ${{ fromJSON(needs.ios-tests-plan.outputs.parts || '[{"locale":"nl","shard":1}]') }}

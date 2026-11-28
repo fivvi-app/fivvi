@@ -463,6 +463,12 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         /include: \$\{\{ fromJSON\(needs\.ios-tests-plan\.outputs\.parts \|\| '\[\{"locale":"nl","shard":1\}\]'\) \}\}/,
       );
       assert.match(retry, /fail-fast: false/);
+      // #1614: as the first try, at most five legs at once; the plan names only the parts that had no runner.
+      assert.match(
+        retry,
+        /^ {6}max-parallel: 5$/m,
+        'the retry queues in the matrix like the first try',
+      );
       assert.doesNotMatch(retry, /test-ios\.sh build|ios-build/, 'it does not build again');
       for (const pattern of [
         /^ {4}runs-on: (\S+)$/m,
@@ -1140,6 +1146,8 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       'the tests timeout holds the deadline, the grace, the overhead outside the deadline and 2 minutes',
     );
     // Detect changes (5) + build + tests + the gate job (2) must end before the queue gives up on the check.
+    // This chain and the next one hold for a run WITHOUT UI tests (ci: lean, ci: fast on most events): part 1 of each language
+    // runs the unit tests on macOS and parts 2 and 3 pass on Linux in seconds, so only two macOS test jobs run, side by side.
     const chain = 5 + minutes(iosBuild) + minutes(iosTests) + minutes(job('ios'));
     assert.ok(chain <= 63, 'the chain is at most 63 minutes');
     assert.ok(chain < queue, 'under the queue timeout');
@@ -1157,13 +1165,64 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         noRunnerWait +
         minutes(job('ios-tests-retry'))) +
       minutes(job('ios'));
-    assert.equal(retriedChain, 154, 'the numbers in ci.yml, WORKFLOW.md and ADR-018 say 154');
+    assert.equal(
+      retriedChain,
+      154,
+      'in a run without UI tests the numbers in ci.yml, WORKFLOW.md and ADR-018 say 154',
+    );
     assert.ok(retriedChain < queue, 'the retried chain is under the queue timeout');
     // pr.sh wait must outlast the chains, or it gives up on a run that still passes.
     const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
     const waitNative = Number(pr.match(/^WAIT_MINUTES_NATIVE=(\d+)$/m)[1]);
     assert.ok(waitNative > chain, 'pr.sh wait outlasts the longest native chain by timeouts');
     assert.ok(waitNative > retriedChain, 'pr.sh wait outlasts the chain with both retries');
+
+    // #1614: in a run WITH UI tests all six parts run on macOS, and `max-parallel` lets only five legs run at once (GitHub Free
+    // runs five macOS jobs), so the sixth starts when another ends: the tests stage is a number of waves of the job's
+    // timeout, taken from the matrix of ci.yml and not fixed here. The retry runs only the parts that got no runner (the
+    // plan names them), so it stays one wave.
+    const legs = [...iosTests.matchAll(/^ {8}(?:locale|shard): \[([^\]]+)\]$/gm)].reduce(
+      (n, m) => n * m[1].split(',').length,
+      1,
+    );
+    const maxParallel = Number(iosTests.match(/^ {6}max-parallel: (\d+)$/m)[1]);
+    assert.equal(legs, 6, 'two languages in three parts');
+    const waves = Math.ceil(legs / maxParallel);
+    assert.equal(waves, 2, 'the sixth part waits for one of the first five');
+    const testsStage = waves * minutes(iosTests);
+    const chainUi = 5 + minutes(iosBuild) + testsStage + minutes(job('ios'));
+    const retriedTestsUi =
+      chainUi + minutes(job('ios-tests-plan')) + noRunnerWait + minutes(job('ios-tests-retry'));
+    const retriedBothUi = retriedTestsUi + 2 * noRunnerWait;
+    assert.equal(
+      chainUi,
+      107,
+      'with UI tests the plain chain is 107 minutes (WORKFLOW.md, ci.yml)',
+    );
+    assert.equal(retriedTestsUi, 168, 'with UI tests and a part that got no runner: 168');
+    assert.equal(retriedBothUi, 198, 'with UI tests and the build retried as well: 198');
+    assert.ok(chainUi < queue && chainUi < waitNative, 'the plain chain with UI tests fits both');
+    // The retried chains with UI tests are longer than the queue's 160 and what pr.sh waits (165). Nothing breaks while
+    // ci is not `full`: UI tests run in the nightly run and on demand then, and with merge: direct there is no queue. When
+    // the pipeline goes back to `full` (WORKFLOW.md §8) this fails until the budgets are raised or the legs sped up.
+    const pipeline = JSON.parse(readFileSync(join(SCRIPTS, '../.github/pipeline.json'), 'utf8'));
+    if (pipeline.ci === 'full') {
+      assert.ok(
+        retriedBothUi < waitNative,
+        'ci: full waits for UI tests in every run: pr.sh wait 165 is too short',
+      );
+      if (pipeline.merge === 'queue') {
+        assert.ok(
+          retriedBothUi < queue,
+          'ci: full with the merge queue: the 160 minutes are too short',
+        );
+      }
+    } else {
+      assert.ok(
+        retriedTestsUi > queue && retriedBothUi > waitNative,
+        'the excess is recorded in WORKFLOW.md, "iOS tests": when it stops holding, update the notes there and in ci.yml',
+      );
+    }
   });
 
   it("E017 #1580: the iOS test enumeration's deadline is 240 s: twice the slowest enumeration measured on the CI runner, and a hang is still stopped", () => {
