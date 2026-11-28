@@ -223,6 +223,7 @@ button{cursor:pointer}
 .ev b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ev span{opacity:.85;white-space:nowrap}
 .ev.cx{opacity:.5}.ev.cx b{text-decoration:line-through}
+.ev.by{opacity:.55}
 .nowl{position:absolute;left:54px;right:12px;border-top:1.5px solid var(--accent);z-index:3;pointer-events:none}
 .nowl::before{content:"";position:absolute;left:-4px;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
 .mo{display:grid;grid-template-columns:repeat(7,1fr);padding:0 10px;text-align:center;row-gap:4px}

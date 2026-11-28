@@ -1,31 +1,44 @@
 import SwiftUI
 import FivviDesignTokens
 
-/// A message on a screen: a rounded surface that wraps its text (a failed save, a confirmation, an offer).
+/// A message on a screen: a rounded surface that wraps its text (a failed save, a confirmation, an offer). `.accent` is
+/// the prototype's banner: the accent mixed into the card, the text in the primary colour and, when given, an icon in the
+/// accent (the substitution banner of TD-03, F024).
 public struct StatusMessage: View {
     public enum Kind {
-        case error, success, info
+        case error, success, info, accent
     }
 
     let text: String
     let kind: Kind
     let id: String
+    let systemImage: String?
 
-    public init(text: String, kind: Kind, id: String) {
+    public init(text: String, kind: Kind, id: String, systemImage: String? = nil) {
         self.text = text
         self.kind = kind
         self.id = id
+        self.systemImage = systemImage
     }
 
     public var body: some View {
-        Text(text)
-            .font(.system(Tokens.TextStyle.body))
-            .foregroundStyle(foreground)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(Tokens.Spacing.space3)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(background, in: RoundedRectangle(cornerRadius: Tokens.Radius.md, style: .continuous))
-            .accessibilityIdentifier(id)
+        HStack(alignment: .top, spacing: Tokens.Spacing.space3) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .foregroundStyle(Tokens.Colors.accentText)
+                    .accessibilityHidden(true)
+            }
+            Text(text)
+                .font(.system(Tokens.TextStyle.body))
+                .foregroundStyle(foreground)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier(id)
+        }
+        .padding(Tokens.Spacing.space3)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: Tokens.Radius.md, style: .continuous).fill(background)
+        }
     }
 
     private var foreground: Color {
@@ -33,6 +46,7 @@ public struct StatusMessage: View {
         case .error: Tokens.Colors.statusDangerText
         case .success: Tokens.Colors.statusSuccessText
         case .info: Tokens.Colors.statusNeutralFg
+        case .accent: Tokens.Colors.textPrimary
         }
     }
 
@@ -41,6 +55,7 @@ public struct StatusMessage: View {
         case .error: Tokens.Colors.statusDangerBg
         case .success: Tokens.Colors.statusSuccessBg
         case .info: Tokens.Colors.statusNeutralBg
+        case .accent: Tokens.Colors.accentTint
         }
     }
 }

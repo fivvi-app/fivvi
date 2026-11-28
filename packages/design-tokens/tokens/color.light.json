@@ -93,6 +93,17 @@
         "$value": "{color.base.accent.text-light}",
         "$description": "The accent as text and icons on the canvas and cards."
       },
+      "tint": {
+        "$value": {
+          "mix": {
+            "color": "{color.accent.fill}",
+            "with": "{color.bg.surface}",
+            "amount": 14,
+            "space": "srgb"
+          }
+        },
+        "$description": "The accent as a tint: 14% accent over the card surface. Banners that carry the accent (TD-03's substitution banner). Text on it is color.text.primary, the icon color.accent.text."
+      },
       "gradient-top": {
         "$value": {
           "mix": {

@@ -127,6 +127,18 @@
       "use": "Tonal pill button label (accent text on the tonal fill)"
     },
     {
+      "fg": "color.text.primary",
+      "bg": "color.accent.tint",
+      "kind": "text",
+      "use": "Text in an accent banner (TD-03's substitution banner)"
+    },
+    {
+      "fg": "color.accent.text",
+      "bg": "color.accent.tint",
+      "kind": "text",
+      "use": "Icon of an accent banner (the accent as text on the tint)"
+    },
+    {
       "fg": "color.text.inverse",
       "bg": "color.bg.inverse",
       "kind": "text",

@@ -8,10 +8,18 @@ class PrivateSessionUITestCase: SignInUITestCase {
     /// The server of the test's launch, for the messages of a failed wait.
     var server: StubServer?
 
+    /// The trainer of the seeded class date (F024), who covers for `substituteFor` when it is given.
+    struct SeededTrainer {
+        let id: String
+        let name: String
+        var substituteFor: String?
+    }
+
     /// Sarah (synthetic): a Trainer of John's Gym, or John, its Owner.
     func launch(
         owner: Bool = false, recordsLinks: Bool = false, opensClassDate: String? = nil, now: String? = nil,
-        offline: Bool = false, seededLevel: String? = nil
+        offline: Bool = false, seededLevel: String? = nil,
+        seededTrainer: SeededTrainer? = nil
     ) throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
             signIn: StubServer.SignIn(
@@ -21,6 +29,11 @@ class PrivateSessionUITestCase: SignInUITestCase {
         )
         self.server = server
         if let seededLevel { server.setSeededClassLevel(seededLevel) }
+        if let seededTrainer {
+            server.giveSeededClassDateATrainer(
+                id: seededTrainer.id, name: seededTrainer.name, substituteFor: seededTrainer.substituteFor
+            )
+        }
         return (
             SignInScreen.launch(
                 against: server, session: .signedIn, recordsOpenedLinks: recordsLinks, opensClassDate: opensClassDate,

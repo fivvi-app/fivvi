@@ -43,6 +43,8 @@ class TokenColors(
     val accentOn: Color,
     /** The accent as text and icons on the canvas and cards. */
     val accentText: Color,
+    /** The accent as a tint: 14% accent over the card surface. Banners that carry the accent (TD-03's substitution banner). Text on it is color.text.primary, the icon color.accent.text. */
+    val accentTint: Color,
     /** Top of an accent gradient: the accent mixed with black, 85%. */
     val accentGradientTop: Color,
     /** Bottom of an accent gradient: 75%. */
@@ -174,6 +176,7 @@ val LightTokenColors: TokenColors = TokenColors(
     accentFill = Color(0xFFE6164A),
     accentOn = Color(0xFFFFFFFF),
     accentText = Color(0xFFC8103D),
+    accentTint = Color(0xFFFCDEE6),
     accentGradientTop = Color(0xFFB90F3A),
     accentGradientBottom = Color(0xFF9C0B2F),
     actionPrimaryBg = Color(0xFFE6164A),
@@ -254,6 +257,7 @@ val DarkTokenColors: TokenColors = TokenColors(
     accentFill = Color(0xFFE6164A),
     accentOn = Color(0xFFFFFFFF),
     accentText = Color(0xFFFF6482),
+    accentTint = Color(0xFF381B24),
     accentGradientTop = Color(0xFFB90F3A),
     accentGradientBottom = Color(0xFF9C0B2F),
     actionPrimaryBg = Color(0xFFE6164A),

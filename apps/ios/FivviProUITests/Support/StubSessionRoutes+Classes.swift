@@ -34,6 +34,22 @@ extension StubSessionRoutes {
         ))
     }
 
+    /// The seeded class date has this trainer (F024), covering for `substituteFor` when it is given: as the API sends a
+    /// substituted date, `trainer` with `substituteFor` {id, trainerProfileId, name}.
+    func giveSeededClassDateATrainer(id: String, name: String, substituteFor: String?) {
+        lock.withLock {
+            guard let index = sessions.firstIndex(where: { $0["id"] as? String == Self.seededClassDateID })
+            else { return }
+            sessions[index]["trainer"] = ["id": id, "name": name]
+            if let substituteFor {
+                sessions[index]["substituteFor"] = [
+                    "id": Self.myMemberID == id ? Self.otherMemberID : Self.myMemberID,
+                    "trainerProfileId": "6e1c2d3e-0000-4000-8000-0000000000b1", "name": substituteFor
+                ]
+            }
+        }
+    }
+
     /// Every `POST …/group-classes` body so far, each value as text; the first date's fields as `firstDate.localDate`
     /// and `firstDate.localStart`.
     var createdGroupClasses: [[String: String]] { lock.withLock { createdClasses } }

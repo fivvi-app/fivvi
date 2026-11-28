@@ -77,6 +77,16 @@
       "text": {
         "$value": "{color.base.accent.text-dark}"
       },
+      "tint": {
+        "$value": {
+          "mix": {
+            "color": "{color.accent.fill}",
+            "with": "{color.bg.surface}",
+            "amount": 14,
+            "space": "srgb"
+          }
+        }
+      },
       "gradient-top": {
         "$value": {
           "mix": {
