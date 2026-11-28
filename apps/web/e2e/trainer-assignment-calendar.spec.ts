@@ -2,6 +2,9 @@ import type { Locator, Page } from '@playwright/test';
 import { clientIpHeaders, signInWithSession } from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 import {
+  blocks,
+  columnOf,
+  dragToColumn,
   seedBoxing,
   seedClient,
   seedPrivate,
@@ -18,11 +21,6 @@ import {
 // trains there; Sarah, Tom and Mike are its Trainers.
 const MINUTE_PX = 0.8;
 
-/** The blocks of the calendar: each opens the quick view. */
-const blocks = (page: Page) => page.getByRole('main').locator('button[aria-haspopup="dialog"]');
-/** The columns of the grid, in order. */
-const gridColumns = (page: Page) => page.locator('[data-slot="week-grid-body"] > [data-column]');
-
 /** Drags the block from its middle by `minutes` (60 minutes are 48 px), over several pointer moves. */
 async function dragBlock(page: Page, block: Locator, minutes: number) {
   const box = await block.boundingBox();
@@ -34,29 +32,6 @@ async function dragBlock(page: Page, block: Locator, minutes: number) {
   await page.mouse.move(x, y + (minutes * MINUTE_PX) / 2, { steps: 6 });
   await page.mouse.move(x, y + minutes * MINUTE_PX, { steps: 6 });
   await page.mouse.up();
-}
-
-/** Drags the block sideways, to the middle of `column` and the minute it is at. */
-async function dragToColumn(page: Page, block: Locator, column: Locator) {
-  const from = await block.boundingBox();
-  await column.scrollIntoViewIfNeeded();
-  const to = await column.boundingBox();
-  if (!from || !to) throw new Error('The block or the column is not on the page.');
-  const y = from.y + Math.min(from.height / 2, 20);
-  const x = from.x + from.width / 2;
-  await page.mouse.move(x, y);
-  await page.mouse.down();
-  await page.mouse.move((x + to.x + to.width / 2) / 2, y, { steps: 6 });
-  await page.mouse.move(to.x + to.width / 2, y, { steps: 8 });
-  await page.mouse.up();
-}
-
-/** The column of the day view headed `label`. */
-async function columnOf(page: Page, label: string) {
-  const headers = await page.locator('[data-slot="week-grid-header"] > div').allInnerTexts();
-  const index = headers.findIndex((header) => header.trim() === label);
-  if (index < 0) throw new Error(`No column ${label} in ${headers.join(', ')}.`);
-  return gridColumns(page).nth(index);
 }
 
 test.describe('F023 the entry points of CO-02 on the calendar', () => {

@@ -238,6 +238,16 @@ export {
 } from './repositories/personal-sessions.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {
+  countExportRows,
+  EXPORT_BATCH_SIZE,
+  type ExportClientLink,
+  type ExportColumnInfo,
+  type ExportRequest,
+  type ExportRow,
+  exportColumns,
+  readExportRows,
+} from './repositories/privacy-export.ts';
+export {
   type ChargebackRecord,
   findRefund,
   findRefundFacts,
@@ -286,6 +296,7 @@ export {
   type SessionReschedule,
   type SessionSeriesView,
   type SessionStatus,
+  type SessionSubstituteForView,
   type SessionTrainerAssignment,
   type SessionTrainerView,
   type SessionType,
@@ -330,6 +341,7 @@ export {
   findOwnTeamMember,
   findTrainer,
   findTrainerProfileId,
+  findTrainerRecipient,
   listTrainers,
   listTrainersWithProfiles,
   type OwnTeamMember,

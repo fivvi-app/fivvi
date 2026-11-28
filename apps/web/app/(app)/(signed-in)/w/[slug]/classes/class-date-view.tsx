@@ -184,7 +184,15 @@ export function ClassDateView({
             <dd>{session.location.name}</dd>
             <dt className="text-muted-foreground">{t('date.trainerLabel', { ...trainerWord })}</dt>
             <dd>
-              {session.trainer ? session.trainer.name : t('trainerNeeded', { ...trainerWord })}
+              {session.trainer
+                ? session.substituteFor
+                  ? // F024: "Mike (vervangt Sarah)".
+                    t('date.substitute', {
+                      substitute: session.trainer.name,
+                      original: session.substituteFor.name,
+                    })
+                  : session.trainer.name
+                : t('trainerNeeded', { ...trainerWord })}
             </dd>
             {session.level ? (
               <>

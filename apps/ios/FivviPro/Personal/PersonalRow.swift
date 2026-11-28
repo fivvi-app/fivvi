@@ -31,6 +31,11 @@ struct PersonalRow: Identifiable, Equatable {
     let pillIsFull: Bool
     let isCancelled: Bool
     let isPast: Bool
+    /// The date was taken over by a substitute (F024): the row stays, dimmed, without actions, and is not counted.
+    let isTakenOver: Bool
+    /// *Je valt in voor Sarah* on the substitute's row, *Overgenomen door Mike* on the replaced trainer's (F024); the API
+    /// sends the names.
+    let substitutionText: String?
     /// The class level whose bars show after the class name (F067): *Beginner*, *Gemiddeld* or *Gevorderd* of a class; nil
     /// for *Alle niveaus*, *Geen* and a private session, which show no icon in a list.
     let level: Components.Schemas.ClassLevel?
@@ -102,7 +107,8 @@ struct PersonalRows {
             id: item.sessionId, workspaceID: item.workspace.id, workspaceName: item.workspace.name, isGroup: isGroup,
             title: (isGroup ? item.className : item.clientName) ?? "", startsAt: item.startsAt, endsAt: item.endsAt,
             location: item.location, booked: item.booked, capacity: item.capacity,
-            isCancelled: item.status == .cancelled, level: item.level
+            isCancelled: item.status == .cancelled, level: item.level, substituteFor: item.substituteFor?.name,
+            takenOverBy: item.takenOverBy?.name
         ))
     }
 
@@ -122,6 +128,11 @@ struct PersonalRows {
         var trainerText: String?
         /// The level of a class date; a row shows it as bars only where `ClassLevel.showsInList`.
         var level: Components.Schemas.ClassLevel?
+        /// The trainer the date's trainer replaces (F024), for the substitute's row.
+        var substituteFor: String?
+        /// The substitute who took the date over (F024), for the replaced trainer's row; a row of a date taken over
+        /// even when the account has no name.
+        var takenOverBy: String?
     }
 
     func row(_ facts: Facts) -> PersonalRow {
@@ -135,10 +146,11 @@ struct PersonalRows {
         // Only a class shows a level, and *Alle niveaus* shows none in a list.
         let level = facts.isGroup ? facts.level.flatMap { $0.showsInList ? $0 : nil } : nil
         let levelName = level.map { catalog.levelAccessibleName($0) }
+        let substitution = substitutionText(facts)
         let spoken = [
             catalog.string(.todaySpokenTime, end, start), facts.title, levelName,
             typeWord(isGroup: facts.isGroup).lowercased(), location,
-            workspaceCount > 1 ? facts.workspaceName : nil, facts.trainerText,
+            workspaceCount > 1 ? facts.workspaceName : nil, facts.trainerText, substitution,
             facts.isCancelled ? catalog[.todayCancelled] : nil
         ].compactMap { $0 }
         return PersonalRow(
@@ -149,10 +161,21 @@ struct PersonalRows {
             location: facts.isGroup ? nil : location,
             routeURL: facts.isGroup ? nil : LocationRoute.url(facts.location?.address),
             pill: pill, pillIsFull: pill == catalog[.todayFull], isCancelled: facts.isCancelled,
-            isPast: facts.endsAt <= now, level: level,
+            isPast: facts.endsAt <= now, isTakenOver: facts.takenOverBy != nil, substitutionText: substitution,
+            level: level,
             spokenLabel: spoken.dropFirst().reduce(spoken[0]) { catalog.string(.todaySpokenJoin, $0, $1) },
             trainerText: facts.trainerText
         )
+    }
+}
+
+extension PersonalRows {
+    /// *Je valt in voor Sarah* or *Overgenomen door Mike* (F024); nil for a date without a substitution, and where the API
+    /// sends no name for it.
+    fileprivate func substitutionText(_ facts: Facts) -> String? {
+        if let name = facts.takenOverBy, !name.isEmpty { return catalog.string(.todayTakenOverBy, name) }
+        if let name = facts.substituteFor, !name.isEmpty { return catalog.string(.todayCoveringFor, name) }
+        return nil
     }
 }
 

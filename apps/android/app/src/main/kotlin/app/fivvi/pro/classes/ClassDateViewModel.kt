@@ -139,8 +139,20 @@ data class ClassDateState(
     /** The level of this date (F067), the same for everyone on the team; `null` is *Geen*. */
     val level: ClassLevel? get() = session?.level
 
-    /** The Owner's menu, until the date is cancelled; a Trainer who is not substituting has none (F024 adds the substitute's). */
+    /** The Owner's menu, until the date is cancelled; a Trainer has none, a covering one neither: only the Owner substitutes. */
     val hasMenu: Boolean get() = canManage && !isCancelled
+
+    /** Whom the date's trainer replaces (F024), when the API says and gives a name. */
+    private val originalTrainer: String? get() = session?.substituteFor?.name?.takeIf { it.isNotEmpty() }
+
+    /** *Je valt in voor Sarah*, for the person who covers the date; `null` for everyone else. */
+    val coveringFor: String? get() = originalTrainer.takeIf { trainerIsMe }
+
+    /** *Mike (vervangt Sarah)*: whom the date's trainer replaces, for everyone but the one who covers it. */
+    val replacedTrainer: String? get() = originalTrainer.takeIf { !trainerIsMe }
+
+    /** *De trainer vervangen* is in the menu of a date that has a trainer to replace; it says it is managed on the web. */
+    val showsSubstitute: Boolean get() = hasMenu && session?.trainer != null
 
     /** The Owner may cancel a date that is still planned (`class.manage`). */
     val canCancel: Boolean get() = canManage && session?.status == Session.Status.SCHEDULED
@@ -252,6 +264,9 @@ class ClassDateViewModel(
 
     /** *Les wijzigen*: the class is managed on the web, and the screen says so. */
     fun editTapped() = _state.update { it.copy(manageOnWeb = true) }
+
+    /** *De trainer vervangen* (F024): substituting is managed on the web, and the screen says so. */
+    fun substituteTapped() = _state.update { it.copy(manageOnWeb = true) }
 
     /**
      * *Les annuleren* of the ⋯ menu: asks the API who would get the email, then the confirmation shows. When the API can't be

@@ -140,7 +140,12 @@ describe.each(locales)('F023 the trainer dialog in %s', (locale) => {
   });
 
   it('AC2: with Deze en alle volgende lessen the dialog says who becomes the regular trainer from which date', () => {
-    const html = draw({ session: kracht, kind: 'substitute', initialTrainerId: 'mike' });
+    const html = draw({
+      session: kracht,
+      kind: 'substitute',
+      initialTrainerId: 'mike',
+      initialScope: 'following',
+    });
 
     expect(html).toContain(
       t('followingLine', {
@@ -160,7 +165,12 @@ describe.each(locales)('F023 the trainer dialog in %s', (locale) => {
   });
 
   it('AC3: with Deze en alle volgende lessen the dialog also counts the later dates that conflict', () => {
-    const html = draw({ session: kracht, kind: 'substitute', initialTrainerId: 'mike' });
+    const html = draw({
+      session: kracht,
+      kind: 'substitute',
+      initialTrainerId: 'mike',
+      initialScope: 'following',
+    });
 
     expect(html).toContain(t('laterConflicts', { trainer: 'Mike', count: 2 }));
   });
@@ -187,6 +197,7 @@ describe.each(locales)('F023 the trainer dialog in %s', (locale) => {
         workspaceName="John's Gym"
         slug="johns-gym"
         initialTrainerId="mike"
+        initialScope="following"
         message={null}
         pending={false}
         onSubmit={() => {}}
@@ -298,5 +309,152 @@ describe.each(locales)('F023 the trainer dialog in %s', (locale) => {
     );
 
     expect(html).not.toContain('type="checkbox"');
+  });
+
+  // F024 (spec #461, tickets #553, #1636): CO-02 on a date that has a trainer is a substitution
+  // with Alleen deze les first, the substitute's own email box and the participants' box.
+  describe('F024 substituting', () => {
+    const before = new Date('2026-10-01T10:00:00.000Z');
+    const after = new Date('2026-10-06T16:30:00.000Z');
+    const two = candidates({ participantsToNotify: { forThisDate: 2, forFollowingDates: 5 } });
+    /** The markup (not only its text), to see the boxes and what is checked. */
+    const markup = (props: Partial<Parameters<typeof TrainerForm>[0]> = {}) =>
+      render(
+        locale,
+        <TrainerForm
+          session={kracht}
+          kind="substitute"
+          candidates={two}
+          trainerWord={word}
+          workspaceName="John's Gym"
+          slug="johns-gym"
+          now={before}
+          message={null}
+          pending={false}
+          onSubmit={() => {}}
+          onCancel={() => {}}
+          {...props}
+        />,
+      );
+    const substitution = markup;
+    const checkboxes = (html: string) => html.match(/<input[^>]*type="checkbox"/g) ?? [];
+
+    it('AC1: Alleen deze les is the default and the title names the dialog, Deze en alle volgende lessen is the other choice', () => {
+      const html = markup();
+
+      expect(html).toMatch(/<input[^>]*checked=""[^>]*value="this"/);
+      expect(html).not.toMatch(/<input[^>]*checked=""[^>]*value="following"/);
+      expect(text(html)).toContain(t('scopeFollowing'));
+      expect(text(html)).toContain(t('bookingsStay'));
+      expect(text(html)).not.toContain(t('laterConflicts', { trainer: 'Mike', count: 2 }));
+    });
+
+    it('AC1: once a substitute is picked, the box to email them comes first, with their name, and is on', () => {
+      const html = substitution({ initialTrainerId: 'mike' });
+
+      expect(text(html)).toContain(t('notifySubstitute', { trainer: 'Mike' }));
+      expect(text(html).indexOf(t('notifySubstitute', { trainer: 'Mike' }))).toBeLessThan(
+        text(html).indexOf(t('notifyClass', { count: 2 })),
+      );
+      expect(checkboxes(html)).toHaveLength(2);
+      expect(html.match(/<input[^>]*type="checkbox"[^>]*checked/g)).toHaveLength(2);
+    });
+
+    it('AC16: the participants’ box counts the people booked on that date and is on by default', () => {
+      const html = substitution();
+
+      expect(text(html)).toContain(t('notifyClass', { count: 2 }));
+      expect(text(html)).not.toContain(t('notifyClass', { count: 5 }));
+      expect(checkboxes(html)).toHaveLength(1);
+    });
+
+    it('AC16: for a date that has started neither box shows', () => {
+      const html = substitution({
+        initialTrainerId: 'mike',
+        now: after,
+        candidates: candidates({ participantsToNotify: { forThisDate: 0, forFollowingDates: 0 } }),
+      });
+
+      expect(checkboxes(html)).toHaveLength(0);
+    });
+
+    it('AC8: a date that has started shows no box even if the API still counted participants', () => {
+      const html = substitution({ initialTrainerId: 'mike', now: after });
+
+      expect(checkboxes(html)).toHaveLength(0);
+      expect(text(html)).not.toContain(t('notifySubstitute', { trainer: 'Mike' }));
+      expect(text(html)).not.toContain(t('notifyClass', { count: 2 }));
+    });
+
+    it('AC16: a date nobody booked has only the box to email the substitute', () => {
+      const html = substitution({
+        initialTrainerId: 'mike',
+        candidates: candidates({ participantsToNotify: { forThisDate: 0, forFollowingDates: 0 } }),
+      });
+
+      expect(checkboxes(html)).toHaveLength(1);
+      expect(text(html)).toContain(t('notifySubstitute', { trainer: 'Mike' }));
+    });
+
+    it('AC6: with Deze en alle volgende lessen the substitute’s box is gone and the usual notify box counts every date', () => {
+      const html = substitution({ initialTrainerId: 'mike', initialScope: 'following' });
+
+      expect(text(html)).not.toContain(t('notifySubstitute', { trainer: 'Mike' }));
+      expect(text(html)).toContain(t('notifyClass', { count: 5 }));
+      expect(checkboxes(html)).toHaveLength(1);
+    });
+
+    describe('on a substituted date', () => {
+      const substituted: Schemas['Session'] = {
+        ...kracht,
+        trainer: { id: 'mike', name: 'Mike' },
+        substituteFor: { id: 'sarah', trainerProfileId: 'p-sarah', name: 'Sarah' },
+      };
+      const others = candidates({
+        trainers: [
+          { id: 'lisa', name: 'Lisa', conflicts: [], laterConflictingDates: 0 },
+          { id: 'sarah', name: 'Sarah', conflicts: [], laterConflictingDates: 0 },
+        ],
+        participantsToNotify: { forThisDate: 2, forFollowingDates: 5 },
+      });
+
+      it('AC5: lists the regular trainer first, marked (vaste trainer), and the others after', () => {
+        const html = text(
+          markup({ session: substituted, kind: 'substitute', candidates: others, now: before }),
+        );
+
+        expect(html).toContain(t('regularTrainer', { ...word, name: 'Sarah' }));
+        expect(html.indexOf('Sarah')).toBeLessThan(html.indexOf('Lisa'));
+        expect(html).toContain(t('currently', { name: 'Mike' }));
+      });
+
+      it('AC5, AC17: choosing the regular trainer ends it: only the participants’ box shows, on by default', () => {
+        const html = markup({
+          session: substituted,
+          kind: 'substitute',
+          candidates: others,
+          initialTrainerId: 'sarah',
+          now: before,
+        });
+
+        expect(text(html)).toContain(t('notifyClass', { count: 2 }));
+        expect(text(html)).not.toContain(t('notifySubstitute', { trainer: 'Sarah' }));
+        expect(checkboxes(html)).toHaveLength(1);
+        expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*checked/);
+      });
+
+      it('AC5: choosing a third trainer is a substitution again: both boxes show', () => {
+        const html = markup({
+          session: substituted,
+          kind: 'substitute',
+          candidates: others,
+          initialTrainerId: 'lisa',
+          now: before,
+        });
+
+        expect(text(html)).toContain(t('notifySubstitute', { trainer: 'Lisa' }));
+        expect(checkboxes(html)).toHaveLength(2);
+      });
+    });
   });
 });

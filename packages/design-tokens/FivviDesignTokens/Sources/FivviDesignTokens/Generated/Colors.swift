@@ -37,6 +37,8 @@ public extension Tokens {
         public static let accentOn = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
         /// The accent as text and icons on the canvas and cards.
         public static let accentText = Color(light: 0xC8103D, dark: 0xFF6482)
+        /// The accent as a tint: 14% accent over the card surface. Banners that carry the accent (TD-03's substitution banner). Text on it is color.text.primary, the icon color.accent.text.
+        public static let accentTint = Color(light: 0xFCDEE6, dark: 0x381B24)
         /// Top of an accent gradient: the accent mixed with black, 85%.
         public static let accentGradientTop = Color(light: 0xB90F3A, dark: 0xB90F3A)
         /// Bottom of an accent gradient: 75%.

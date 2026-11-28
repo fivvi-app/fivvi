@@ -3193,6 +3193,23 @@
         }
       }
     },
+    "classes.date.substitute" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ (covering for %1$@)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ (vervangt %1$@)"
+          }
+        }
+      }
+    },
     "classes.date.timeRange" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9885,6 +9902,23 @@
         }
       }
     },
+    "myCalendar.coveringFor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Covering for %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je valt in voor %1$@"
+          }
+        }
+      }
+    },
     "myCalendar.emptyDay" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10174,6 +10208,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%2$@ tot %1$@"
+          }
+        }
+      }
+    },
+    "myCalendar.takenOverBy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taken over by %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overgenomen door %1$@"
           }
         }
       }
@@ -10955,6 +11006,23 @@
         }
       }
     },
+    "myDay.coveringFor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Covering for %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je valt in voor %1$@"
+          }
+        }
+      }
+    },
     "myDay.emptyNever" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11165,6 +11233,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geen sessies"
+          }
+        }
+      }
+    },
+    "myDay.takenOverBy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taken over by %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overgenomen door %1$@"
           }
         }
       }
@@ -11607,6 +11692,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Je hebt nog geen toegang tot een werkruimte."
+          }
+        }
+      }
+    },
+    "noAccess.clientHint" : {
+      "comment" : "Line under the no-access text in Fivvi Pro (iOS, Android) that points a client who opened it by mistake to the Fivvi app (F030 AC9). Same words as noWorkspace.teamHint the other way round. The Dutch app name is 'de app Fivvi'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you a client? Use the Fivvi app."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ben je klant? Gebruik de app Fivvi."
           }
         }
       }
@@ -14729,6 +14832,23 @@
         }
       }
     },
+    "sessions.trainerDialog.doneSubstitute" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%3$@ is covering for %2$@ on %1$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%3$@ vervangt %2$@ op %1$@."
+          }
+        }
+      }
+    },
     "sessions.trainerDialog.errors.cancelled" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15038,6 +15158,40 @@
         }
       }
     },
+    "sessions.trainerDialog.notifySubstitute" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ een e-mail sturen"
+          }
+        }
+      }
+    },
+    "sessions.trainerDialog.regularTrainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (regular %2$@)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (vaste %2$@)"
+          }
+        }
+      }
+    },
     "sessions.trainerDialog.scopeFollowing" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15237,7 +15391,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vervang de %1$@"
+            "value" : "De %1$@ vervangen"
           }
         }
       }
@@ -19152,6 +19306,23 @@
         }
       }
     },
+    "workspaceCalendar.legendSubstitute" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "substitute"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vervanger"
+          }
+        }
+      }
+    },
     "workspaceCalendar.more" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19634,6 +19805,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ van %2$@ geboekt"
+          }
+        }
+      }
+    },
+    "workspaceCalendar.substituteLabel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ (covering for %1$@)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ (vervangt %1$@)"
           }
         }
       }

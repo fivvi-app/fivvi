@@ -79,7 +79,7 @@ struct PersonalRowView: View {
                     }
                 }
                 .insetRowLayout()
-                .opacity(row.isPast || row.isCancelled ? 0.55 : 1)
+                .opacity(row.isPast || row.isCancelled || row.isTakenOver ? 0.55 : 1)
             }
             .buttonStyle(.insetRow)
             .accessibilityElement(children: .ignore)
@@ -180,6 +180,7 @@ struct PersonalRowView: View {
                     secondary(workspace)
                 }
             }
+            if let substitution = row.substitutionText { substitutionLine(substitution) }
             if row.isCancelled { secondary(catalog[.todayCancelled]) }
         }
         .multilineTextAlignment(.leading)
@@ -193,6 +194,12 @@ struct PersonalRowView: View {
             .strikethrough(row.isCancelled)
             .foregroundStyle(Tokens.Colors.textPrimary)
         return LevelIcon.row(name: name, level: row.level, scale: barsScale)
+    }
+
+    /// *Je valt in voor Sarah* or *Overgenomen door Mike* (F024) as a plain secondary line, as the prototype's
+    /// *Groepsles (invallen)* shows; the taken-over row is dimmed as a whole.
+    private func substitutionLine(_ text: String) -> some View {
+        secondary(text)
     }
 
     private func secondary(_ text: String) -> some View {

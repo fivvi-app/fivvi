@@ -21,6 +21,7 @@ import app.fivvi.api.models.SessionGroupClass
 import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionSeries
 import app.fivvi.api.models.SessionTrainer
+import app.fivvi.api.models.SubstituteFor
 import app.fivvi.api.models.Trainer
 import app.fivvi.api.models.UpdateClassSeriesRequest
 import app.fivvi.api.models.UpdateGroupClassDateRequest
@@ -85,6 +86,8 @@ fun classDateOf(
     zone: String = "Europe/Amsterdam",
     series: SessionSeries? = null,
     level: ClassLevel? = null,
+    /** The trainer the date's trainer replaces (F024): the date is a substitution, `trainer` is the substitute. */
+    substituteFor: String? = null,
 ): Session {
     val begin = start.atZone(ZoneId.of(zone)).toOffsetDateTime()
     fun participant(index: Int, status: SessionParticipant.AttendanceStatus) =
@@ -105,6 +108,13 @@ fun classDateOf(
         groupClass = SessionGroupClass(groupClass.id, groupClass.nameNl, groupClass.nameEn),
         level = level,
         series = series,
+        substituteFor = substituteFor?.let {
+            SubstituteFor(
+                UUID.nameUUIDFromBytes("member:$it".toByteArray()),
+                UUID.nameUUIDFromBytes("profile:$it".toByteArray()),
+                it,
+            )
+        },
     )
 }
 

@@ -719,7 +719,7 @@ export interface paths {
         put?: never;
         /**
          * Assign or change the trainer of a session
-         * @description Gives a private session or a class date another trainer, or a class date without one its first (the Owner only: a Trainer gets `403`). For a class date `scope` is `this` (a date without a trainer; the date is marked as changed from its series) or `following` (the series’ regular trainer from this date on: dates with a change of their own keep it, earlier dates keep theirs, later dates the calendar fills get the new trainer); for a private session it is ignored. `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` (`session_changed`) with the session as it is now. A cancelled session answers `409` `session_cancelled`. The new trainer is checked for double booking (`409` `trainer_conflict` with the sessions, unless `allowConflicts` is `true`, PS-07). After the change is committed the clients with a booked place get EM-13, one email each listing their dates, unless `notifyClients` is `false` or the session has started. No other participant and no email address of the trainer is in it. A session or trainer that is not in the workspace answers `404`.
+         * @description Gives a private session or a class date another trainer, or a class date without one its first (the Owner only: a Trainer gets `403`). For a class date `scope` is `this` (a date without a trainer; the date is marked as changed from its series) or `following` (the series’ regular trainer from this date on: dates with a change of their own keep it, earlier dates keep theirs, later dates the calendar fills get the new trainer); for a private session it is ignored. On a class date that has a trainer, `this` is a substitution (F024): only that date gets the substitute, the date remembers whom they replace, and the substitute gets EM-10 after the commit unless `notifySubstitute` is `false` or the date has started (a past date is recorded without an email); the participants booked on the date get the trainer-change email (EM-13), when the date has not started, unless `notifyParticipants` is `false`, also when the substitution ends. `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` (`session_changed`) with the session as it is now. A cancelled session answers `409` `session_cancelled`. The new trainer is checked for double booking (`409` `trainer_conflict` with the sessions, unless `allowConflicts` is `true`, PS-07). After the change is committed the clients with a booked place get EM-13, one email each listing their dates, unless `notifyClients` is `false` or the session has started. No other participant and no email address of the trainer is in it. A session or trainer that is not in the workspace answers `404`.
          */
         post: operations["assignTrainer"];
         delete?: never;
@@ -1168,6 +1168,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/clients/{clientId}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export everything the workspace holds about one client
+         * @description Downloads a ZIP named `fivvi-{workspace-slug}-{client-id}-{date}.zip` (the Owner only; a Trainer gets `403`) with the client’s profile, her sessions and bookings with attendance, and, as later features add them, the rest of her records, all from this workspace only. `README.txt` in the Owner’s language (their stored language, else `Accept-Language`, else English) says what each file is and what the field names mean; `data.json` holds every record; each kind of record is also a CSV in UTF-8 with a byte order mark, so Excel opens it with the accents intact. The field names are English and stable. Every time is given in UTC and, next to it, in the workspace time zone (`…_local`). It is generated for this request and streamed: the server stores no file. It writes one entry in the access log. A client who is not in this workspace answers `404`.
+         */
+        get: operations["exportClient"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export everything the workspace holds
+         * @description Downloads a ZIP named `fivvi-{workspace-slug}-{date}.zip` (the Owner only; a Trainer gets `403`) with every record of the workspace that the privacy registry declares, for when the workspace leaves. `README.txt` in the Owner’s language (their stored language, else `Accept-Language`, else English) says what each file is and what the field names mean; `data.json` holds every record; each kind of record is also a CSV in UTF-8 with a byte order mark, so Excel opens it with the accents intact. The field names are English and stable. Every time is given in UTC and, next to it, in the workspace time zone (`…_local`). It is generated for this request and streamed: the server stores no file. It writes one entry in the access log.
+         */
+        get: operations["exportWorkspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/settings/invoice-details": {
         parameters: {
             query?: never;
@@ -1396,7 +1436,7 @@ export interface components {
              */
             teamMemberId: string;
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.private.cancel.own" | "session.private.cancel.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage" | "attendance.mark.own" | "attendance.mark.any")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.private.cancel.own" | "session.private.cancel.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "client.export" | "workspace.export" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage" | "attendance.mark.own" | "attendance.mark.any")[];
         };
         /**
          * @description The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
@@ -1439,7 +1479,7 @@ export interface components {
              */
             teamMemberId: string;
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.private.cancel.own" | "session.private.cancel.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage" | "attendance.mark.own" | "attendance.mark.any")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "session.private.cancel.own" | "session.private.cancel.any" | "session.assign" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read" | "client.export" | "workspace.export" | "invoices.manage" | "commerce.offers.manage" | "calendar.read" | "calendar.manage" | "attendance.mark.own" | "attendance.mark.any")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -1519,7 +1559,7 @@ export interface components {
             /** @description The session types the workspace runs, private sessions first: `private` always, `group` once it has a group class that is not archived. Open Gym is not listed (it comes later). */
             sessionTypes: ("private" | "group")[];
         };
-        /** @description A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s or a private session’s participants and is left out for Open Gym. */
+        /** @description A session the signed-in account is the current trainer of, in one of its workspaces, or a date a substitute took over from it (`takenOverBy`). `location` is where a private session takes place and is left out for the other kinds. `attendanceOpen` says it waits for attendance (F025); `attendance` counts the statuses of a class’s or a private session’s participants and is left out for Open Gym. */
         PersonalSession: {
             /**
              * Format: uuid
@@ -1561,6 +1601,8 @@ export interface components {
             clientName?: string;
             /** @description The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds. */
             clients?: components["schemas"]["PersonalSessionClient"][];
+            substituteFor?: components["schemas"]["SubstituteFor"];
+            takenOverBy?: components["schemas"]["TakenOverBy"];
             /** @description `true` when the session has ended, takes place and a participant is still *Geboekt*: the nudge *Aanwezigheid nog invullen* (F025, Q18). Left out otherwise, and for Open Gym. */
             attendanceOpen?: boolean;
             attendance?: components["schemas"]["AttendanceSummary"];
@@ -1620,6 +1662,26 @@ export interface components {
              */
             clientId: string;
             /** @description The client’s display name. */
+            name: string;
+        };
+        /** @description The trainer the account replaces on this date (F024): “Je valt in voor Sarah”. Left out when the date is no substitution, and for a date taken over (`takenOverBy`). */
+        SubstituteFor: {
+            /**
+             * Format: uuid
+             * @description The team-member ID of the trainer the date’s trainer replaces, as in `GET …/trainers` (`trainer.id` of the date before the substitution).
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The trainer profile of that trainer, what the date remembers.
+             */
+            trainerProfileId: string;
+            /** @description The account’s name; empty when it has none. */
+            name: string;
+        };
+        /** @description Who took the date over from the account (F024): “Overgenomen door Mike”. The date is listed, dimmed, without actions, and is not counted in `summary`, not *Straks*, not in the free gap, the route or the tomorrow line; it has no attendance fields. Left out for a date the account teaches. */
+        TakenOverBy: {
+            /** @description The substitute’s name; empty when the account has none. */
             name: string;
         };
         /** @description The counts behind “5 aanwezig · 1 niet verschenen · 1 open” (CO-05, CO-06). */
@@ -2105,6 +2167,7 @@ export interface components {
             version: number;
             location: components["schemas"]["Location"];
             trainer?: components["schemas"]["SessionTrainer"];
+            substituteFor?: components["schemas"]["SubstituteFor"] & unknown;
             cancellation?: components["schemas"]["SessionCancellation"];
             groupClass?: components["schemas"]["SessionGroupClass"];
             level?: components["schemas"]["ClassLevel"];
@@ -2384,6 +2447,14 @@ export interface components {
             /** @description The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`. */
             conflicts?: components["schemas"]["TrainerConflictItem"][];
         };
+        /** @description Why the substitution was refused; nothing was stored. Contains no user-facing text. */
+        SubstitutionRefused: {
+            /**
+             * @description `private_session`: a private session’s trainer is changed with *Trainer wijzigen* (`scope` left out), never substituted.
+             * @enum {string}
+             */
+            code: "private_session";
+        };
         /** @description The trainer a session or a class from a date on goes to. */
         AssignTrainerRequest: {
             /**
@@ -2392,7 +2463,7 @@ export interface components {
              */
             trainerId: string;
             /**
-             * @description For a class date: `this` (*Alleen deze les*, only a date that has no trainer; one that has one answers `400` on `scope` with the code `has_trainer`, until the substitution of F024) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session.
+             * @description For a class date: `this` (*Alleen deze les*: a date that has no trainer gets one; on a date that has one it is a substitution, F024: the chosen trainer replaces the date’s trainer on this date alone, the date remembers whom (`substituteFor`) and the series and the other dates stay; choosing the trainer the date’s trainer replaces ends the substitution) or `following` (*Deze en alle volgende lessen*: the trainer becomes the series’ regular trainer from this date, and dates with a change of their own keep theirs; a date outside a series answers `400` on `scope` with the code `not_in_series`, a date before today `date_in_past`). Left out it is `this`. Ignored for a private session, but a private session with `this` sent explicitly is a substitution that cannot be made: `422` `private_session` (its trainer is changed without a `scope`, *Trainer wijzigen*).
              * @enum {string}
              */
             scope?: "this" | "following";
@@ -2400,8 +2471,12 @@ export interface components {
             allowConflicts?: boolean;
             /** @description The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now. */
             version: number;
-            /** @description Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. */
+            /** @description Whether to email the clients with a booked place the new trainer (EM-13), each client one email listing their dates, in their email language, else the workspace’s default. Left out it is `true`. Never sent for a session that has started, whatever this says. Not sent for a substitution (F024): the substitute gets EM-10 (`notifySubstitute`) and the participants of the date the trainer-change email (`notifyParticipants`). */
             notifyClients?: boolean;
+            /** @description For a substitution (F024): whether to email the substitute EM-10, in their own language, else the workspace’s default, once per date and substitute. Left out it is `true`. Never sent when the substitution ends, for a date that has started (the substitution is recorded all the same, to say who taught) or for a date that is no substitution, whatever this says. */
+            notifySubstitute?: boolean;
+            /** @description For a substitution (F024, decision of 4 November 2026): whether to email the participants booked on the date the trainer-change email (EM-13) naming the trainer they now train with, each in their email language, else the workspace’s default, one email each. Left out it is `true`. It also applies when the substitution ends (the original trainer is chosen again). Independent of `notifySubstitute`. Never sent for a date that has started, whatever this says, and ignored for a date that is no substitution (`notifyClients` is for those). No other participant is named. */
+            notifyParticipants?: boolean;
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `trainer_assigned` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
@@ -2655,6 +2730,7 @@ export interface components {
             booked?: number;
             location: components["schemas"]["Location"];
             trainer?: components["schemas"]["SessionTrainer"] & unknown;
+            substituteFor?: components["schemas"]["SubstituteFor"] & unknown;
             /** @description The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session. */
             className?: string;
             level?: components["schemas"]["ClassLevel"];
@@ -6214,6 +6290,15 @@ export interface operations {
                     "application/json": components["schemas"]["AssignTrainerRefusal"];
                 };
             };
+            /** @description A private session cannot be substituted (`scope` `this` sent for it). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubstitutionRefused"];
+                };
+            };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
             500: {
                 headers: {
@@ -8217,6 +8302,154 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccessLogList"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    exportClient: {
+        parameters: {
+            query?: {
+                /** @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `data_exported` event with this platform; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */
+                surface?: "ios" | "android";
+            };
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The client ID. */
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The ZIP. */
+            200: {
+                headers: {
+                    /** @description An attachment named as the ZIP: `fivvi-{workspace-slug}-…-{date}.zip`. */
+                    "content-disposition": string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": string;
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    exportWorkspace: {
+        parameters: {
+            query?: {
+                /** @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `data_exported` event with this platform; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */
+                surface?: "ios" | "android";
+            };
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The ZIP. */
+            200: {
+                headers: {
+                    /** @description An attachment named as the ZIP: `fivvi-{workspace-slug}-…-{date}.zip`. */
+                    "content-disposition": string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": string;
                 };
             };
             /** @description The request did not match the contract. */

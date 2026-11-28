@@ -290,6 +290,11 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     DeletionLogEntryRecord: 'type of the deletion-log repository (E014)',
     EXERCISE_KEY_PATTERN: 'the pattern an exercise key matches, a regular expression (F039)',
     EXERCISE_TYPES: 'the four exercise types of the library, a list of names (F039)',
+    EXPORT_BATCH_SIZE: 'constant of the data-export repository: how many rows a batch reads (E014)',
+    ExportClientLink: 'type of the data-export repository (E014)',
+    ExportColumnInfo: 'type of the data-export repository (E014)',
+    ExportRequest: 'type of the data-export repository (E014)',
+    ExportRow: 'type of the data-export repository (E014)',
     GroupClassChanges: 'type of the group-class repository (F021)',
     GroupClassView: 'type of the group-class repository (F021)',
     HELLO_GREETING: 'a constant of the system data',
@@ -371,6 +376,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     SessionReschedule: 'type of the session repository (F020)',
     SessionSeriesView: 'type of the session repository (F022)',
     SessionStatus: 'type of the session repository (F020)',
+    SessionSubstituteForView: 'type of the session repository (F024)',
     SessionTrainerAssignment: 'type of the session repository (F023)',
     SessionTrainerView: 'type of the session repository (F020)',
     SessionType: 'type of the session repository (F020)',
@@ -410,6 +416,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     consumeRateLimit:
       'query of the rate limits, which have no tenant; takes the executor it is given',
+    countExportRows:
+      'repository of the data export, takes the workspace scope; the tables and columns come from the privacy registry (E014)',
     countInvitationsSince:
       'repository of the trainer invitations, takes the workspace scope (F011)',
     createClassDate: 'repository of the group classes, takes the workspace scope (F021)',
@@ -429,6 +437,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     deletionLogStore:
       'the deletion log over a workspace scope, as the domain’s DeletionLogStore port (E014); the database lets the scope insert entries for its own workspace and nothing else',
     ensureStandingBookingLinks: 'repository of booking links, takes the workspace scope (F037)',
+    exportColumns:
+      'repository of the data export, takes the workspace scope; the tables and columns come from the privacy registry (E014)',
     findAccountForInvitation:
       'repository of accounts, takes a scope; reads the address and whether it is verified (F011)',
     findAccountIdByEmail: 'repository of accounts, takes a scope; reads an account ID only (F006)',
@@ -470,6 +480,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     findTrainer: 'repository of the trainer profiles, takes the workspace scope (F020)',
     findTrainerProfileId:
       'repository of the trainer profiles, takes the workspace scope; answers an ID (F023)',
+    findTrainerRecipient:
+      'repository of the trainer profiles, takes the workspace scope; reads the address and language of EM-10 (F024)',
     findWorkspace: 'repository of workspaces, takes the workspace scope (F002)',
     getOrCreateBookingLink: 'repository of booking links, takes the workspace scope (F037)',
     hasMySession:
@@ -546,6 +558,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     payoutLedger:
       'the payout ledger over a function that opens a workspace scope (F061); every call goes through the scope, no connection of its own',
     pingDatabase: 'runs SELECT 1 on the executor it is given; reads no data',
+    readExportRows:
+      'repository of the data export, takes the workspace scope; the tables and columns come from the privacy registry (E014)',
     recordChargeback: 'repository of the refunds and reversals, takes the workspace scope (F060)',
     recordParticipantStatusChange: 'repository of attendance, takes the workspace scope (F025)',
     recordPayoutStatusChange: 'repository of the payouts, takes the workspace scope (F061)',

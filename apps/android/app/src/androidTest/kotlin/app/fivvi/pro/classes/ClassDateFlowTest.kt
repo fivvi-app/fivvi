@@ -45,9 +45,14 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     private val classes = FakeGroupClassesApi(sessions)
     private val mobility = groupClassOf("Mobility", trainer = sarah)
 
-    private fun show(capabilities: List<MeWorkspace.Capabilities>, role: MeWorkspace.Role, level: ClassLevel? = null) {
+    private fun show(
+        capabilities: List<MeWorkspace.Capabilities>,
+        role: MeWorkspace.Role,
+        level: ClassLevel? = null,
+        substituteFor: String? = null,
+    ) {
         classes.classes[mobility.id] = mobility
-        val date = classDateOf(UUID.randomUUID(), mobility, sarah, level = level)
+        val date = classDateOf(UUID.randomUUID(), mobility, sarah, level = level, substituteFor = substituteFor)
         sessions.sessions[date.id] = date
         val apis =
             ClassApis(
@@ -105,6 +110,24 @@ class ClassDateFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.onNodeWithTag(ClassDateTags.MENU).assertIsDisplayed()
         // The note is the last thing of the screen, below *Aanwezigheid invullen* (F025).
         compose.onNodeWithTag(ClassDateTags.OWNER_NOTE).performScrollTo().assertIsDisplayed()
+    }
+
+    // F024 AC4: the covering Trainer (no class.manage) reads the banner and Jij, and has no menu; nothing in the flow lets her
+    // substitute.
+    @Test
+    fun test_F024_AC4_aCoveringTrainerReadsTheBannerAndHasNoMenuInTheFlow() {
+        show(
+            listOf(MeWorkspace.Capabilities.CLASS_PERIOD_READ, MeWorkspace.Capabilities.TRAINERS_PERIOD_VIEW),
+            MeWorkspace.Role.TRAINER,
+            substituteFor = "Sarah Visser",
+        )
+
+        compose.onNodeWithTag(ClassDateTags.SUBSTITUTION).assertIsDisplayed()
+        compose.onNodeWithTag(ClassDateTags.TRAINER).assertTextEquals(
+            if (language == AppLanguage.DUTCH) "Jij" else "You",
+        )
+        compose.onNodeWithTag(ClassDateTags.MENU).assertDoesNotExist()
+        compose.onNodeWithTag(ClassDateTags.SUBSTITUTE).assertDoesNotExist()
     }
 
     // F067 AC8: through the flow, a Trainer reads the same level as the Owner and has nothing that changes it.

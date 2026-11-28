@@ -29,6 +29,7 @@ import app.fivvi.api.models.Location
 import app.fivvi.api.models.PersonalSessionClient
 import app.fivvi.api.models.SessionSeries
 import app.fivvi.api.models.SessionTrainer
+import app.fivvi.api.models.SubstituteFor
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -48,6 +49,7 @@ import kotlinx.serialization.Contextual
  * @param location 
  * @param booked The places taken (not cancelled), for a class date: *{booked}/{capacity} geboekt*. Left out for a private session.
  * @param trainer Left out for *Trainer nodig*: a class date or a private session with no trainer.
+ * @param substituteFor The trainer this date’s trainer replaces (F024): “⇄ Mike (vervangt Sarah)”. Left out for a date that is no substitution; `trainer` is the substitute.
  * @param className The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session.
  * @param level 
  * @param clientName The client’s display name, for a private session; left out for the other kinds. It holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `; `clients` has them apart.
@@ -102,6 +104,10 @@ data class WorkspaceCalendarSession (
     /* Left out for *Trainer nodig*: a class date or a private session with no trainer. */
     @SerialName(value = "trainer")
     val trainer: SessionTrainer? = null,
+
+    /* The trainer this date’s trainer replaces (F024): “⇄ Mike (vervangt Sarah)”. Left out for a date that is no substitution; `trainer` is the substitute. */
+    @SerialName(value = "substituteFor")
+    val substituteFor: SubstituteFor? = null,
 
     /* The class name in the viewer’s language, for a class date: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session. */
     @SerialName(value = "className")

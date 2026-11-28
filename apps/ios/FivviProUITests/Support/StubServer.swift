@@ -184,6 +184,19 @@ final class StubServer: Sendable {
         set { responder.personalRoutes.day = newValue }
     }
 
+    /// The substitution on the class "Kracht" in My day and My sessions (F024): Mike covers it for Sarah, or took it over.
+    var personalSubstitution: StubPersonalRoutes.Substitution? {
+        get { responder.personalRoutes.substitution }
+        set { responder.personalRoutes.substitution = newValue }
+    }
+
+    /// The seeded class date (*Kracht*) has a trainer, and covers for another when `substituteFor` is given (F024).
+    func giveSeededClassDateATrainer(
+        id: String, name: String, substituteFor: String? = nil
+    ) {
+        responder.sessionRoutes.giveSeededClassDateATrainer(id: id, name: name, substituteFor: substituteFor)
+    }
+
     /// The level of the class "Kracht" in My day and My sessions (F067): `all_levels`, `beginner`, `intermediate` or
     /// `advanced`; nil is *Geen*.
     var personalClassLevel: String? {

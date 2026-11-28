@@ -33,13 +33,21 @@ enum PersonalFixtures {
     static func session(
         _ id: String, _ workspace: Components.Schemas.PersonalWorkspace, from start: String, to end: String,
         client: String? = nil, className: String? = nil, booked: Int? = nil, capacity: Int = 1, cancelled: Bool = false,
-        place name: String? = nil, day: String = PersonalFixtures.day, level: Components.Schemas.ClassLevel? = nil
+        place name: String? = nil, day: String = PersonalFixtures.day, level: Components.Schemas.ClassLevel? = nil,
+        attendanceOpen: Bool? = nil, substituteFor: String? = nil, takenOverBy: String? = nil
     ) -> PersonalItem {
         PersonalItem(
             sessionId: id, workspace: workspace, _type: className == nil ? ._private : .group,
             status: cancelled ? .cancelled : .scheduled, startsAt: at(start, day), endsAt: at(end, day),
             timeZone: "Europe/Amsterdam", capacity: capacity, booked: booked, className: className, level: level,
-            location: name.map { place($0) }, clientName: client
+            location: name.map { place($0) }, clientName: client,
+            substituteFor: substituteFor.map {
+                .init(
+                    id: "5b1c2d3e-0000-4000-8000-0000000000b1",
+                    trainerProfileId: "6e1c2d3e-0000-4000-8000-0000000000b1", name: $0
+                )
+            },
+            takenOverBy: takenOverBy.map { .init(name: $0) }, attendanceOpen: attendanceOpen
         )
     }
 

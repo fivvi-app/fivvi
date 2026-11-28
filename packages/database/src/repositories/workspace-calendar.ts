@@ -1,4 +1,5 @@
 import { and, asc, eq, gte, lt, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import {
   authUsers,
   classSeries,
@@ -11,7 +12,7 @@ import {
 import { executorOf, type WorkspaceScope } from '../tenant-scope.ts';
 import { type LocationView, locationColumns, toLocationView } from './locations.ts';
 import { listSessionPlaces, type PersonalSessionRow, placesShown } from './personal-sessions.ts';
-import type { SessionLevel, SessionSeriesView } from './sessions.ts';
+import type { SessionLevel, SessionSeriesView, SessionSubstituteForView } from './sessions.ts';
 
 // The workspace calendar's read model (F014, spec #458): every session of ONE workspace in a
 // window of time, whoever its trainer is. No new tables. The query is about the scope's workspace
@@ -37,6 +38,8 @@ export interface WorkspaceCalendarRow {
   readonly location: LocationView;
   /** The trainer: the team-member ID (what the API calls a trainer) and the account's name; `null` for *Trainer nodig*. */
   readonly trainer: { readonly id: string; readonly name: string } | null;
+  /** The trainer this date's trainer replaces (F024); `null` when the date is no substitution. */
+  readonly substituteFor: SessionSubstituteForView | null;
   readonly clients: PersonalSessionRow['clients'];
   readonly clientName: string | null;
   /** The status of every place, cancelled ones included, in the order they were added (F025). */
@@ -61,6 +64,10 @@ export async function listWorkspaceCalendar(
   scope: WorkspaceScope,
   window: { readonly from: Date; readonly to?: Date; readonly groupClassId?: string },
 ): Promise<WorkspaceCalendarRow[]> {
+  // The trainer a substitution replaces: the same joins as the trainer's, on the second profile.
+  const original = alias(trainerProfiles, 'substituted_profile');
+  const originalMember = alias(teamMembers, 'substituted_member');
+  const originalAccount = alias(authUsers, 'substituted_account');
   const rows = await executorOf(scope)
     .select({
       id: sessions.id,
@@ -77,6 +84,13 @@ export async function listWorkspaceCalendar(
         string | null
       >`coalesce(${teamMembers.id}, ${trainerProfiles.removedTeamMemberId})`,
       trainerName: sql<string | null>`coalesce(${authUsers.name}, ${trainerProfiles.removedName})`,
+      substituteForProfileId: sessions.substituteForTrainerProfileId,
+      substituteForId: sql<
+        string | null
+      >`coalesce(${originalMember.id}, ${original.removedTeamMemberId})`,
+      substituteForName: sql<
+        string | null
+      >`coalesce(${originalAccount.name}, ${original.removedName})`,
       groupClassId: sessions.groupClassId,
       classNameNl: groupClasses.nameNl,
       classNameEn: groupClasses.nameEn,
@@ -109,6 +123,21 @@ export async function listWorkspaceCalendar(
       ),
     )
     .leftJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+    .leftJoin(
+      original,
+      and(
+        eq(original.organizationId, sessions.organizationId),
+        eq(original.id, sessions.substituteForTrainerProfileId),
+      ),
+    )
+    .leftJoin(
+      originalMember,
+      and(
+        eq(originalMember.organizationId, original.organizationId),
+        eq(originalMember.id, original.teamMemberId),
+      ),
+    )
+    .leftJoin(originalAccount, eq(originalAccount.id, originalMember.accountId))
     .leftJoin(
       groupClasses,
       and(
@@ -148,6 +177,14 @@ export async function listWorkspaceCalendar(
     version: row.version,
     location: toLocationView(row.location),
     trainer: row.trainerId ? { id: row.trainerId, name: row.trainerName ?? '' } : null,
+    substituteFor:
+      row.substituteForProfileId && row.substituteForId
+        ? {
+            id: row.substituteForId,
+            trainerProfileId: row.substituteForProfileId,
+            name: row.substituteForName ?? '',
+          }
+        : null,
     groupClassId: row.groupClassId,
     classNameNl: row.classNameNl,
     classNameEn: row.classNameEn,

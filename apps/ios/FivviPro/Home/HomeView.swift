@@ -67,13 +67,14 @@ struct HomeView: View {
         api: any APIProtocol, store: any SessionStore, language: AppLanguage, connectivity: Connectivity,
         welcomeURL: URL, onAccount: @escaping (String) -> Void,
         onSignedOut: @escaping (Bool) -> Void,
-        personal: any PersonalStore = FilePersonalStore.shared,
-        attendanceStore: any PersonalStore = FilePersonalStore.attendance
+        files: PhoneFiles = .live
     ) {
-        let queue = AttendanceQueue(api: api, store: attendanceStore, isOnline: { connectivity.isOnline })
+        let personal = files.personal
+        let queue = AttendanceQueue(api: api, store: files.attendance, session: store) { connectivity.isOnline }
         _attendance = State(initialValue: queue)
+        // The queue follows the account and the sign-out the person chose (#1618, `AccountViewModel+Attendance`).
         let account = AccountViewModel(
-            api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
+            api: api, store: store, queue: queue, onAccount: onAccount, onSignedOut: onSignedOut,
             onPreferredLocale: { language.startRead() }, workspaces: .persistent()
         )
         _today = State(initialValue: TodayViewModel(
@@ -206,17 +207,7 @@ struct HomeView: View {
                 }
             }
         case .noAccess:
-            Card {
-                VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
-                    Text(catalog[.noAccessTitle])
-                        .font(.system(Tokens.TextStyle.title2, weight: .semibold))
-                        .foregroundStyle(Tokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-                        .accessibilityIdentifier("home.noAccessTitle")
-                    message(catalog[.noAccessBody], id: "home.noAccess")
-                }
-            }
+            noAccessCard
         case .workspace, nil:
             EmptyView()
         }
@@ -350,6 +341,24 @@ extension HomeView {
 
 /// Small text pieces of the home, kept apart so the screen's own body stays short.
 extension HomeView {
+    /// The no-access state: the title, the text and, for a client who opened Fivvi Pro by mistake, the line that points
+    /// to the Fivvi app (F030 AC9).
+    fileprivate var noAccessCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
+                Text(catalog[.noAccessTitle])
+                    .font(.system(Tokens.TextStyle.title2, weight: .semibold))
+                    .foregroundStyle(Tokens.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("home.noAccessTitle")
+                message(catalog[.noAccessBody], id: "home.noAccess")
+                message(catalog[.noAccessClientHint], id: "home.noAccessClientHint")
+                    .padding(.top, Tokens.Spacing.space2)
+            }
+        }
+    }
+
     fileprivate func message(_ text: String, id: String) -> some View {
         Text(text)
             .font(.system(Tokens.TextStyle.body))

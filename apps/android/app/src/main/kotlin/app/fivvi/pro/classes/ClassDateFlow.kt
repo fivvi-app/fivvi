@@ -88,6 +88,7 @@ fun ClassDateFlow(
             onRetry = model::retry,
             onToggleDescription = model::toggleDescription,
             onEdit = model::editTapped,
+            onSubstitute = model::substituteTapped,
             onCancel = model::askToCancel,
             onConfirmCancel = model::confirmCancel,
             onDismissCancel = model::dismissCancel,

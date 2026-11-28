@@ -92,7 +92,7 @@ describe('F014 AC12: the quick view of a block', () => {
       move: false,
       change: true,
       clientProfile: false,
-      assign: null,
+      assign: 'substitute',
       cancel: false,
       cancelClass: true,
       copyLink: true,
@@ -117,9 +117,9 @@ describe('F023 the quick view offers the trainer dialog', () => {
     expect(quickViewActions(group(undefined), owner).assign).toBe('assign');
   });
 
-  it('AC2: a class date of a series that has a trainer has Trainer vervangen; a one-off one has neither', () => {
+  it('AC2: a class date that has a trainer has Trainer vervangen, in a series and (F024 AC1) one-off', () => {
     expect(quickViewActions(group('m-sarah', { series }), owner).assign).toBe('substitute');
-    expect(quickViewActions(group('m-sarah'), owner).assign).toBeNull();
+    expect(quickViewActions(group('m-sarah'), owner).assign).toBe('substitute');
   });
 
   it('AC8: a private session has Trainer wijzigen, with or without a trainer', () => {

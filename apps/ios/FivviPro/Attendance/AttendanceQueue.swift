@@ -37,6 +37,11 @@ struct AttendanceQueueEntry: Codable, Equatable, Identifiable, Sendable {
     let workspaceID: String
     let sessionID: String
     let action: Action
+    /// The sign-in the tap was made in (a digest of its token, never the token): a sign-in that ended with a rejected token
+    /// leaves its taps on the phone, and only the same account may send them (#1618). Nil in a file an older app wrote.
+    var signIn: String?
+    /// The account that tapped: nil while `GET /api/v1/me` had not answered in that sign-in.
+    var account: String?
 
     var clientIDs: [String] {
         switch action {
@@ -48,9 +53,17 @@ struct AttendanceQueueEntry: Codable, Equatable, Identifiable, Sendable {
 
 /// F025's offline queue: every attendance tap of the app is a request in a list on the phone, sent in order, with a
 /// client request ID of its own (a request sent twice stores one change). The list survives app restarts (a file with
-/// complete file protection, cleared at sign-out) and is sent when the phone is online. A tap the API refuses on its way
-/// (the class was cancelled meanwhile) leaves the list with the reason, so the screens revert that row and word it.
+/// complete file protection, cleared by the sign-out the person chose) and is sent when the phone is online. A tap the
+/// API refuses on its way (the class was cancelled meanwhile) leaves the list with the reason, so the screens revert
+/// that row and word it.
 /// *Iedereen aanwezig* is one request of its own, in order with the taps around it (owner, 9 November 2026).
+///
+/// What waits belongs to a sign-in and an account (#1618). The sign-out the person chose (after the warning) empties the
+/// queue for good (`clear()`, the moment that sign-out starts), and a send that is still running neither sends on nor
+/// writes anything back. A token the
+/// API rejected ends the sign-in without that warning, so the taps stay on the phone: they are sent when the same account
+/// signs in again (`learn(account:)`), never under another account. Taps of another account are dropped then; taps whose
+/// account was never known are not sent either, and the rows they changed say so (`Reason.other`).
 @MainActor
 @Observable
 final class AttendanceQueue {
@@ -78,7 +91,11 @@ final class AttendanceQueue {
         case retry
     }
 
+    /// What waits for the sign-in that is open.
     private(set) var entries: [Entry]
+    /// What an earlier sign-in left and no account has claimed yet: out of sight (not in the sign-out warning), never
+    /// sent, kept in the file.
+    private var held: [Entry]
     /// The last answer of the API to a request of each session since its screen read it: what the screens show under
     /// the requests still waiting.
     private(set) var answers: [String: Attendance] = [:]
@@ -95,25 +112,60 @@ final class AttendanceQueue {
     private let isOnline: @MainActor () -> Bool
     private let makeID: @MainActor () -> String
     private let retryAfter: Duration?
+    private let signIn: @MainActor () -> String?
+    /// The sign-in this queue was made for; once the token is another one, or gone, the queue neither sends nor writes.
+    private let ownSignIn: String?
+    /// The account of this sign-in, once `GET /api/v1/me` answered (in this launch or an earlier one of the same sign-in).
+    private var account: String?
+    /// The account of every sign-in with taps on the phone, kept in a file next to the queue: a launch of the same sign-in
+    /// that starts offline still knows whose taps it takes.
+    private var accounts: [String: String]
+    private var isClosed = false
     private var running: Task<Void, Never>?
     private var retry: Task<Void, Never>?
 
     private static let file = "attendance-queue.json"
+    private static let accountsFile = "attendance-accounts.json"
 
     /// `retryAfter`: how long after a failed attempt the queue tries again by itself; nil leaves it to the next tap, the
-    /// foreground and a change of the network.
+    /// foreground and a change of the network. `signIn` names the sign-in that is open now (`SignInFingerprint`).
     init(
         api: any APIProtocol, store: any PersonalStore, isOnline: @escaping @MainActor () -> Bool = { true },
         makeID: @escaping @MainActor () -> String = { UUID().uuidString.lowercased() },
-        retryAfter: Duration? = .seconds(5)
+        retryAfter: Duration? = .seconds(5), signIn: @escaping @MainActor () -> String? = { "sign-in" }
     ) {
         self.api = api
         self.store = store
         self.isOnline = isOnline
         self.makeID = makeID
         self.retryAfter = retryAfter
-        entries = store.read(Self.file).flatMap { try? JSONDecoder().decode([Entry].self, from: $0) } ?? []
+        self.signIn = signIn
+        let own = signIn()
+        ownSignIn = own
+        var kept = store.read(Self.file).flatMap { try? JSONDecoder().decode([Entry].self, from: $0) } ?? []
+        var known = store.read(Self.accountsFile).flatMap { try? JSONDecoder().decode([String: String].self, from: $0) }
+            ?? [:]
+        // A tap of a sign-in whose account is known (from the file, or from another tap of that sign-in) is that account's.
+        for entry in kept {
+            if let signIn = entry.signIn, let account = entry.account, known[signIn] == nil { known[signIn] = account }
+        }
+        kept = kept.map { entry in
+            var entry = entry
+            if entry.account == nil, let signIn = entry.signIn ?? own { entry.account = known[signIn] }
+            return entry
+        }
+        accounts = known
+        account = own.flatMap { known[$0] }
+        // A file an older app wrote was emptied at every sign-out, so its taps are those of the sign-in that is open.
+        entries = kept.filter { $0.signIn == nil || $0.signIn == own }.map { entry in
+            var entry = entry
+            entry.signIn = own
+            return entry
+        }
+        held = kept.filter { $0.signIn != nil && $0.signIn != own }
     }
+
+    private var isCurrent: Bool { !isClosed && ownSignIn != nil && signIn() == ownSignIn }
 
     // MARK: What the screens ask
 
@@ -138,7 +190,10 @@ final class AttendanceQueue {
     // MARK: Queueing
 
     func enqueue(workspaceID: String, sessionID: String, _ action: Entry.Action) {
-        let entry = Entry(id: makeID(), workspaceID: workspaceID, sessionID: sessionID, action: action)
+        let entry = Entry(
+            id: makeID(), workspaceID: workspaceID, sessionID: sessionID, action: action, signIn: ownSignIn,
+            account: account
+        )
         dismissRejections(sessionID: sessionID, clientIDs: entry.clientIDs)
         entries.append(entry)
         save()
@@ -157,9 +212,22 @@ final class AttendanceQueue {
     private func run() async {
         defer { running = nil }
         retry?.cancel()
-        while let entry = entries.first {
+        while isCurrent {
             guard isOnline() else { return }
-            switch await send(entry) {
+            if !held.isEmpty {
+                // Taps of an earlier sign-in go first and only for their own account: ask whose phone this is now.
+                guard await resolveHeld() else {
+                    isStalled = true
+                    scheduleRetry()
+                    return
+                }
+                continue
+            }
+            guard let entry = entries.first else { return }
+            let outcome = await send(entry)
+            // The person signed out (or the token went) while the request was out: nothing is written, nothing goes on.
+            guard isCurrent else { return }
+            switch outcome {
             case let .sent(answer):
                 answers[entry.sessionID] = answer
                 settled[entry.sessionID] = answer.summary.open
@@ -179,10 +247,51 @@ final class AttendanceQueue {
         }
     }
 
-    /// The sign-out: what waits is lost (the screens warned first).
+    private func resolveHeld() async -> Bool {
+        guard let profile = try? await api.getMe().ok.body.json, isCurrent else { return false }
+        learn(account: profile.id)
+        return true
+    }
+
+    /// `GET /api/v1/me` named the account of this sign-in. Taps of this sign-in that had no account are its account's.
+    /// What an earlier sign-in left goes on only for that same account (before this sign-in's taps, in order); another
+    /// account's taps are dropped, and taps of an earlier sign-in whose account was never known are not sent: the rows
+    /// they changed show the generic message instead of the taps vanishing.
+    func learn(account id: String) {
+        guard isCurrent, let ownSignIn else { return }
+        account = id
+        accounts[ownSignIn] = id
+        entries = entries.map { entry in
+            var entry = entry
+            entry.account = entry.account ?? id
+            return entry
+        }
+        if !held.isEmpty {
+            let ours = held.filter { $0.account == id }.map { entry -> Entry in
+                var entry = entry
+                entry.signIn = ownSignIn
+                return entry
+            }
+            for entry in held where entry.account == nil {
+                rejections.append(Rejection(
+                    id: entry.id, sessionID: entry.sessionID, clientIDs: entry.clientIDs, reason: .other
+                ))
+            }
+            held = []
+            entries = ours + entries
+            revision += 1
+        }
+        save()
+        if !entries.isEmpty { Task { await flush() } }
+    }
+
+    /// The sign-out the person chose, after the warning: what waits is lost, in memory and on disk, and a send that is
+    /// still running writes nothing back. A rejected token does not come here: its taps stay for the same account.
     func clear() {
+        isClosed = true
         retry?.cancel()
         entries = []
+        held = []
         answers = [:]
         settled = [:]
         rejections = []
@@ -197,7 +306,12 @@ final class AttendanceQueue {
     }
 
     private func save() {
-        if let data = try? JSONEncoder().encode(entries) { store.write(data, as: Self.file) }
+        guard isCurrent else { return }
+        if let data = try? JSONEncoder().encode(held + entries) { store.write(data, as: Self.file) }
+        // Only the sign-ins that still have taps (and this one) keep an account in the file.
+        let signIns = Set((held + entries).compactMap(\.signIn) + [ownSignIn].compactMap { $0 })
+        let kept = accounts.filter { signIns.contains($0.key) }
+        if let data = try? JSONEncoder().encode(kept) { store.write(data, as: Self.accountsFile) }
     }
 
     private func scheduleRetry() {

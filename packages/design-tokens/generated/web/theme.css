@@ -27,6 +27,7 @@
   --color-accent-fill: var(--accent-fill);
   --color-accent-on: var(--accent-on);
   --color-accent-text: var(--accent-text);
+  --color-accent-tint: var(--accent-tint);
   --color-accent-gradient-top: var(--accent-gradient-top);
   --color-accent-gradient-bottom: var(--accent-gradient-bottom);
   --color-action-danger-bg: var(--action-danger-bg);

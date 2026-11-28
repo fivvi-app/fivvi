@@ -39,6 +39,18 @@ sealed interface PersonalPill {
 }
 
 /**
+ * What a substitution (F024) adds to a row, as the API sends the names: *Je valt in voor Sarah* on the substitute's row,
+ * *Overgenomen door Mike* on the replaced trainer's. The words around the name are the string catalog's.
+ */
+sealed interface PersonalSubstitution {
+    val name: String
+
+    data class CoveringFor(override val name: String) : PersonalSubstitution
+
+    data class TakenOverBy(override val name: String) : PersonalSubstitution
+}
+
+/**
  * A line of Vandaag (TD-01), and later of Agenda (TD-04): one item of the personal scope, written down in Dutch time. Nothing
  * here decides anything: what the API sent is kept, and what only fits when the person has more than one kind (the API says so) or team
  * ([namesKind], [showsWorkspace]) is switched on only then (F013 AC2, the design of `DECISIONS.md` §3). The texts around
@@ -81,6 +93,13 @@ data class PersonalRow(
      * CO-05 (TD-02 for a duo), where each participant is filled in.
      */
     val attendanceLine: Boolean = false,
+    /**
+     * The date was taken over by a substitute (F024): the row stays, dimmed, without actions, and is not counted. True even
+     * when the API has no name for the substitute ([substitution] is then `null`).
+     */
+    val isTakenOver: Boolean = false,
+    /** *Je valt in voor Sarah* or *Overgenomen door Mike*; `null` for a date without a substitution or without a name for it. */
+    val substitution: PersonalSubstitution? = null,
 )
 
 /** The level a list shows as bars after the class name: only a class has one, and *Alle niveaus* shows none (F067). */
@@ -130,8 +149,15 @@ class PersonalRows(
             isCancelled = item.status == PersonalSession.Status.CANCELLED,
             isPast = !item.endsAt.toInstant().isAfter(now),
             level = listLevel(isGroup, item.level),
+            isTakenOver = item.takenOverBy != null,
+            substitution = substitutionOf(item),
         )
     }
+
+    // The name the API sends for a substitution; an account without a name says none.
+    private fun substitutionOf(item: PersonalSession): PersonalSubstitution? =
+        item.takenOverBy?.name?.takeIf { it.isNotEmpty() }?.let { PersonalSubstitution.TakenOverBy(it) }
+            ?: item.substituteFor?.name?.takeIf { it.isNotEmpty() }?.let { PersonalSubstitution.CoveringFor(it) }
 
     companion object {
         /** Everything the personal scope shows is in Dutch time (F013 AC14). */

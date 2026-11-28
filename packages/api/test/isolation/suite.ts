@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Place } from '@fivvi/database';
 import { sql } from 'drizzle-orm';
+import { unzipSync } from 'fflate';
 import { buildOpenApiDocument } from '../../src/index.ts';
 import { type Actor, type Scenario, seedActors } from './actors.ts';
 import { type ContractDocument, describeOperations } from './coverage.ts';
@@ -17,6 +18,7 @@ import {
   type RowGroup,
   splitAddedGroups,
   type TokenOwner,
+  withoutNewLogEntries,
   type XAccess,
 } from './expectations.ts';
 import { adminPool, type World } from './harness.ts';
@@ -47,7 +49,7 @@ export interface SuiteResult {
   operations: string[];
 }
 
-interface StoredRow {
+export interface StoredRow {
   table: string;
   workspaceId: string;
   row: Record<string, unknown>;
@@ -71,7 +73,7 @@ function clientOf(table: string, row: Record<string, unknown>): string | undefin
  * connection, not once per call. Planned again each time it took about three times as long as
  * running it, and a planner waiting for a CPU is what a busy machine slows most (#678).
  */
-async function readRows(world: World, tables: readonly string[]): Promise<StoredRow[]> {
+export async function readRows(world: World, tables: readonly string[]): Promise<StoredRow[]> {
   if (tables.length === 0) return [];
   // The names come from the catalog, not from a request; quoted all the same.
   const text = tables
@@ -93,8 +95,21 @@ async function readRows(world: World, tables: readonly string[]): Promise<Stored
   }));
 }
 
+/**
+ * What a response says, as text: a ZIP (the data export, E014) is unpacked, so the ids and markers
+ * in its files are looked for as they are in any other answer.
+ */
+async function textOf(response: Response): Promise<string> {
+  if (response.headers.get('content-type') !== 'application/zip') return response.text();
+  const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
+  const decoder = new TextDecoder();
+  return Object.entries(files)
+    .map(([name, data]) => `${name}\n${decoder.decode(data)}`)
+    .join('\n');
+}
+
 /** `organizations` and every table in `public` with an `organization_id`, including probe tables. */
-async function businessTables(world: World): Promise<string[]> {
+export async function businessTables(world: World): Promise<string[]> {
   const { rows } = await world.admin.db.execute(
     sql`select distinct table_name from information_schema.columns
         where table_schema = 'public' and column_name = 'organization_id'`,
@@ -106,7 +121,7 @@ async function businessTables(world: World): Promise<string[]> {
  * Whose a token is. One owner, except for the tokens of an account that has a place in several
  * workspaces (Sam): its id appears in the rows of each, and each is an owner of it.
  */
-type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
+export type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
 
 /**
  * The ids and markers of every record of every workspace, and whose they are: a row's uuids,
@@ -116,7 +131,7 @@ type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
  * account id appears. A record shared by two workspaces is an error in the scenario; only an
  * account may appear in several.
  */
-function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
+export function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
   const ledger: Ledger = new Map();
   const accountIds = new Set(scenario.accounts.map((account) => account.id));
   const claim = (
@@ -464,7 +479,6 @@ export async function runIsolationSuite(
       // The rows after the last call (or the seeds) are the rows before this one: nothing but
       // JavaScript ran in between, so they are read again only when a seed changed them.
       const beforeState = stored ?? (await readStored());
-      const before = beforeState.snaps;
       const ledger = ledgerOf(beforeState);
       const requestBody =
         typeof isolationCase.body === 'function' ? isolationCase.body(values) : isolationCase.body;
@@ -473,12 +487,19 @@ export async function runIsolationSuite(
         ...(isolationCase.query ? { query: isolationCase.query } : {}),
         ...(requestBody !== undefined ? { body: requestBody } : {}),
       });
-      const text = await response.text();
+      const text = await textOf(response);
       const afterState = await readStored();
       // A call that changed nothing leaves the ledger as it was: no need to build it again.
-      if (sameSnapshots(before, afterState.snaps)) afterState.ledger = ledger;
+      if (sameSnapshots(beforeState.snaps, afterState.snaps)) afterState.ledger = ledger;
       stored = afterState;
-      const after = afterState.snaps;
+      // A route that logs access (E014) may add entries to the access log of the workspace of the
+      // path when it succeeds, and changes nothing else; a refusal may change nothing at all.
+      const logsAccess =
+        isolationCase.logsAccess && response.status >= 200 && response.status < 300;
+      const before = beforeState.snaps;
+      const after = logsAccess
+        ? snapshots(withoutNewLogEntries(beforeState.rows, afterState.rows, planned.workspaceId))
+        : afterState.snaps;
       result.calls += 1;
 
       // 1. The status, and a refusal's body.

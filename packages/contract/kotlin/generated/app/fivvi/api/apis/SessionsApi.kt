@@ -26,6 +26,7 @@ import app.fivvi.api.models.ReschedulePrivateSessionRequest
 import app.fivvi.api.models.ReschedulePrivateSessionResult
 import app.fivvi.api.models.Session
 import app.fivvi.api.models.SetAttendanceRequest
+import app.fivvi.api.models.SubstitutionRefused
 import app.fivvi.api.models.TrainerAssigned
 import app.fivvi.api.models.TrainerCandidates
 import app.fivvi.api.models.TrainerConflict
@@ -36,7 +37,7 @@ interface SessionsApi {
     /**
      * POST v1/workspaces/{workspaceId}/sessions/{sessionId}/trainer
      * Assign or change the trainer of a session
-     * Gives a private session or a class date another trainer, or a class date without one its first (the Owner only: a Trainer gets &#x60;403&#x60;). For a class date &#x60;scope&#x60; is &#x60;this&#x60; (a date without a trainer; the date is marked as changed from its series) or &#x60;following&#x60; (the series’ regular trainer from this date on: dates with a change of their own keep it, earlier dates keep theirs, later dates the calendar fills get the new trainer); for a private session it is ignored. &#x60;version&#x60; is the one the person saw: if the session has been changed since, nothing is stored and the answer is &#x60;409&#x60; (&#x60;session_changed&#x60;) with the session as it is now. A cancelled session answers &#x60;409&#x60; &#x60;session_cancelled&#x60;. The new trainer is checked for double booking (&#x60;409&#x60; &#x60;trainer_conflict&#x60; with the sessions, unless &#x60;allowConflicts&#x60; is &#x60;true&#x60;, PS-07). After the change is committed the clients with a booked place get EM-13, one email each listing their dates, unless &#x60;notifyClients&#x60; is &#x60;false&#x60; or the session has started. No other participant and no email address of the trainer is in it. A session or trainer that is not in the workspace answers &#x60;404&#x60;.
+     * Gives a private session or a class date another trainer, or a class date without one its first (the Owner only: a Trainer gets &#x60;403&#x60;). For a class date &#x60;scope&#x60; is &#x60;this&#x60; (a date without a trainer; the date is marked as changed from its series) or &#x60;following&#x60; (the series’ regular trainer from this date on: dates with a change of their own keep it, earlier dates keep theirs, later dates the calendar fills get the new trainer); for a private session it is ignored. On a class date that has a trainer, &#x60;this&#x60; is a substitution (F024): only that date gets the substitute, the date remembers whom they replace, and the substitute gets EM-10 after the commit unless &#x60;notifySubstitute&#x60; is &#x60;false&#x60; or the date has started (a past date is recorded without an email); the participants booked on the date get the trainer-change email (EM-13), when the date has not started, unless &#x60;notifyParticipants&#x60; is &#x60;false&#x60;, also when the substitution ends. &#x60;version&#x60; is the one the person saw: if the session has been changed since, nothing is stored and the answer is &#x60;409&#x60; (&#x60;session_changed&#x60;) with the session as it is now. A cancelled session answers &#x60;409&#x60; &#x60;session_cancelled&#x60;. The new trainer is checked for double booking (&#x60;409&#x60; &#x60;trainer_conflict&#x60; with the sessions, unless &#x60;allowConflicts&#x60; is &#x60;true&#x60;, PS-07). After the change is committed the clients with a booked place get EM-13, one email each listing their dates, unless &#x60;notifyClients&#x60; is &#x60;false&#x60; or the session has started. No other participant and no email address of the trainer is in it. A session or trainer that is not in the workspace answers &#x60;404&#x60;.
      * Responses:
      *  - 200: The trainer was assigned.
      *  - 400: The request did not match the contract.
@@ -44,6 +45,7 @@ interface SessionsApi {
      *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
      *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
      *  - 409: The session was changed after the `version` sent, or it is cancelled, or the new trainer already has something at that time. Nothing was stored.
+     *  - 422: A private session cannot be substituted (`scope` `this` sent for it).
      *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
      *
      * @param workspaceId The workspace ID.

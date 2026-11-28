@@ -38,7 +38,12 @@ import {
 } from './attendance.ts';
 import { LocationSchema } from './locations.ts';
 import { PersonalSessionClientSchema } from './personal.ts';
-import { ClassLevelSchema, SessionSeriesSchema, SessionTrainerSchema } from './sessions.ts';
+import {
+  ClassLevelSchema,
+  SessionSeriesSchema,
+  SessionTrainerSchema,
+  SubstituteForSchema,
+} from './sessions.ts';
 
 // The workspace calendar's read model (F014, spec #458): every session of one workspace, whoever
 // its trainer is, for the Agenda (week, day per trainer, list) and, for the day, the Owner's
@@ -196,6 +201,11 @@ export const WorkspaceCalendarSessionSchema = z
     trainer: SessionTrainerSchema.optional().openapi({
       description:
         'Left out for *Trainer nodig*: a class date or a private session with no trainer.',
+    }),
+    substituteFor: SubstituteForSchema.optional().openapi({
+      description:
+        'The trainer this date’s trainer replaces (F024): “⇄ Mike (vervangt Sarah)”. Left out ' +
+        'for a date that is no substitution; `trainer` is the substitute.',
     }),
     className: z
       .string()
@@ -441,6 +451,7 @@ function shown({ row }: CalendarItem, timeZone: string, viewerLocale: string, no
     version: row.version,
     location: row.location,
     ...(row.trainer ? { trainer: row.trainer } : {}),
+    ...(row.substituteFor ? { substituteFor: row.substituteFor } : {}),
     ...(row.type === 'private'
       ? row.clientName === null
         ? {}

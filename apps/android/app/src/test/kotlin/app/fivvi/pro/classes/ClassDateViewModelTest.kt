@@ -60,9 +60,17 @@ class ClassDateViewModelTest {
         trainer: Trainer? = sarah,
         booked: Int = 0,
         cancelled: Int = 0,
+        substituteFor: String? = null,
     ): UUID {
         classes.classes[groupClass.id] = groupClass
-        val date = classDateOf(UUID.randomUUID(), groupClass, trainer, booked = booked, cancelled = cancelled)
+        val date = classDateOf(
+            UUID.randomUUID(),
+            groupClass,
+            trainer,
+            booked = booked,
+            cancelled = cancelled,
+            substituteFor = substituteFor,
+        )
         sessions.sessions[date.id] = date
         return date.id
     }
@@ -174,6 +182,26 @@ class ClassDateViewModelTest {
         viewModel.editTapped()
 
         assertTrue(viewModel.state.value.manageOnWeb)
+    }
+
+    // F024: the Owner's ⋯ menu has the substitute action, which says the same: substituting is managed on the web.
+    @Test
+    fun test_F024_Design_theSubstituteActionSaysTheSubstitutionIsManagedOnTheWeb() {
+        val viewModel = viewModel(date(trainer = sarah))
+        assertTrue(viewModel.state.value.showsSubstitute)
+        assertFalse(viewModel.state.value.manageOnWeb)
+
+        viewModel.substituteTapped()
+
+        assertTrue(viewModel.state.value.manageOnWeb)
+    }
+
+    @Test
+    fun test_F024_AC4_theDateReadFromTheApiCarriesWhomItsTrainerReplaces() {
+        val viewModel = viewModel(date(trainer = trainerOf("Mike"), substituteFor = "Sarah Visser"))
+
+        assertEquals("Sarah Visser", viewModel.state.value.session?.substituteFor?.name)
+        assertEquals("Sarah Visser", viewModel.state.value.replacedTrainer)
     }
 
     @Test

@@ -52,12 +52,14 @@ final class AccountViewModel {
     private let signOutTimeout: Duration
     private let onAccount: (_ id: String) -> Void
     private let onSignedOut: (_ afterRejection: Bool) -> Void
+    private let onSigningOut: () -> Void
     private let onPreferredLocale: () -> StoredLocaleHandler
 
     /// `signOutTimeout` is how long a sign-out waits for the API, on `clock`, before it goes on without an answer.
     /// `onAccount` is told the account's ID (a UUID) once `GET /api/v1/me` has answered: the app sets it as the
     /// error-reporting user (AC2, #266) unless the sign-in has ended meanwhile; `Session` clears it again on sign-out. `onSignedOut` says whether the API
-    /// refused the token of the sign-out call.
+    /// refused the token of the sign-out call. `onSigningOut` runs when a sign-out starts, before its token is deleted and
+    /// before its request goes out (the attendance queue is emptied then, #1618).
     init(
         api: any APIProtocol,
         store: any SessionStore,
@@ -65,6 +67,7 @@ final class AccountViewModel {
         signOutTimeout: Duration = SignOutRequest.defaultTimeout,
         onAccount: @escaping (_ id: String) -> Void,
         onSignedOut: @escaping (_ afterRejection: Bool) -> Void,
+        onSigningOut: @escaping () -> Void = {},
         onPreferredLocale: @escaping () -> StoredLocaleHandler = { { _ in } },
         workspaces: CurrentWorkspaceStore = CurrentWorkspaceStore()
     ) {
@@ -74,6 +77,7 @@ final class AccountViewModel {
         self.signOutTimeout = signOutTimeout
         self.onAccount = onAccount
         self.onSignedOut = onSignedOut
+        self.onSigningOut = onSigningOut
         self.onPreferredLocale = onPreferredLocale
         self.workspaces = workspaces
         capabilities.reload = { [weak self] in await self?.refresh() }
@@ -198,6 +202,7 @@ final class AccountViewModel {
     func signOut() async {
         guard !isSigningOut else { return }
         isSigningOut = true
+        onSigningOut()
         let token = store.token
         store.deleteToken()
         var rejected = false

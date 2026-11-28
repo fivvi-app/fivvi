@@ -144,6 +144,7 @@ window.FIVVI_I18N = (function () {
 [/^Oefeningen · (\d+)$/, "Exercises · $1"],
     [/^Straks · over (\d+) min$/, "Up next · in $1 min"],
     [/^Je valt in voor (.+?)(\.?)$/, "Covering for $1$2"],
+    [/^Overgenomen door (.+?)(\.?)$/, "Taken over by $1$2"],
     [/^(\d+) sessies, eerste om (\d\d:\d\d)$/, "$1 sessions, first at $2"],
     [/^(.+) krijgt een e-mail dat de sessie van (\d\d:\d\d) niet doorgaat\.$/, "$1 will get an email that the $2 session is off."],
     [/^(.+) krijgt een e-mail met de nieuwe tijd\.$/, "$1 will get an email with the new time."],
@@ -206,6 +207,13 @@ window.FIVVI_I18N = (function () {
     [/^Vandaag bij (.+)$/, "Today at $1"],
     [/^(.+) is goedgekeurd en kan nu boeken$/, "$1 is approved and can book now"],
     [/^(.+) valt in$/, "$1 is covering"],
+    [/^(.+) vervangt (.+) op (.+)\.$/, function (m, a, b, d) { return a + " is covering for " + b + " on " + P(d) + "."; }],
+    [/^(.+) geeft (.+) op (.+)\.$/, function (m, a, b, d) { return a + " teaches " + b + " on " + P(d) + "."; }],
+    [/^(.+) een e-mail sturen$/, "Email $1"],
+    [/^Nu: (.+)$/, "Currently: $1"],
+    [/^Voor$/, "For"],
+    [/^(.+) \(vaste trainer\)$/, "$1 (regular trainer)"],
+    [/^(\d+) deelnemers? informeren per e-mail$/, function (m, n) { return "Notify " + n + (n === "1" ? " participant" : " participants") + " by email"; }],
     [/^Verplaatst naar (.+)$/, "Moved to $1"],
     [/^Uitnodiging verstuurd naar (.+)$/, "Invitation sent to $1"],
     [/^Je staat op de wachtlijst: nummer (\d+)$/, "You're on the waitlist: number $1"],
@@ -350,7 +358,7 @@ window.FIVVI_I18N = (function () {
     "Van de wachtlijst af": "Leave the waitlist", "Van de wachtlijst gehaald": "Removed from the waitlist", "Van de wachtlijst halen?": "Remove from the waitlist?", "Vernieuwen": "Renew", "Verstuurd": "Sent", "Vervangen": "Substitute",
     "Verzoek afgewezen": "Request declined", "Verzoek afwijzen?": "Decline request?", "Verzoek versturen": "Send request", "Verzoek verstuurd": "Request sent", "Volgende sessie": "Next session", "Volgende": "Next",
     "Voor klanten zonder eigen voorkeur.": "For clients without their own preference.", "Vul je naam in": "Enter your name", "Wachten op goedkeuring": "Waiting for approval", "Wachtlijst sluit": "Waitlist closes", "Wachtlijst": "Waitlist",
-    "Wanneer": "When", "Wie valt in?": "Who is covering?", "Wissel van werkruimte": "Switch workspace", "Zelf trainen": "Train on your own", "Zoek klant…": "Search client…", "Je bent erbij": "You're in", "Deze les is vol": "This class is full",
+    "Wanneer": "When", "Wissel van werkruimte": "Switch workspace", "Zelf trainen": "Train on your own", "Zoek klant…": "Search client…", "Je bent erbij": "You're in", "Deze les is vol": "This class is full",
     "Je tegoed": "Your balance", "Mijn trainingen": "My workouts", "Je naam": "Your name", "Vraag om mee te doen": "Ask to join", "Aankomend": "Upcoming", "Lessen": "Classes", "Privé": "Private", "Prototype": "Prototype",
     "Doe alsof de eigenaar je verzoek goedkeurt:": "Pretend the owner approves your request:", "Je krijgt een code van 6 cijfers per e-mail. Geen wachtwoord nodig.": "You'll get a 6-digit code by email. No password needed.",
     "Gratis annuleren tot 12 uur voor de start. Daarna telt de les als gebruikt.": "Free cancellation until 12 hours before the start. After that the class counts as used.",
@@ -359,7 +367,7 @@ window.FIVVI_I18N = (function () {
     "Geen lessen op deze dag.": "No classes on this day.", "Het is meer dan 12 uur voor de start, dus de les telt niet als gebruikt.": "It's more than 12 hours before the start, so the class doesn't count as used.",
     "Nog geen lidmaatschap of credits. Vanaf M11 koop je die hier.": "No membership or credits yet. From M11 you buy them here.", "Goed gewerkt vandaag! Volgende keer gaan we naar 62,5 kg.": "Goed gewerkt vandaag! Volgende keer gaan we naar 62,5 kg.",
     "Een reeks herhaalt elke week. Een les op een datum wijzig je los.": "A series repeats every week. A class on a date is changed on its own.", "Losse blokken waarin klanten zelf komen trainen.": "Single blocks where clients come to train on their own.",
-    "Alleen deze datum. De reeks verandert niet.": "Only this date. The series doesn't change.", "De invaller krijgt een e-mail. Klanten zien de nieuwe naam bij de les.": "The substitute gets an email. Clients see the new name on the class.",
+    "Alleen deze datum. De reeks verandert niet.": "Only this date. The series doesn't change.", 
     "De oude link en QR-code werken daarna niet meer. Hangt de QR-code ergens, vervang die dan ook.": "The old link and QR code stop working. If the QR code hangs somewhere, replace it too.",
     "Nieuwe klanten openen deze link of scannen de QR-code, loggen in en vragen om mee te doen. Jij keurt ze goed bij Klanten.": "New clients open this link or scan the QR code, sign in and ask to join. You approve them under Clients.",
     "Werken alleen voor goedgekeurde klanten.": "Work only for approved clients.", "Scan om mee te doen": "Scan to join", "Niets open. Alles is bijgewerkt.": "Nothing open. Everything is up to date.", "Geen sessies meer vandaag.": "No more sessions today.",
@@ -428,7 +436,7 @@ window.FIVVI_I18N = (function () {
     "Geboekt": "Booked", "geboekt": "booked", "1 plek vrij": "1 spot left", "Deelnemers": "Participants", "Nog niemand geboekt.": "No bookings yet.",
     "Boekingslink delen": "Share booking link", "Boekingslink gekopieerd": "Booking link copied", "Les wijzigen, een vaste reeks en trainers beheer je op het web.": "Editing a class, a series and trainers happens on the web.",
     "Verplaatsen": "Reschedule", "Sessie verplaatsen": "Reschedule session", "Sessie annuleren?": "Cancel session?", "Sessie annuleren": "Cancel session", "Sessie geannuleerd": "Session cancelled", "Sessie gepland": "Session planned",
-    "Les annuleren?": "Cancel class?", "Les annuleren": "Cancel class", "Les geannuleerd": "Class cancelled", "Les wijzigen": "Edit class", "Trainer vervangen": "Substitute trainer", "Route": "Route",
+    "Les annuleren?": "Cancel class?", "Les annuleren": "Cancel class", "Les geannuleerd": "Class cancelled", "Les wijzigen": "Edit class", "Trainer vervangen": "Substitute trainer", "De trainer vervangen": "Substitute the trainer", "Vandaag: les overgenomen door een vervanger": "Today: class taken over by a substitute", "Agenda · Dag: les overgenomen door een vervanger": "Agenda · Day: class taken over by a substitute", "Route": "Route",
     "Opent de route in Kaarten": "Opens the route in Maps",
     /* new */
     "Een sessie met één klant.": "A session with one client.", "Bij Studio Fit": "At Studio Fit", "Een naam is genoeg. Het e-mailadres kan later.": "A name is enough. The email address can come later.",
@@ -561,9 +569,9 @@ window.FIVVI_I18N = (function () {
     "Training zelf doen": "Do a workout yourself",
 "Zelf gedane training": "Workout done on your own",
     /* more than one studio (owner, 5 Nov 2026) */
-    "Je studio's": "Your studios", "Studio toevoegen": "Add a studio", "Met de link of QR-code van je studio": "With your studio's link or QR code", "Gekozen": "Selected",
+    "Je studio's": "Your studios", "Mijn studio's": "My studios", "Studio toevoegen": "Add a studio", "Met de link of QR-code van je studio": "With your studio's link or QR code", "Gekozen": "Selected",
     "Boeken en tegoed zijn per studio. Home, je agenda en Activiteit tonen alles samen.": "Booking and balance are per studio. Home, your schedule and Activity show everything together.",
-    "Vraag je studio of trainer om hun Fivvi-link, of scan de QR-code bij de balie. Je vraagt dan om mee te doen. Zodra ze je goedkeuren, staat de studio hier.": "Ask your studio or trainer for their Fivvi link, or scan the QR code at the front desk. You then ask to join. Once they approve you, the studio shows up here.",
+    "Vraag je studio om de Fivvi-link, of scan de QR-code bij de balie. Je vraagt dan om mee te doen. Zodra ze je goedkeuren, staat de studio hier.": "Ask your studio for its Fivvi link, or scan the QR code at the front desk. You then ask to join. Once they approve you, the studio shows up here.",
     "Doe alsof je de link van Yoga Loft opent en wordt goedgekeurd:": "Pretend you open Yoga Loft's link and get approved:", "Yoga Loft toevoegen": "Add Yoga Loft", "Yoga Loft heeft je goedgekeurd": "Yoga Loft approved you",
     "Yoga voor beginners": "Yoga for beginners", "10-rittenkaart yoga": "10-class yoga pass", "€ 150 · eenmalig": "€150 · one-off", "Geldig tot 1 maart 2027": "Valid until 1 March 2027",
     "10 groepscredits": "10 group credits", "1 jaar geldig": "Valid for 1 year", "Elke les": "Every class", "Maandelijks opzegbaar": "Cancel any month", "Onbeperkt yoga": "Unlimited yoga",
@@ -608,7 +616,7 @@ window.FIVVI_I18N = (function () {
   var OWN = /\uE000([^\uE001]*)\uE001/g, OWNMARK = /[\uE000\uE001]/g;
   function P(s) {
     /* one pass per position: protect replaced text so "Agenda" → "Calendar" isn't touched again */
-    var marks = [], out = s.replace(OWN, function (m, own) { marks.push(own); return "\u0001" + (marks.length - 1) + "\u0002"; }).replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at ");
+    var marks = [], out = s.replace(OWN, function (m, own) { marks.push(own); return "\u0001" + (marks.length - 1) + "\u0002"; }).replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Overgenomen door /g, function () { marks.push("Taken over by "); return "\u0001" + (marks.length - 1) + "\u0002"; }).replace(/Bezig · gestart om /g, "In progress · started at ");
     TYPEDL.concat(PHL).forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
     out = out.replace(/(\d)\.(\d{3}),(\d{2})/g, "$1\u0003$2.$3").replace(/(\d),(\d)/g, "$1.$2").replace(/\u0003/g, ",");
     return out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });

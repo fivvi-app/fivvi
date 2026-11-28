@@ -9,7 +9,7 @@ import FivviStrings
 /// Dutch, marked as Dutch) cut to a few lines with *Meer* / *Minder*. The Owner's ⋯ menu has *Les wijzigen*, which says
 /// the class is managed on the web. Read from `GET …/sessions/{id}` and, for the description, `GET …/group-classes/{id}`
 /// through the generated client; what is shown stays when a later read fails. A date in a weekly series (F022 AC6) says
-/// *Onderdeel van: {class}, elke {weekday} {time}*, from the series the API sends with the date. Bookings and attendance come with M5/F025.
+/// *Onderdeel van: {class}, elke {weekday} {time}*, from the series the API sends with the date. The participants and their attendance (F025) are in `ClassDateViewModel+Participants`.
 @MainActor
 @Observable
 final class ClassDateViewModel {
@@ -27,6 +27,8 @@ final class ClassDateViewModel {
     private(set) var session: Session?
     private(set) var groupClass: Components.Schemas.GroupClass?
     private(set) var descriptionOpen = false
+    /// *Toon alle {n}* was tapped (`ClassDateViewModel+Participants`).
+    private(set) var participantsOpen = false
     private(set) var manageOnWebText: String?
     /// The confirmation of *Les annuleren*, once the API said who would get the email; nil when it is not asked.
     private(set) var cancelAsk: CancelAsk?
@@ -83,7 +85,7 @@ final class ClassDateViewModel {
 
     private var timeZone: TimeZone { session.flatMap { TimeZone(identifier: $0.timeZone) } ?? workspace.timeZone }
     private var format: SessionFormat { SessionFormat(locale: catalog.formattingLocale, timeZone: timeZone) }
-    private var words: TrainerWordForms { TrainerWordForms(workspace.trainerWord, catalog: catalog) }
+    var words: TrainerWordForms { TrainerWordForms(workspace.trainerWord, catalog: catalog) }
 
     /// What the confirmation of *Les annuleren* tells.
     struct CancelAsk: Equatable {
@@ -123,10 +125,14 @@ final class ClassDateViewModel {
     var trainerLabel: String { catalog.string(.classDateTrainerLabel, words.wordCap) }
     var bookedLabel: String { catalog[.classDateBookedLabel] }
 
-    /// The trainer: *Jij* for the person looking, else the name, or *Trainer nodig* without one.
+    /// The trainer: *Jij* for the person looking, else the name, or *Trainer nodig* without one. On a substituted date
+    /// (F024) everyone but the substitute reads *Mike (vervangt Sarah)*.
     var trainerText: String {
         guard let trainer = session?.trainer else { return catalog.string(.classFormTrainerNeeded, words.wordCap) }
-        return trainer.id == workspace.teamMemberId ? catalog[.sessionPageYou] : trainer.name
+        if trainer.id == workspace.teamMemberId { return catalog[.sessionPageYou] }
+        guard let original = originalTrainer else { return trainer.name }
+        // Placeholders in the order of their names: original, substitute.
+        return catalog.string(.classDateSubstituteLabel, original, trainer.name)
     }
 
     /// The places taken: the clients who have not cancelled.
@@ -178,6 +184,8 @@ final class ClassDateViewModel {
     }
 
     func toggleDescription() { descriptionOpen.toggle() }
+    /// *Toon alle {n}*.
+    func showAllParticipants() { participantsOpen = true }
 
     /// The text of a class in the viewer's language, else Dutch (`pickContentLanguage`); never translated. A blank text
     /// is none.
@@ -191,9 +199,13 @@ final class ClassDateViewModel {
 
     // MARK: The ⋯ menu
 
-    /// The Owner's menu, until the date is cancelled; a Trainer who is not substituting has none (F024 adds the substitute's).
+    /// The Owner's menu, until the date is cancelled; a Trainer has none, a covering one neither: only the Owner substitutes
+    /// (Q40), and on the web.
     var hasMenu: Bool { canManage && !isCancelled }
     var editText: String { catalog[.classDateEdit] }
+
+    /// *De trainer vervangen* (F024): substituting is managed on the web, and the screen says so.
+    func substituteTapped() { manageOnWebText = catalog[.classDateManageOnWeb] }
 
     /// *Les wijzigen*: the class is managed on the web, and the screen says so.
     func editTapped() { manageOnWebText = catalog[.classDateManageOnWeb] }
@@ -379,21 +391,6 @@ extension ClassDateViewModel {
             } else {
                 cancelFailure = .notSaved
             }
-        }
-    }
-}
-
-private extension Components.Schemas.SessionSeries.WeekdayPayload {
-    /// The number `Calendar` gives the weekday: 1 is Sunday, 2 Monday.
-    var number: Int {
-        switch self {
-        case .su: 1
-        case .mo: 2
-        case .tu: 3
-        case .we: 4
-        case .th: 5
-        case .fr: 6
-        case .sa: 7
         }
     }
 }

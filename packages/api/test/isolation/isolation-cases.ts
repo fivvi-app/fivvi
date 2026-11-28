@@ -86,6 +86,13 @@ export interface IsolationCase {
    * markers of other workspaces in a response and the rows that change are checked as for any route.
    */
   readsNoRecords?: true;
+  /**
+   * The route writes an entry in the workspace's access log when it succeeds (the data export,
+   * E014: who exported which client). The only thing a case may say about what changes: a call
+   * that succeeds may add `access_log` rows of its own workspace and change nothing else, and a
+   * refusal may change nothing at all.
+   */
+  logsAccess?: true;
 }
 
 /** The client row that the seed was called for: what a route about one client names. */
@@ -574,6 +581,15 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
 
   // The trainers of a workspace (F005): the switch routes act on the caller's own trainer profile, so they name no record.
   deleteTrainerProfile: {},
+
+  // The export of E014 (a ZIP, unpacked by the suite): one client's records with her sessions, or the
+  // whole workspace's; each writes an access-log entry and changes nothing else.
+  exportClient: {
+    seed: aClientWithASession,
+    params: { clientId: 'client' },
+    logsAccess: true,
+  },
+  exportWorkspace: { seed: aClientWithASession, logsAccess: true },
 
   // One client (F006): the read shows the seeded client it names.
   getClient: { seed: theClient, params: { clientId: 'client' } },

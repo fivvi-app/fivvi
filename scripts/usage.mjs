@@ -19,6 +19,10 @@
 //                  call per run, in parallel, cached per run id in --cache (default .work/usage/jobs)
 //       quality    bugs opened in the window by source (nightly run, spec review, deploy, other), per merged ticket,
 //                  reverts, follow-up fixes, PRs merged with should-fix follow-ups
+//       conflicts  refreshes (the `🔄 **Refreshed:**` records pr.sh writes in a PR body when main is merged into it),
+//                  the PRs refreshed, and the PRs that conflicted with main at some point (refreshed, or removed from
+//                  the queue for `merge_conflict`), per window and per PR; a snapshot taken before this section was
+//                  added has none, and compare shows that as "not measured", never as zero
 //       prs        one record of numbers per merged PR, so compare can show the times per ticket group
 //   node scripts/usage.mjs compare <before.json> <after.json>
 //       print per role, per ticket group (area and size), per session and for the flow how the metrics changed,
@@ -769,6 +773,8 @@ const search = async (tool, query, text, warnings) => {
 
 // The queue also records a removal when it merges the PR: reason `merged`. That is not one.
 const MERGE_REASONS = ['merged', 'already_merged'];
+// The record of a refresh (scripts/pr.sh refreshed): a line of its own in the PR body.
+const REFRESHED = /^🔄 \*\*Refreshed:\*\*/gm;
 const SHOULD_FIX_LEFT = /Self-review:\*\*[^\n]*?\b(\d+) should-fix findings? left/g;
 
 // What the timeline of a merged PR says, as hours between its events (null when an event never happened) and the
@@ -793,6 +799,7 @@ export const prRecord = (node) => {
   }));
   const body = String(node.body ?? '');
   const shouldFix = [...body.matchAll(SHOULD_FIX_LEFT)].at(-1);
+  const refreshes = [...body.matchAll(REFRESHED)].length;
   return {
     number: node.number,
     issues: issues.map((i) => i.number),
@@ -804,6 +811,9 @@ export const prRecord = (node) => {
     queuedToMerged: hoursBetween(queued, merged),
     prToMerged: hoursBetween(created, merged),
     removals,
+    refreshes,
+    // it conflicted with main at some point: a refresh merged main in, or the queue removed it for a conflict
+    conflicted: refreshes > 0 || (removals.merge_conflict ?? 0) > 0,
     shouldFix: shouldFix ? Number(shouldFix[1]) : 0,
     revert: String(node.title ?? '').startsWith('Revert "'),
   };
@@ -1004,6 +1014,19 @@ export const ciSection = (runs, jobsByRun, mergedPrs, removals) => {
   };
 };
 
+// Refreshes and the PRs that conflicted with main, from the records of the merged PRs of the window.
+export const conflictsSection = (prs) => {
+  const refreshes = sum(prs.map((p) => p.refreshes));
+  return {
+    refreshes,
+    refreshedPrs: prs.filter((p) => p.refreshes > 0).length,
+    refreshesPerMergedPr: prs.length ? round(refreshes / prs.length) : null,
+    conflictingPrs: prs.filter((p) => p.conflicted).length,
+    queueRemovalsMergeConflict: sum(prs.map((p) => p.removals.merge_conflict ?? 0)),
+    numbers: prs.filter((p) => p.conflicted).map((p) => p.number),
+  };
+};
+
 // The flow of a window from GitHub; null (with a warning) when gh can't answer.
 export const buildFlow = async ({ since, until, tool, tickets, gitDir, cacheDir }) => {
   if (!tool.init()) return null;
@@ -1090,6 +1113,7 @@ export const buildFlow = async ({ since, until, tool, tickets, gitDir, cacheDir 
         prs.length,
         prs.map((p) => p.removals),
       ),
+      conflicts: conflictsSection(prs),
       quality: {
         bugs: counted,
         reverts: prs.filter((p) => p.revert).length,
@@ -1191,8 +1215,10 @@ const KINDS = {
         : String(Math.round(v)),
   rate: (v) => `${Math.round(v * 100)}%`,
   int: (v) => String(Math.round(v)),
+  ratio: (v) => v.toFixed(2),
 };
-const format = (v, kind) => (v === null || v === undefined ? 'n/a' : KINDS[kind](v));
+const format = (v, kind, missing = 'n/a') =>
+  v === null || v === undefined ? missing : KINDS[kind](v);
 const change = (before, after) => {
   if (
     before === null ||
@@ -1205,8 +1231,13 @@ const change = (before, after) => {
   const pct = Math.round(((after - before) / before) * 100) || 0;
   return `${pct > 0 ? '+' : ''}${pct}%`;
 };
-const row = (label, before, after, kind) =>
-  `  ${label.padEnd(38)}${format(before, kind).padStart(8)} → ${format(after, kind).padEnd(8)} ${change(before, after)}`.trimEnd();
+// `missing` is what a side without the number says: "n/a" by default, "not measured" for a number an older snapshot
+// never took (which is not the same as zero).
+// `missing` may be one text or a [before, after] pair, for a side that measured it and a side that did not.
+const row = (label, before, after, kind, missing) => {
+  const [missingBefore, missingAfter] = Array.isArray(missing) ? missing : [missing, missing];
+  return `  ${label.padEnd(38)}${format(before, kind, missingBefore).padStart(8)} → ${format(after, kind, missingAfter).padEnd(8)} ${change(before, after)}`.trimEnd();
+};
 
 const present = (list, f) => list.map(f).filter((v) => v !== null && v !== undefined);
 const share = (list, f) => {
@@ -1360,6 +1391,40 @@ const compareFlow = (before, after) => {
       row(`job ${job} failure rate`, pick(b, 'failureRate'), pick(a, 'failureRate'), 'rate'),
     );
   }
+
+  out.push('', 'Flow: conflicts with main');
+  // A snapshot without the conflicts block never measured these: "not measured", never zero. One with the block
+  // measured them, so a number that is null there (no merged PR to divide by) is "n/a".
+  const measured = (label, path, kind) =>
+    out.push(
+      row(
+        label,
+        ...both(path),
+        kind,
+        [b, a].map((f) => (f?.conflicts ? 'n/a' : 'not measured')),
+      ),
+    );
+  measured('refreshes', 'conflicts.refreshes', 'int');
+  measured('PRs refreshed', 'conflicts.refreshedPrs', 'int');
+  measured('refreshes per merged PR', 'conflicts.refreshesPerMergedPr', 'ratio');
+  measured('conflicting PRs', 'conflicts.conflictingPrs', 'int');
+  // The merge_conflict removals were also counted by reason in the CI section, before the conflicts block existed:
+  // a snapshot without the block but with ci.removalsByReason measured them (a missing reason is zero).
+  const mergeConflictRemovals = (f) =>
+    f?.conflicts
+      ? (f.conflicts.queueRemovalsMergeConflict ?? null)
+      : f?.ci?.removalsByReason
+        ? (f.ci.removalsByReason.merge_conflict ?? 0)
+        : null;
+  out.push(
+    row(
+      'queue removals by merge_conflict',
+      mergeConflictRemovals(b),
+      mergeConflictRemovals(a),
+      'int',
+      [b, a].map((f) => (f?.conflicts || f?.ci?.removalsByReason ? 'n/a' : 'not measured')),
+    ),
+  );
 
   out.push('', 'Flow: bugs and quality');
   add('bugs opened', 'quality.bugs.total', 'int');

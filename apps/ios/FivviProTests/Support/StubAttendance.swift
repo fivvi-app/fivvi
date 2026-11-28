@@ -36,6 +36,50 @@ final class StubAttendance: @unchecked Sendable {
     private var reads = 0
     private var storedIDs: Set<String> = []
 
+    private var holding = false
+    private var held: [CheckedContinuation<Void, Never>] = []
+    private var watchers: [CheckedContinuation<Void, Never>] = []
+
+    /// From now on a request waits, before it is stored, until `release()`: a send that is still running.
+    func hold() { lock.withLock { holding = true } }
+
+    func release() {
+        let waiting = lock.withLock {
+            holding = false
+            defer { held = [] }
+            return held
+        }
+        waiting.forEach { $0.resume() }
+    }
+
+    /// How many requests wait for `release()`.
+    var waitingCount: Int { lock.withLock { held.count } }
+
+    /// Returns once a request waits for `release()`.
+    func untilWaiting() async {
+        await withCheckedContinuation { continuation in
+            let ready = lock.withLock { () -> Bool in
+                if !held.isEmpty { return true }
+                watchers.append(continuation)
+                return false
+            }
+            if ready { continuation.resume() }
+        }
+    }
+
+    func gate() async {
+        await withCheckedContinuation { continuation in
+            let (wait, arrived) = lock.withLock { () -> (Bool, [CheckedContinuation<Void, Never>]) in
+                guard holding else { return (false, []) }
+                held.append(continuation)
+                defer { watchers = [] }
+                return (true, watchers)
+            }
+            if !wait { continuation.resume() }
+            arrived.forEach { $0.resume() }
+        }
+    }
+
     /// Every request, in order (a request the stub refused or cut off is in it too).
     var requests: [Request] { lock.withLock { seen } }
     var readCount: Int { lock.withLock { reads } }

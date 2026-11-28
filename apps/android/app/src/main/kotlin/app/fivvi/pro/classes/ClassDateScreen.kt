@@ -86,6 +86,8 @@ object ClassDateTags {
     const val ADDED = "classDate.added"
     const val SERIES = "classDate.series"
     const val MANAGE_ON_WEB = "classDate.manageOnWeb"
+    const val SUBSTITUTION = "classDate.substitution"
+    const val SUBSTITUTE = "classDate.substitute"
     const val DESCRIPTION = "classDate.description"
     const val DESCRIPTION_MARK = "classDate.descriptionMark"
     const val DESCRIPTION_TOGGLE = "classDate.descriptionToggle"
@@ -127,6 +129,8 @@ class ClassDateActions(
     val onToggleDescription: () -> Unit,
     /** *Les wijzigen* of the Owner's ⋯ menu. */
     val onEdit: () -> Unit,
+    /** *De trainer vervangen* of the Owner's ⋯ menu (F024): substituting is managed on the web. */
+    val onSubstitute: () -> Unit = onEdit,
     /** *Les annuleren* of the Owner's ⋯ menu (F026): asks the API who would get the email. */
     val onCancel: () -> Unit = {},
     /** *Les annuleren* of the confirmation. */
@@ -148,11 +152,13 @@ private const val CUT_LINES = 3
  * TD-03 *Groepsles* (F021): the class's name with the date and time under it, the description cut to a few lines with
  * *Meer* / *Minder*, a group with the location and the trainer (*Trainer nodig* without one), *{booked}/{capacity}
  * geboekt* with *Nog geen boekingen.*, and for the Owner the footnote that editing, a fixed series and the trainers are
- * managed on the web. The Owner's ⋯ menu starts with *Boekingslink delen* (F037, "Boekingslink gekopieerd" in a toast; also a
- * button below the booked card, for the Owner and the Trainers, not on a cancelled or past date), has *Les wijzigen*, which
- * says the same, and below a divider the destructive *Les annuleren* (F026): a native confirmation that says how many
- * booked clients get an email; a Trainer has no menu. A cancelled date shows "Geannuleerd op … door …" and no actions.
- * *Aanwezigheid invullen* opens CO-05 (F025); below it *Deelnemers · 7* lists the clients with their status (#1617). [workspaceName] is named when the person has no access.
+ * managed on the web. The Owner's ⋯ menu starts with *Boekingslink delen* (F037, "Boekingslink gekopieerd" in a toast;
+ * also a button below the booked card, for the Owner and the Trainers, not on a cancelled or past date), has *Les
+ * wijzigen*, which says the same, *De trainer vervangen* (F024, on a date that has a trainer) likewise, and below a
+ * divider the destructive *Les annuleren* (F026): a native confirmation that says how many booked clients get an email;
+ * a Trainer has no menu. A cancelled date shows "Geannuleerd op … door …" and no actions. *Aanwezigheid invullen*
+ * opens CO-05 (F025); below it *Deelnemers · 7* lists the clients with their status (#1617). [workspaceName] is named
+ * when the person has no access.
  */
 @Composable
 fun ClassDateScreen(
@@ -309,6 +315,7 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
     val format = rememberSessionFormat(ZoneId.of(timeZone))
     val english = LocalConfiguration.current.locales[0].language != "nl"
     val forms = trainerWordForms(state.workspace.trainerWord)
+    val replaced = state.replacedTrainer
     Title(
         stringResource(R.string.workspace_nav_new_group_class),
         state.title(english),
@@ -355,6 +362,7 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
     }
     if (state.manageOnWeb) Message(stringResource(R.string.classes_app_manage_on_web), ClassDateTags.MANAGE_ON_WEB)
     state.description(english)?.let { Description(it, state.descriptionOpen, actions.onToggleDescription) }
+    state.coveringFor?.let { SubstitutionBanner(stringResource(R.string.my_day_covering_for, it)) }
     InsetGroupedList {
         row {
             Text(
@@ -377,7 +385,13 @@ private fun Loaded(timeZone: String, state: ClassDateState, actions: ClassDateAc
                 Text(
                     text = when {
                         session.trainer == null -> stringResource(R.string.classes_trainer_needed, forms.wordCap)
+
                         state.trainerIsMe -> stringResource(R.string.sessions_page_you)
+
+                        // Placeholders in the order of their names: the trainer replaced, the substitute.
+                        replaced != null ->
+                            stringResource(R.string.classes_date_substitute, replaced, session.trainer?.name.orEmpty())
+
                         else -> session.trainer?.name.orEmpty()
                     },
                     modifier = Modifier.testTag(ClassDateTags.TRAINER),
@@ -584,9 +598,10 @@ private fun Description(description: ClassText, open: Boolean, onToggle: () -> U
 }
 
 // The Owner's menu: *Boekingslink delen* (F037, off while offline) first, *Les wijzigen*, which says the class is managed on the web, and below a divider the destructive *Les
-// annuleren* (off while offline). F024 adds its items.
+// annuleren* (off while offline). F024: *De trainer vervangen* before *Les wijzigen*, on a date that has a trainer.
 @Composable
 private fun Menu(state: ClassDateState, actions: ClassDateActions) {
+    val forms = trainerWordForms(state.workspace.trainerWord)
     var open by rememberSaveable { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }, modifier = Modifier.testTag(ClassDateTags.MENU)) {
@@ -602,6 +617,18 @@ private fun Menu(state: ClassDateState, actions: ClassDateActions) {
                     },
                     enabled = state.canTapShareLink,
                     modifier = Modifier.testTag(ClassDateTags.SHARE_LINK_MENU),
+                )
+            }
+            if (state.showsSubstitute) {
+                DropdownMenuItem(
+                    text = {
+                        Text(stringResource(R.string.sessions_trainer_dialog_title_substitute, forms.word))
+                    },
+                    onClick = {
+                        open = false
+                        actions.onSubstitute()
+                    },
+                    modifier = Modifier.testTag(ClassDateTags.SUBSTITUTE),
                 )
             }
             DropdownMenuItem(

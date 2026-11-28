@@ -15,7 +15,10 @@ import {
   type AssignKind,
   type AssignScope,
   notifyCount,
+  orderedCandidates,
   scopesOffered,
+  startedBy,
+  substitutionOf,
 } from './trainer-dialog-model';
 import { useSessionFormat } from './use-session-format';
 
@@ -24,7 +27,12 @@ export interface TrainerChoice {
   trainerId: string;
   /** For a class date; a private session has none. */
   scope?: AssignScope;
+  /** The box that emails the clients (a substitution has its own two boxes instead). */
   notifyClients: boolean;
+  /** A substitution (F024), *Alleen deze les* on a date that has a trainer: the box that emails the substitute (EM-10). */
+  notifySubstitute?: boolean;
+  /** A substitution (F024): the box that emails the participants, also when the substitution ends. */
+  notifyParticipants?: boolean;
 }
 
 /** The client of a private session, as far as the email box needs: the name, the address and the language of the email. */
@@ -41,8 +49,10 @@ export interface TrainerFormClient {
  * (a select for a private session), each with what they already have then in this workspace; for a
  * class date in a series *Voor* (*Alleen deze les* / *Deze en alle volgende lessen*) with the
  * regular-trainer line and the later dates that conflict; *De boekingen blijven gewoon staan.*; and
- * the box that emails the clients, with how many. The API decides every rule; this words what it
- * answered. Without another trainer it says so and leads to *Trainers* (F011).
+ * the box that emails the clients, with how many. *Alleen deze les* on a date that has a trainer is a
+ * substitution (F024, the default): the substitute's own email box and the participants' box, the
+ * regular trainer first as *(vaste trainer)*, and choosing them ends it. The API decides every rule;
+ * this words what it answered. Without another trainer it says so and leads to *Trainers* (F011).
  */
 export function TrainerForm({
   session,
@@ -54,6 +64,7 @@ export function TrainerForm({
   slug,
   initialTrainerId = '',
   initialScope,
+  now,
   message,
   pending,
   onSubmit,
@@ -70,6 +81,8 @@ export function TrainerForm({
   /** The trainer chosen from the start (the calendar's drag to a trainer's column, or the last choice). */
   initialTrainerId?: string;
   initialScope?: AssignScope;
+  /** The moment the dialog is drawn: a date that has started has no email box (F024). Defaults to the clock. */
+  now?: Date;
   /** What went wrong with the last try, in words. */
   message: string | null;
   pending: boolean;
@@ -85,9 +98,18 @@ export function TrainerForm({
   const [trainerId, setTrainerId] = useState(initialTrainerId);
   const [scope, setScope] = useState<AssignScope | undefined>(initialScope ?? scopes[0]);
   const [notify, setNotify] = useState(true);
+  const [notifySubstitute, setNotifySubstitute] = useState(true);
+  const [notifyParticipants, setNotifyParticipants] = useState(true);
 
   const chosen = candidates.trainers.find(({ id }) => id === trainerId);
   const count = notifyCount(candidates, kind === 'change' ? undefined : scope);
+  // F024: *Alleen deze les* on a date that has a trainer is a substitution; choosing the trainer it
+  // replaces ends it. A date that has started is recorded all the same, and tells nobody.
+  const substituting = kind === 'substitute' && substitutionOf(session, scope);
+  const ending = substituting && chosen !== undefined && chosen.id === session.substituteFor?.id;
+  const started = startedBy(session, now ?? new Date());
+  const participants = substituting && !started ? count : 0;
+  const emailsSubstitute = substituting && !ending && !started && chosen !== undefined;
   const className = session.groupClass
     ? pickContentLanguage(locale, session.groupClass.nameNl, session.groupClass.nameEn)
     : '';
@@ -102,14 +124,16 @@ export function TrainerForm({
       time,
     });
   }
-  /** The row of a trainer: the name, and when they already have something then, the hint. */
-  const label = (candidate: TrainerCandidate) =>
-    candidate.conflicts.length > 0
-      ? t('conflictHint', {
-          trainer: candidate.name,
-          hint: candidate.conflicts.map(phrase).join(', '),
-        })
-      : candidate.name;
+  /** The row of a trainer: the name (*Sarah (vaste trainer)* for the one a substitute replaces), and when they already have something then, the hint. */
+  const label = (candidate: TrainerCandidate) => {
+    const name =
+      candidate.id === session.substituteFor?.id
+        ? t('regularTrainer', { ...trainerWord, name: candidate.name })
+        : candidate.name;
+    return candidate.conflicts.length > 0
+      ? t('conflictHint', { trainer: name, hint: candidate.conflicts.map(phrase).join(', ') })
+      : name;
+  };
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -117,7 +141,14 @@ export function TrainerForm({
     onSubmit({
       trainerId: chosen.id,
       ...(scope ? { scope } : {}),
-      notifyClients: notify && count > 0,
+      // A substitution tells nobody through `notifyClients`: it has its two boxes.
+      notifyClients: !substituting && notify && count > 0,
+      ...(substituting
+        ? {
+            notifySubstitute: emailsSubstitute && notifySubstitute,
+            notifyParticipants: participants > 0 && notifyParticipants,
+          }
+        : {}),
     });
   }
 
@@ -179,7 +210,7 @@ export function TrainerForm({
           <legend className="mb-1 text-sm font-medium">
             {kind === 'assign' ? t('whoAssign') : t('whoSubstitute')}
           </legend>
-          {candidates.trainers.map((candidate) => (
+          {orderedCandidates(candidates.trainers, session).map((candidate) => (
             <label key={candidate.id} className="flex cursor-pointer items-center gap-2 text-sm">
               <input
                 type="radio"
@@ -214,7 +245,7 @@ export function TrainerForm({
       ) : null}
       {kind === 'substitute' && scopes.length === 1 ? (
         <p className="text-sm">
-          <span className="font-medium">{t('scopeLabel')}:</span> {t('scopeFollowing')}
+          <span className="font-medium">{t('scopeLabel')}:</span> {t('scopeThis')}
         </p>
       ) : null}
       {kind !== 'change' && scope === 'following' && chosen && session.series ? (
@@ -239,7 +270,31 @@ export function TrainerForm({
         </div>
       ) : null}
       {kind !== 'change' ? <p className="text-sm">{t('bookingsStay')}</p> : null}
-      {count > 0 ? (
+      {emailsSubstitute && chosen ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="notifySubstitute"
+            className="size-4 accent-primary"
+            checked={notifySubstitute}
+            onChange={(event) => setNotifySubstitute(event.target.checked)}
+          />
+          {t('notifySubstitute', { trainer: chosen.name })}
+        </label>
+      ) : null}
+      {substituting && participants > 0 ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="notifyParticipants"
+            className="size-4 accent-primary"
+            checked={notifyParticipants}
+            onChange={(event) => setNotifyParticipants(event.target.checked)}
+          />
+          {t('notifyClass', { count: participants })}
+        </label>
+      ) : null}
+      {!substituting && count > 0 ? (
         <div className="grid gap-0.5">
           <label className="flex items-center gap-2 text-sm">
             <input

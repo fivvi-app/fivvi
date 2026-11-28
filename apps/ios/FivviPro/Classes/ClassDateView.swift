@@ -10,11 +10,12 @@ import FivviUI
 /// *Meer* / *Minder*, a group with the location and the trainer (*Trainer nodig* without one), *{booked}/{capacity}
 /// geboekt* with *Nog geen boekingen.*, and for the Owner the footnote that editing, a fixed series and the trainers are
 /// managed on the web. The Owner's ⋯ menu starts with *Boekingslink delen* (F037, "Boekingslink gekopieerd" in a toast; also a button below the booked card,
-/// for the Owner and the Trainers, not on a cancelled or past date), has *Les wijzigen*, which says the same, and below
+/// for the Owner and the Trainers, not on a cancelled or past date), has *De trainer vervangen* (F024, on a date that has a
+/// trainer) and *Les wijzigen*, which both say it is managed on the web, and below
 /// a divider the destructive *Les annuleren* (F026): a native confirmation that says how many booked clients get an
 /// email; a Trainer has no menu.
-/// A cancelled date shows "Geannuleerd op … door …" and no actions. *Aanwezigheid invullen* opens CO-05 (F025); the
-/// participants list (*Deelnemers*, #1616) is not shown yet.
+/// A cancelled date shows "Geannuleerd op … door …" and no actions. *Aanwezigheid invullen* opens CO-05 (F025); below it
+/// *Deelnemers · 7* lists the clients with their status (#1616).
 struct ClassDateView: View {
     let model: ClassDateViewModel
     let language: AppLanguage
@@ -117,6 +118,12 @@ struct ClassDateView: View {
                     .accessibilityIdentifier("classDate.series")
             }
             description
+            if let substitution = model.substitutionBannerText {
+                StatusMessage(
+                    text: substitution, kind: .accent, id: "classDate.substitution",
+                    systemImage: "arrow.left.arrow.right"
+                )
+            }
             InsetGroup {
                 locationRow
                 trainerRow
@@ -125,6 +132,7 @@ struct ClassDateView: View {
             if model.showsAttendance, let route = model.attendanceRoute, let onTakeAttendance {
                 takeAttendanceButton(route, onTakeAttendance)
             }
+            if model.showsParticipants { ClassDateParticipants(model: model) }
             if model.showsShareLink { shareLinkButton }
             if let note = model.ownerNoteText {
                 Text(note)
@@ -164,41 +172,6 @@ struct ClassDateView: View {
                 }
             }
         }
-    }
-
-    private var locationRow: some View {
-        HStack(spacing: Tokens.Spacing.space3) {
-            Image(systemName: "mappin.and.ellipse")
-                .foregroundStyle(Tokens.Colors.textSecondary)
-                .accessibilityHidden(true)
-            Text(model.locationName)
-                .font(.system(Tokens.TextStyle.body, weight: .semibold))
-                .foregroundStyle(Tokens.Colors.textPrimary)
-                .accessibilityIdentifier("classDate.location")
-            Spacer(minLength: Tokens.Spacing.space2)
-        }
-        .multilineTextAlignment(.leading)
-        .insetRowLayout()
-    }
-
-    private var trainerRow: some View {
-        HStack(spacing: Tokens.Spacing.space3) {
-            Image(systemName: "person")
-                .foregroundStyle(Tokens.Colors.textSecondary)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(model.trainerLabel)
-                    .font(.system(Tokens.TextStyle.subhead))
-                    .foregroundStyle(Tokens.Colors.textSecondary)
-                Text(model.trainerText)
-                    .font(.system(Tokens.TextStyle.body, weight: .semibold))
-                    .foregroundStyle(Tokens.Colors.textPrimary)
-                    .accessibilityIdentifier("classDate.trainer")
-            }
-            Spacer(minLength: Tokens.Spacing.space2)
-        }
-        .multilineTextAlignment(.leading)
-        .insetRowLayout()
     }
 
     private var bookedCard: some View {
@@ -263,6 +236,12 @@ struct ClassDateView: View {
                 }
                 .disabled(!model.canTapShareLink)
                 .accessibilityIdentifier("classDate.shareLinkMenu")
+            }
+            if model.showsSubstitute {
+                Button { model.substituteTapped() } label: {
+                    Label(model.substituteText, systemImage: "arrow.left.arrow.right")
+                }
+                .accessibilityIdentifier("classDate.substitute")
             }
             Button(model.editText) { model.editTapped() }
                 .accessibilityIdentifier("classDate.edit")

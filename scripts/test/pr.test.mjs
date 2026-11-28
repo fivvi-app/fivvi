@@ -13,7 +13,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { after, before, describe, it } from 'node:test';
+import { after, afterEach, before, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
@@ -2684,5 +2684,210 @@ describe('#1274 pr.sh refreshed', () => {
     assert.equal(result.status, 1);
     assert.match(result.stderr, /could not read the body of PR #60/);
     assert.equal(gh.calls().filter((call) => call.args[1] === 'edit').length, 0);
+  });
+});
+
+// #1485 (spec #1481): `pr.sh create` warns when the branch changes a hot file (openapi.json, a migration, a generated
+// client, one of the sorted lists and catalogs) that another open PR changes too. A warning only: the push goes on.
+describe('#1485 pr.sh create warns on hot files another open PR changes', () => {
+  const gh = fakeGh();
+  const BRANCH = 'feature/57-hold-a-spot';
+  let base;
+  let remote;
+  let repo;
+  const git = (...args) =>
+    execFileSync(
+      'git',
+      ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+      { encoding: 'utf8' },
+    ).trim();
+
+  // A branch off main, with `files` committed on it. origin/main exists locally, the way a worktree has it.
+  const prepare = (files) => {
+    base = realpathSync(mkdtempSync(join(tmpdir(), 'pr-hot-')));
+    repo = join(base, 'repo');
+    remote = join(base, 'remote.git');
+    execFileSync('git', ['init', '--quiet', '--bare', remote]);
+    execFileSync('git', ['init', '--quiet', '--initial-branch=main', repo]);
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    writeFileSync(join(repo, '.gitignore'), '.work/\n');
+    mkdirSync(join(repo, '.github'));
+    writeFileSync(
+      join(repo, '.github/pipeline.json'),
+      JSON.stringify({ ci: 'fast', review: 'per-pr' }),
+    );
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'chore: base');
+    git('remote', 'add', 'origin', 'https://github.com/example/fivvi.git');
+    git('config', `url.${remote}.pushInsteadOf`, 'https://github.com/example/fivvi.git');
+    git('update-ref', 'refs/remotes/origin/main', 'main');
+    git('checkout', '--quiet', '-b', BRANCH);
+    for (const file of files) {
+      mkdirSync(join(repo, file, '..'), { recursive: true });
+      writeFileSync(join(repo, file), `${file}\n`);
+    }
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'feat(F031): hold a spot');
+  };
+  afterEach(() => rmSync(base, { recursive: true, force: true }));
+  after(() => gh.cleanup());
+
+  const pr = (number, files, { branch = 'feature/90-other', closing = [] } = {}) => ({
+    number,
+    title: `[F090] PR ${number}`,
+    headRefName: branch,
+    headRefOid: 'a'.repeat(40),
+    mergeable: 'MERGEABLE',
+    closingIssuesReferences: closing.map((n) => ({ number: n })),
+    files: files.map((path) => ({ path })),
+  });
+  const create = (openPrs, { existing = false, failing = [], pipeline } = {}) => {
+    if (pipeline) writeFileSync(join(repo, '.github/pipeline.json'), JSON.stringify(pipeline));
+    git('add', '.');
+    git('commit', '--quiet', '--allow-empty', '-m', 'chore: pipeline');
+    const result = spawnSync(join(repo, 'scripts/pr.sh'), ['create', '--no-check'], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: gh.env([
+        ...failing.map((match) => ({ match, out: '', status: 1 })),
+        { match: '^pr list (?!.*--head).*--state open', out: openPrs },
+        { match: '^pr list ', out: existing ? [{ number: 60 }] : [] },
+        { match: '^issue view 57 .*--json title', out: { title: '[F031] Hold a spot' } },
+        { match: '^issue view 57 ', out: { labels: [], subIssues: { totalCount: 0, nodes: [] } } },
+        { match: '^pr create ', out: 'https://github.com/example/fivvi/pull/60' },
+        { match: '^pr edit ', out: '' },
+        { match: '^pr view 60 ', out: { url: 'https://github.com/example/fivvi/pull/60' } },
+        { match: '^api repos/[^ ]+/pulls/60/files', out: [{ filename: 'x.ts' }] },
+        {
+          match: '^pr view 60 .*--json headRefName',
+          out: { headRefName: BRANCH, closingIssuesReferences: [], changedFiles: 1 },
+        },
+      ]),
+    });
+    return { ...result, pushed: git('ls-remote', remote).includes(BRANCH) };
+  };
+  const CONTRACT = 'packages/contract/openapi.json';
+  const MIGRATION = 'packages/database/migrations/0042_hold.sql';
+  const CLIENT = 'packages/contract/src/generated/client.ts';
+  const EN = 'packages/i18n/en.json';
+
+  it('AC10: names each other open PR that shares a hot file with the branch, and its files, and still pushes', () => {
+    prepare([CONTRACT, CLIENT, MIGRATION, 'apps/web/page.tsx']);
+    const result = create([
+      pr(61, [CONTRACT, CLIENT, 'apps/web/other.tsx']),
+      pr(62, [MIGRATION]),
+      pr(63, [EN]),
+      pr(64, ['apps/web/page.tsx']),
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /another open PR changes too/);
+    assert.match(result.stderr, new RegExp(`PR #61 .*: ${CONTRACT}, ${CLIENT}$`, 'm'));
+    assert.match(result.stderr, new RegExp(`PR #62 .*: ${MIGRATION}$`, 'm'));
+    assert.doesNotMatch(result.stderr, /PR #63/);
+    assert.doesNotMatch(result.stderr, /PR #64/);
+    assert.doesNotMatch(result.stderr, /other\.tsx/);
+    assert.equal(result.pushed, true);
+    assert.match(result.stdout, /PR https:\/\/github.com\/example\/fivvi\/pull\/60/);
+  });
+
+  it('warns for the sorted lists and catalogs too', () => {
+    prepare([EN, 'packages/domain/src/index.ts']);
+    const result = create([pr(61, [EN]), pr(62, ['packages/domain/src/index.ts'])]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, new RegExp(`PR #61 .*: ${EN}$`, 'm'));
+    assert.match(result.stderr, /PR #62 .*: packages\/domain\/src\/index\.ts$/m);
+  });
+
+  it('says nothing when no other open PR shares a hot file, or the shared file is no hot one', () => {
+    prepare([CONTRACT, 'apps/web/page.tsx']);
+    const result = create([pr(61, ['apps/web/page.tsx']), pr(62, [MIGRATION])]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /another open PR/);
+    assert.equal(result.pushed, true);
+  });
+
+  it('reads no open PRs from GitHub for a branch without a hot file, and says nothing even when the read would fail', () => {
+    prepare(['apps/web/page.tsx']);
+    const before = gh.calls().length;
+    const result = create([pr(61, [CONTRACT])], {
+      failing: ['^pr list (?!.*--head).*--state open'],
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /open PRs|another open PR/);
+    const listsOfOpenPrs = gh
+      .calls()
+      .slice(before)
+      .filter(
+        (call) => call.args[0] === 'pr' && call.args[1] === 'list' && !call.args.includes('--head'),
+      );
+    assert.deepEqual(listsOfOpenPrs, []);
+    assert.equal(result.pushed, true);
+  });
+
+  it('warns and pushes when the hot files of the branch cannot be worked out', () => {
+    prepare([CONTRACT]);
+    writeFileSync(join(repo, 'scripts/hot-files.mjs'), 'process.exit(1);\n');
+    const result = create([pr(61, [CONTRACT])]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /integer expression/);
+    assert.match(result.stderr, /could not check this branch for hot files/);
+    assert.match(result.stderr, /The push goes on/);
+    assert.equal(result.pushed, true);
+  });
+
+  it('does not count the branch’s own PR, or a PR of the same ticket', () => {
+    prepare([CONTRACT]);
+    const result = create(
+      [
+        pr(60, [CONTRACT], { branch: BRANCH }),
+        pr(65, [CONTRACT], { closing: [57] }),
+        pr(66, [CONTRACT], { branch: 'chore/57-hold-a-spot-again' }),
+      ],
+      { existing: true },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /another open PR/);
+  });
+
+  it('does not count the other PRs of the slice', () => {
+    prepare([CONTRACT]);
+    mkdirSync(join(repo, '.work/57'), { recursive: true });
+    writeFileSync(join(repo, '.work/57/slice'), '57\n58\n');
+    const result = create([pr(65, [CONTRACT], { closing: [58] }), pr(61, [CONTRACT])]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /PR #65/);
+    assert.match(result.stderr, /PR #61 /);
+  });
+
+  it('warns and pushes when the open PRs cannot be read', () => {
+    prepare([CONTRACT]);
+    const result = create([pr(61, [CONTRACT])], {
+      failing: ['^pr list (?!.*--head).*--state open'],
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /could not read the open PRs/);
+    assert.match(result.stderr, /The push goes on/);
+    assert.equal(result.pushed, true);
+  });
+
+  it('AC12: warns the same with ci: full and review: per-pr, and with review: split', () => {
+    for (const pipeline of [
+      { ci: 'full', review: 'per-pr' },
+      { ci: 'fast', review: 'split' },
+    ]) {
+      prepare([CONTRACT]);
+      try {
+        const result = create([pr(61, [CONTRACT])], { pipeline });
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(
+          result.stderr,
+          new RegExp(`PR #61 .*: ${CONTRACT}$`, 'm'),
+          JSON.stringify(pipeline),
+        );
+        assert.equal(result.pushed, true);
+      } finally {
+        rmSync(base, { recursive: true, force: true });
+      }
+    }
   });
 });

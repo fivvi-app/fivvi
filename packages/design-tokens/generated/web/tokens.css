@@ -18,6 +18,7 @@
   --th-color-accent-fill: #e6164a;
   --th-color-accent-on: #ffffff;
   --th-color-accent-text: #c8103d;
+  --th-color-accent-tint: #fcdee6;
   --th-color-accent-gradient-top: #b90f3a;
   --th-color-accent-gradient-bottom: #9c0b2f;
   --th-color-action-primary-bg: #e6164a;
@@ -227,6 +228,7 @@
     --th-color-accent-fill: #e6164a;
     --th-color-accent-on: #ffffff;
     --th-color-accent-text: #ff6482;
+    --th-color-accent-tint: #381b24;
     --th-color-accent-gradient-top: #b90f3a;
     --th-color-accent-gradient-bottom: #9c0b2f;
     --th-color-action-primary-bg: #e6164a;

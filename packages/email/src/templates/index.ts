@@ -10,6 +10,7 @@ export {
   privateSessionMovedEmail,
 } from './private-session-moved.tsx';
 export { type SignInEmailProps, signInEmail } from './sign-in.tsx';
+export { type SubstitutionEmailProps, substitutionEmail } from './substitution.tsx';
 export {
   type TrainerChangeEmailDate,
   type TrainerChangeEmailProps,

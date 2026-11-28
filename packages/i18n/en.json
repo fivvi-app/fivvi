@@ -214,6 +214,7 @@
       "edit": "Edit",
       "noBookings": "No bookings yet.",
       "seriesLine": "Part of: {name}, every {weekday} {time}",
+      "substitute": "{substitute} (covering for {original})",
       "timeRange": "{date}, {start}–{end}",
       "trainerLabel": "{Word}",
       "typeAndLevel": "{type} · {level}",
@@ -365,6 +366,30 @@
     "home": "Home",
     "label": "Main navigation",
     "profile": "Profile"
+  },
+  "clientWeb": {
+    "language": {
+      "enName": "English",
+      "enShort": "EN",
+      "error": "Your language wasn't saved. Try again.",
+      "label": "Language",
+      "nlName": "Nederlands",
+      "nlShort": "NL"
+    },
+    "noWorkspace": {
+      "haveLink": "Got the link? Open it and ask to join there."
+    },
+    "studios": {
+      "add": "Add a studio",
+      "addExplain": "Ask your studio for its Fivvi link, or scan the QR code at the front desk. You then ask to join. Once they approve you, the studio shows up here.",
+      "addHint": "With your studio's link or QR code",
+      "close": "Close",
+      "current": "Selected",
+      "done": "Done",
+      "switcher": "Studio: {name}",
+      "title": "My studios",
+      "yours": "Your studios"
+    }
   },
   "clients": {
     "add": "Add client",
@@ -555,6 +580,15 @@
       "preview": "Use code {code} to sign in to Fivvi.",
       "subject": "Your sign-in code for Fivvi",
       "validity": "The code and the sign-in link work for {minutes, plural, one {# minute} other {# minutes}}."
+    },
+    "substitution": {
+      "button": "View in Fivvi",
+      "intro": "You're covering for {original}: {class} at {workspace}.",
+      "introNoOriginal": "You're covering {class} at {workspace}.",
+      "preview": "You're covering {class} on {date} at {start}.",
+      "subject": "You're covering: {class} on {date}",
+      "when": "When: {date}, {start} to {end}",
+      "where": "Where: {location}"
     },
     "trainerChange": {
       "classDatesPreview": "{class} has a new {word} from {date}.",
@@ -806,6 +840,7 @@
     "columnTime": "Time",
     "columnType": "Type",
     "columnWorkspace": "Workspace",
+    "coveringFor": "Covering for {name}",
     "emptyDay": "No sessions on this day.",
     "emptyWeek": "No sessions this week.",
     "filterType": "Type",
@@ -823,6 +858,7 @@
     "showCancelled": "Show cancelled",
     "spokenJoin": "{first}, {next}",
     "spokenTime": "{start} to {end}",
+    "takenOverBy": "Taken over by {name}",
     "timeRange": "{start}–{end}",
     "title": "My calendar",
     "today": "Today",
@@ -869,6 +905,7 @@
     },
     "booked": "{booked}/{capacity} booked",
     "cancelled": "Cancelled",
+    "coveringFor": "Covering for {name}",
     "emptyNever": "You don't have any sessions yet. You'll see them here as soon as you're scheduled.",
     "emptyNext": "No sessions today. Your next session is on {date}.",
     "emptyToday": "No sessions today.",
@@ -879,6 +916,7 @@
     "spokenTime": "{start} to {end}",
     "summary": "{count, plural, one {# session} other {# sessions}} · {first}–{last}",
     "summaryNone": "No sessions",
+    "takenOverBy": "Taken over by {name}",
     "timeRange": "{start}–{end}",
     "title": "My day",
     "tomorrow": "Tomorrow: {count, plural, one {# session} other {# sessions}}, first at {time}",
@@ -908,6 +946,7 @@
   },
   "noAccess": {
     "body": "You don't have access to a workspace yet.",
+    "clientHint": "Are you a client? Use the Fivvi app.",
     "title": "No access yet"
   },
   "noPermission": {
@@ -948,6 +987,48 @@
   },
   "personal": {
     "timeZoneHint": "Times in Dutch time"
+  },
+  "privacyExport": {
+    "files": {
+      "accessLog": "the access log: who exported, deleted or restored which client",
+      "bookingLinks": "booking links (without the code)",
+      "classSeries": "weekly series of a class",
+      "clientBillingDetails": "the invoice details of a client",
+      "clients": "the client profile: name, email address and language",
+      "groupClasses": "classes",
+      "locations": "locations",
+      "organizations": "the workspace itself: name, URL name, language and time zone",
+      "paymentChargebacks": "reversals by the bank",
+      "paymentCustomers": "the client at the payment provider (a reference only)",
+      "paymentRefundStatusChanges": "the status history of refunds",
+      "paymentRefunds": "refunds",
+      "paymentStatusChanges": "the status history of payments",
+      "payments": "payments: amount, status and references",
+      "sessionParticipantStatusChanges": "the history of attendance for each spot",
+      "sessionParticipants": "spots in sessions and attendance",
+      "sessions": "sessions: time, who gives them, location and status",
+      "teamMembers": "the team: who has which role",
+      "trainerInvitations": "invitations to join the team",
+      "trainerProfiles": "who gives sessions, including people who have left the team",
+      "workspaceInvoiceDetails": "the invoice details of the workspace"
+    },
+    "readme": {
+      "conventionCsv": "- The CSV files are UTF-8 with a BOM and separated by commas, so Excel shows the accents correctly. Text that starts with = + - or @ gets an apostrophe in front, so a spreadsheet does not run it as a formula.",
+      "conventionEmpty": "- An empty field means no value.",
+      "conventionId": "- id and fields that end in _id: a unique number (UUID). A field such as client_id points to the record with that id in another file.",
+      "conventionLocal": "- Next to every time is a field with _local added: the same moment in the time zone of the workspace ({timeZone}), with its difference from UTC.",
+      "conventionMoney": "- Fields that end in _cents are amounts in euro cents.",
+      "conventionTime": "- Fields that end in _at are times in UTC, written like 2026-07-15T10:00:00.000Z.",
+      "conventionsHeading": "How to read the fields",
+      "created": "Made on {date} (UTC). The workspace time zone: {timeZone}.",
+      "dataJson": "all the data in one JSON file, a list for each kind of record",
+      "fieldsHeading": "Fields of each file (the columns of the CSV file)",
+      "filesHeading": "Files",
+      "introClient": "This ZIP holds everything {workspace} keeps in Fivvi about one client. Only the data of this workspace is in it.",
+      "introWorkspace": "This ZIP holds everything of the workspace {workspace} in Fivvi that the privacy registry lists.",
+      "records": "{count, plural, one {# record} other {# records}}",
+      "title": "Export data"
+    }
   },
   "profile": {
     "error": "Your workspaces couldn't be loaded.",
@@ -1109,6 +1190,7 @@
       "currently": "Currently: {name}",
       "doneClass": "{trainer} teaches {class} on {date}.",
       "donePrivate": "{trainer} is now the {word} of this session.",
+      "doneSubstitute": "{substitute} is covering for {original} on {date}.",
       "errors": {
         "cancelled": "This session is cancelled and can no longer be changed.",
         "changedBy": "This session was just changed by {name}.",
@@ -1124,6 +1206,8 @@
       "notifyClass": "Notify {count, plural, one {# participant} other {# participants}} by email",
       "notifyClient": "Notify {client} by email",
       "notifyClientNote": "{email} · {language}",
+      "notifySubstitute": "Email {trainer}",
+      "regularTrainer": "{name} (regular {word})",
       "scopeFollowing": "This and all following classes",
       "scopeLabel": "For",
       "scopeThis": "Only this class",
@@ -2102,6 +2186,7 @@
     "filterTrainers": "{Words}",
     "legendNeedsAction": "needs action",
     "legendScheduled": "scheduled",
+    "legendSubstitute": "substitute",
     "more": "+{count} more",
     "moreHint": "{count, plural, one {# more session} other {# more sessions}}, open the day",
     "move": "Move",
@@ -2128,6 +2213,7 @@
     "shortcutList": "T: today · ← →: previous or next · D, W, L: day, week or list · N: new",
     "shortcuts": "Keyboard shortcuts",
     "spokenBooked": "{booked} of {capacity} booked",
+    "substituteLabel": "{substitute} (covering for {original})",
     "title": "Calendar",
     "todayMark": "Today",
     "trainerLine": "{Word}: {name}",

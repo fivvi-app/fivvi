@@ -387,6 +387,9 @@ export async function updateSeriesDates(
         startsAt: fields.startsAt,
         endsAt: fields.endsAt,
         trainerProfileId: fields.trainerProfileId,
+        // A date that gets another trainer from its series is nobody's substitution any more (F024);
+        // one that keeps its own (the chosen date, changed in its time or capacity) stays one.
+        substituteForTrainerProfileId: sql`case when ${sessions.trainerProfileId} is not distinct from ${fields.trainerProfileId}::uuid then ${sessions.substituteForTrainerProfileId} end`,
         capacity: fields.capacity,
         level: fields.level,
         detachedFields: [...fields.detachedFields],

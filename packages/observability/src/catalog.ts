@@ -51,6 +51,19 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     scope: property.enum(['this', 'following']),
     kind: property.enum(['class', 'private']),
   },
+  // F024: an Owner substituted a trainer on one class date. The workspace ID and the platform only
+  // (the Owner's account UUID is the distinct ID): not the date, the class, the trainers, the
+  // email choice or who is replaced, no name, date or time.
+  trainer_substituted: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+  },
+  // F024: an Owner ended a substitution by choosing the regular trainer again. The same two
+  // properties and nothing else.
+  substitution_ended: {
+    workspace_id: property.uuid(),
+    platform: property.enum(['web', 'ios', 'android']),
+  },
   // F023: an Owner removed a trainer and handed over their future sessions. The workspace ID and
   // the platform only (the Owner's account UUID is the distinct ID): not the trainer taking over,
   // the sessions, the clients or their counts, no name, date or time.
@@ -223,6 +236,14 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   // the name.
   email_changed: {
     surface: property.enum(['web', 'ios', 'android']),
+  },
+  // E014: an Owner exported a client's data (`client`) or the whole workspace (`workspace`). The
+  // workspace ID, the kind and the platform only (the Owner's account UUID is the distinct ID): no
+  // client ID, name or email address, and nothing of what the file holds.
+  data_exported: {
+    workspace_id: property.uuid(),
+    kind: property.enum(['client', 'workspace']),
+    platform: property.enum(['web', 'ios', 'android']),
   },
   // F010: someone chose their interface language. The language and the surface only: the distinct
   // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no

@@ -28,11 +28,11 @@ describe('F002 where the signed-in home sends a person', () => {
     expect(pathOf(destination)).toBe('/welcome');
   });
 
-  it('AC5: no workspace and not allowed to create one: the no-access page, never TW-11', () => {
+  it('F030 AC5: no workspace and not allowed to create one: the client home, never TW-11', () => {
     const destination = destinationOf({ canCreateWorkspace: false, workspaces: [] });
 
-    expect(destination).toEqual({ to: 'no-access' });
-    expect(pathOf(destination)).toBe('/home');
+    expect(destination).toEqual({ to: 'client' });
+    expect(pathOf(destination)).toBe('/my');
   });
 
   it('AC4: one workspace: its home', () => {
